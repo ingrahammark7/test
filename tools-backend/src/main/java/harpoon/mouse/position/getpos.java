@@ -16,14 +16,16 @@ public class getpos {
 
 	public static void click(int x, int y) throws AWTException, InterruptedException {
 		Robot bot = new Robot();
-		bot.keyPress(KeyEvent.VK_E);
-		bot.keyPress(KeyEvent.VK_U);
-		bot.keyPress(KeyEvent.VK_A);
+		doPress(bot, KeyEvent.VK_E);
+		doPress(bot, KeyEvent.VK_U);
+		doPress(bot, KeyEvent.VK_A);
 		bot.mouseMove(x, y);
 		doclick(bot);
-		bot.keyPress(KeyEvent.VK_DOWN);
-		bot.keyPress(KeyEvent.VK_ENTER);
-		cli(bot, 653, 222);
+		doPress(bot, KeyEvent.VK_DOWN);
+		Thread.sleep(500);
+		cli(bot, 462, 362); // ok add ship
+		cli(bot, 420, 559); // select ship
+		cli(bot, 418, 969); // ok selected shipeua
 	}
 
 	public static void cli(Robot bot, int x, int y) throws InterruptedException {
@@ -31,9 +33,14 @@ public class getpos {
 		doclick(bot);
 	}
 
+	public static void doPress(Robot bot, int event) {
+		bot.keyPress(event);
+		bot.keyRelease(event);
+	}
+
 	public static void doclick(Robot bot) throws InterruptedException {
 		bot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-		Thread.sleep(500);
+		Thread.sleep(10);
 		bot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
 	}
 
