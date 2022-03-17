@@ -1,6 +1,7 @@
 package harpoon;
 
 import harpoon.mouse.position.getpos;
+import harpoon.mouse.position.aircraft.doaircraft;
 
 public class app {
 
@@ -12,7 +13,7 @@ public class app {
 			int y = getpos.top + (int) (Math.random() * (getpos.bottom - getpos.top));
 			Thread.sleep(10000);
 			getpos.getPos();
-			getpos.click(x, y);
+			doaircraft.doa();
 		}
 	}
 
