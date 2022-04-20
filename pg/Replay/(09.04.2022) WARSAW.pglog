@@ -1,0 +1,465 @@
+# 
+# Created by PG Forever, Version 1.02 (May 28 2012)
+set campaign 1 0 8
+setopt 1 1 1 100 0 100 0
+add reserve 98 86 9 10 8 "1st 7.5 leFk 16nA"
+add reserve 105 -1 26 10 8 "2nd 39 Wehr Inf"
+add reserve 105 -1 7 10 8 "3rd 39 Wehr Inf"
+add reserve 105 86 41 10 8 "4th 39 Wehr Inf"
+add reserve 105 86 30 10 8 "5th 39 Wehr Inf"
+add reserve 105 -1 38 10 8 "6th 39 Wehr Inf"
+add reserve 105 -1 21 10 8 "7th 39 Wehr Inf"
+add reserve 105 -1 0 10 8 "8th 39 Wehr Inf"
+add reserve 31 -1 9 10 8 "10th PzIA"
+add reserve 38 -1 54 10 8 "11th Pz 35(t)"
+add reserve 98 86 17 10 8 "12th 7.5 leFk 16nA"
+add reserve 98 86 48 10 8 "13th 7.5 leFk 16nA"
+add reserve 98 86 0 10 8 "14th 7.5 leFk 16nA"
+set prestige 0 649
+add outcome "MAJOR VICTORY" 7 0 ""
+add outcome "MINOR VICTORY" 1 0 ""
+add outcome "ALLIED VICTORY" -1 -1 ""
+load pg "002.pgscn" 941833140
+place 4 9
+place 3 9
+place 4 10
+place 4 11
+place 3 10
+place 4 12
+place 4 13
+place 4 14
+place 3 14
+place 3 13
+place 3 12
+place 3 11
+place 2 11
+endturn 941833140
+purchase 105 -1 8
+place 2 14
+purchase 1 -1 8
+place 3 13
+purchase 20 -1 8
+place 2 13
+purchase 20 -1 8
+place 2 14
+purchase 20 -1 8
+place 3 14
+select 4 13 0
+move 6 13
+attack 6 14 431075483
+select 4 12 0
+move 6 11
+select 4 10 0
+move 7 10
+attack 8 10 242107581
+select 4 14 0
+move 6 12
+select 3 14 0
+move 5 13
+attack 6 14 951038349
+select 3 13 0
+mount
+move 5 12
+select 3 12 0
+mount
+move 5 9
+select 3 11 0
+mount
+move 6 10
+select 4 11 0
+mount
+move 7 11
+select 2 11 0
+mount
+move 5 10
+select 3 10 0
+move 4 10
+select 4 9 0
+move 7 9
+attack 7 8 1395851869
+select 3 9 0
+move 4 9
+endturn -969218766
+select 18 5 1
+move 7 10
+attack 7 10 32323373
+select 9 7 0
+move 8 11
+attack 7 11 -349118871
+select 8 2 0
+move 7 2
+select 4 6 0
+move 5 4
+select 6 5 0
+move 9 3
+select 8 10 0
+move 8 12
+attack 7 11 710992357
+select 7 8 0
+replace 0
+select 6 14 0
+move 7 13
+attack 7 12 1230425303
+endturn -759747171
+select 5 13 0
+move 7 11
+attack 8 12 -1191851540
+select 3 13 1
+move 8 10
+attack 7 10 -1697524965
+select 2 14 1
+move 7 8
+attack 7 8 -1717416175
+select 2 13 1
+move 8 12
+attack 8 12 -1612503027
+select 3 14 1
+move 7 13
+attack 7 13 -1752022711
+select 2 14 0
+embark
+move 12 10
+select 7 12 0
+mount
+replace 0
+select 7 9 0
+attack 7 8 -1613850939
+move 9 7
+select 4 9 0
+move 7 9
+select 7 10 0
+mount
+move 10 8
+select 6 10 0
+move 8 8
+select 5 9 0
+move 9 8
+select 5 10 0
+move 9 9
+select 6 12 0
+move 7 8
+select 4 10 0
+move 7 10
+attack 8 11 -1387626749
+select 6 11 0
+move 8 9
+select 6 13 0
+move 6 14
+select 5 12 0
+move 6 10
+endturn -1841981036
+select 7 10 1
+move 12 8
+select 8 11 0
+move 8 10
+attack 9 9 1393369607
+select 5 4 0
+move 6 4
+select 9 3 0
+move 8 2
+purchase 124 -1 16
+place 8 4
+purchase 121 -1 16
+place 9 2
+purchase 121 -1 16
+place 9 3
+endturn -1363182559
+select 8 10 1
+move 18 5
+select 12 10 1
+move 18 5
+select 8 12 1
+move 17 5
+select 7 13 1
+move 11 5
+attack 11 5 -71582849
+select 7 8 1
+move 10 5
+attack 10 5 -1268583013
+select 10 8 0
+mount
+replace 0
+select 9 8 0
+move 8 7
+select 8 8 0
+move 7 6
+select 8 9 0
+attack 8 10 -1239425545
+move 10 7
+select 7 11 0
+attack 8 11 665118267
+move 9 8
+select 7 12 0
+move 9 11
+attack 9 10 1342500094
+select 6 14 0
+move 8 12
+select 7 10 0
+move 9 10
+attack 10 10 700366149
+select 7 9 0
+move 8 8
+select 6 10 0
+move 10 9
+select 9 9 0
+replace 0
+select 9 7 0
+replace 0
+select 7 8 0
+move 7 5
+endturn 1951605505
+select 10 5 0
+attack 10 7 561805760
+select 10 6 0
+attack 10 7 1174179115
+move 9 4
+select 11 5 0
+move 10 6
+attack 10 7 -912628654
+select 6 4 0
+move 6 3
+purchase 124 -1 16
+place 17 4
+purchase 121 -1 16
+place 19 3
+endturn -1736116930
+select 17 5 1
+move 18 4
+attack 18 4 1735800585
+select 18 5 1
+disembark 18 5 1576546437
+select 11 5 1
+move 19 3
+attack 19 3 1576546437
+select 10 5 1
+move 17 4
+attack 17 4 -446930367
+select 11 8 1
+move 9 3
+attack 9 3 891439165
+select 8 7 0
+mount
+attack 10 6 -919737913
+select 7 6 0
+mount
+attack 9 5 -113402013
+move 8 6
+select 9 8 0
+move 10 7
+attack 10 6 463817535
+select 9 7 0
+move 9 6
+attack 10 6 -1123533248
+select 10 8 0
+move 11 7
+select 10 9 0
+move 9 7
+select 9 9 0
+move 10 8
+select 9 10 0
+move 9 8
+select 9 11 0
+mount
+move 10 9
+select 8 12 0
+move 9 9
+select 8 8 0
+move 7 7
+select 7 5 0
+move 8 5
+endturn -266115638
+select 10 5 0
+attack 8 6 -937159323
+select 19 3 0
+attack 18 5 -90013220
+move 18 3
+select 10 6 0
+replace 0
+select 9 5 0
+attack 8 5 1202242613
+select 17 4 0
+move 17 3
+endturn 416823963
+select 10 8 0
+mount
+attack 10 6 -721413390
+select 10 7 0
+attack 10 6 362725854
+move 11 5
+select 11 7 0
+move 10 6
+attack 10 5 645762297
+select 19 3 1
+move 18 3
+attack 18 3 -194814883
+select 18 4 1
+attack 18 4 -1539116903
+move 19 4
+select 17 4 1
+move 18 4
+attack 18 4 1265373461
+select 18 5 0
+attack 18 4 47774161
+move 18 4
+select 8 6 0
+attack 8 4 583769692
+move 7 5
+select 8 7 0
+attack 9 5 1139783383
+move 8 6
+select 9 6 0
+attack 9 5 473914227
+move 11 6
+select 7 7 0
+move 8 7
+select 9 8 0
+move 9 6
+attack 9 5 -1238291076
+select 9 7 0
+mount
+attack 9 5 677508413
+mount
+move 7 6
+select 10 9 0
+mount
+move 10 7
+select 9 9 0
+replace 0
+select 8 5 0
+attack 9 5 -838698119
+move 10 5
+select 9 3 1
+attack 9 3 -1305121291
+purchase 20 -1 8
+place 3 13
+endturn 726327359
+select 9 3 0
+replace 0
+select 10 4 0
+replace 0
+select 9 4 0
+attack 10 5 43235846
+move 10 5
+select 17 3 0
+move 17 4
+endturn -1394778190
+select 19 4 1
+move 17 4
+attack 17 4 -435173459
+select 18 4 1
+move 8 3
+attack 8 3 32532201
+select 18 3 1
+move 9 2
+attack 9 2 1166926437
+select 18 4 0
+move 15 5
+select 8 6 0
+attack 10 5 -361925087
+move 9 5
+select 7 5 0
+attack 8 4 546348573
+move 8 6
+select 7 6 0
+mount
+move 7 5
+select 11 4 0
+attack 10 4 -690321740
+move 13 3
+select 11 5 0
+move 11 4
+attack 10 4 -568030724
+select 10 7 0
+move 11 5
+attack 10 5 -86553667
+select 10 6 0
+move 9 4
+attack 9 3 -205253777
+select 11 6 0
+move 10 5
+select 9 6 0
+replace 0
+select 9 9 0
+move 10 7
+select 8 7 0
+move 8 5
+select 10 8 0
+mount
+move 11 3
+attack 10 3 138303283
+select 3 13 1
+move 7 4
+select 9 3 1
+attack 9 3 -1545012349
+endturn -1800972547
+select 8 3 0
+attack 9 4 -1170027060
+select 9 3 0
+attack 10 5 1678116654
+endturn 1884361677
+select 11 4 0
+move 10 4
+attack 9 3 1943852892
+select 11 3 0
+mount
+attack 9 3 646314850
+move 10 3
+select 17 4 1
+move 8 4
+attack 8 4 1557304116
+select 8 3 1
+attack 8 3 -1455108608
+move 17 4
+select 7 4 1
+move 8 3
+attack 8 3 -1536889844
+select 7 5 0
+attack 8 4 -1728333480
+move 7 4
+select 8 5 0
+move 9 3
+attack 8 3 -1630191132
+select 8 6 0
+move 8 5
+select 10 5 0
+replace 0
+select 9 4 0
+move 8 4
+attack 8 3 -536477081
+select 9 5 0
+move 9 4
+select 9 6 0
+move 11 4
+select 11 5 0
+move 11 3
+select 10 7 0
+move 9 5
+select 15 5 0
+move 13 4
+select 9 3 1
+move 8 2
+attack 8 2 -1111172223
+select 13 3 0
+replace 0
+select 9 2 1
+move 17 5
+endturn -518628949
+select 9 2 0
+attack 9 3 1505099202
+move 8 3
+select 7 3 0
+attack 7 4 770830303
+select 8 2 0
+move 9 2
+attack 10 3 1211042144
+unselect
+unselect
+unselect
+unselect
+unselect
+unselect
+endturn -836834490
+select 9 4 0
+attack 8 3 -1910868751
+select 9 3 0
+move 8 3
