@@ -1,0 +1,260 @@
+# 
+# Created by PG Forever, Version 1.02 (May 28 2012)
+set campaign 1 0 8
+setopt 1 1 1 100 0 100 0
+set prestige 0 0
+add outcome "MAJOR VICTORY" 3 0 ""
+add outcome "MINOR VICTORY" 1 0 ""
+add outcome "ALLIED VICTORY" -1 -1 ""
+load pg "001.pgscn" 1997119031
+select 5 12 0
+move 8 14
+select 5 11 0
+move 8 13
+select 2 10 0
+move 1 7
+select 1 10 0
+move 2 8
+select 1 12 0
+mount
+move 1 8
+select 2 12 0
+move 2 9
+select 2 13 0
+move 1 9
+select 3 12 0
+mount
+move 2 10
+select 3 13 0
+move 7 13
+select 3 14 0
+move 4 12
+select 2 14 0
+mount
+move 7 12
+purchase 98 86 8
+place 3 12
+purchase 98 86 8
+place 2 12
+endturn 1906993149
+select 5 6 0
+move 6 7
+select 2 2 0
+move 4 3
+select 14 14 0
+move 12 13
+select 15 6 0
+move 13 6
+select 2 6 0
+move 6 8
+select 11 11 0
+move 12 8
+select 5 9 0
+move 3 12
+endturn 716004398
+select 7 13 0
+move 11 11
+attack 12 13 -1591426503
+select 8 13 0
+move 11 13
+attack 12 13 -1098668841
+select 8 14 0
+move 10 13
+select 7 12 0
+move 11 10
+select 4 12 0
+move 4 11
+attack 5 11 -994285197
+select 3 12 0
+mount
+move 2 7
+select 2 8 0
+move 2 5
+select 1 7 0
+move 1 4
+select 1 8 0
+move 2 2
+select 1 9 0
+move 3 4
+select 2 9 0
+move 2 4
+select 2 10 0
+move 1 5
+select 2 12 0
+mount
+move 2 6
+endturn 253590849
+select 4 3 0
+move 6 3
+select 13 6 0
+move 11 7
+purchase 124 -1 16
+place 11 2
+purchase 121 -1 16
+place 12 2
+endturn 534145792
+select 2 2 0
+move 9 2
+select 2 4 0
+move 6 2
+attack 6 3 -703636029
+select 3 4 0
+move 5 3
+attack 6 3 -1087838447
+select 2 5 0
+move 4 3
+select 1 4 0
+move 3 2
+select 1 5 0
+move 6 1
+select 2 6 0
+move 5 1
+select 2 7 0
+move 4 2
+select 4 11 0
+move 3 12
+select 11 12 0
+move 12 9
+attack 12 8 -1759832337
+select 11 10 0
+mount
+move 13 9
+attack 13 8 1103597119
+select 10 13 0
+move 11 10
+select 11 13 0
+move 12 11
+endturn -1526205006
+select 12 7 0
+move 13 8
+select 11 7 0
+move 12 7
+select 6 3 0
+move 7 3
+select 13 7 0
+replace 0
+endturn 258475437
+select 9 2 0
+mount
+move 11 3
+select 5 3 0
+move 10 2
+select 6 2 0
+move 10 1
+select 6 1 0
+move 11 4
+select 5 1 0
+move 10 4
+select 4 2 0
+move 10 3
+select 4 3 0
+move 7 2
+attack 7 3 -2072542788
+select 3 2 0
+move 6 2
+select 13 9 0
+attack 13 8 287912968
+move 14 9
+select 12 11 0
+move 13 9
+attack 13 8 2043417633
+select 12 9 0
+move 13 8
+attack 12 8 749551212
+select 11 10 0
+move 12 8
+attack 11 7 689661368
+select 3 12 0
+move 2 13
+endturn 16299511
+select 12 3 0
+attack 11 3 796334302
+select 12 2 0
+attack 10 3 -1239749928
+select 13 7 0
+attack 13 8 -497853596
+select 11 2 0
+attack 10 3 54857266
+unselect
+unselect
+unselect
+unselect
+unselect
+unselect
+unselect
+unselect
+unselect
+purchase 124 -1 16
+place 14 6
+purchase 124 -1 16
+place 14 7
+purchase 121 -1 16
+place 15 6
+endturn 1778090270
+select 12 8 0
+attack 13 7 333058921
+move 11 7
+select 13 9 0
+move 12 8
+attack 13 7 1769127214
+select 14 9 0
+replace 0
+select 13 8 0
+replace 0
+select 10 1 0
+move 11 1
+attack 12 2 253121973
+select 11 4 0
+mount
+attack 12 3 1385591921
+move 12 5
+select 10 4 0
+mount
+attack 12 3 -1479182483
+move 11 4
+select 9 3 0
+mount
+replace 0
+select 10 2 0
+move 12 4
+attack 12 3 546839209
+select 11 3 0
+attack 12 3 1566417083
+move 9 2
+select 7 2 0
+move 10 3
+attack 11 2 -995670044
+select 6 2 0
+move 9 1
+select 2 13 0
+upgrade 105 86
+endturn -1490082126
+select 12 3 0
+replace 0
+select 13 2 0
+replace 0
+select 12 7 0
+attack 11 7 83260077
+select 11 2 0
+attack 11 1 1718641129
+move 12 2
+endturn -2049823387
+select 12 4 0
+move 13 3
+attack 13 2 -890377580
+select 11 1 0
+move 12 1
+attack 13 1 1039208737
+select 12 5 0
+attack 12 3 186550557
+move 12 4
+select 11 4 0
+attack 12 3 -966504103
+select 9 1 0
+move 11 2
+attack 12 2 2097178069
+select 10 3 0
+move 11 3
+attack 12 3 -1305214454
+select 9 2 0
+move 12 3
