@@ -66,6 +66,12 @@
             <version>${rest.assured.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-webflux</artifactId>
+    <version>5.3.20</version>
+</dependency>
+        
     </dependencies>
     <build>
         <plugins>
