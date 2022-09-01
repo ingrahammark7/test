@@ -7,9 +7,8 @@ import java.awt.event.KeyEvent;
 
 public class App {
 	public static void main(String[] args) throws Exception {
-		log();
-		while (true) {
-			getpos();
+		for (int i = 0; i < 300; ++i) {
+			log();
 		}
 
 	}
@@ -31,7 +30,7 @@ public class App {
 		tools.dopress(bot, KeyEvent.VK_ENTER); // submit image
 		Thread.sleep(500);
 		tools.cli(bot, 1121, 298, 100);
-		Thread.sleep(2000);
+		Thread.sleep(90000);
 	}
 
 	public static void getpos() throws Exception {
