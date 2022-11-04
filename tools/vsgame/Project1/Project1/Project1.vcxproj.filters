@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\program">
+      <UniqueIdentifier>{4a75a381-ee30-44e2-837f-c26a9899c151}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\program\logic">
+      <UniqueIdentifier>{b991361f-6fe3-417a-8ced-bc6a29f3d655}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\program\logic\units">
+      <UniqueIdentifier>{adadf120-e0cc-483a-b7a7-3a244d82c2e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\program\logic\units\mounts">
+      <UniqueIdentifier>{96e33c3c-bf27-4076-ac0e-ce51f1791a56}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="app.cpp">
+      <Filter>Source Files\program</Filter>
+    </ClCompile>
+    <ClCompile Include="helper.cpp">
+      <Filter>Source Files\program\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="unit.cpp">
+      <Filter>Source Files\program\logic\units</Filter>
+    </ClCompile>
+    <ClCompile Include="mount.cpp">
+      <Filter>Source Files\program\logic\units\mounts</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="app.h">
+      <Filter>Source Files\program</Filter>
+    </ClInclude>
+    <ClInclude Include="helper.h">
+      <Filter>Source Files\program\logic</Filter>
+    </ClInclude>
+    <ClInclude Include="unit.h">
+      <Filter>Source Files\program\logic\units</Filter>
+    </ClInclude>
+    <ClInclude Include="mount.h">
+      <Filter>Source Files\program\logic\units\mounts</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
