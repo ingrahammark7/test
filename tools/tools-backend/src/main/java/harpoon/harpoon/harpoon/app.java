@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class app {
 	
-	public static void main(String[] args) {
+	public static void main(String args[]) {
 		ArrayList<Double> foo = new ArrayList<Double>();
 		double b = System.currentTimeMillis();
 		int siz = 20000000;
