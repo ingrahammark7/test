@@ -6,4 +6,16 @@
   <properties>
    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
  </properties>
+ 
+ <!-- https://mvnrepository.com/artifact/org.robotframework/robotframework -->
+
+	<dependencies>
+	<dependency>
+    <groupId>org.robotframework</groupId>
+    <artifactId>robotframework</artifactId>
+    <version>4.1.2</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/org.openjfx/javafx-swing -->
+
+	</dependencies>
 </project>
