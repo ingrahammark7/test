@@ -1,4 +1,4 @@
-package tools.chancaptcha;
+package tools.chancaptcha; 
 
 import java.awt.MouseInfo;
 import java.awt.Point;
