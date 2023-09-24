@@ -25,6 +25,8 @@ public class util {
   public static int lscrollx = ewx + 1697;
   public static int lscrolly = ewy + 1026;
   public static Robot r = roconstruct();
+  public static int startx = 353;
+  public static int starty = 49;
 
   private static Robot roconstruct() {
     try {
@@ -92,6 +94,21 @@ public class util {
   public static void pressKey(int p) {
     r.keyPress(p);
     r.keyRelease(p);
+  }
+
+  static int rk = 0;
+  static int ri = 0;
+
+  public static void iterate() throws Exception {
+    for (int i = 0; i < 100; ++i) {
+      for (int k = 0; k < 100; ++k) {
+        rk = k + starty;
+        ri = i + startx;
+        int col = importdata.getcolor(i, k);
+        setel(col);
+        click(rk, ri);
+      }
+    }
   }
 
 }
