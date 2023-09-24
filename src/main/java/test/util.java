@@ -3,6 +3,8 @@ package test;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.Robot;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 
 public class util {
 
@@ -22,6 +24,15 @@ public class util {
   public static int rscrolly = ewy + 39;
   public static int lscrollx = ewx + 1697;
   public static int lscrolly = ewy + 1026;
+  public static Robot r = roconstruct();
+
+  private static Robot roconstruct() {
+    try {
+      return new Robot();
+    } catch (Exception e) {
+    }
+    return null;
+  }
 
   public static void getpos() throws Exception {
     while (true) {
@@ -34,13 +45,55 @@ public class util {
   }
 
   public static void setel(int el) throws Exception {
-    Robot r = new Robot();
-
+    click(heightx, heighty);
+    for (int i = 0; i < 10; ++i) {
+      pressKey(KeyEvent.VK_BACK_SPACE);
+      pressKey(KeyEvent.VK_DELETE);
+    }
+    typenumber(el);
+    click(heightx - 20, heighty);
   }
 
-  public static void click(Robot r) {
-
+  public static void click(int x, int y) {
+    r.mouseMove(x, y);
+    r.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+    r.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
   }
+
+  public static void typenumber(int n) {
+    String temp = Integer.toString(n);
+    int[] ng = new int[temp.length()];
+    for (int i = 0; i < temp.length(); ++i) {
+      ng[i] = temp.charAt(i) - '0';
+      int f = ng[i];
+      if (f == 0)
+        pressKey(KeyEvent.VK_0);
+      if (f == 1)
+        pressKey(KeyEvent.VK_1);
+      if (f == 2)
+        pressKey(KeyEvent.VK_2);
+      if (f == 3)
+        pressKey(KeyEvent.VK_3);
+      if (f == 4)
+        pressKey(KeyEvent.VK_4);
+      if (f == 5)
+        pressKey(KeyEvent.VK_5);
+      if (f == 6)
+        pressKey(KeyEvent.VK_6);
+      if (f == 7)
+        pressKey(KeyEvent.VK_7);
+      if (f == 8)
+        pressKey(KeyEvent.VK_8);
+      if (f == 9)
+        pressKey(KeyEvent.VK_9);
+    }
+  }
+
+  public static void pressKey(int p) {
+    r.keyPress(p);
+    r.keyRelease(p);
+  }
+
 }
 
 

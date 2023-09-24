@@ -20,7 +20,6 @@ public class importdata {
   public static void importing() throws Exception {
     File f = new File("img.jpg");
     load(f);
-    System.out.println(getcolor(100, 100));
   }
 
   public static int getcolor(int x, int y) {
