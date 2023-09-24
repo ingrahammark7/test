@@ -31,11 +31,6 @@ public class util {
       System.out.println("x " + x + " y " + y);
     }
   }
-  // window corner x 150 y 52
-  // flatten left 142 452
-  // flatten right 207 452
-  // height entry 285 450
-  //
 
 
 
