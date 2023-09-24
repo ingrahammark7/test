@@ -29,7 +29,6 @@ public class importdata {
 
   public static int sumcolor(int in) {
     String s = Integer.toBinaryString(in);
-    System.out.println(s);
     s = s.substring(8); // alpha removed
     String red = s.substring(0, 8);
     String green = s.substring(8, 16);
@@ -56,7 +55,7 @@ public class importdata {
     maxy = r.getMaxY();
     int res = 0;
     int counter = 0;
-    for (int i = 0; i < maxx / 10; ++i) {
+    for (int i = 0; i < maxx; ++i) {
       for (int k = 0; k < maxy; ++k) {
         res = bufferedImage.getRGB(i, k);
         ff.put(counter, res);

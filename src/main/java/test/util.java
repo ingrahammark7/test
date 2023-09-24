@@ -48,8 +48,10 @@ public class util {
 
   public static void setel(int el) throws Exception {
     click(heightx, heighty);
+    click(heightx, heighty);
     for (int i = 0; i < 10; ++i) {
       pressKey(KeyEvent.VK_BACK_SPACE);
+      Thread.sleep(10);
       pressKey(KeyEvent.VK_DELETE);
     }
     typenumber(el);
@@ -58,8 +60,8 @@ public class util {
 
   public static void click(int x, int y) {
     r.mouseMove(x, y);
-    r.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-    r.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+    r.mousePress(InputEvent.BUTTON1_MASK);
+    r.mouseRelease(InputEvent.BUTTON1_MASK);
   }
 
   public static void typenumber(int n) {
@@ -100,14 +102,17 @@ public class util {
   static int ri = 0;
 
   public static void iterate() throws Exception {
-    for (int i = 0; i < 100; ++i) {
-      for (int k = 0; k < 100; ++k) {
-        rk = k + starty;
-        ri = i + startx;
+    for (int i = 0; i < importdata.maxx; ++i) {
+      Thread.sleep(1000);
+      for (int k = 0; k < importdata.maxy; ++k) {
+        rk = k + startx;
+        ri = i + starty;
         int col = importdata.getcolor(i, k);
         setel(col);
         click(rk, ri);
       }
+      if (i % 1000 == 0)
+        Thread.sleep(5000);
     }
   }
 
