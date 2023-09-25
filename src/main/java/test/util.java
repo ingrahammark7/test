@@ -58,13 +58,17 @@ public class util {
     click(heightx - 20, heighty);
   }
 
-  public static void click(int x, int y) {
+  public static void click(int x, int y) throws InterruptedException {
+    Thread.sleep(10);
     r.mouseMove(x, y);
+    Thread.sleep(10);
     r.mousePress(InputEvent.BUTTON1_MASK);
+    Thread.sleep(10);
     r.mouseRelease(InputEvent.BUTTON1_MASK);
+    Thread.sleep(10);
   }
 
-  public static void typenumber(int n) {
+  public static void typenumber(int n) throws Exception {
     String temp = Integer.toString(n);
     int[] ng = new int[temp.length()];
     for (int i = 0; i < temp.length(); ++i) {
@@ -93,9 +97,12 @@ public class util {
     }
   }
 
-  public static void pressKey(int p) {
+  public static void pressKey(int p) throws Exception {
+    Thread.sleep(10);
     r.keyPress(p);
+    Thread.sleep(10);
     r.keyRelease(p);
+    Thread.sleep(10);
   }
 
   static int rk = 0;
@@ -103,7 +110,6 @@ public class util {
 
   public static void iterate() throws Exception {
     for (int i = 0; i < importdata.maxx; ++i) {
-      Thread.sleep(1000);
       for (int k = 0; k < importdata.maxy; ++k) {
         rk = k + startx;
         ri = i + starty;
