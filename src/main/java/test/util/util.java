@@ -1,4 +1,4 @@
-package test;
+package test.util;
 
 import java.awt.MouseInfo;
 import java.awt.Point;
@@ -8,10 +8,8 @@ import java.awt.event.KeyEvent;
 
 public class util {
 
-  public static int wx = 150;
-  public static int wy = 52;
-  public static int flattenwx = 5;// top left corner of height window
-  public static int flattenwy = 35;
+  public static int flattenwx = 4;// top left corner of height window
+  public static int flattenwy = 51;
   public static int flx = flattenwx + 21;
   public static int fly = flattenwy + 89;
   public static int frx = flx + 65;
@@ -25,8 +23,8 @@ public class util {
   public static int lscrollx = ewx + 1697;
   public static int lscrolly = ewy + 1026;
   public static Robot r = roconstruct();
-  public static int startx = 353;
-  public static int starty = 49;
+  public static int startx = 354;
+  public static int starty = 51;
 
   private static Robot roconstruct() {
     try {
@@ -38,6 +36,8 @@ public class util {
 
   public static void getpos() throws Exception {
     while (true) {
+      if (IsKeyPressed.iswpressed())
+        System.exit(0);
       Thread.sleep(1000);
       Point p = MouseInfo.getPointerInfo().getLocation();
       int x = p.x;
@@ -49,9 +49,9 @@ public class util {
   public static void setel(int el) throws Exception {
     click(heightx, heighty);
     click(heightx, heighty);
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 20; ++i) {
       pressKey(KeyEvent.VK_BACK_SPACE);
-      Thread.sleep(10);
+      Thread.sleep(1);
       pressKey(KeyEvent.VK_DELETE);
     }
     typenumber(el);
@@ -59,13 +59,12 @@ public class util {
   }
 
   public static void click(int x, int y) throws InterruptedException {
-    Thread.sleep(10);
     r.mouseMove(x, y);
-    Thread.sleep(10);
+    Thread.sleep(1);
     r.mousePress(InputEvent.BUTTON1_MASK);
-    Thread.sleep(10);
+    Thread.sleep(1);
     r.mouseRelease(InputEvent.BUTTON1_MASK);
-    Thread.sleep(10);
+    Thread.sleep(1);
   }
 
   public static void typenumber(int n) throws Exception {
@@ -98,19 +97,20 @@ public class util {
   }
 
   public static void pressKey(int p) throws Exception {
-    Thread.sleep(10);
     r.keyPress(p);
-    Thread.sleep(10);
+    Thread.sleep(1);
     r.keyRelease(p);
-    Thread.sleep(10);
+    Thread.sleep(1);
   }
 
   static int rk = 0;
   static int ri = 0;
 
   public static void iterate() throws Exception {
-    for (int i = 0; i < importdata.maxx; ++i) {
-      for (int k = 0; k < importdata.maxy; ++k) {
+    for (int i = 0; i < importdata.maxx / 2; ++i) {
+      for (int k = 0; k < importdata.maxy / 3; ++k) {
+        if (IsKeyPressed.iswpressed())
+          System.exit(0);
         rk = k + startx;
         ri = i + starty;
         int col = importdata.getcolor(i, k);

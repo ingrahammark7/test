@@ -1,4 +1,4 @@
-package test;
+package test.util;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
