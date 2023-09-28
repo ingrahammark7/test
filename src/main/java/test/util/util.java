@@ -8,8 +8,8 @@ import java.awt.event.KeyEvent;
 
 public class util {
 
-  public static int flattenwx = 4;// top left corner of height window
-  public static int flattenwy = 51;
+  public static int flattenwx = 1715;// top left corner of height window
+  public static int flattenwy = 774;
   public static int flx = flattenwx + 21;
   public static int fly = flattenwy + 89;
   public static int frx = flx + 65;
@@ -23,8 +23,8 @@ public class util {
   public static int lscrollx = ewx + 1697;
   public static int lscrolly = ewy + 1026;
   public static Robot r = roconstruct();
-  public static int startx = 354;
-  public static int starty = 51;
+  public static int startx = 9;
+  public static int starty = 49;
 
   private static Robot roconstruct() {
     try {
