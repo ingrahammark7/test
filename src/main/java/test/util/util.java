@@ -8,8 +8,8 @@ import java.awt.event.KeyEvent;
 
 public class util {
 
-  public static int flattenwx = 1715;// top left corner of height window
-  public static int flattenwy = 774;
+  public static int flattenwx = 1711;// top left corner of height window
+  public static int flattenwy = 742;
   public static int flx = flattenwx + 21;
   public static int fly = flattenwy + 89;
   public static int frx = flx + 65;
@@ -51,14 +51,13 @@ public class util {
     click(heightx, heighty);
     for (int i = 0; i < 20; ++i) {
       pressKey(KeyEvent.VK_BACK_SPACE);
-      Thread.sleep(1);
       pressKey(KeyEvent.VK_DELETE);
     }
     typenumber(el);
     click(heightx - 20, heighty);
   }
 
-  public static void click(int x, int y) throws InterruptedException {
+  public static void click(int x, int y) throws Exception {
     r.mouseMove(x, y);
     Thread.sleep(1);
     r.mousePress(InputEvent.BUTTON1_MASK);
@@ -97,6 +96,7 @@ public class util {
   }
 
   public static void pressKey(int p) throws Exception {
+    Thread.sleep(1);
     r.keyPress(p);
     Thread.sleep(1);
     r.keyRelease(p);
@@ -107,18 +107,16 @@ public class util {
   static int ri = 0;
 
   public static void iterate() throws Exception {
-    for (int i = 0; i < importdata.maxx / 2; ++i) {
-      for (int k = 0; k < importdata.maxy / 3; ++k) {
-        if (IsKeyPressed.iswpressed())
-          System.exit(0);
+    for (int i = 0; i < importdata.maxx / 1000; ++i) {
+      if (IsKeyPressed.iswpressed())
+        System.exit(0);
+      for (int k = 0; k < importdata.maxy / 1000; ++k) {
         rk = k + startx;
         ri = i + starty;
         int col = importdata.getcolor(i, k);
         setel(col);
         click(rk, ri);
       }
-      if (i % 1000 == 0)
-        Thread.sleep(5000);
     }
   }
 
