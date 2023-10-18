@@ -1,4 +1,4 @@
-package test.util;
+package test.sb.util;
 
 import java.io.File;
 import java.util.Scanner;

@@ -1,4 +1,4 @@
-package test.util;
+package test.sb.util;
 
 import java.awt.MouseInfo;
 import java.awt.Point;
