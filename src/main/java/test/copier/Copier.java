@@ -11,35 +11,73 @@ import java.io.OutputStream;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 
 public class Copier {
 
   public static String p1 = "D:\\2023\\foo\\";
   public static String p2 = "C:\\Users\\a\\Documents\\files\\";
   public static String p3 = "t4xph68cjydb1.jpg";
+  public static ArrayList<String> allfiles = new ArrayList<String>();
 
   public static void dof() throws Exception {
     walk(p2);
+    for (String s : allfiles) {
+      doFile(s);
+    }
   }
 
-  public static void doFile(String copyf, String copiedf) {
+  public static int countperiods(String in) {
+    char someChar = '.';
+    int count = 0;
+    for (int i = 0; i < in.length(); ++i) {
+      if (in.charAt(i) == someChar) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  public static void doFile(String copyf) {
     try {
-      System.out.println("here");
-      File copy = new File(p2 + copyf);
-      File copied = new File(p1 + copiedf);
+      System.out.println("copying " + copyf);
+      File copy = new File(copyf);
+      String temp = copyf.replace("\\", "\\");
+      temp = temp.replace(p2, "");
+      if (countperiods(temp) > 1) {
+        System.out.println("too many periods");
+        return;
+      }
+      String copiedto = temp;
+      System.out.println(copiedto);
+      File copied = new File(p1 + copiedto);
       InputStream in = new BufferedInputStream(new FileInputStream(copy));
+      System.out.println("input opened");
+      if (!copied.getParentFile().exists()) {
+        System.out.println("making dir");
+        copied.getParentFile().mkdirs();
+      }
       OutputStream out = new BufferedOutputStream(new FileOutputStream(copied));
+      System.out.println("output opened");
       byte[] buffer = new byte[1024];
       int lengthRead;
+      System.out.println("beginning read");
       while ((lengthRead = in.read(buffer)) > 0) {
+        System.out.println("writing buffer");
         out.write(buffer, 0, lengthRead);
+        System.out.println("done writing");
         out.flush();
+        System.out.println("flushing");
       } ;
+      System.out.println("here ending");
       in.close();
+      System.out.println("in close");
       out.close();
+      System.out.println("out close");
     } catch (Exception e) {
       System.out.println("fail");
       e.printStackTrace();
+      System.exit(0);
     }
   }
 
@@ -54,6 +92,7 @@ public class Copier {
         System.out.println("path " + f.getAbsolutePath());
       } else {
         System.out.println("File: " + f.getAbsoluteFile());
+        allfiles.add(f.getAbsolutePath());
       }
     }
   }
