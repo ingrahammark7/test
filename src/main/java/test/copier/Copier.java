@@ -19,6 +19,7 @@ public class Copier {
   public static String p2 = "C:\\Users\\a\\Documents\\files\\";
   public static String p3 = "t4xph68cjydb1.jpg";
   public static ArrayList<String> allfiles = new ArrayList<String>();
+  public static int copcount = 0;
 
   public static void dof() throws Exception {
     walk(p2);
@@ -38,6 +39,16 @@ public class Copier {
     return count;
   }
 
+  public static String doperiods(String in) {
+    String[] str = in.split(".");
+    String ext = str[str.length - 1];
+    String without = in.replace(ext, "");
+    without = without.replace(".", "");
+    in = without + "." + ext;
+    return in;
+
+  }
+
   public static void doFile(String copyf) {
     try {
       System.out.println("copying " + copyf);
@@ -46,7 +57,7 @@ public class Copier {
       temp = temp.replace(p2, "");
       if (countperiods(temp) > 1) {
         System.out.println("too many periods");
-        return;
+        temp = doperiods(temp);
       }
       String copiedto = temp;
       System.out.println(copiedto);
@@ -57,9 +68,12 @@ public class Copier {
         System.out.println("making dir");
         copied.getParentFile().mkdirs();
       }
+      int total = allfiles.size();
+      copcount += 1;
+      System.out.println("count is " + copcount + " of " + total);
       OutputStream out = new BufferedOutputStream(new FileOutputStream(copied));
       System.out.println("output opened");
-      byte[] buffer = new byte[1024];
+      byte[] buffer = new byte[1000000000];
       int lengthRead;
       System.out.println("beginning read");
       while ((lengthRead = in.read(buffer)) > 0) {
