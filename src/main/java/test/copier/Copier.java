@@ -41,6 +41,8 @@ public class Copier {
 
   public static String doperiods(String in) {
     String[] str = in.split(".");
+    if (str.length == 0)
+      return in;
     String ext = str[str.length - 1];
     String without = in.replace(ext, "");
     without = without.replace(".", "");
