@@ -1,21 +1,8 @@
 package test.copier;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import org.apache.http.client.utils.URIBuilder;
+import test.sb.util.util;
 
 public class Copier {
 
@@ -27,90 +14,58 @@ public class Copier {
   public static int pages = 430;
   public static int offset = increment * pages;
   public static String p4 = p3 + offset;
+  public static int addressx = 461;
+  public static int addressy = 60;
+  public static int emptyx = 269;
+  public static int emptyy = 284;
+  public static ArrayList<String> urllist = new ArrayList<String>();
+  public static String base = "https://vk.com/";
+  public static int pdfx = 944;
+  public static int pdfy = 642;
 
-
-  public static void dof() {
+  public static void dof() throws Exception {
     try {
-      URIBuilder builder = new URIBuilder();
-      builder.setScheme("http");
-      builder.setHost("vk.com");
-      builder.setPath("/wall-200782618");
-      builder.addParameter("offset", String.valueOf(offset));
-      URL url = builder.build().toURL();
-      HttpURLConnection con = (HttpURLConnection) url.openConnection();
-      con.setRequestMethod("GET");
-      Map<String, String> parameters = new HashMap<String, String>();
-      con.setDoOutput(true);
-      DataOutputStream out = new DataOutputStream(con.getOutputStream());
-      out.writeBytes(getParamsString(parameters));
-      out.flush();
-      out.close();
-
-      con.setConnectTimeout(5000);
-      con.setReadTimeout(5000);
-      con.disconnect();
-      con = (HttpURLConnection) url.openConnection();
-      con.setInstanceFollowRedirects(false);
-      int status = con.getResponseCode();
-      if (status == HttpURLConnection.HTTP_MOVED_TEMP
-          || status == HttpURLConnection.HTTP_MOVED_PERM) {
-        URL newUrl = url;
-        con = (HttpURLConnection) newUrl.openConnection();
-      }
-      System.out.println("url " + url.toString());
-      BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-      String inputLine;
-      StringBuffer content = new StringBuffer();
-      while ((inputLine = in.readLine()) != null) {
-        content.append(inputLine);
-      }
-      in.close();
-      con.disconnect();
-      int status1 = con.getResponseCode();
-
-      Reader streamReader = null;
-
-      if (status1 > 299) {
-        streamReader = new InputStreamReader(con.getInputStream());
-      } else {
-        streamReader = new InputStreamReader(con.getInputStream());
-      }
-      System.out.println(streamReader.toString());
-      StringBuilder sb = new StringBuilder();
-      sb.append(con.getResponseCode()).append(" ").append(con.getResponseMessage()).append("\n");
-      Set<Entry<String, List<String>>> f = con.getHeaderFields().entrySet();
-      Iterator<Entry<String, List<String>>> en = f.iterator();
-      while (en.hasNext()) {
-        Entry<String, List<String>> e = en.next();
-        String r = e.getKey();
-        System.out.println(r);
-        List<String> vs = e.getValue();
-        Iterator<String> i = vs.iterator();
-        while (i.hasNext()) {
-          String res = i.next();
-          System.out.println(res);
-        }
+      for (int i = (pages * increment) - increment; i > 0; i = i - increment) {
+        runs(p3 + i);
       }
     } catch (Exception e) {
       e.printStackTrace();
-      System.exit(0);
     }
   }
 
-  public static String getParamsString(Map<String, String> params)
-      throws UnsupportedEncodingException {
-    StringBuilder result = new StringBuilder();
+  public static void runs(String board) throws Exception {
+    util.click(addressx, addressy);
+    util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_A);
+    util.pressKey(KeyEvent.VK_DELETE);
+    util.setBoard(board);
+    util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_V);
+    util.pressKey(KeyEvent.VK_ENTER);
+    Thread.sleep(5000);
+    util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_U);
+    Thread.sleep(5000);
+    util.click(emptyx, emptyy);
+    util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_A);
+    Thread.sleep(100);
+    util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_C);
+    String result = util.getBoard();
+    geturls(result);
+  }
 
-    for (Map.Entry<String, String> entry : params.entrySet()) {
-      result.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
-      result.append("=");
-      result.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-      result.append("&");
+  public static void geturls(String res) throws Exception {
+    try {
+      String[] reps = res.split("/doc");
+      for (int i = 1; i < reps.length; ++i) {
+        String rr = reps[i].split("\"")[0];
+        rr = base + "/doc" + rr;
+        util.enterurl(addressx, addressy, rr);
+        util.click(pdfx, pdfy);
+        Thread.sleep(5000);
+      }
+      urllist.clear();
+    } catch (Exception e) {
+      e.printStackTrace();
     }
-
-    String resultString = result.toString();
-    return resultString.length() > 0 ? resultString.substring(0, resultString.length() - 1)
-        : resultString;
+    util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_F4);
   }
 
 }

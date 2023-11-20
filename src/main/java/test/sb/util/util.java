@@ -3,6 +3,9 @@ package test.sb.util;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.Robot;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 
@@ -60,9 +63,9 @@ public class util {
   public static void click(int x, int y) throws Exception {
     r.mouseMove(x, y);
     Thread.sleep(1);
-    r.mousePress(InputEvent.getMaskForButton(KeyEvent.BUTTON1_DOWN_MASK));
+    r.mousePress(InputEvent.getMaskForButton(1));
     Thread.sleep(1);
-    r.mouseRelease(InputEvent.getMaskForButton(KeyEvent.BUTTON1_DOWN_MASK));
+    r.mouseRelease(InputEvent.getMaskForButton(1));
     Thread.sleep(1);
   }
 
@@ -103,6 +106,16 @@ public class util {
     Thread.sleep(1);
   }
 
+  public static void combo(int key1, int key2) throws Exception {
+    Thread.sleep(100);
+    r.keyPress(key1);
+    r.keyPress(key2);
+    Thread.sleep(100);
+    r.keyRelease(key1);
+    r.keyRelease(key2);
+    Thread.sleep(100);
+  }
+
   static int rk = 0;
   static int ri = 0;
 
@@ -118,6 +131,27 @@ public class util {
         click(rk, ri);
       }
     }
+  }
+
+  public static String getBoard() throws Exception {
+    return (String) Toolkit.getDefaultToolkit().getSystemClipboard()
+        .getData(DataFlavor.stringFlavor);
+  }
+
+  public static void setBoard(String in) {
+    StringSelection sel = new StringSelection(in);
+    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(sel, sel);
+  }
+
+  public static void enterurl(int addressx, int addressy, String url) throws Exception {
+    util.click(addressx, addressy);
+    util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_A);
+    util.pressKey(KeyEvent.VK_DELETE);
+    util.setBoard(url);
+    util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_V);
+    util.pressKey(KeyEvent.VK_ENTER);
+    Thread.sleep(5000);
+
   }
 
 }
