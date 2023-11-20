@@ -53,10 +53,11 @@ public class Copier {
 
   public static void geturls(String res) throws Exception {
     try {
+      res.replaceAll("dist/web/docs", "");
       String[] reps = res.split("/doc");
       for (int i = 1; i < reps.length; ++i) {
         String rr = reps[i].split("\"")[0];
-        rr = base + "/doc" + rr;
+        rr = base + "doc" + rr;
         util.enterurl(addressx, addressy, rr);
         util.click(pdfx, pdfy);
         Thread.sleep(5000);
