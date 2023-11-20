@@ -11,7 +11,7 @@ public class Copier {
   public static String p3 = "https://vk.com/wall-200782618?offset=";
   public static ArrayList<String> allfiles = new ArrayList<String>();
   public static int increment = 20;
-  public static int pages = 430;
+  public static int pages = 424;
   public static int offset = increment * pages;
   public static String p4 = p3 + offset;
   public static int addressx = 461;
