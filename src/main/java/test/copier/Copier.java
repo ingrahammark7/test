@@ -46,8 +46,6 @@ public class Copier {
       out.flush();
       out.close();
 
-      con.setRequestProperty("Content-Type", "application/json");
-
       con.setConnectTimeout(5000);
       con.setReadTimeout(5000);
       con.disconnect();
@@ -59,6 +57,7 @@ public class Copier {
         URL newUrl = url;
         con = (HttpURLConnection) newUrl.openConnection();
       }
+      System.out.println("url " + url.toString());
       BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
       String inputLine;
       StringBuffer content = new StringBuffer();
@@ -72,14 +71,13 @@ public class Copier {
       Reader streamReader = null;
 
       if (status1 > 299) {
-        streamReader = new InputStreamReader(con.getErrorStream());
+        streamReader = new InputStreamReader(con.getInputStream());
       } else {
         streamReader = new InputStreamReader(con.getInputStream());
       }
       System.out.println(streamReader.toString());
       StringBuilder sb = new StringBuilder();
       sb.append(con.getResponseCode()).append(" ").append(con.getResponseMessage()).append("\n");
-
       Set<Entry<String, List<String>>> f = con.getHeaderFields().entrySet();
       Iterator<Entry<String, List<String>>> en = f.iterator();
       while (en.hasNext()) {
