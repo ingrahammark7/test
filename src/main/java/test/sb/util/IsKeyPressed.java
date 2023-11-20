@@ -18,6 +18,7 @@ public class IsKeyPressed {
         String foo = myr.nextLine();
         System.out.println(foo);
       }
+      myr.close();
     } catch (Exception e) {
       return wpressed;
     }

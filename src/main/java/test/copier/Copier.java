@@ -1,144 +1,118 @@
 package test.copier;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import org.apache.http.client.utils.URIBuilder;
 
 public class Copier {
 
   public static String p1 = "D:\\2023\\foo\\";
-  public static String p2 = "C:\\Users\\a\\Documents\\files\\";
-  public static String p3 = "t4xph68cjydb1.jpg";
+  public static String p2 = "C:\\Users\\a\\Downloads\\";
+  public static String p3 = "https://vk.com/wall-200782618?offset=";
   public static ArrayList<String> allfiles = new ArrayList<String>();
-  public static int copcount = 0;
+  public static int increment = 20;
+  public static int pages = 430;
+  public static int offset = increment * pages;
+  public static String p4 = p3 + offset;
 
-  public static void dof() throws Exception {
-    walk(p2);
-    for (String s : allfiles) {
-      doFile(s);
-    }
-  }
 
-  public static int countperiods(String in) {
-    char someChar = '.';
-    int count = 0;
-    for (int i = 0; i < in.length(); ++i) {
-      if (in.charAt(i) == someChar) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  public static String doperiods(String in) {
-    String[] str = in.split(".");
-    if (str.length == 0)
-      return in;
-    String ext = str[str.length - 1];
-    String without = in.replace(ext, "");
-    without = without.replace(".", "");
-    in = without + "." + ext;
-    return in;
-
-  }
-
-  public static void doFile(String copyf) {
+  public static void dof() {
     try {
-      System.out.println("copying " + copyf);
-      File copy = new File(copyf);
-      String temp = copyf.replace("\\", "\\");
-      temp = temp.replace(p2, "");
-      if (countperiods(temp) > 1) {
-        System.out.println("too many periods");
-        temp = doperiods(temp);
-      }
-      String copiedto = temp;
-      System.out.println(copiedto);
-      File copied = new File(p1 + copiedto);
-      InputStream in = new BufferedInputStream(new FileInputStream(copy));
-      System.out.println("input opened");
-      if (!copied.getParentFile().exists()) {
-        System.out.println("making dir");
-        copied.getParentFile().mkdirs();
-      }
-      int total = allfiles.size();
-      copcount += 1;
-      System.out.println("count is " + copcount + " of " + total);
-      OutputStream out = new BufferedOutputStream(new FileOutputStream(copied));
-      System.out.println("output opened");
-      byte[] buffer = new byte[1000000000];
-      int lengthRead;
-      System.out.println("beginning read");
-      while ((lengthRead = in.read(buffer)) > 0) {
-        System.out.println("writing buffer");
-        out.write(buffer, 0, lengthRead);
-        System.out.println("done writing");
-        out.flush();
-        System.out.println("flushing");
-      } ;
-      System.out.println("here ending");
-      in.close();
-      System.out.println("in close");
+      URIBuilder builder = new URIBuilder();
+      builder.setScheme("http");
+      builder.setHost("vk.com");
+      builder.setPath("/wall-200782618");
+      builder.addParameter("offset", String.valueOf(offset));
+      URL url = builder.build().toURL();
+      HttpURLConnection con = (HttpURLConnection) url.openConnection();
+      con.setRequestMethod("GET");
+      Map<String, String> parameters = new HashMap<String, String>();
+      con.setDoOutput(true);
+      DataOutputStream out = new DataOutputStream(con.getOutputStream());
+      out.writeBytes(getParamsString(parameters));
+      out.flush();
       out.close();
-      System.out.println("out close");
+
+      con.setRequestProperty("Content-Type", "application/json");
+
+      con.setConnectTimeout(5000);
+      con.setReadTimeout(5000);
+      con.disconnect();
+      con = (HttpURLConnection) url.openConnection();
+      con.setInstanceFollowRedirects(false);
+      int status = con.getResponseCode();
+      if (status == HttpURLConnection.HTTP_MOVED_TEMP
+          || status == HttpURLConnection.HTTP_MOVED_PERM) {
+        URL newUrl = url;
+        con = (HttpURLConnection) newUrl.openConnection();
+      }
+      BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+      String inputLine;
+      StringBuffer content = new StringBuffer();
+      while ((inputLine = in.readLine()) != null) {
+        content.append(inputLine);
+      }
+      in.close();
+      con.disconnect();
+      int status1 = con.getResponseCode();
+
+      Reader streamReader = null;
+
+      if (status1 > 299) {
+        streamReader = new InputStreamReader(con.getErrorStream());
+      } else {
+        streamReader = new InputStreamReader(con.getInputStream());
+      }
+      System.out.println(streamReader.toString());
+      StringBuilder sb = new StringBuilder();
+      sb.append(con.getResponseCode()).append(" ").append(con.getResponseMessage()).append("\n");
+
+      Set<Entry<String, List<String>>> f = con.getHeaderFields().entrySet();
+      Iterator<Entry<String, List<String>>> en = f.iterator();
+      while (en.hasNext()) {
+        Entry<String, List<String>> e = en.next();
+        String r = e.getKey();
+        System.out.println(r);
+        List<String> vs = e.getValue();
+        Iterator<String> i = vs.iterator();
+        while (i.hasNext()) {
+          String res = i.next();
+          System.out.println(res);
+        }
+      }
     } catch (Exception e) {
-      System.out.println("fail");
       e.printStackTrace();
       System.exit(0);
     }
   }
 
-  public static void walk(String path) {
-    File root = new File(path);
-    File[] list = root.listFiles();
-    if (list == null)
-      return;
-    for (File f : list) {
-      if (f.isDirectory()) {
-        walk(f.getAbsolutePath());
-        System.out.println("path " + f.getAbsolutePath());
-      } else {
-        System.out.println("File: " + f.getAbsoluteFile());
-        allfiles.add(f.getAbsolutePath());
-      }
+  public static String getParamsString(Map<String, String> params)
+      throws UnsupportedEncodingException {
+    StringBuilder result = new StringBuilder();
+
+    for (Map.Entry<String, String> entry : params.entrySet()) {
+      result.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
+      result.append("=");
+      result.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
+      result.append("&");
     }
-  }
 
-  public static void bar() throws NoSuchAlgorithmException, IOException {
-    System.out.println("Are identical: " + isIdentical("c:\\myfile.txt", "c:\\myfile2.txt"));
-  }
-
-  public static boolean isIdentical(String leftFile, String rightFile)
-      throws IOException, NoSuchAlgorithmException {
-    return md5(leftFile).equals(md5(rightFile));
-  }
-
-  private static String md5(String file) throws IOException, NoSuchAlgorithmException {
-    MessageDigest digest = MessageDigest.getInstance("MD5");
-    File f = new File(file);
-    InputStream is = new FileInputStream(f);
-    byte[] buffer = new byte[8192];
-    int read = 0;
-    try {
-      while ((read = is.read(buffer)) > 0) {
-        digest.update(buffer, 0, read);
-      }
-      byte[] md5sum = digest.digest();
-      BigInteger bigInt = new BigInteger(1, md5sum);
-      String output = bigInt.toString(16);
-      return output;
-    } finally {
-      is.close();
-    }
+    String resultString = result.toString();
+    return resultString.length() > 0 ? resultString.substring(0, resultString.length() - 1)
+        : resultString;
   }
 
 }

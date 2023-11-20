@@ -60,9 +60,9 @@ public class util {
   public static void click(int x, int y) throws Exception {
     r.mouseMove(x, y);
     Thread.sleep(1);
-    r.mousePress(InputEvent.BUTTON1_MASK);
+    r.mousePress(InputEvent.getMaskForButton(KeyEvent.BUTTON1_DOWN_MASK));
     Thread.sleep(1);
-    r.mouseRelease(InputEvent.BUTTON1_MASK);
+    r.mouseRelease(InputEvent.getMaskForButton(KeyEvent.BUTTON1_DOWN_MASK));
     Thread.sleep(1);
   }
 
