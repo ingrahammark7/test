@@ -2,7 +2,7 @@ package test.copier;
 
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
-import test.sb.util.util;
+import test.wndows.copier.sb.util.util;
 
 public class Copier {
 

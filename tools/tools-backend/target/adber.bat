@@ -1,0 +1,1 @@
+adb pull storage/sdcard0/Download e:\ge\garb\smalll5345\%TIME:~6,2%%TIME:~3,2%%TIME:~0,2%%date:~-4%%date:~4,2%%date:~0,2%

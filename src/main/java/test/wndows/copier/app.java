@@ -1,12 +1,12 @@
-package test;
+package test.wndows.copier;
 
-import test.copier.Copier;
+import test.wndows.copier.sb.util.SBmain;
 
 public class app {
 
   public static void main(String[] args) throws Exception {
 
-    Copier.dof();
+    SBmain.dof();
 
   }
 

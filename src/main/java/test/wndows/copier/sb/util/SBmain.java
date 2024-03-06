@@ -1,4 +1,4 @@
-package test.sb.util;
+package test.wndows.copier.sb.util;
 
 public class SBmain {
 
