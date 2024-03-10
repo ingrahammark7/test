@@ -8,7 +8,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 
 
 
-public class MainActivity {// extends AppCompatActivity {
+public class MainActivity {
 
   public static void main(String[] args) {
     DownloadWebsiteTask();
@@ -22,7 +22,6 @@ public class MainActivity {// extends AppCompatActivity {
       HttpResponse response = httpClient.execute(new HttpGet("https://www.example.com"));
       StatusLine statusLine = response.getStatusLine();
       statusLine.toString();
-      System.out.println("here");
       System.out.println(statusLine.toString());
       return;
     } catch (Exception e) {
