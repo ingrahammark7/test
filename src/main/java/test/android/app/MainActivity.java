@@ -1,39 +1,37 @@
 package test.android.app;
 
-import android.os.AsyncTask;
-import android.os.Bundle;
-import android.webkit.WebView;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClientBuilder;
 
 
 
 public class MainActivity {// extends AppCompatActivity {
 
-  private WebView webView;
-
-  protected void onCreate(Bundle savedInstanceState) {
-
-    new DownloadWebsiteTask().execute();
+  public static void main(String[] args) {
+    DownloadWebsiteTask();
   }
 
-  private class DownloadWebsiteTask extends AsyncTask<Void, Void, Boolean> {
 
-    @Override
-    protected Boolean doInBackground(Void... voids) {
-      try {
-        webView.loadUrl("https://example.com");
-        return true;
-      } catch (Exception e) {
-        e.printStackTrace();
-        return false;
-      }
+  public static void DownloadWebsiteTask() {
+
+    try {
+      HttpClient httpClient = HttpClientBuilder.create().build();
+      HttpResponse response = httpClient.execute(new HttpGet("https://www.example.com"));
+      StatusLine statusLine = response.getStatusLine();
+      statusLine.toString();
+      System.out.println("here");
+      System.out.println(statusLine.toString());
+      return;
+    } catch (Exception e) {
+      e.printStackTrace();
+      return;
     }
-
-    @Override
-    protected void onPostExecute(Boolean result) {
-
-    }
-
-
   }
+
+
+
 }
 
