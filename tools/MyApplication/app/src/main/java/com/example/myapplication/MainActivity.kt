@@ -80,8 +80,6 @@ fun appendfile(name:String, content:String){
     var foo = readfile(name)
     var sb = StringBuilder()
     sb.append(foo)
-    Log.d("foof",name)
-    Log.d("foof",sb.toString())
     writefile(name,sb.toString())
 }
 
@@ -91,20 +89,6 @@ fun readfile(name: String): String{
     file.appendText("foo")
     file.createNewFile()
     return FileInputStream(file).bufferedReader().use { it.readText() }
-}
-
-fun getoldpath(name:String): String{
-    var parts = name.split("/")
-    Log.d("startname",name)
-    var sb = StringBuilder()
-    var i = 0;
-    for(part in parts){
-        if(i == parts.size) continue
-        if(part.equals("")) continue
-        sb.append(part + "/")
-        i += 1
-    }
-    return sb.toString()
 }
 
 fun getfullfilename(name:String): String{
@@ -126,16 +110,12 @@ fun writefile(pp:String,name:String){
     var newname = pp1.split("//")[bar.size-1]
     var foo = StringBuilder()
     foo.append(pathf)
-    foo.append(pp1)
     Log.d("fooer",foo.toString())
-    var oldpath = getoldpath(foo.toString())
-    Log.d("oldapth",oldpath)
     Log.d("nane",newname)
-    val file = File(oldpath, newname)
+    val file = File(newname)
     Log.d("existfoo",newname)
-    Log.d("olde",oldpath)
-//    file.createNewFile()
- //   file.appendText(pp1)
+    file.createNewFile()
+    file.appendText(pp1+"\n")
 }
 
 fun sendGet(name: String ):String {
@@ -143,9 +123,7 @@ fun sendGet(name: String ):String {
     val url = URL(name)
     with(url.openConnection() as HttpURLConnection) {
         requestMethod = "GET"
-
         println("\nSent 'GET' request to URL : $url; Response Code : $responseCode")
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             inputStream.bufferedReader().use {
                 it.lines().forEach { line ->
