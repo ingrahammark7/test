@@ -7,48 +7,78 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.StrictMode
 import android.os.StrictMode.ThreadPolicy
+import android.util.Log
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import java.io.BufferedReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.regex.Pattern
 
 
 class MainActivity : ComponentActivity() {
+    var alreadyFile = "alreadydone.txt"
+    val urlPattern: Pattern = Pattern.compile(
+        "(?:^|[\\W])((ht|f)tp(s?):\\/\\/|www\\.)"
+                + "(([\\w\\-]+\\.){1,}?([\\w\\-.~]+\\/?)*"
+                + "[\\p{Alnum}.,%_=?&#\\-+()\\[\\]\\*$~@!:/{};']*)",
+        Pattern.CASE_INSENSITIVE or Pattern.MULTILINE or Pattern.DOTALL)
+    fun alreadyDone() {
+        var alreadyDone = mutableListOf<String>("foo","bar")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val policy = ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
         super.onCreate(savedInstanceState)
-        setContentView(MyView (this));
+
+        setContent {
+            var f = sendGet("https://www.google.com/")
+            val listOfUrls = getHyperLinks(f)
+            val pathf = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            Log.d("filepath",pathf.absolutePath)
+            //storage/emulated/0/Downloads
+            for(i in listOfUrls){
+        }
+        }
     }
 
+    fun getHyperLinks(s: String): List<String> {
+        val urlList = mutableListOf<String>()
+        val urlMatcher = urlPattern.matcher(s)
+        var matchStart: Int
+        var matchEnd: Int
+        while (urlMatcher.find()) {
+            matchStart = urlMatcher.start(1)
+            matchEnd = urlMatcher.end()
+            val url = s.substring(matchStart, matchEnd)
+            urlList.add(url)
+        }
+        return urlList
+    }
+}
+
+fun alreadyVisit(name: String){
 
 }
 
+fun appendfile(name:String, content:String){
+    var foo = readfile(name)
+    var sb = StringBuilder()
+    sb.append(foo)
+    writefile(name,sb.toString())
+}
 
-class MyView(context: Context?) : View(context) {
-    var paint: Paint? = null
+fun readfile(name: String): String{
+    return ""
+}
 
-    init {
-        paint = Paint()
-    }
+fun writefile(name:String, content:String){
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        val x = width
-        val y = height
-        val radius: Int
-        radius = 100
-        paint!!.style = Paint.Style.FILL
-        paint!!.color = Color.WHITE
-        canvas.drawPaint(paint!!)
-        // Use Color.parseColor to define HTML colors
-        paint!!.color = Color.parseColor("#CD5C5C")
-        canvas.drawCircle((x / 2).toFloat(), (y / 2).toFloat(), radius.toFloat(), paint!!)
-    }
 }
 
 fun sendGet(name: String ):String {
