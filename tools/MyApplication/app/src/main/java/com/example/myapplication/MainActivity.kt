@@ -1,89 +1,54 @@
 package com.example.myapplication
 
-import android.R.attr.action
-import android.R.id
-import android.content.Intent
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.os.Build
 import android.os.Bundle
-import android.os.CountDownTimer
 import android.os.StrictMode
 import android.os.StrictMode.ThreadPolicy
 import android.view.View
-import android.widget.Button
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.Text
-import androidx.compose.ui.input.key.Key.Companion.Calendar
 import java.io.BufferedReader
 import java.net.HttpURLConnection
 import java.net.URL
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val policy = ThreadPolicy.Builder().permitAll().build()
+        StrictMode.setThreadPolicy(policy)
         super.onCreate(savedInstanceState)
-        printDifferenceDateForHours()
-        setContent {
-            val policy = ThreadPolicy.Builder().permitAll().build()
-            StrictMode.setThreadPolicy(policy)
-            var foo = sendGet("https://www.google.com/")
-            Text(foo)
-            foo = sendGet("https://www.facebook.com/")
-            Text(foo)
-        }
+        setContentView(MyView (this));
     }
+
+
 }
 
 
-private var Int.text: String
-    get() {
-        return "0"
+class MyView(context: Context?) : View(context) {
+    var paint: Paint? = null
+
+    init {
+        paint = Paint()
     }
-    set(foo: String){
 
-     }
-private lateinit var countDownTimer: CountDownTimer
-
-fun printDifferenceDateForHours() {
-
-    val currentTime = java.util.Calendar.getInstance().time
-    val endDateDay = "03/02/2020 21:00:00"
-    val format1 = SimpleDateFormat("dd/MM/yyyy hh:mm:ss", Locale.getDefault())
-    val endDate = format1.parse(endDateDay)
-
-    val txt_timeleft = 0
-    //milliseconds
-    var different = endDate.time - currentTime.time
-    countDownTimer = object : CountDownTimer(different, 1000) {
-
-        override fun onTick(millisUntilFinished: Long) {
-            var diff = millisUntilFinished
-            val secondsInMilli: Long = 1000
-            val minutesInMilli = secondsInMilli * 60
-            val hoursInMilli = minutesInMilli * 60
-            val daysInMilli = hoursInMilli * 24
-
-            val elapsedDays = diff / daysInMilli
-            diff %= daysInMilli
-
-            val elapsedHours = diff / hoursInMilli
-            diff %= hoursInMilli
-
-            val elapsedMinutes = diff / minutesInMilli
-            diff %= minutesInMilli
-
-            val elapsedSeconds = diff / secondsInMilli
-
-            txt_timeleft.text = "$elapsedDays days $elapsedHours hs $elapsedMinutes min $elapsedSeconds sec"
-        }
-
-        override fun onFinish() {
-            txt_timeleft.text = "done!"
-        }
-    }.start()
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        val x = width
+        val y = height
+        val radius: Int
+        radius = 100
+        paint!!.style = Paint.Style.FILL
+        paint!!.color = Color.WHITE
+        canvas.drawPaint(paint!!)
+        // Use Color.parseColor to define HTML colors
+        paint!!.color = Color.parseColor("#CD5C5C")
+        canvas.drawCircle((x / 2).toFloat(), (y / 2).toFloat(), radius.toFloat(), paint!!)
+    }
 }
 
 fun sendGet(name: String ):String {
