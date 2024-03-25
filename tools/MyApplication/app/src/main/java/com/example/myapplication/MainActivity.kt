@@ -19,7 +19,7 @@ import java.util.regex.Pattern
 
 
 var alreadyFile = "alreadydone.txt"
-var basepath = "https:/www.google.com/"
+var basepath = "https://www.facebook.com/"
 var nextfile = basepath
 var pathf = File("")
 
@@ -44,10 +44,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    fun checkf(name:String): Boolean{
+        var filesd = readfile(alreadyFile)
+        var sb = StringBuilder()
+        sb.append(name)
+        sb.append("!")
+        if(filesd.contains(sb.toString())) return true
+        return false
+    }
+
     fun looper(){
         while(true) {
-            var filesd = readfile(alreadyFile)
-            if(filesd.contains(nextfile)) continue
+            if(checkf(nextfile)) continue
             if(!nextfile.contains(basepath)) continue
             var f = sendGet(basepath)
             val listOfUrls = getHyperLinks(f)
@@ -80,13 +88,16 @@ fun appendfile(name:String, content:String){
     var foo = readfile(name)
     var sb = StringBuilder()
     sb.append(foo)
-    writefile(name,sb.toString())
+    var sb1 = StringBuilder()
+    sb1.append(pathf)
+    sb1.append("/")
+    sb1.append(name)
+    var filef = File(sb1.toString())
+    filef.appendText(content)
 }
 
 fun readfile(name: String): String{
     val file = File(pathf, name)
-    Log.d("ffer",file.toString())
-    file.appendText("foo")
     file.createNewFile()
     return FileInputStream(file).bufferedReader().use { it.readText() }
 }
@@ -100,20 +111,12 @@ fun getfullfilename(name:String): String{
 }
 
 fun writefile(pp:String,name:String){
-    //name is data
-    //p is path
-    Log.d("initialname",name)
-    Log.d("pper1",pp)
     var pp1 = getfullfilename(pp)
-    Log.d("pper2",pp1)
     var bar = pp1.split("//")
     var newname = pp1.split("//")[bar.size-1]
     var foo = StringBuilder()
     foo.append(pathf)
-    Log.d("fooer",foo.toString())
-    Log.d("nane",newname)
     val file = File(newname)
-    Log.d("existfoo",newname)
     file.createNewFile()
     file.appendText(pp1+"\n")
 }
@@ -143,6 +146,7 @@ fun sendGet(name: String ):String {
         }
     }
     System.gc()
-    appendfile(alreadyFile,name+"\n")
+    Log.d("foof",name)
+    appendfile(alreadyFile,name+"!\n")
     return sb.toString()
 }
