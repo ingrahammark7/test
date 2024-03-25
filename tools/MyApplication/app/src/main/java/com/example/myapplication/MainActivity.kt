@@ -1,18 +1,23 @@
 package com.example.myapplication
 
-import android.app.DownloadManager
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StrictMode
 import android.os.StrictMode.ThreadPolicy
-import android.util.Log
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.net.toUri
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.IOException
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.regex.Pattern
@@ -24,6 +29,7 @@ var nextfile = basepath
 var pathf = File("")
 
 class MainActivity : ComponentActivity() {
+
     val urlPattern: Pattern = Pattern.compile(
         "(?:^|[\\W])((ht|f)tp(s?):\\/\\/|www\\.)"
                 + "(([\\w\\-]+\\.){1,}?([\\w\\-.~]+\\/?)*"
@@ -34,10 +40,15 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         val policy = ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
         super.onCreate(savedInstanceState)
         setContent {
+            if (!Environment.isExternalStorageManager()) {
+                val intent: Intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                startActivity(intent)
+            }
             pathf =
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             looper()
@@ -55,14 +66,21 @@ class MainActivity : ComponentActivity() {
 
     fun looper(){
         while(true) {
-            if(checkf(nextfile)) continue
-            if(!nextfile.contains(basepath)) continue
-            var f = sendGet(basepath)
-            val listOfUrls = getHyperLinks(f)
-            for (i in listOfUrls) {
-            }
+            filer(nextfile)
             break
         }
+    }
+
+    fun filer(nexter:String){
+        if(checkf(nexter)) return
+        if(!nexter.contains(basepath)) return
+        var f = sendGet(basepath)
+        val listOfUrls = getHyperLinks(f)
+        for (i in listOfUrls) {
+
+            filer(i)
+        }
+
     }
 
     fun getHyperLinks(s: String): List<String> {
@@ -78,10 +96,6 @@ class MainActivity : ComponentActivity() {
         }
         return urlList
     }
-}
-
-fun alreadyVisit(name: String){
-    writefile(alreadyFile,name)
 }
 
 fun appendfile(name:String, content:String){
@@ -112,13 +126,16 @@ fun getfullfilename(name:String): String{
 
 fun writefile(pp:String,name:String){
     var pp1 = getfullfilename(pp)
-    var bar = pp1.split("//")
-    var newname = pp1.split("//")[bar.size-1]
-    var foo = StringBuilder()
-    foo.append(pathf)
-    val file = File(newname)
-    file.createNewFile()
-    file.appendText(pp1+"\n")
+    var file = File(pp1)
+    var tempst = file.toString().replace(":","")
+    tempst = tempst.plus("/file")
+    var file2 = File(tempst)
+    file2.mkdirs()
+    file2.delete()
+   file2.createNewFile()
+        val outputStream: OutputStream = FileOutputStream(file2.toString())
+        outputStream.write(name.toByteArray())
+        outputStream.close()
 }
 
 fun sendGet(name: String ):String {
@@ -144,9 +161,9 @@ fun sendGet(name: String ):String {
             reader.close()
 
         }
+        writefile(name,sb.toString())
     }
     System.gc()
-    Log.d("foof",name)
-    appendfile(alreadyFile,name+"!\n")
+    //appendfile(alreadyFile,name+"!\n")
     return sb.toString()
 }
