@@ -10,7 +10,11 @@ public class SBmain {
   public static void dof() throws Exception {
     try {
       ArrayList<String> foof = new ArrayList<String>();
-      foof.add("https://www.pixiv.net/en/artworks/100121241\n");
+      String ssf = fileutil.read("in.txt");
+      String[] ff = ssf.split("\n");
+      for (int i = 0; i < ff.length; ++i) {
+        foof.add(ff[i]);
+      }
       for (int i = 0; i < foof.size(); ++i) {
         String s = webutil.doreq(foof.get(i));
         String[] ss = s.split("\"authorId\":\"");
