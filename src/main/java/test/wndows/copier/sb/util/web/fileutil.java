@@ -9,7 +9,7 @@ public class fileutil {
 
   public static void write(String s) throws Exception {
     String str = s;
-    BufferedWriter writer = new BufferedWriter(new FileWriter("foo.txt"));
+    BufferedWriter writer = new BufferedWriter(new FileWriter("foo.txt", true));
     writer.write(str);
     writer.close();
   }
