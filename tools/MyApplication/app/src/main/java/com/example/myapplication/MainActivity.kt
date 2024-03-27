@@ -9,10 +9,13 @@ import android.os.Environment
 import android.os.StrictMode
 import android.os.StrictMode.ThreadPolicy
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.net.toUri
 import java.io.BufferedReader
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -20,6 +23,8 @@ import java.io.IOException
 import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.regex.Pattern
 
 
@@ -27,9 +32,9 @@ var alreadyFile = "alreadydone.txt"
 var basepath = "https://www.facebook.com/"
 var nextfile = basepath
 var pathf = File("")
+var acceptablepaths = ArrayList<String>()
 
 class MainActivity : ComponentActivity() {
-
     val urlPattern: Pattern = Pattern.compile(
         "(?:^|[\\W])((ht|f)tp(s?):\\/\\/|www\\.)"
                 + "(([\\w\\-]+\\.){1,}?([\\w\\-.~]+\\/?)*"
@@ -40,7 +45,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
+        acceptablepaths.add("cdn")
         val policy = ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
         super.onCreate(savedInstanceState)
@@ -67,17 +72,22 @@ class MainActivity : ComponentActivity() {
     fun looper(){
         while(true) {
             filer(nextfile)
-            break
         }
+    }
+
+    fun checkpath(nexter: String): Boolean{
+        for(i in acceptablepaths){
+            if(nexter.contains(i)) return true
+        }
+        return false
     }
 
     fun filer(nexter:String){
         if(checkf(nexter)) return
-        if(!nexter.contains(basepath)) return
-        var f = sendGet(basepath)
+        if(!checkpath(nexter)) return
+        var f = sendGet(nexter)
         val listOfUrls = getHyperLinks(f)
         for (i in listOfUrls) {
-
             filer(i)
         }
 
@@ -124,46 +134,31 @@ fun getfullfilename(name:String): String{
     return sb.toString()
 }
 
-fun writefile(pp:String,name:String){
+fun writefile(pp:String,name:ByteArrayOutputStream) {
     var pp1 = getfullfilename(pp)
     var file = File(pp1)
-    var tempst = file.toString().replace(":","")
+    var tempst = file.toString().replace(":", "")
+    var temper = File(tempst)
     tempst = tempst.plus("/file")
     var file2 = File(tempst)
-    file2.mkdirs()
-    file2.delete()
-   file2.createNewFile()
-        val outputStream: OutputStream = FileOutputStream(file2.toString())
-        outputStream.write(name.toByteArray())
-        outputStream.close()
+    temper.mkdirs()
+    Log.d("made", temper.toString())
+    file2.createNewFile()
+    file2.appendBytes(name.toByteArray())
 }
 
 fun sendGet(name: String ):String {
-    val sb = StringBuilder()
+    var sb = ByteArrayOutputStream()
     val url = URL(name)
     with(url.openConnection() as HttpURLConnection) {
         requestMethod = "GET"
         println("\nSent 'GET' request to URL : $url; Response Code : $responseCode")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            inputStream.bufferedReader().use {
-                it.lines().forEach { line ->
-                    println(line)
-                    sb.append(line)
-                }
-            }
-        } else {
-            val reader: BufferedReader = inputStream.bufferedReader()
-            var line: String? = reader.readLine()
-            while (line != null) {
-                System.out.println(line)
-                line = reader.readLine()
-            }
-            reader.close()
-
+            inputStream.use {
+                it.copyTo(sb)
         }
-        writefile(name,sb.toString())
+        writefile(name,sb)
     }
     System.gc()
-    //appendfile(alreadyFile,name+"!\n")
+    appendfile(alreadyFile,name+"!\n")
     return sb.toString()
 }
