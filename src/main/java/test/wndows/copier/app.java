@@ -45,6 +45,7 @@ public class app {
   }
 
   public static void direr(String craw1, String crawp, String direr) throws Exception {
+    System.gc();
     String temper = tempdir + craw1 + ".txt";
     SBmain.doer("adb shell ls " + direr + " >" + temper);
     String res = fileutil.read(temper);
@@ -53,11 +54,11 @@ public class app {
         continue;
       dofile(direr, ss, crawp);
     }
+    fileutil.delete(temper);
   }
 
   public static void dofile(String direr, String ss, String crawp) throws Exception {
-    SBmain.doer("adb pull " + direr + ss + " >" + crawp);
-    SBmain.doer("adb shell rm -r " + direr + ss);
+    SBmain.doer("adb pull " + direr + ss + " >" + crawp + " && adb shell rm -r " + direr + ss);
   }
 
   public static boolean checkiflib(String ss) {
