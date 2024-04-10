@@ -6,10 +6,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class SBmain implements Runnable {
@@ -27,45 +23,46 @@ public class SBmain implements Runnable {
     new BufferedReader(new InputStreamReader(inputStream)).lines().forEach(consumer);
   }
 
-  public static void doer() throws Exception {
+  public static List<String> builderc(String command, List<String> in) {
+    String[] fs = command.split(" ");
+    for (int i = 0; i < fs.length; ++i) {
+      in.add(fs[i]);
+    }
+    return in;
+  }
+
+  public static void doer(String c2) throws Exception {
     List<String> commands = new ArrayList<String>();
     commands.add("cmd.exe");
-    commands.add("dir");
+    commands.add("/C");
+    commands = builderc(c2, commands);
     ProcessBuilder pb = new ProcessBuilder(commands);
     pb.directory(new File("c:/windows/system32/"));
     pb.redirectErrorStream(true);
     Process process = pb.start();
     StringBuilder out = new StringBuilder();
     BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
-    String line = "", previous = "";
+    String line = null, previous = null;
+    System.out.println("here");
     while ((line = br.readLine()) != null) {
       if (line.equals(previous)) {
+        System.out.println("ff34");
         previous = line;
         out.append(line).append('\n');
         System.out.println(line);
+        System.out.println("ff");
       }
-      if (process.waitFor() == 0) {
+      if (process.isAlive()) {
         System.out.println("suces");
+        System.out.println(out.toString());
         System.exit(0);
       }
+      System.out.println("ff2");
+      System.out.println("ff4");
       System.out.println(commands);
       System.out.println(out.toString());
       System.exit(0);
     }
-  }
-
-  public static void do2() throws Exception {
-    Process process;
-    String[] f = new String[1];
-    f[0] = "C";
-    process = Runtime.getRuntime().exec("cmd.exe", f);
-    Consumer<String> dis = a -> System.out.println(a);
-    SBmain streamGobbler = new SBmain(process.getInputStream(), dis);
-    ExecutorService executorService = Executors.newFixedThreadPool(10);
-    Future<?> future = executorService.submit(streamGobbler);
-    executorService.execute(streamGobbler);
-    future.get(10, TimeUnit.SECONDS);
-    executorService.shutdown();
   }
 
 }

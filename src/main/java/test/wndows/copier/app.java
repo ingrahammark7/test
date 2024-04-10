@@ -6,7 +6,7 @@ public class app {
 
   public static void main(String[] args) throws Exception {
 
-    SBmain.doer();
+    SBmain.doer("dir > c:/games/f.txt");
 
   }
 
