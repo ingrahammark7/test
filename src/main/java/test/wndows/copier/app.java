@@ -36,12 +36,42 @@ public class app {
     String craw1 = s + newcr;
     String crawp = craw1 + "/file.txt";
     fileutil.makedir(crawp);
+    String direr = "sdcard/Documents/";
+    direr(craw1, crawp, direr);
+    direr = "sdcard/Downloads/";
+    direr(craw1, crawp, direr);
+    direr = "sdcard/DCIM/";
+    direr(craw1, crawp, direr);
+  }
+
+  public static void direr(String craw1, String crawp, String direr) throws Exception {
     String temper = tempdir + craw1 + ".txt";
-    SBmain.doer("adb shell ls sdcard/Documents/ >" + temper);
+    SBmain.doer("adb shell ls " + direr + " >" + temper);
     String res = fileutil.read(temper);
     for (String ss : res.split("\n")) {
-      SBmain.doer("adb pull sdcard/Documents/" + ss + " >" + crawp);
+      if (checkiflib(ss))
+        continue;
+      dofile(direr, ss, crawp);
     }
+  }
+
+  public static void dofile(String direr, String ss, String crawp) throws Exception {
+    SBmain.doer("adb pull " + direr + ss + " >" + crawp);
+    SBmain.doer("adb shell rm -r " + direr + ss);
+  }
+
+  public static boolean checkiflib(String ss) {
+    ss = ss.split(".")[0];
+    if (ss.length() > 7)
+      return false;
+    if (ss.length() < 6)
+      return false;
+    for (char s : ss.toCharArray()) {
+      if (Character.isDigit(s))
+        continue;
+      return false;
+    }
+    return true;
   }
 
 }
