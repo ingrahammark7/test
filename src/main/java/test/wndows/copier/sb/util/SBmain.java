@@ -43,25 +43,17 @@ public class SBmain implements Runnable {
     StringBuilder out = new StringBuilder();
     BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
     String line = null, previous = null;
-    System.out.println("here");
     while ((line = br.readLine()) != null) {
       if (line.equals(previous)) {
-        System.out.println("ff34");
         previous = line;
         out.append(line).append('\n');
         System.out.println(line);
-        System.out.println("ff");
       }
       if (process.isAlive()) {
-        System.out.println("suces");
         System.out.println(out.toString());
-        System.exit(0);
       }
-      System.out.println("ff2");
-      System.out.println("ff4");
       System.out.println(commands);
       System.out.println(out.toString());
-      System.exit(0);
     }
   }
 

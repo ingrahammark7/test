@@ -2,6 +2,7 @@ package test.wndows.copier.sb.util.web;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 
@@ -23,6 +24,12 @@ public class fileutil {
     }
     readre.close();
     return String.valueOf(content);
+  }
+
+  public static void delete(String s) {
+    s = s.replace(" ", "");
+    File f = new File(s);
+    f.delete();
   }
 
 }
