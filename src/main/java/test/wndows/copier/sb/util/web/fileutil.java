@@ -9,6 +9,7 @@ import java.io.FileWriter;
 public class fileutil {
 
   public static void write(String s) throws Exception {
+    s = s.replace(" ", "");
     String str = s;
     BufferedWriter writer = new BufferedWriter(new FileWriter("foo.txt", true));
     writer.write(str);
@@ -16,6 +17,7 @@ public class fileutil {
   }
 
   public static String read(String s) throws Exception {
+    s = s.replace(" ", "");
     BufferedReader readre = new BufferedReader(new FileReader(s));
     StringBuilder content = new StringBuilder();
     int nextChar;
@@ -24,6 +26,12 @@ public class fileutil {
     }
     readre.close();
     return String.valueOf(content);
+  }
+
+  public static void makedir(String s) {
+    s = s.replace(" ", "");
+    File f = new File(s);
+    f.mkdirs();
   }
 
   public static void delete(String s) {
