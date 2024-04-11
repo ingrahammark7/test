@@ -6,12 +6,13 @@ import test.wndows.copier.sb.util.web.fileutil;
 
 public class app {
 
-  public static String tempdir = "C:/Games/";
+  public static String tempdir = "C:\\Users\\a\\Documents\\GitHub\\test\\tools\\";
   public static String temp = " " + tempdir + "f.txt";
   public static String storedir = "E:/ge/garb/smalll5345/crawls/";
   public static String newcr = String.valueOf(System.currentTimeMillis());
   public static String tempfile = " >" + temp;
   public static ArrayList<String> devices = new ArrayList<String>();
+  public static String foffer = tempdir + "foof.bat";
 
   public static void main(String[] args) throws Exception {
     fileutil.delete(temp);
@@ -34,22 +35,25 @@ public class app {
 
   public static void pulldevice(String s) throws Exception {
     String craw1 = s + newcr;
+    String device = s;
     String crawp = storedir + craw1 + "/";
     fileutil.makedir(crawp);
     String direr = "sdcard/Documents/";
-    direr(craw1, crawp, direr);
+    direr(craw1, crawp, direr, device);
     direr = "sdcard/Downloads/";
-    direr(craw1, crawp, direr);
+    direr(craw1, crawp, direr, device);
     direr = "sdcard/DCIM/";
-    direr(craw1, crawp, direr);
+    direr(craw1, crawp, direr, device);
   }
 
-  public static void direr(String craw1, String crawp, String direr) throws Exception {
+  public static void direr(String craw1, String crawp, String direr, String device)
+      throws Exception {
     System.gc();
     String temper = tempdir + craw1 + ".txt";
-    SBmain.doer("adb shell ls " + direr + " >" + temper);
+    SBmain.doer("start " + foffer + " " + device + " " + direr + " " + temper);
     String res = fileutil.read(temper);
     System.out.println("res is " + res);
+    fileutil.delete(temper);
     for (String ss : res.split("\n")) {
       if (checkiflib(ss)) {
         dolib(ss, direr, tempdir, craw1, crawp);
