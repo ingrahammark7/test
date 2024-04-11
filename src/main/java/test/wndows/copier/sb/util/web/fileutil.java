@@ -28,10 +28,11 @@ public class fileutil {
     return String.valueOf(content);
   }
 
-  public static void makedir(String s) {
+  public static void makedir(String s) throws Exception {
     s = s.replace(" ", "");
     File f = new File(s);
     f.mkdirs();
+    f.createNewFile();
   }
 
   public static void delete(String s) {

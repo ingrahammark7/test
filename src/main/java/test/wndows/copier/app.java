@@ -8,7 +8,7 @@ public class app {
 
   public static String tempdir = "C:/Games/";
   public static String temp = " " + tempdir + "f.txt";
-  public static String storedir = "E:\\ge\\garb\\smalll5345\\crawl";
+  public static String storedir = "E:/ge/garb/smalll5345/crawls/";
   public static String newcr = String.valueOf(System.currentTimeMillis());
   public static String tempfile = " >" + temp;
   public static ArrayList<String> devices = new ArrayList<String>();
@@ -34,7 +34,7 @@ public class app {
 
   public static void pulldevice(String s) throws Exception {
     String craw1 = s + newcr;
-    String crawp = craw1 + "/file.txt";
+    String crawp = storedir + craw1 + "/";
     fileutil.makedir(crawp);
     String direr = "sdcard/Documents/";
     direr(craw1, crawp, direr);
@@ -49,16 +49,30 @@ public class app {
     String temper = tempdir + craw1 + ".txt";
     SBmain.doer("adb shell ls " + direr + " >" + temper);
     String res = fileutil.read(temper);
+    System.out.println("res is " + res);
     for (String ss : res.split("\n")) {
-      if (checkiflib(ss))
-        continue;
-      dofile(direr, ss, crawp);
+      if (checkiflib(ss)) {
+        dolib(ss, direr, tempdir, craw1, crawp);
+      }
+      dofile(direr, ss, crawp, craw1);
     }
     fileutil.delete(temper);
   }
 
-  public static void dofile(String direr, String ss, String crawp) throws Exception {
-    SBmain.doer("adb pull " + direr + ss + " >" + crawp + " && adb shell rm -r " + direr + ss);
+  public static void dofile(String direr, String ss, String crawp, String craw1) throws Exception {
+    SBmain.doer("cd " + crawp + " && adb pull " + direr + ss + " && adb shell rm -r " + direr + ss);
+  }
+
+  public static void dolib(String ss, String direr, String tempdir, String craw1, String crawp)
+      throws Exception {
+    String outfile = tempdir + craw1 + ".tx1";
+    SBmain.doer("adb shell ls " + direr + "/" + ss + "/" + " >" + outfile);
+    String r = fileutil.read(outfile);
+    fileutil.delete(outfile);
+    String[] ff = r.split("\n");
+    if (ff.length > 999) {
+      dofile(direr, ss, crawp, craw1);
+    }
   }
 
   public static boolean checkiflib(String ss) {
