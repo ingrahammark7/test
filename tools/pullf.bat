@@ -6,7 +6,7 @@ set p4=%5
 set p5=%6
 set ff1=%p3%%ANDROID_SERIAL%.txt
 if exist "%ff1%" del "%ff1%"
-cd %p5%
+%p5%
 cd %p4%
 adb pull %pat%
 adb shell rm -r %pat%

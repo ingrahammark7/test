@@ -15,7 +15,7 @@ public class app {
   public static String lsoffer = tempdir + "lso.bat";
   public static String pulff = tempdir + "pullf.bat";
   public static String savedrive = "E:";
-  public static String storedir = savedrive + ":/ge/garb/smalll5345/crawls/";
+  public static String storedir = savedrive + "/ge/garb/smalll5345/crawls/";
 
   public static void main(String[] args) throws Exception {
     fileutil.delete(temp);
@@ -53,7 +53,8 @@ public class app {
       throws Exception {
     System.gc();
     String temper = tempdir + craw1 + ".txt";
-    SBmain.doer("start " + foffer + " " + device + " " + direr + " " + temper + " " + tempdir);
+    String args = "start " + foffer + " " + device + " " + direr + " " + temper + " " + tempdir;
+    SBmain.doer(args);
     String res = fileutil.read(temper);
     fileutil.delete(temper);
     SBmain.doer("start " + lsoffer + " " + device + " " + direr + " " + temper + " " + tempdir);
@@ -85,7 +86,7 @@ public class app {
   public static void dofile(String direr, String ss, String crawp, String craw1, String device,
       String savedir, String savedrive) throws Exception {
     String com = "start " + pulff + " " + device + " " + direr + " " + "foo" + " " + tempdir + " "
-        + storedir + savedrive;
+        + storedir + " " + savedrive;
     SBmain.doer(com);
   }
 
