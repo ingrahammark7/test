@@ -13,6 +13,8 @@ public class app {
   public static String tempfile = " >" + temp;
   public static ArrayList<String> devices = new ArrayList<String>();
   public static String foffer = tempdir + "foof.bat";
+  public static String lsoffer = tempdir + "lso.bat";
+  public static String pulff = tempdir + "pullf.bat";
 
   public static void main(String[] args) throws Exception {
     fileutil.delete(temp);
@@ -50,32 +52,48 @@ public class app {
       throws Exception {
     System.gc();
     String temper = tempdir + craw1 + ".txt";
-    SBmain.doer("start " + foffer + " " + device + " " + direr + " " + temper);
+    SBmain.doer("start " + foffer + " " + device + " " + direr + " " + temper + " " + tempdir);
     String res = fileutil.read(temper);
-    System.out.println("res is " + res);
     fileutil.delete(temper);
-    for (String ss : res.split("\n")) {
+    SBmain.doer("start " + lsoffer + " " + device + " " + direr + " " + temper + " " + tempdir);
+    String r1 = fileutil.read(temper);
+    fileutil.delete(temper);
+    String[] files = res.split("\n");
+    files = removelsof(files, r1);
+    for (String ss : files) {
       if (checkiflib(ss)) {
-        dolib(ss, direr, tempdir, craw1, crawp);
+        dolib(ss, direr, tempdir, craw1, crawp, device);
       }
-      dofile(direr, ss, crawp, craw1);
+      dofile(direr, ss, crawp, craw1, device);
     }
     fileutil.delete(temper);
   }
 
-  public static void dofile(String direr, String ss, String crawp, String craw1) throws Exception {
-    SBmain.doer("cd " + crawp + " && adb pull " + direr + ss + " && adb shell rm -r " + direr + ss);
+  public static String[] removelsof(String[] files, String r1) {
+    ArrayList<String> ff = new ArrayList<String>();
+    for (String s : files) {
+      if (r1.contains(s))
+        continue;
+      ff.add(s);
+    }
+    return fileutil.list2array(ff);
   }
 
-  public static void dolib(String ss, String direr, String tempdir, String craw1, String crawp)
+  public static void dofile(String direr, String ss, String crawp, String craw1, String device)
       throws Exception {
+    String com = "start " + pulff + " " + device + " " + direr + " " + "foo" + " " + tempdir;
+    SBmain.doer(com);
+  }
+
+  public static void dolib(String ss, String direr, String tempdir, String craw1, String crawp,
+      String device) throws Exception {
     String outfile = tempdir + craw1 + ".tx1";
     SBmain.doer("adb shell ls " + direr + "/" + ss + "/" + " >" + outfile);
     String r = fileutil.read(outfile);
     fileutil.delete(outfile);
     String[] ff = r.split("\n");
     if (ff.length > 999) {
-      dofile(direr, ss, crawp, craw1);
+      dofile(direr, ss, crawp, craw1, device);
     }
   }
 

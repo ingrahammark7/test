@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.util.ArrayList;
 
 public class fileutil {
 
@@ -39,6 +40,14 @@ public class fileutil {
     s = s.replace(" ", "");
     File f = new File(s);
     f.delete();
+  }
+
+  public static String[] list2array(ArrayList<String> array) {
+    String[] newf = new String[array.size()];
+    for (int i = 0; i < newf.length; ++i) {
+      newf[i] = array.get(i);
+    }
+    return newf;
   }
 
 }
