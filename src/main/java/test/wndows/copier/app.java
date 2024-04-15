@@ -86,7 +86,7 @@ public class app {
   public static void dofile(String direr, String ss, String crawp, String craw1, String device,
       String savedir, String savedrive) throws Exception {
     String com = "start " + pulff + " " + device + " " + direr + " " + "foo" + " " + tempdir + " "
-        + storedir + " " + savedrive;
+        + storedir + " " + savedrive + " " + savedir;
     SBmain.doer(com);
   }
 
