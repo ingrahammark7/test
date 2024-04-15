@@ -1,17 +1,20 @@
-termux-setup-storage
+#!/bin/bash
+termux-setup-storage -y
 rm todo.txt
+rm lsof.txt
+rm lis.txt
 lsof>lsof.txt
-list=`ls`
-for foo in $list
-do
-if grep -Fxq "$foo" lsof.txt
+ls .>lis.txt
+export fofo='lsof.txt'
+filename='lis.txt'
+for foo in $(cat lis.txt); do
+if grep -Fxq "$foo" lsof.txt 
 then
-echo not
+echo foo
 else
-"$foo">>todo.txt
-done
-todo=`cat todo.txt`
-for file in todo;
-do
-cp -fr "$file" storage/shared/documents/ && rm -r "$file";
+echo "$foo">>todo.txt
+fi
+done;
+for foo in $(cat todo.txt); do
+cp -rf "$foo" storage/shared/documents/ && rm -r "$foo";
 done
