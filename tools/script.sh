@@ -15,6 +15,5 @@ echo "$foo">>todo.txt
 fi
 done;
 for foo in $(cat todo.txt); do
-tar -cf "$foo" storage/downloads/ --remove-files;
-done;--remove-files;
-done;ne
+tar -cf storage/downloads/"$foo".tar "$foo";
+done;
