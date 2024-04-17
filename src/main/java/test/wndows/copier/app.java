@@ -28,6 +28,8 @@ public class app {
         continue;
       if (t.equals(""))
         continue;
+      if (t.contains("WVF"))
+        continue;
       if (t.contains("device"))
         devices.add(t.split("\t")[0]);
     }
@@ -85,6 +87,8 @@ public class app {
 
   public static void dofile(String direr, String ss, String crawp, String craw1, String device,
       String savedir, String savedrive) throws Exception {
+    if (direr.endsWith("/"))
+      return;
     String com = "start " + pulff + " " + device + " " + direr + " " + "foo" + " " + tempdir + " "
         + storedir + " " + savedrive + " " + savedir;
     SBmain.doer(com);
@@ -103,14 +107,22 @@ public class app {
   }
 
   public static boolean checkiflib(String ss) {
+    String temp = ss;
     ss = ss.split(".")[0];
+    if (ss.length() != 0)
+      return false;
+    ss = temp;
     if (ss.length() > 7)
       return false;
     if (ss.length() < 6)
       return false;
-    for (char s : ss.toCharArray()) {
+    char[] ff = ss.toCharArray();
+    for (int i = 0; i < ff.length; ++i) {
+      char s = ff[i];
       if (Character.isDigit(s))
         continue;
+      if (i > 5)
+        return true;
       return false;
     }
     return true;
