@@ -28,8 +28,6 @@ public class app {
         continue;
       if (t.equals(""))
         continue;
-      if (t.contains("WVF"))
-        continue;
       if (t.contains("device"))
         devices.add(t.split("\t")[0]);
     }
