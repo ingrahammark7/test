@@ -32,6 +32,7 @@ public class SBmain implements Runnable {
   }
 
   public static void doer(String c2) throws Exception {
+    c2 = c2.replace("//", "/");
     List<String> commands = new ArrayList<String>();
     commands.add("cmd.exe");
     commands.add("/C");
