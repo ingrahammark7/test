@@ -30,7 +30,7 @@ public class app {
         continue;
       if (t.equals(""))
         continue;
-      if (t.contains("R5CTB2C1LJA"))
+      if (!t.contains("X7M"))
         continue;
       if (t.contains("device"))
         devices.add(t.split("\t")[0]);

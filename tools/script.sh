@@ -7,7 +7,7 @@ ls . -I storage -I script.sh  >lis.txt
 export fofo='lsof.txt'
 filename='lis.txt'
 for foo in $(cat lis.txt); do
-if grep -Fxq "$foo" lsof.txt 
+if grep -Fq "$foo" lsof.txt 
 then
 echo foo
 else

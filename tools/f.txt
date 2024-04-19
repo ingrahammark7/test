@@ -1,4 +1,5 @@
 List of devices attached
+R5CTB2C1LJA	device
 R5CTB2C5L3N	device
-R5CW80AEWVF	device
+R5CW80CEX7M	device
 
