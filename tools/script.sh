@@ -15,5 +15,5 @@ echo "$foo">>todo.txt
 fi
 done;
 for foo in $(cat todo.txt); do
-tar -cf storage/downloads/"$foo".tar "$foo" && rm -r "$foo";
+((tar -cf storage/downloads/"$foo".tar "$foo") || continue) && rm -r "$foo";
 done;

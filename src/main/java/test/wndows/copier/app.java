@@ -17,7 +17,7 @@ public class app {
   public static String savedrive = "E:";
   public static String storedir = savedrive + "/ge/garb/smalll5345/crawls/";
   public static String[] phonedirs =
-      new String[] {"sdcard/DCIM/", "sdcard/Download/", "sdcard/Documents/"};
+      new String[] {/* "sdcard/DCIM/", */ "sdcard/Download/", "sdcard/Documents/"};
 
   public static void main(String[] args) throws Exception {
     fileutil.delete(temp);
@@ -29,8 +29,6 @@ public class app {
       if (t.contains("List"))
         continue;
       if (t.equals(""))
-        continue;
-      if (!t.contains("X7M"))
         continue;
       if (t.contains("device"))
         devices.add(t.split("\t")[0]);
