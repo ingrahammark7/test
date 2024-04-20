@@ -26,6 +26,7 @@ public class sbutils {
     fileutil.delete(temp);
     SBmain.doer("adb devices" + tempfile);
     String s = fileutil.read(temp);
+    fileutil.delete(temp);
     String[] foff = s.split("\n");
     for (int i = 0; i < foff.length; ++i) {
       String t = foff[i];
