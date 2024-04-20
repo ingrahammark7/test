@@ -1,5 +1,0 @@
-List of devices attached
-R5CTB2C5L3N	device
-R5CW72XTACH	device
-R5CW80CEX7M	device
-

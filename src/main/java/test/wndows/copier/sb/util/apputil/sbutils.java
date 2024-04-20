@@ -15,6 +15,8 @@ public class sbutils {
   public static String foffer = tempdir + "foof.bat";
   public static String lsoffer = tempdir + "lso.bat";
   public static String pulff = tempdir + "pullf.bat";
+  public static String scriptname = "script.sh";
+  public static String scriptf = tempdir + scriptname;
   public static String savedrive = "E:";
   public static String storedir = savedrive + "/ge/garb/smalll5345/crawls/";
   public static String[] phonedirs =
@@ -39,7 +41,27 @@ public class sbutils {
     }
     for (String sf : devices) {
       pulldevice(sf);
+      String mk = "adb shell mkdir sdcard/Download";
+      String pus = "adb push " + scriptf + " sdcard/Download/";
+      String com = "adb shell am start -n com.termux/.HomeActivity; ";
+      String com2 = "adb shell input text 'termux-setup-storage;'";
+      String com25 = "adb shell input text 'y'";
+      String com3 = "adb shell input text 'cp storage/downloads/" + scriptname + " .;'";
+      String com4 = "adb shell input text 'bash " + scriptname + "; '";
+      SBmain.doer(mk);
+      SBmain.doer(pus);
+      SBmain.doer(com);
+      docomm(com2);
+      docomm(com25);
+      docomm(com3);
+      docomm(com4);
     }
+  }
+
+  public static void docomm(String com) throws Exception {
+    String com5 = "adb shell input keyevent ENTER";
+    SBmain.doer(com);
+    SBmain.doer(com5);
   }
 
   public static void pulldevice(String s) throws Exception {
