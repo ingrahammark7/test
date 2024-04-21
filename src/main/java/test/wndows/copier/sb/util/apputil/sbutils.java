@@ -41,21 +41,25 @@ public class sbutils {
     }
     for (String sf : devices) {
       pulldevice(sf);
-      String mk = "adb shell mkdir sdcard/Download";
-      String pus = "adb push " + scriptf + " sdcard/Download/";
-      String com = "adb shell am start -n com.termux/.HomeActivity; ";
-      String com2 = "adb shell input text 'termux-setup-storage;'";
-      String com25 = "adb shell input text 'y'";
-      String com3 = "adb shell input text 'cp storage/downloads/" + scriptname + " .;'";
-      String com4 = "adb shell input text 'bash " + scriptname + "; '";
-      SBmain.doer(mk);
-      SBmain.doer(pus);
-      SBmain.doer(com);
-      docomm(com2);
-      docomm(com25);
-      docomm(com3);
-      docomm(com4);
+      doscript(sf);
     }
+  }
+
+  public static void doscript(String sf) throws Exception {
+    String mk = "adb shell mkdir sdcard/Download";
+    String pus = "adb push " + scriptf + " sdcard/Download/";
+    String com = "adb shell am start -n com.termux/.HomeActivity; ";
+    String com2 = "adb shell input text 'termux-setup-storage;'";
+    String com25 = "adb shell input text 'y'";
+    String com3 = "adb shell input text 'cp storage/downloads/" + scriptname + " .;'";
+    String com4 = "adb shell input text 'bash " + scriptname + "; '";
+    SBmain.doer(mk);
+    SBmain.doer(pus);
+    SBmain.doer(com);
+    docomm(com2);
+    docomm(com25);
+    docomm(com3);
+    docomm(com4);
   }
 
   public static void docomm(String com) throws Exception {
