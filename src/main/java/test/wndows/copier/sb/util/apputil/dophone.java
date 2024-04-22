@@ -10,6 +10,8 @@ public class dophone {
   public static void direr(String craw1, String crawp, String direr, String device)
       throws Exception {
     System.gc();
+    String dicmcom = "adb shell mv sdcard/DCIM/*.* sdcard/Download/";
+    SBmain.doer(dicmcom);
     String temper = sbutils.tempdir + craw1 + ".txt";
     String args = "start " + sbutils.foffer + " " + device + " " + direr + " " + temper + " "
         + sbutils.tempdir;
