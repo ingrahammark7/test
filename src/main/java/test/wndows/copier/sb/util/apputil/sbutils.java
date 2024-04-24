@@ -21,6 +21,7 @@ public class sbutils {
   public static String storedir = savedrive + "/ge/garb/smalll5345/crawls/";
   public static String[] phonedirs =
       new String[] {/* "sdcard/DCIM/", */ "sdcard/Download/", "sdcard/Documents/"};
+  public static String pwd = "/data/data/com.termux/files/home/";
 
 
 
@@ -51,7 +52,7 @@ public class sbutils {
     String com = "adb shell am start -n com.termux/.HomeActivity; ";
     String com2 = "adb shell input text 'termux-setup-storage;'";
     String com25 = "adb shell input text 'y'";
-    String com3 = "adb shell input text 'cp storage/downloads/" + scriptname + " .;'";
+    String com3 = "adb shell input text 'cp " + pwd + "storage/downloads/" + scriptname + " .;'";
     String com4 = "adb shell input text 'bash " + scriptname + "; '";
     String serial = "set ANDROID_SERIAL=" + sf + "&& ";
     SBmain.doer(serial + mk);
