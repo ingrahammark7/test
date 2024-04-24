@@ -64,7 +64,6 @@ public class sbutils {
   }
 
   public static void docomm(String com, String serial) throws Exception {
-
     String com5 = "adb shell input keyevent ENTER";
     SBmain.doer(serial + com);
     SBmain.doer(serial + com5);
