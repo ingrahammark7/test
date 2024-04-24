@@ -53,19 +53,21 @@ public class sbutils {
     String com25 = "adb shell input text 'y'";
     String com3 = "adb shell input text 'cp storage/downloads/" + scriptname + " .;'";
     String com4 = "adb shell input text 'bash " + scriptname + "; '";
-    SBmain.doer(mk);
-    SBmain.doer(pus);
-    SBmain.doer(com);
-    docomm(com2);
-    docomm(com25);
-    docomm(com3);
-    docomm(com4);
+    String serial = "set ANDROID_SERIAL=" + sf + "&& ";
+    SBmain.doer(serial + mk);
+    SBmain.doer(serial + pus);
+    SBmain.doer(serial + com);
+    docomm(com2, serial);
+    docomm(com25, serial);
+    docomm(com3, serial);
+    docomm(com4, serial);
   }
 
-  public static void docomm(String com) throws Exception {
+  public static void docomm(String com, String serial) throws Exception {
+
     String com5 = "adb shell input keyevent ENTER";
-    SBmain.doer(com);
-    SBmain.doer(com5);
+    SBmain.doer(serial + com);
+    SBmain.doer(serial + com5);
   }
 
   public static void pulldevice(String s) throws Exception {
