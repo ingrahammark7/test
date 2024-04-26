@@ -54,7 +54,7 @@ public class sbutils {
     String com25 = "adb shell input text 'y'";
     String com3 = "adb shell input text 'cp " + pwd + "storage/downloads/" + scriptname + " .;'";
     String com4 = "adb shell input text 'bash " + scriptname + "; '";
-    String serial = "set ANDROID_SERIAL=" + sf + "&& ";
+    String serial = fofgen(sf);
     SBmain.doer(serial + mk);
     SBmain.doer(serial + pus);
     SBmain.doer(serial + com);
@@ -62,6 +62,10 @@ public class sbutils {
     docomm(com25, serial);
     docomm(com3, serial);
     docomm(com4, serial);
+  }
+
+  public static String fofgen(String sf) {
+    return "set ANDROID_SERIAL=" + sf + "&& ";
   }
 
   public static void docomm(String com, String serial) throws Exception {
