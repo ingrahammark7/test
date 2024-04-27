@@ -21,5 +21,5 @@ fi
 done;
 cd "${torr}";
 for foo in $(cat files.txt); do
-mv "$foo" ~/storage/downloads/
+cp -r "$foo" ~/storage/downloads/ && rm -r "$foo"
 done;
