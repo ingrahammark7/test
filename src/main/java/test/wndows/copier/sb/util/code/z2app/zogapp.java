@@ -1,0 +1,28 @@
+package test.wndows.copier.sb.util.code.z2app;
+
+import java.util.ArrayList;
+import test.wndows.copier.sb.util.web.fileutil;
+
+public class zogapp {
+
+  public static void doer() throws Exception {
+    String s = fileutil.read("dun.txt");
+    String[] lines = s.split("\n");
+    ArrayList<String> foff = new ArrayList<String>();
+    for (String f : lines) {
+      String f1 = f.replace("//", "/");
+      String f2 = f1.split("/")[1];
+      foff.add("https://" + f2);
+    }
+    String comm = "mdkir ";
+    String com1 = " && cd ";
+    String com2 = " && nohup httrack ";
+    String comm2 = "> s.txt &";
+    for (String f : foff) {
+      Thread.sleep(2);
+      String ss = String.valueOf(System.currentTimeMillis());
+      System.out.println(comm + ss + com1 + ss + com2 + f + comm2);
+    }
+  }
+
+}
