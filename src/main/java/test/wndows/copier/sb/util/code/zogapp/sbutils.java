@@ -1,7 +1,6 @@
-package test.wndows.copier.sb.util.apputil;
+package test.wndows.copier.sb.util.code.zogapp;
 
 import java.util.ArrayList;
-import test.wndows.copier.sb.util.SBmain;
 import test.wndows.copier.sb.util.web.fileutil;
 
 public class sbutils {

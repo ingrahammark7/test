@@ -1,4 +1,4 @@
-package test.wndows.copier.sb.util;
+package test.wndows.copier.sb.util.code.zogapp;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
