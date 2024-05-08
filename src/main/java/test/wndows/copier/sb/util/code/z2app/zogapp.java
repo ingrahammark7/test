@@ -19,8 +19,7 @@ public class zogapp {
     String comm = "mkdir ";
     String com1 = " && cd ";
     String com2 = " && nohup httrack ";
-    String comm2 =
-        " +*.jpg -*.wiki* --near --advanced-maxlinks=10000000000000 -s0 > s.txt &; cd ..";
+    String comm2 = " +*.jpg -*.wiki* --near --advanced-maxlinks=10000000000000 -s0 > s.txt &";
     for (String f : foff) {
       Thread.sleep(2);
       String ss = String.valueOf(System.currentTimeMillis());
@@ -28,6 +27,7 @@ public class zogapp {
       sf = sf.replace("\r", "");
       sf = sf.replace("  ", "");
       System.out.println(sf);
+      System.out.println("cd ..");
     }
   }
 
