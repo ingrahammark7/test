@@ -22,9 +22,12 @@ public class zogapp {
     util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_C);
     String b = util.getBoard();
     urls.add(b);
-    util.rightlick(urlx, urly);
+    util.rightclick(urlx, urly);
+    Thread.sleep(100);
     util.pressKey(KeyEvent.VK_UP);
+    Thread.sleep(100);
     util.pressKey(KeyEvent.VK_ENTER);
+    Thread.sleep(100);
     System.out.println(b);
   }
 
