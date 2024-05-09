@@ -9,10 +9,10 @@ import test.wndows.copier.sb.util.web.fileutil;
 
 public class zogapp {
 
-  public static int urlx = 1296;
-  public static int urly = 403;
-  public static int topx = 972;
-  public static int topy = 74;
+  public static int urlx = 1682;
+  public static int urly = 394;
+  public static int topx = 327;
+  public static int topy = 61;
   public static ArrayList<String> urls = new ArrayList<String>();
 
   public static void d2() throws Exception {
