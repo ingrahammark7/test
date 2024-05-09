@@ -15,11 +15,21 @@ import java.util.ArrayList;
 public class fileutil {
 
   public static void write(String s) throws Exception {
+    writenew(s, "foo.txt");
+  }
+
+  public static void writenew(String s, String name) throws Exception {
     s = s.replace(" ", "");
     String str = s;
-    BufferedWriter writer = new BufferedWriter(new FileWriter("foo.txt", true));
+    BufferedWriter writer = new BufferedWriter(new FileWriter(name, true));
     writer.write(str);
     writer.close();
+  }
+
+  public static void append(String s, String name) throws Exception {
+    String f = read(name) + s;
+    delete(name);
+    writenew(f, name);
   }
 
   public static String read(String s) throws Exception {

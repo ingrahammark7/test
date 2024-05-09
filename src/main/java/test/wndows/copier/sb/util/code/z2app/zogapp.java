@@ -16,19 +16,22 @@ public class zogapp {
   public static ArrayList<String> urls = new ArrayList<String>();
 
   public static void d2() throws Exception {
-    util.click(urlx, urly);
-    Thread.sleep(100);
-    util.click(topx, topy);
-    util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_C);
-    String b = util.getBoard();
-    urls.add(b);
-    util.rightclick(urlx, urly);
-    Thread.sleep(100);
-    util.pressKey(KeyEvent.VK_UP);
-    Thread.sleep(100);
-    util.pressKey(KeyEvent.VK_ENTER);
-    Thread.sleep(100);
-    System.out.println(b);
+    for (int i = 0; i < 30; ++i) {
+      util.click(urlx, urly);
+      Thread.sleep(100);
+      util.click(topx, topy);
+      util.combo(KeyEvent.VK_CONTROL, KeyEvent.VK_C);
+      String b = util.getBoard();
+      urls.add(b);
+      util.rightclick(urlx, urly);
+      Thread.sleep(100);
+      util.pressKey(KeyEvent.VK_UP);
+      Thread.sleep(100);
+      util.pressKey(KeyEvent.VK_ENTER);
+      Thread.sleep(100);
+      System.out.println(b);
+      fileutil.append(b, "dun.txt");
+    }
   }
 
   public static void doer() throws Exception {
