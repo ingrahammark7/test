@@ -27,7 +27,7 @@ public class fileutil {
   }
 
   public static void append(String s, String name) throws Exception {
-    String f = read(name) + s;
+    String f = read(name) + "/n" + s;
     delete(name);
     writenew(f, name);
   }
