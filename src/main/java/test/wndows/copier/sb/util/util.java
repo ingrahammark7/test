@@ -62,12 +62,21 @@ public class util {
   }
 
   public static void click(int x, int y) throws Exception {
+    click(x, y, 1);
+  }
+
+  public static void click(int x, int y, int mask) throws Exception {
     r.mouseMove(x, y);
     Thread.sleep(1);
     r.mousePress(InputEvent.getMaskForButton(1));
     Thread.sleep(1);
     r.mouseRelease(InputEvent.getMaskForButton(1));
     Thread.sleep(1);
+  }
+
+
+  public static void rightlick(int x, int y) throws Exception {
+    click(x, y, 2);
   }
 
   public static void typenumber(int n) throws Exception {
