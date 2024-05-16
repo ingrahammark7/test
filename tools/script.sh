@@ -3,7 +3,7 @@ rm todo.txt
 rm lsof.txt
 rm lis.txt
 lsof>lsof.txt
-ls . -I storage -I script.sh  >lis.txt
+ls . -I libgen.sh -I storage -I script.sh | head -400  >lis.txt
 export fofo='lsof.txt'
 filename='lis.txt'
 for foo in $(cat lis.txt); do
@@ -15,5 +15,5 @@ echo "$foo">>todo.txt
 fi
 done;
 for foo in $(cat todo.txt); do
-((tar -cf /data/data/com.termux/files/home/storage/downloads/"$foo".tar "$foo") || continue) && rm -r "$foo";
+((tar -cf storage/downloads/"$foo".tar "$foo") || continue) && rm -r "$foo";
 done;
