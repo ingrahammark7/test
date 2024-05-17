@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         acceptablepaths.add("cdn")
+        acceptablepaths.add("facebook")
         val policy = ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
         super.onCreate(savedInstanceState)
@@ -85,6 +86,7 @@ class MainActivity : ComponentActivity() {
     fun filer(nexter:String){
         if(checkf(nexter)) return
         if(!checkpath(nexter)) return
+        Log.d("foo", "filer: ")
         var f = sendGet(nexter)
         val listOfUrls = getHyperLinks(f)
         for (i in listOfUrls) {
@@ -153,12 +155,24 @@ fun sendGet(name: String ):String {
     with(url.openConnection() as HttpURLConnection) {
         requestMethod = "GET"
         println("\nSent 'GET' request to URL : $url; Response Code : $responseCode")
+        try {
             inputStream.use {
                 it.copyTo(sb)
+            }
+        }catch(e: Exception){
+            println("rror " + sb.toString())
         }
-        writefile(name,sb)
+        //writefile(name,sb)
     }
     System.gc()
-    appendfile(alreadyFile,name+"!\n")
+    //appendfile(alreadyFile,name+"!\n")
     return sb.toString()
+}
+
+public fun thread(start: Boolean=true, isDaemon: Boolean=false, contextClassLoader: ClassLoader? = null, name: String? = null, priority: Int = -1, block: () -> Unit): Thread{
+    Thread.sleep(1000)
+    return Thread(Runnable{
+        Thread.sleep(1000)
+    })
+
 }
