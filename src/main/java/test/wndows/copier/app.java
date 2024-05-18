@@ -1,5 +1,7 @@
 package test.wndows.copier;
 
+import test.wndows.copier.sb.util.code.z2app.zogapp;
+
 public class app {
 
   public static String foo = "04/28/2024  07:40 AM    <DIR>          100790928 user_gdry4788\r\n"
@@ -79,22 +81,10 @@ public class app {
       + "04/28/2024  07:42 AM    <DIR>          93386282 user_gxcm3543\r\n" + "";
 
   public static void main(String[] args) throws Exception {
-    // zogapp.d2();
+    zogapp.d2();
     // zogapp.doer();
-    do2();
   }
 
-  public static void do2() {
-    String[] f = foo.split("\r\n");
-    for (String f1 : f) {
-      String b = f1.split("<DIR>")[1];
-      for (int i = 0; i < 10; ++i) {
-        b = b.replace("  ", " ");
-      }
-      b = b.split(" ")[1].split(" ")[0];
-      System.out.println(b);
-    }
-  }
 
 
 }
