@@ -1,6 +1,6 @@
 package test.wndows.copier;
 
-import test.wndows.copier.sb.util.code.z2app.zogapp;
+import test.wndows.copier.sb.util.web.fileutil;
 
 public class app {
 
@@ -30,24 +30,14 @@ public class app {
           + "https://web.archive.org/web/20120315001437/http://www.115th-aaa-gun-bn.com/B-Flak/00index.php\r\n"
           + "https://web.archive.org/web/20030117011324/http://wnet.suomi.net/kotisivu/harri.kaarre/88series.html\r\n"
           + "https://web.archive.org/web/20231207203042/https://www.eci.gov.in/statistical-report/statistical-reports/\r\n"
-          + "https://web.archive.org/web/20161011200124/http://www.firstjetpilot.com/history.html\r\n"
-          + "https://www.angelfire.com/super/ussbs/\r\n" + "";
-  nohup httrack https://www.angelfire.com/super/ussbs/ +*.jpg -*.wiki* --near --advanced-maxlinks=10000000000000 -s0 > s.txt &
+          + "https://web.archive.org/web/20161011200124/http://www.firstjetpilot.com/history.html\r\n";
 
   public static void main(String[] args) throws Exception {
     // zogapp.d2();
-    zogapp.doer();
+    // zogapp.doer();
+    fileutil.d3();
   }
 
-
-  public static void d3() {
-    String[] f2 = ff.split("\r\n");
-    String[] f4 = new String[f2.length];
-    for(int i = 0; i < f2.length; ++i) {
-      String m = f2[i];
-      m = m.replace(", 0)
-    }
-  }
 
 
 }

@@ -106,4 +106,31 @@ public class fileutil {
     return false;
   }
 
+
+  public static void d3() {
+    String arch = "https://web.archive.org/web/";
+    String[] f2 = ff.split("\r\n");
+    String[] f4 = new String[f2.length];
+    StringBuilder sb = new StringBuilder();
+    StringBuilder s2 = new StringBuilder();
+    for (int i = 0; i < f2.length; ++i) {
+      String m = f2[i];
+      m = m.replace(arch, "");
+      System.out.println(m);
+      m = m.split("http")[1];
+      m = m.replace("://", "");
+      m = m.split("/")[0];
+      m = "+*" + m + "* ";
+      sb.append(m);
+    }
+    for (String sf : f2) {
+      s2.append(sf + " ");
+    }
+
+    String m = "nohup httrack " + s2.toString() + " -* " + sb.toString()
+        + "+*.jpg -*.wiki* --near --advanced-maxlinks=10000000000000 -s0 > s.txt &";
+    System.out.println(m);
+
+  }
+
 }
