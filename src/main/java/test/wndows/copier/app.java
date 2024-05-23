@@ -31,15 +31,23 @@ public class app {
           + "https://web.archive.org/web/20030117011324/http://wnet.suomi.net/kotisivu/harri.kaarre/88series.html\r\n"
           + "https://web.archive.org/web/20231207203042/https://www.eci.gov.in/statistical-report/statistical-reports/\r\n"
           + "https://web.archive.org/web/20161011200124/http://www.firstjetpilot.com/history.html\r\n"
-          + "\r\n" + "\r\n" + "\r\n" + "\r\n" + "\r\n" + "\r\n"
           + "https://www.angelfire.com/super/ussbs/\r\n" + "";
-
+  nohup httrack https://www.angelfire.com/super/ussbs/ +*.jpg -*.wiki* --near --advanced-maxlinks=10000000000000 -s0 > s.txt &
 
   public static void main(String[] args) throws Exception {
     // zogapp.d2();
     zogapp.doer();
   }
 
+
+  public static void d3() {
+    String[] f2 = ff.split("\r\n");
+    String[] f4 = new String[f2.length];
+    for(int i = 0; i < f2.length; ++i) {
+      String m = f2[i];
+      m = m.replace(", 0)
+    }
+  }
 
 
 }
