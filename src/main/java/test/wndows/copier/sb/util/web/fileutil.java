@@ -108,9 +108,9 @@ public class fileutil {
 
 
   public static void d3() {
+    String ff = "";
     String arch = "https://web.archive.org/web/";
     String[] f2 = ff.split("\r\n");
-    String[] f4 = new String[f2.length];
     StringBuilder sb = new StringBuilder();
     StringBuilder s2 = new StringBuilder();
     for (int i = 0; i < f2.length; ++i) {
