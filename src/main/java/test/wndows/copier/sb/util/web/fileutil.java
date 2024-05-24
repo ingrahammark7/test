@@ -106,19 +106,7 @@ public class fileutil {
     return false;
   }
 
-  public static String ff =
-      "https://web.archive.org/web/20030805181154/https://www.csd.uwo.ca/~pettypi/elevon/baugher_other/tsr2.html\r\n"
-          + "https://web.archive.org/web/20070207233430/http://www.unrealaircraft.com/classics/arrow.php\r\n"
-          + "https://web.archive.org/web/20050306175349/http://prototypes.free.fr/tsr2/tsr2-1.htm\r\n"
-          + "https://web.archive.org/web/20070223095454/http://www.chinfo.navy.mil/\r\n"
-          + "https://web.archive.org/web/20060527202256/http://aeroflt.users.netlink.co.uk/types/usa/boeing/x-32/X-32.htm\r\n"
-          + "https://web.archive.org/web/20050507025857/http://www.danshistory.com/m2000.html\r\n"
-          + "https://web.archive.org/web/20020203173146/http://aeroflt.users.netlink.co.uk//profile/d335top.htm\r\n"
-          + "https://web.archive.org/web/20010331180545/http://www.sci.fi/~fta/MiG-29.htm\r\n"
-          + "https://web.archive.org/web/20050212104820/http://www.canit.se/~griffon/aviation/text/29tunnan.htm\r\n"
-          + "https://web.archive.org/web/20050308030536/http://www.utvaaviation.co.yu/index2a.html\r\n"
-          + "https://web.archive.org/web/20040217102812/http://aeroweb.lucia.it/~agretch/RAFAQ/Yak-141Freestyle.html\r\n"
-          + "";
+  public static String ff = "";
 
   public static void d3() {
     String arch = "https://web.archive.org/web/";
