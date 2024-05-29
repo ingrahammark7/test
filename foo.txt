@@ -1,0 +1,2 @@
+https://www.pixiv.net/en/users/79786150
+gallery-dl -i C:\Users\a\Documents\GitHub\test\foo.txt --http-timeout 3000
