@@ -51,12 +51,13 @@ class MainActivity : ComponentActivity() {
         StrictMode.setThreadPolicy(policy)
         super.onCreate(savedInstanceState)
         setContent {
-            if (!Environment.isExternalStorageManager()) {
-                val intent: Intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+            if (!android.os.Environment.isExternalStorageManager()) {
+                val intent: android.content.Intent =
+                    android.content.Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
                 startActivity(intent)
             }
             pathf =
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
             looper()
         }
     }
@@ -86,7 +87,7 @@ class MainActivity : ComponentActivity() {
         System.gc()
         Log.d("her4","f")
         return Thread(Runnable{
-           looper()
+            looper()
         })
 
     }
