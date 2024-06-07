@@ -106,7 +106,16 @@ public class fileutil {
     return false;
   }
 
-  public static String ff = "";
+  public static String ff =
+      "https://web.archive.org/web/20020215030910/http://earthobservatory.nasa.gov/Newsroom/BlueMarble/\r\n"
+          + "https://web.archive.org/web/20070621120847/http://www.ccc.nps.navy.mil/rsepResources/si/dec02/middleEast.asp\r\n"
+          + "https://web.archive.org/web/20091227135041/http://www-cgsc.army.mil/carl/contentdm/home.htm\r\n"
+          + "https://web.archive.org/web/20071025151112/http://www.archiwa.gov.pl/memory/sub_listakrajowa/index.php?va_lang=pl&fileid=020\r\n"
+          + "https://web.archive.org/web/20131013041500/http://www.collectie.legermuseum.nl/get?site=strategion\r\n"
+          + "https://web.archive.org/web/20110403052743/http://nl.milpedia.org/wiki/AMX-13_VTT#De_Belgische_AMX-13_Model_56\r\n"
+          + "https://web.archive.org/web/20010331111005/http://hcea.net/\r\n"
+          + "https://web.archive.org/web/20090501192403/http://www.theshipslist.com/ships/lines/eastasiatic.htm\r\n"
+          + "https://web.archive.org/web/20110927045730/http://www.baath-party.org/eng/constitution.htm";
 
   public static void d3() {
     String arch = "https://web.archive.org/web/";
