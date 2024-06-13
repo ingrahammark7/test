@@ -30,7 +30,7 @@ public class zogapp {
       util.pressKey(KeyEvent.VK_ENTER);
       Thread.sleep(100);
       System.out.println(b);
-      fileutil.append(b, "dun.txt");
+      fileutil.append("\n" + b, "dun.txt");
     }
   }
 
