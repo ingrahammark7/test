@@ -16,6 +16,9 @@ public class zogapp {
   public static ArrayList<String> urls = new ArrayList<String>();
 
   public static void d2() throws Exception {
+    String dun = "dun.txt";
+    fileutil.writenew(dun, "");
+    fileutil.delete(dun);
     for (int i = 0; i < 30; ++i) {
       util.click(urlx, urly);
       Thread.sleep(100);
@@ -30,7 +33,7 @@ public class zogapp {
       util.pressKey(KeyEvent.VK_ENTER);
       Thread.sleep(100);
       System.out.println(b);
-      fileutil.append("\n" + b, "dun.txt");
+      fileutil.append("\n" + b, dun);
     }
   }
 
