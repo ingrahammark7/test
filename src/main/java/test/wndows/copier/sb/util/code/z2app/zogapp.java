@@ -17,7 +17,7 @@ public class zogapp {
 
   public static void d2() throws Exception {
     String dun = "dun.txt";
-    fileutil.writenew(dun, "");
+    fileutil.writenew("", dun);
     fileutil.delete(dun);
     for (int i = 0; i < 30; ++i) {
       util.click(urlx, urly);
