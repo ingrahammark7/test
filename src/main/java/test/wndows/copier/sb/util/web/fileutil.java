@@ -107,9 +107,7 @@ public class fileutil {
   }
 
   public static String ff =
-
-      "\r\n"
-          + "https://web.archive.org/web/20070610021813/http://www.du.edu/~ttyler/ploughboy/starbuck.htm\r\n"
+      "https://web.archive.org/web/20070610021813/http://www.du.edu/~ttyler/ploughboy/starbuck.htm\r\n"
           + "https://web.archive.org/web/20110819054515/http://www.acepilots.com/wwi/us_lufbery.html\r\n"
           + "https://web.archive.org/web/20130320131354/https://www.wwiaviation.com/\r\n"
           + "https://web.archive.org/web/*/https://airbus.com/fileadmin/media_gallery/files*\r\n"
