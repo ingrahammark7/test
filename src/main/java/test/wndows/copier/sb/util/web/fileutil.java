@@ -131,8 +131,8 @@ public class fileutil {
     for (String sf : f2) {
       s2.append(sf + " ");
     }
-
-    String m = "nohup httrack " + s2.toString() + " -* " + sb.toString()
+    String s3 = s2.toString().replace("www.", "");
+    String m = "nohup httrack " + s3 + " -* " + sb.toString()
         + "+*.jpg -*.wiki* --near --advanced-maxlinks=10000000000000 -s0 > s.txt &";
     System.out.println(m);
 
