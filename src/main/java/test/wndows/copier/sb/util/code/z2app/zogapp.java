@@ -33,8 +33,9 @@ public class zogapp {
       util.pressKey(KeyEvent.VK_ENTER);
       Thread.sleep(100);
       System.out.println(b);
-      fileutil.append("\n" + b, dun);
+      fileutil.append(b + "\n", dun);
     }
+    fileutil.removelast(dun);
   }
 
   public static void doer() throws Exception {

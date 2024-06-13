@@ -26,6 +26,19 @@ public class fileutil {
     writer.close();
   }
 
+  public static void removelast(String s) throws Exception {
+    String ss = read(s);
+    String[] f = ss.split("\n");
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < f.length - 1; ++i) {
+      sb.append(f[i]);
+      if (i < f.length - 2)
+        sb.append("\n");
+    }
+    delete(s);
+    writenew(s, sb.toString());
+  }
+
   public static void append(String s, String name) throws Exception {
     String f = read(name) + "/n" + s;
     delete(name);
