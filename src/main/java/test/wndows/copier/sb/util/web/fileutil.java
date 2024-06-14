@@ -148,10 +148,21 @@ public class fileutil {
       s2.append(sf + " ");
     }
     String s3 = s2.toString().replace("www.", "");
+    s3 = removeq(s3);
     String m = "nohup httrack " + s3 + " -* " + sb.toString()
         + "+*.jpg -*.wiki* --near --advanced-maxlinks=10000000000000 -s0 > s.txt &";
     System.out.println(m);
 
+  }
+
+  public static String removeq(String s) {
+    String[] ff = s.split(" ");
+    StringBuilder sb = new StringBuilder();
+    for (String f3 : ff) {
+      f3 = f3.split("?")[0];
+      sb.append(f3 + " ");
+    }
+    return sb.toString();
   }
 
 }
