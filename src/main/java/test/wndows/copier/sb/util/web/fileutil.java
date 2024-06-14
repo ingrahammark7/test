@@ -120,11 +120,14 @@ public class fileutil {
   }
 
   public static String ff =
-      "https://web.archive.org/web/20070610021813/http://www.du.edu/~ttyler/ploughboy/starbuck.htm\r\n"
-          + "https://web.archive.org/web/20110819054515/http://www.acepilots.com/wwi/us_lufbery.html\r\n"
-          + "https://web.archive.org/web/20130320131354/https://www.wwiaviation.com/\r\n"
-          + "https://web.archive.org/web/*/https://airbus.com/fileadmin/media_gallery/files*\r\n"
-          + "https://web.archive.org/web/20130419143535/http://www.coldwar.org/articles/60s/BerlinWallTimeLine.asp";
+      "https://web.archive.org/web/20230305010255/https://stat.kg/en/statistics/naselenie/\r\n"
+          + "https://web.archive.org/web/20220706072339/http://avcom.co.za/airport2/aircraftlist.php?cmd=search&t=aircraft&psearch=&psearchtype=\r\n"
+          + "https://web.archive.org/web/20170515152653/http://motca.gov.af/fa\r\n"
+          + "https://web.archive.org/web/20190122103236/https://www.gov.je/travel/maritimeaviation/civilaviation/pages/jarapplicationforms.aspx\r\n"
+          + "https://web.archive.org/web/20210123133518/http://www.carc.jo/en/content/344-jordanian-registered-aircraft\r\n"
+          + "https://web.archive.org/web/20190111091940/https://www.caa.ro/supervizare/registru-operatori-aerieni-romani\r\n"
+          + "https://web.archive.org/web/20150907180623/https://www.scaa.sc/index.php?option=com_content&view=article&id=65&Itemid=39\r\n"
+          + "https://web.archive.org/web/20140209154818/https://www.aacm.gov.mo/english/aircraft.html\r\n";
 
   public static void d3() {
     String arch = "https://web.archive.org/web/";
