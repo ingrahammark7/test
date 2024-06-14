@@ -36,7 +36,6 @@ public class zogapp {
       System.out.println(b);
       fileutil.append(b + "\n", dun);
     }
-    fileutil.removelast(dun);
   }
 
   public static void doer() throws Exception {
