@@ -14,9 +14,10 @@ public class zogapp {
   public static int topx = 327;
   public static int topy = 61;
   public static ArrayList<String> urls = new ArrayList<String>();
+  public static String dun = "dun.txt";
 
   public static void d2() throws Exception {
-    String dun = "dun.txt";
+
     fileutil.delete(dun);
     fileutil.writenew("", dun);
     for (int i = 0; i < 30; ++i) {
@@ -39,7 +40,7 @@ public class zogapp {
   }
 
   public static void doer() throws Exception {
-    String s = fileutil.read("dun.txt");
+    String s = fileutil.read(dun);
     String[] lines = s.split("\n");
     ArrayList<String> foff = new ArrayList<String>();
     for (String f : lines) {
