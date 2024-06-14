@@ -36,7 +36,7 @@ public class fileutil {
         sb.append("\n");
     }
     delete(s);
-    writenew(s, sb.toString());
+    writenew(sb.toString(), s);
   }
 
   public static void append(String s, String name) throws Exception {

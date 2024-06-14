@@ -5,8 +5,8 @@ import test.wndows.copier.sb.util.code.z2app.zogapp;
 public class app {
 
   public static void main(String[] args) throws Exception {
-    // zogapp.d2();
-    zogapp.doer();
+    zogapp.d2();
+    // zogapp.doer();
     // fileutil.d3();
   }
 
