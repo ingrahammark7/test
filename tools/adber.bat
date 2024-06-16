@@ -6,6 +6,6 @@ rd /s /q e:\ge\garb\smalll5345\%FOO%\.adblocker_1dm
 adb shell ls sdcard/Download/ > s.txt
 mkdir e:\ge\garb\smalll5345\%FOO%
 for /F "tokens=*" %%A in (s.txt) do ( 
-adb pull sdcard/Download/"%%A" e:\ge\garb\smalll5345\%FOO%\ && adb shell rm -r sdcard/Download/"%%A"
+adb pull sdcard/Download/"%%A" e:\ge\garb\smalll5345\%FOO%\ && adb shell rm -r sdcard/Download/'%%A'
 )
 del s.txt
