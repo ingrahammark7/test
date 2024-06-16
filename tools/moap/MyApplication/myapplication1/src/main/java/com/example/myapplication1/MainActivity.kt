@@ -1,8 +1,6 @@
 package com.example.myapplication
 
-import android.app.Activity
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -12,19 +10,12 @@ import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.core.net.toUri
-import java.io.BufferedReader
-import java.io.ByteArrayInputStream
+import androidx.annotation.RequiresApi
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.regex.Pattern
 
 
@@ -44,6 +35,7 @@ class MainActivity : ComponentActivity() {
         var alreadyDone = mutableListOf<String>("foo","bar")
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         acceptablepaths.add("cdn")
         acceptablepaths.add("facebook")
@@ -51,13 +43,12 @@ class MainActivity : ComponentActivity() {
         StrictMode.setThreadPolicy(policy)
         super.onCreate(savedInstanceState)
         setContent {
-            if (!android.os.Environment.isExternalStorageManager()) {
-                val intent: android.content.Intent =
-                    android.content.Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+            if (!Environment.isExternalStorageManager()) {
+                val intent: Intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
                 startActivity(intent)
             }
             pathf =
-                android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             looper()
         }
     }
