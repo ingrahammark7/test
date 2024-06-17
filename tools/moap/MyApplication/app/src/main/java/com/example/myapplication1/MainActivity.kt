@@ -1,7 +1,6 @@
-package com.example.myapplication
+package com.example.myapplication1
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StrictMode
@@ -10,7 +9,6 @@ import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
@@ -35,7 +33,6 @@ class MainActivity : ComponentActivity() {
         var alreadyDone = mutableListOf<String>("foo","bar")
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         acceptablepaths.add("cdn")
         acceptablepaths.add("facebook")
@@ -78,7 +75,7 @@ class MainActivity : ComponentActivity() {
         System.gc()
         Log.d("her4","f")
         return Thread(Runnable{
-            looper()
+           looper()
         })
 
     }
