@@ -18,6 +18,11 @@ public class fileutil {
     writenew(s, "foo.txt");
   }
 
+  public static void replacefile(String filename, String newtext) throws Exception {
+    delete(filename);
+    writenew(newtext, filename);
+  }
+
   public static void writenew(String s, String name) throws Exception {
     s = s.replace(" ", "");
     String str = s;
