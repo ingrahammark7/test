@@ -20,7 +20,7 @@ public class zogapp {
 
     fileutil.delete(dun);
     fileutil.writenew("", dun);
-    for (int i = 0; i < 30; ++i) {
+    for (int i = 0; i < 10; ++i) {
       util.click(urlx, urly);
       Thread.sleep(100);
       util.click(topx, topy);
