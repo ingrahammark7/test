@@ -125,49 +125,30 @@ public class fileutil {
   }
 
   public static String ff =
-      "https://web.archive.org/web/20100422134339/http://www.zik.ru/products/ml_en.htm\r\n"
-          + "https://web.archive.org/web/20130506132453/http://www.raspletin.ru/tsentr-mniire-altair-oao-gskb-almaz-antey\r\n"
-          + "https://web.archive.org/web/20200831195841/https://rosim.ru/\r\n"
-          + "https://web.archive.org/web/20131219000018/http://www.biplanes.de/bilderserien/bremen_09/index.php\r\n"
-          + "https://web.archive.org/web/20070927045017/http://www.ajbs.fr/musee/stieglitz.php\r\n"
-          + "https://web.archive.org/web/20060706120321/http://armor.yurteh.net/Tanks/Modern/roket/roket1.html\r\n"
-          + "https://web.archive.org/web/20070928042154/http://www.russarms.com/land/msv/T-62/tech-tank-t-62-a.asp\r\n"
-          + "https://web.archive.org/web/20030514161321/http://armoured.vif2.ru/o287.htm\r\n"
-          + "https://web.archive.org/web/20080226215231/http://www.megakm.ru/Weaponry/encyclop.asp?TopicNumber=1727\r\n"
-          + "https://web.archive.org/web/20180516034759/https://militaryparitet.com/nomen/russia/rocket/rocketcomplex/data/ic_nomenrussiarocketrocketcomplex/5/\r\n"
-          + "https://web.archive.org/web/20150714163908/http://warfare.be/db/catid/263/linkid/2084/\r\n"
-          + "https://web.archive.org/web/20050227221236/http://hs-ships.ru/e_pages.phtm?f=2&p=1\r\n"
-          + "https://web.archive.org/web/20070202164833/http://aquaglide.ru/history_e.htm\r\n"
-          + "https://web.archive.org/web/20110814161738/http://igor113.livejournal.com/51213.html\r\n"
-          + "https://web.archive.org/web/20200217121237/http://students.uni-vologda.ac.ru/pages/pm07/evn/km.htm\r\n"
-          + "https://web.archive.org/web/20230313233659/http://www.ckbspk.ru/en/about/press/\r\n"
-          + "https://web.archive.org/web/20120113102538/http://www.beriev.com/eng/core_e.html\r\n"
-          + "https://web.archive.org/web/20190313125015/https://www.redstar.gr/index.php?Itemid=526&catid=413&id=2156%3Abe-200-multipurpose-amphibian-aircraft&lang=en&option=com_content&view=article\r\n"
-          + "https://web.archive.org/web/20070317005310/http://www.irkutseaplane.com/be200.html\r\n"
-          + "https://web.archive.org/web/20080925172707/http://www.irkut.com/en/services/production/BE200/\r\n"
-          + "https://web.archive.org/web/20220202064639/http://www.samoupravlenie.ru/\r\n"
-          + "4https://web.archive.org/web/20160923164242/http://www.ctrl-c.liu.se/misc/ram/mbr-2m17.html\r\n"
-          + "https://web.archive.org/web/20140512233028/http://vazduhoplovnetradicijesrbije.rs/index.php/istorija/276-dornije-do-j\r\n"
-          + "https://web.archive.org/web/20171120065512/http://ram-home.com/ram-old/stal-2.html\r\n"
-          + "https://web.archive.org/web/20120819215958/http://www.sailplanedirectory.com/PlaneDetails.cfm?PlaneID=37\r\n"
-          + "https://web.archive.org/web/20100420012244/http://www.ae.illinois.edu/m-selig/ads/aircraft.html\r\n"
-          + "https://web.archive.org/web/20100430002641/http://www.xcor.com/products/vehicles/lynx_suborbital.html\r\n"
-          + "https://web.archive.org/web/20160303182045/http://www.rocketracingleague.com/\r\n"
-          + "https://web.archive.org/web/20180314043154/https://www4.vintagesailplanes.de/\r\n"
-          + "https://web.archive.org/web/20181016032601/http://www.piotrp.de/SZYBOWCE/pszdc.htm\r\n"
-          + "https://web.archive.org/web/20090916142935/http://www.szdjezow.com.pl/ofirmie_eng.html\r\n"
-          + "https://web.archive.org/web/20090621000722/https://www.aeroklub.wroc.pl/node/114\r\n"
-          + "https://web.archive.org/web/20111003130422/http://jarek24.w.interia.pl/pw/pw2/pw2-photo-html/pw2-05.htm\r\n"
-          + "https://web.archive.org/web/20040929031950/http://www.duotone.com/coldwar/abm/\r\n"
-          + "https://web.archive.org/web/20121021040710/http://www.railuk.info/steam/getsteam.php?row_id=10538\r\n"
-          + "https://web.archive.org/web/20150805041910/http://amhistory.si.edu/archives/d8523.htm\r\n"
-          + "https://web.archive.org/web/20030210095430/https://www.auswaertiges-amt.de/www/en/laenderinfos/laender/laender_ausgabe_html?type_id=14&land_id=63\r\n"
-          + "https://web.archive.org/web/20010420084329/http://www.1stof46.com/\r\n"
-          + "https://web.archive.org/web/20090714020340/https://www.lzhurricane.com/\r\n"
-          + "https://web.archive.org/web/20050323230638/https://bgmarrs2.tripod.com/\r\n"
-          + "https://web.archive.org/web/20240225152803/http://1_14thfa.tripod.com/\r\n"
-          + "https://web.archive.org/web/20011222013214/http://www.airborne-ranger.com/~brizendine/\r\n"
-          + "";
+      "https://web.archive.org/web/20101230082430/http://mailer.fsu.edu/~akirk/tanks/UnitedStates/unarmored-halftracks/unarmored-half-tracks.html\r\n"
+          + "https://web.archive.org/web/20080302112911/http://www.transchool.eustis.army.mil/museum/museum.html\r\n"
+          + "https://web.archive.org/web/20111005150532/http://stampedout.net/odds-011-snl.html\r\n"
+          + "https://web.archive.org/web/20180110201527/http://golem.fjfi.cvut.cz/wiki/\r\n"
+          + "https://web.archive.org/web/20160310105056/http://www.ipr.res.in/sst1/documents/sst-1_cryogenics.html\r\n"
+          + "https://web.archive.org/web/20050225172107/http://www.kiae.ru/eng/str/inf/o11nsi.htm\r\n"
+          + "https://web.archive.org/web/20220110062218/https://ktm.nnc.kz/\r\n"
+          + "https://web.archive.org/web/20130409180149/http://h1nf.anu.edu.au/\r\n"
+          + "https://web.archive.org/web/20161006104622/http://kehilalinks.jewishgen.org/drohobycz/maps/Map_oilfields.asp\r\n"
+          + "https://web.archive.org/web/20070125075744/https://www.bankofguyana.org.gy/bansystab.htm\r\n"
+          + "https://web.archive.org/web/20100125205946/http://www.brh.net/\r\n"
+          + "https://web.archive.org/web/20070121082858/http://www.centralbank.an/\r\n"
+          + "https://web.archive.org/web/20070203135858/http://www.avianosec.com/\r\n"
+          + "https://web.archive.org/web/20220324054051/https://www.ou.edu/englhale/meinkampf.html\r\n"
+          + "https://web.archive.org/web/20240613155309/https://kostromka.ru/\r\n"
+          + "https://web.archive.org/web/20120121035304/https://www.oakingtonplane.co.uk/\r\n"
+          + "https://web.archive.org/web/20140309200838/http://www.viagginellastoria.it/caproni/illibro.htm\r\n"
+          + "https://web.archive.org/web/20220118171536/http://www.flyingmachines.org/\r\n"
+          + "https://web.archive.org/web/20170611200243/https://ivchenko-progress.com/?portfolio=d18t&lang=en\r\n"
+          + "https://web.archive.org/web/20200315004149/https://members.ziggo.nl/henrikaper/koolhoven/worlds-first-airliner/\r\n"
+          + "https://web.archive.org/web/20040629132156/http://bora1.ssec.wisc.edu/~experiments/atost2003/viewer/\r\n"
+          + "https://web.archive.org/web/20050407093921/http://web.wt.net/~kikuko/Do17depot/Do17index.htm\r\n"
+          + "https://web.archive.org/web/20120112030302/http://ktsorens.tihlde.org/flyvrak/buvikvoll.html\r\n"
+          + "\r\n" + "https://web.archive.org/web/20170506140621/https://www.ju88.net/\r\n" + "";
 
   public static void d3() {
     String arch = "https://web.archive.org/web/";
@@ -178,7 +159,10 @@ public class fileutil {
       String m = f2[i];
       m = m.replace(arch, "");
       System.out.println(m);
-      m = m.split("http")[1];
+      try {
+        m = m.split("http")[1];
+      } catch (Exception e) {
+      }
       m = m.replace("://", "");
       m = m.split("/")[0];
       m = "+*" + m + "* ";
