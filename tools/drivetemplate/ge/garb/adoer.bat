@@ -1,1 +1,2 @@
+set ANDROID_SERIAL=R5CTB2C1LJA
 adber.bat && dumeradsf.bat

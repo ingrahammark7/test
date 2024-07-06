@@ -1,1 +1,0 @@
-adber.bat && dumeradsf.bat
