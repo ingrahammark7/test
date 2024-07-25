@@ -47,8 +47,6 @@ public class zogapp {
       String f2 = f1.split("/")[1];
       foff.add("https://" + f2);
     }
-    // String comm = "mkdir "; String com1 = " && cd "; String com2 = " && nohup httrack ";
-    // String comm2 = " +*.jpg -*.wiki* --near --advanced-maxlinks=10000000000000 -s0 > s.txt &";
     String foo = "";
     for (String f : foff) {
       String sf = f;
