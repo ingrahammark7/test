@@ -1,4 +1,6 @@
 #!/bin/bash
+mv *.m* storage/downloads/
+mv *.webm storage/downloads/
 rm todo.txt
 rm lsof.txt
 rm lis.txt
