@@ -178,6 +178,9 @@ public class fileutil {
       }
       m = m.replace("://", "");
       m = m.split("/")[0];
+      if (m.startsWith("s") && !f2[i].contains(m)) {
+        m = m.substring(1);
+      }
       m = "+*" + m + "* ";
       sb.append(m);
     }
