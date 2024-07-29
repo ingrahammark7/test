@@ -1,3 +1,4 @@
+:x
 set FOO=%TIME:~6,2%%TIME:~3,2%%TIME:~1,1%%DATE:~4,2%%DATE:~7,2%%DATE:~10,2%
 del lsof.txt
 adb shell lsof > lsof.txt
@@ -12,3 +13,8 @@ adb shell mkdir sdcard/download/mov1
 del lsof.txt
 goto done
 :done
+cd e:/ge/garb/smalll5345/
+for /f "delims=" %%i in ('dir /b /ad') do rd "%%i"
+cd e:/ge/garb/
+timeout /t 30
+goto x
