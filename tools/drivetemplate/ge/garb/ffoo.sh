@@ -9,7 +9,7 @@ mkdir /storage/emulated/0/Download
 mv "$lab"_split.part$i.tar ~/storage/shared/Download/
 find ~/storage/shared/Download -delete -maxdepth 1 -size 0c
 mkdir /storage/emulated/0/Download
-find . -delete -maxdepth 1 -size 0c
+find * -delete -size 0c
 done
 );
 sleep 60;
