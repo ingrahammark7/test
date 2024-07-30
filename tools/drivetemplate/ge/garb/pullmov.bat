@@ -15,6 +15,9 @@ goto done
 :done
 cd e:/ge/garb/smalll5345/
 for /f "delims=" %%i in ('dir /b /ad') do rd "%%i"
+cd %%i
+for /f "delims=" %%i in ('dir /b /ad') do rd "%%i"
+cd ..
 cd e:/ge/garb/
 timeout /t 30
 goto x
