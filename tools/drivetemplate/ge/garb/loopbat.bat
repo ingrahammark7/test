@@ -11,5 +11,9 @@ adb pull sdcard/Download/"%%A" e:\ge\garb\smalll5345\%FOO%\ && adb shell rm -r s
 del s.txt
 del lsof.txt
 adb pull sdcard/Download/  e:\ge\garb\smalll5345\%FOO%\ && adb shell rm -r sdcard/Download/
+e:
+cd e:\ge\garb\smalll5345\%FOO%\
+for /f "delims=" %%i in ('dir /b /ad') do rd "%%i"
+cd e:\ge\garb
 timeout /t 30
 goto x
