@@ -18,5 +18,7 @@ for /f "delims=" %%i in ('dir /b /ad') do rd "%%i"
 cd "%%i"
 for /f "delims=" %%i in ('dir /b /ad') do rd "%%i"
 cd e:/ge/garb/
+adb shell mkdir sdcard/download
+adb push smalll5345/downer/all_cookies.txt sdcard/download/
 timeout /t 30
 goto x
