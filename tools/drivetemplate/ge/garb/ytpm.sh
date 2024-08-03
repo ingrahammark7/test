@@ -9,5 +9,6 @@ mv "$foo" storage/downloads/mov1/);
 done <f4.txt
 rm f4.txt
 );
+mv storage/downloads/all_cookies.txt .;
 sleep 60;
 done
