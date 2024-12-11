@@ -1,21 +1,3 @@
-from bs4 import BeautifulSoup
-
-# Paths to input and output files
-input_file = "your_file.html"
-output_file = "extracted_links.txt"
-
-# Read and parse the file
-with open(input_file, "r", encoding="utf-8", errors="ignore") as file:
-    soup = BeautifulSoup(file, "html.parser")
-
-# Extract links
-links = [a.get("href") for a in soup.find_all("a", href=True)]
-
-# Save to a text file
-with open(output_file, "w", encoding="utf-8") as file:
-    for link in links:
-        file.write(link + "\n")
-
 #!/bin/bash
 
 # Path to the cleaned links file
