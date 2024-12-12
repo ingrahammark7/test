@@ -5,14 +5,14 @@ input_file = "your_file.html"
 output_file = "extracted_links.txt"
 
 # Read and parse the file
-with open(input_file, "r", encoding="utf-8", errors="ignore") as file:
+with open(input_file, "r", encoding="ascii", errors="ignore") as file:
     soup = BeautifulSoup(file, "html.parser")
 
 # Extract links
 links = [a.get("href") for a in soup.find_all("a", href=True)]
 
 # Save to a text file
-with open(output_file, "w", encoding="utf-8") as file:
+with open(output_file, "w", encoding="ascii") as file:
     for link in links:
         file.write(link + "\n")
 
@@ -22,7 +22,7 @@ input_file_path = "extracted_links.txt"
 output_file_path = "cleaned_links.txt"
 
 # Read the links from the file
-with open(input_file_path, "r", encoding="utf-8") as file:
+with open(input_file_path, "r", encoding="ascii") as file:
     links = file.readlines()
 
 # Clean URLs by removing Google tracking and extra parameters
