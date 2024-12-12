@@ -29,7 +29,7 @@ while IFS= read -r url; do
             # Download the content with the sanitized URL
             echo "Downloading content from $sanitized_url..."
 
-            # wget --user-agent="foo" --restrict-file-names=windows --adjust-extension -i in.txt
+            # wget --page-requisites --user-agent="foo" --restrict-file-names=windows --adjust-extension -i in.txt
             
             wget2 --restrict-file-names=windows \
                  --adjust-extension \
