@@ -35,7 +35,7 @@ for link in links:
     cleaned_links.append(link.strip())
 
 # Write the cleaned links to a new file
-with open(output_file_path, "w", encoding="utf-8") as file:
+with open(output_file_path, "w", encoding="ascii") as file:
     for link in cleaned_links:
         file.write(link + "\n")
 
