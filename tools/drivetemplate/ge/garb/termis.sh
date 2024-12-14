@@ -8,3 +8,4 @@ pip install setuptools
 pip install youtube-dl
 pip install gallery-dl
 pip install beautifulsoup4
+pip install build
