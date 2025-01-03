@@ -22,3 +22,5 @@ cmd appops set com.motorola.ccc.ota RUN_IN_BACKGROUND deny
 cmd appops set com.motorola.ccc.ota RUN_ANY_IN_BACKGROUND deny
 cmd appops set com.motorola.android.fota RUN_IN_BACKGROUND deny
 cmd appops set com.motorola.android.fota RUN_ANY_IN_BACKGROUND deny
+#pixel
+pm disable-user com.android.vending
