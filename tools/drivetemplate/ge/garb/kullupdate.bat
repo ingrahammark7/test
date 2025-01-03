@@ -24,4 +24,4 @@ cmd appops set com.motorola.android.fota RUN_IN_BACKGROUND deny
 cmd appops set com.motorola.android.fota RUN_ANY_IN_BACKGROUND deny
 #pixel
 pm disable-user com.android.vending
-pm disable-user -–user 0 com.google.android.factoryota
+pm disable-user --user 0 com.google.android.factoryota
