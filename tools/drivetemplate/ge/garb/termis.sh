@@ -6,4 +6,5 @@ pkg install -y libxml2 geckodriver wget wget2 e2fsprogs python python-pip nano f
 pip install yt-dlp setuptools youtube-dl gallery-dl beautifulsoup4 build 
 apt install root-repo
 apt install iw
+apt install libc++ libnl libpcap libsqlite openssl pcre zlib -y
 CFLAGS="-Wno-error=incompatible-function-pointer-types -O0" pip install lxml
