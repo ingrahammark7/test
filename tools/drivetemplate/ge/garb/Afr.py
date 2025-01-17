@@ -12,12 +12,12 @@ faster = growth_rate  # Doubling the growth rate after 2024
 # Project Africa population growth rate
 africa_population_2024 = 1_500_000_000  # approx 1.5 billion in 2024
 africa_growth_rate = 0.025  # 2.5% annual growth rate
-life_span=60
-mort=1/life_span
-pyramid_factor=0.8
-tfr=4.5
-tfr_dec=-.2
-tfr_pyramid=0.25
+life_span = 60
+mort = 1 / life_span
+pyramid_factor = 0.8
+tfr = 4.5
+tfr_dec = -0.2
+tfr_pyramid = 0.25
 
 # Timeframe
 years = 30  # From 2021 to 2051
@@ -35,23 +35,28 @@ for year in range(1, years + 1):
         new_refugees = refugee_population[-1] * (1 + faster) 
     
     refugee_population.append(new_refugees)
-    tfr=tfr+tfr_dec
+    
+    # TFR and other parameters adjustments
+    tfr = tfr + tfr_dec
     if year > 7:
-    	faster =0
+        faster = 0  # Stop faster refugee growth after year 7
     if year > 20:
-    		refugee_population[-1]=0
-    		tfr_dec=0
-    gap=(life_span-year)/life_span
-    pyramid_factor=pyramid_factor*gap
-    mort=mort*(1-pyramid_factor)
-    tfr_gap=tfr_pyramid*gap
-    bir=tfr/life_span/2*(1-tfr_gap)/(refugee_population[-1]/africa_population[-1]+1)
+        refugee_population[-1] = 0  # Reset refugee population after year 20 (assumption)
+        tfr_dec = 0  # Stop fertility rate decrease after year 20
+    
+    # Age and mortality adjustments
+    gap = (life_span - year) / life_span
+    pyramid_factor = pyramid_factor * gap
+    mort = mort * (1 - pyramid_factor)
+    tfr_gap = tfr_pyramid * gap
+    bir = tfr / life_span / 2 * (1 - tfr_gap) / (refugee_population[-1] / africa_population[-1] + 1)
+    
     # Africa population growth calculation with decreasing growth rate over time
-    africa_growth_rate=bir-mort  # Slight decrease in growth rate per year (reflecting slowing growth)
+    africa_growth_rate = bir - mort  # Updated growth rate
     new_africa_population = africa_population[-1] * (1 + africa_growth_rate)
     africa_population.append(new_africa_population)
     
-    # Refugee deaths impact
+    # Refugee deaths impact (5% death rate for displaced population)
     refugee_deaths = new_refugees * 0.05  # 5% death rate per year
     africa_population_adjusted = africa_population[-1] - refugee_deaths
     africa_population[-1] = africa_population_adjusted  # Adjust Africa population after refugee deaths
@@ -66,7 +71,7 @@ plt.plot(range(2021, 2021 + len(refugee_population)), refugee_population, label=
 plt.plot(range(2021, 2021 + len(africa_population)), africa_population, label='Africa Population (Projected)', color='blue')
 plt.title("Displaced Population Growth and its Impact on Africa's Population (2021-2051)")
 plt.xlabel("Year")
-plt.ylabel("Population billion")
+plt.ylabel("Population (in billions)")
 plt.legend()
 plt.grid(True)
 plt.show()
