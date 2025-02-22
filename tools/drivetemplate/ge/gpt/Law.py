@@ -160,9 +160,6 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 2 * inch, "Mark Ingraham")
     c.drawString(left_margin, y_position - 2.5 * inch, "3553 Atlantic Avenue")
     c.drawString(left_margin, y_position - 3 * inch, "Long Beach, CA 90807")
-    c.drawString(left_margin, y_position - 3.5 * inch, "(408) 660-5425")
-    c.drawString(left_margin, y_position - 4 * inch, "ingrahammark7@gmail.com")
-    c.drawString(left_margin, y_position - 4.5 * inch, "Executed on 02/15/2025 at Los Angeles, California.")
 
     # Add footer and page number
     add_footer(2)
