@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Writ of Mandate Petition"  # Title of the paper
+        footer_text = "Petition for Writ of Mandate"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -47,12 +47,11 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "Attorney Name: [Name]",
-        "Office Address: [Address]",
-        "Telephone: [Phone]",
-        "Fax: [Fax]",
-        "Email: [Email]",
-        "State Bar Number: [Number]"
+        "Mark Ingraham",
+        "3553 Atlantic Avenue",
+        "Long Beach, CA 90807",
+        "Telephone: (408) 660-5425",
+        "Email: ingrahammark7@gmail.com"
     ]
     y_position = top_margin - 0.5 * inch
     for line in attorney_info:
@@ -65,15 +64,16 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF [COUNTY NAME]")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, top_margin - 4 * inch, "Case Title:")
     c.setFont("Times-Roman", 12)
     case_title = [
-        "Petitioner: [Petitioner Name]",
-        "Respondent: [Respondent Name]"
+        "Mark Ingraham, Petitioner,",
+        "v.",
+        "Los Angeles Police Department, Respondent."
     ]
     y_position = top_margin - 4.5 * inch
     for line in case_title:
@@ -84,20 +84,20 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     c.drawString(width / 2 + 1 * inch, top_margin - 4 * inch, "Case Number: [Number]")
 
-    # (6) Nature of the Paper
+    # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, top_margin - 5 * inch, "Nature of the Paper:")
+    c.drawString(left_margin, top_margin - 5.5 * inch, "Nature of the Paper:")
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, top_margin - 5.25 * inch, "Writ of Mandate Petition")
+    c.drawString(left_margin, top_margin - 5.75 * inch, "Petition for Writ of Mandate")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, top_margin - 5.75 * inch, "Judge: [Judge Name]")
-    c.drawString(left_margin, top_margin - 6 * inch, "Department: [Department Number]")
+    c.drawString(left_margin, top_margin - 6.25 * inch, "Judge: [Judge Name]")
+    c.drawString(left_margin, top_margin - 6.5 * inch, "Department: [Department Number]")
 
-    # Add line numbers
-    line_height = 0.2 * inch  # Approximately 3 line numbers per vertical inch
-    add_line_numbers(top_margin - 7 * inch, bottom_margin + 0.5 * inch, line_height)
+    # Add line numbers to the first page
+    line_height = 0.25 * inch  # Adjusted to match text spacing
+    add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
 
     # Add footer (suppressed on the first page)
     add_footer(1)
@@ -105,10 +105,68 @@ def create_pdf(output_filename):
     # Save the first page
     c.showPage()
 
-    # Add a second page with page number and footer
-    add_page_number(2)
+    # Second Page: Petition Text
+    c.setFont("Times-Bold", 14)
+    c.drawString(left_margin, top_margin - 0.5 * inch, "PETITION FOR WRIT OF MANDATE")
+
+    # Add line numbers to the second page
+    add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
+
+    # I. INTRODUCTION
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, top_margin - 1 * inch, "I. INTRODUCTION")
+    c.setFont("Times-Roman", 12)
+    intro_text = [
+        "1. Petitioner, Mark Ingraham, petitions this Court for a writ of mandate to prevent the Los Angeles Police",
+        "Department (LAPD) from interfering with Petitioner's right to enter and occupy the apartment located at",
+        "690 Catalina St Apt 4x, Los Angeles, CA."
+    ]
+    y_position = top_margin - 1.5 * inch
+    for line in intro_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # II. FACTUAL BACKGROUND
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
+    c.setFont("Times-Roman", 12)
+    factual_background = [
+        "1. Petitioner is attempting to enter the apartment located at 690 Catalina St Apt 4x, Los Angeles, CA.",
+        "2. The LAPD prevented Petitioner from entering the premises."
+    ]
+    y_position -= 1 * inch
+    for line in factual_background:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # III. REQUEST FOR RELIEF
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "III. REQUEST FOR RELIEF")
+    c.setFont("Times-Roman", 12)
+    relief_text = [
+        "WHEREFORE, Petitioner respectfully requests that this Court:",
+        "a. Issue a writ of mandate ordering the LAPD to cease and desist from preventing Petitioner from entering",
+        "and occupying the apartment at 690 Catalina St Apt 4x, Los Angeles, CA."
+    ]
+    y_position -= 1 * inch
+    for line in relief_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # Signature Block
+    c.setFont("Times-Roman", 12)
+    c.drawString(left_margin, y_position - 1 * inch, "DATED: 02/15/2025")
+    c.drawString(left_margin, y_position - 1.5 * inch, "Respectfully submitted,")
+    c.drawString(left_margin, y_position - 2 * inch, "Mark Ingraham")
+    c.drawString(left_margin, y_position - 2.5 * inch, "3553 Atlantic Avenue")
+    c.drawString(left_margin, y_position - 3 * inch, "Long Beach, CA 90807")
+    c.drawString(left_margin, y_position - 3.5 * inch, "(408) 660-5425")
+    c.drawString(left_margin, y_position - 4 * inch, "ingrahammark7@gmail.com")
+    c.drawString(left_margin, y_position - 4.5 * inch, "Executed on 02/15/2025 at Los Angeles, California.")
+
+    # Add footer and page number
     add_footer(2)
-    c.drawString(left_margin, top_margin - 1 * inch, "Continued...")
+    add_page_number(2)
 
     # Save the PDF
     c.save()
