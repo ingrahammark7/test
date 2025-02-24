@@ -89,11 +89,15 @@ def create_pdf(output_filename):
     c.drawString(left_margin, top_margin - 5.5 * inch, "Nature of the Paper:")
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, top_margin - 5.75 * inch, "Petition for Writ of Mandate")
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, top_margin - 6.00 * inch, "Character of Action:")
+    c.setFont("Times-Roman", 12)
+    c.drawString(left_margin, top_margin - 6.25 * inch, "Adminisrtative Mandamus - Civil Unlimited")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, top_margin - 6.25 * inch, "Judge: [Judge Name]")
-    c.drawString(left_margin, top_margin - 6.5 * inch, "Department: [Department Number]")
+    c.drawString(left_margin, top_margin - 6.75 * inch, "Judge: [Judge Name]")
+    c.drawString(left_margin, top_margin - 7.00 * inch, "Department: [Department Number]")
 
     # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
@@ -119,7 +123,7 @@ def create_pdf(output_filename):
     intro_text = [
         "1. Petitioner, Mark Ingraham, petitions this Court for a writ of mandate to prevent the Los Angeles Police",
         "Department (LAPD) from interfering with Petitioner's right to enter and occupy the apartment located at",
-        "690 Catalina St Apt 4x, Los Angeles, CA."
+        "690 S Catalina St Apt 4x, Los Angeles, CA."
     ]
     y_position = top_margin - 1.5 * inch
     for line in intro_text:
@@ -131,8 +135,8 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
     c.setFont("Times-Roman", 12)
     factual_background = [
-        "1. Petitioner is attempting to enter the apartment located at 690 Catalina St Apt 4x, Los Angeles, CA.",
-        "2. The LAPD prevented Petitioner from entering the premises."
+        "1. Petitioner attempted to enter the apartment located at 690 S Catalina St Apt 4x, Los Angeles, CA.",
+        "2. The LAPD physically prevented Petitioner from entering."
     ]
     y_position -= 1 * inch
     for line in factual_background:
@@ -144,9 +148,9 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.5 * inch, "III. REQUEST FOR RELIEF")
     c.setFont("Times-Roman", 12)
     relief_text = [
-        "WHEREFORE, Petitioner respectfully requests that this Court:",
+        "WHEREFORE, Petitioner requests that this Court:",
         "a. Issue a writ of mandate ordering the LAPD to cease and desist from preventing Petitioner from entering",
-        "and occupying the apartment at 690 Catalina St Apt 4x, Los Angeles, CA."
+ "the apartment at 690 S Catalina St Apt 4x, Los Angeles, CA."
     ]
     y_position -= 1 * inch
     for line in relief_text:
