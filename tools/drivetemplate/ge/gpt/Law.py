@@ -13,7 +13,7 @@ def create_pdf(output_filename):
     left_margin = 1 * inch
     right_margin = width - 1 * inch
     top_margin = height - 1 * inch
-    bottom_margin = 1 * inch
+    bottom_margin = 0 * inch
 
     # Set font and size (Times New Roman, 12-point)
     c.setFont("Times-Roman", 12)
@@ -68,36 +68,37 @@ def create_pdf(output_filename):
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, top_margin - 4 * inch, "Case Title:")
-    c.setFont("Times-Roman", 12)
     case_title = [
-        "Mark Ingraham, Petitioner,",
-        "v.",
-        "Los Angeles Police Department, Respondent."
+        "Mark Ingraham,",
+        "             Petitioner and Plaintiff,",
+        "         v.",
+        "Los Angeles Police Department,",
+        "             Respondent and Defendant."
     ]
-    y_position = top_margin - 4.5 * inch
+    y_position = top_margin - 4.75* inch
+    counter=0
     for line in case_title:
+        c.setFont("Times-Bold",12)
+        if counter==1 or counter==4:
+        	c.setFont("Times-Roman",12)
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
+        counter+=1
 
     # (5) Case Number
     c.setFont("Times-Roman", 12)
-    c.drawString(width / 2 + 1 * inch, top_margin - 4 * inch, "Case Number: [Number]")
-
+    space=width / 2 + 1 * inch
+    c.drawString(space, top_margin - 4 * inch, "Case Number:")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, top_margin - 5.5 * inch, "Nature of the Paper:")
-    c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, top_margin - 5.75 * inch, "Petition for Writ of Mandate")
+    c.drawString(space, top_margin - 5.5 * inch, "Petition for Writ of Mandate")
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, top_margin - 6.00 * inch, "Character of Action:")
-    c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, top_margin - 6.25 * inch, "Adminisrtative Mandamus - Civil Unlimited")
+    c.drawString(space, top_margin - 6.00 * inch, "Administrative Mandamus, Civil Unlimited")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, top_margin - 6.75 * inch, "Judge: [Judge Name]")
-    c.drawString(left_margin, top_margin - 7.00 * inch, "Department: [Department Number]")
+    c.drawString(space, top_margin - 6.5 * inch, "Judge: ")
+    c.drawString(space, top_margin - 6.75 * inch, "Department: ")
 
     # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
