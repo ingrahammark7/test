@@ -1,4 +1,290 @@
 media_rw
+import re
+import os
+
+def split_game_txt(input_file="game.txt"):
+    """
+    Splits game.txt into individual Python files based on class names.
+    """
+    try:
+        with open(input_file, "r") as file:
+            content = file.read()
+
+        # Split by separator
+        sections = content.split("media_rw")
+        class_content_map = {}
+
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+
+            # Extract class name
+            match = re.search(r"class\s+(\w+)", section)
+            if match:
+                class_name = match.group(1)
+                if class_name not in class_content_map:
+                    class_content_map[class_name] = section
+                else:
+                    class_content_map[class_name] += "\n\n" + section
+            else:
+                if class_content_map:
+                    last_class = list(class_content_map.keys())[-1]
+                    class_content_map[last_class] += "\n\n" + section
+
+        # Write each class to its own .py file
+        for class_name, content in class_content_map.items():
+            with open(f"{class_name}.py", "w") as py_file:
+                py_file.write(content)
+            print(f"Created: {class_name}.py")
+
+        print("Splitting completed.")
+    except Exception as e:
+        print(f"An error occurred during splitting: {e}")
+
+def rebuild_game_txt(output_file="game.txt"):
+    """
+    Rebuilds game.txt by concatenating all .py files in the current directory.
+    """
+    try:
+        py_files = [f for f in os.listdir() if f.endswith(".py")]
+        with open(output_file, "w") as game_file:
+            for py_file in py_files:
+                with open(py_file, "r") as file:
+                    content = file.read()
+                    game_file.write("media_rw\n")
+                    game_file.write(content.strip() + "\n")
+        print(f"{output_file} successfully rebuilt from .py files.")
+    except Exception as e:
+        print(f"An error occurred during rebuilding: {e}")
+
+def modify_file_from_temp(temp_file="temp.txt"):
+    """
+    Modifies a .py file based on instructions from temp.txt.
+    """
+    try:
+        with open(temp_file, "r") as file:
+            lines = file.readlines()
+
+        filename = lines[0].strip()
+        start_line = int(lines[1].strip())
+        end_line = int(lines[2].strip())
+        snippet = "".join(lines[3:])
+
+        if not os.path.exists(filename):
+            print(f"File {filename} not found.")
+            return
+
+        with open(filename, "r") as file:
+            file_contents = file.readlines()
+
+        # Replace lines
+        modified_contents = file_contents[:start_line - 1] + file_contents[end_line:]
+        modified_contents.insert(start_line - 1, snippet)
+
+        with open(filename, "w") as file:
+            file.writelines(modified_contents)
+        print(f"{filename} successfully modified.")
+    except Exception as e:
+        print(f"An error occurred during modification: {e}")
+
+def generate_temp_snippet(filename, start_line, end_line, new_code):
+    """
+    Dynamically generates temp.txt based on the parameters provided.
+    """
+    try:
+        temp_content = f"{filename}\n{start_line}\n{end_line}\n{new_code}"
+        with open("temp.txt", "w") as temp_file:
+            temp_file.write(temp_content)
+        print("Generated temp.txt with the following content:")
+        print(temp_content)
+    except Exception as e:
+        print(f"An error occurred during temp.txt generation: {e}")
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Manage game.txt and Python files.")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Split command
+    split_parser = subparsers.add_parser("split", help="Split game.txt into individual .py files.")
+    split_parser.add_argument("--input", type=str, default="game.txt", help="Path to game.txt")
+
+    # Rebuild command
+    rebuild_parser = subparsers.add_parser("rebuild", help="Rebuild game.txt from .py files.")
+    rebuild_parser.add_argument("--output", type=str, default="game.txt", help="Path to output game.txt")
+
+    # Modify command
+    modify_parser = subparsers.add_parser("modify", help="Modify a .py file based on temp.txt.")
+    modify_parser.add_argument("--temp", type=str, default="temp.txt", help="Path to temp.txt")
+
+    # Generate temp.txt command
+    generate_parser = subparsers.add_parser("generate", help="Generate a temp.txt snippet.")
+    generate_parser.add_argument("--filename", type=str, required=True, help="Target filename to modify")
+    generate_parser.add_argument("--start", type=int, required=True, help="Start line number")
+    generate_parser.add_argument("--end", type=int, required=True, help="End line number")
+    generate_parser.add_argument("--code", type=str, required=True, help="Code to insert at start line")
+
+    args = parser.parse_args()
+
+    if args.command == "split":
+        split_game_txt(input_file=args.input)
+    elif args.command == "rebuild":
+        rebuild_game_txt(output_file=args.output)
+    elif args.command == "modify":
+        modify_file_from_temp(temp_file=args.temp)
+    elif args.command == "generate":
+        generate_temp_snippet(args.filename, args.start, args.end, args.code)
+
+    # Automatically rebuild game.txt after every run
+    rebuild_game_txt()
+media_rw
+import re
+import os
+
+def split_game_txt(input_file="game.txt"):
+    """
+    Splits game.txt into individual Python files based on class names.
+    """
+    try:
+        with open(input_file, "r") as file:
+            content = file.read()
+
+        # Split by separator
+        sections = content.split("
+media_rw
+")
+        class_content_map = {}
+
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+
+            # Extract class name
+            match = re.search(r"class\s+(\w+)", section)
+            if match:
+                class_name = match.group(1)
+                if class_name not in class_content_map:
+                    class_content_map[class_name] = section
+                else:
+                    class_content_map[class_name] += "\n\n" + section
+            else:
+                if class_content_map:
+                    last_class = list(class_content_map.keys())[-1]
+                    class_content_map[last_class] += "\n\n" + section
+
+        # Write each class to its own .py file
+        for class_name, content in class_content_map.items():
+            with open(f"{class_name}.py", "w") as py_file:
+                py_file.write(content)
+            print(f"Created: {class_name}.py")
+
+        print("Splitting completed.")
+    except Exception as e:
+        print(f"An error occurred during splitting: {e}")
+
+def rebuild_game_txt(output_file="game.txt"):
+    """
+    Rebuilds game.txt by concatenating all .py files in the current directory.
+    """
+    try:
+        py_files = [f for f in os.listdir() if f.endswith(".py")]
+        with open(output_file, "w") as game_file:
+            for py_file in py_files:
+                with open(py_file, "r") as file:
+                    content = file.read()
+                    game_file.write("
+
+\n")
+                    game_file.write(content.strip() + "\n")
+        print(f"{output_file} successfully rebuilt from .py files.")
+    except Exception as e:
+        print(f"An error occurred during rebuilding: {e}")
+
+def modify_file_from_temp(temp_file="temp.txt"):
+    """
+    Modifies a .py file based on instructions from temp.txt.
+    """
+    try:
+        with open(temp_file, "r") as file:
+            lines = file.readlines()
+
+        filename = lines[0].strip()
+        start_line = int(lines[1].strip())
+        end_line = int(lines[2].strip())
+        snippet = "".join(lines[3:])
+
+        if not os.path.exists(filename):
+            print(f"File {filename} not found.")
+            return
+
+        with open(filename, "r") as file:
+            file_contents = file.readlines()
+
+        # Replace lines
+        modified_contents = file_contents[:start_line - 1] + file_contents[end_line:]
+        modified_contents.insert(start_line - 1, snippet)
+
+        with open(filename, "w") as file:
+            file.writelines(modified_contents)
+        print(f"{filename} successfully modified.")
+    except Exception as e:
+        print(f"An error occurred during modification: {e}")
+
+def generate_temp_snippet(filename, start_line, end_line, new_code):
+    """
+    Dynamically generates temp.txt based on the parameters provided.
+    """
+    try:
+        temp_content = f"{filename}\n{start_line}\n{end_line}\n{new_code}"
+        with open("temp.txt", "w") as temp_file:
+            temp_file.write(temp_content)
+        print("Generated temp.txt with the following content:")
+        print(temp_content)
+    except Exception as e:
+        print(f"An error occurred during temp.txt generation: {e}")
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Manage game.txt and Python files.")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Split command
+    split_parser = subparsers.add_parser("split", help="Split game.txt into individual .py files.")
+    split_parser.add_argument("--input", type=str, default="game.txt", help="Path to game.txt")
+
+    # Rebuild command
+    rebuild_parser = subparsers.add_parser("rebuild", help="Rebuild game.txt from .py files.")
+    rebuild_parser.add_argument("--output", type=str, default="game.txt", help="Path to output game.txt")
+
+    # Modify command
+    modify_parser = subparsers.add_parser("modify", help="Modify a .py file based on temp.txt.")
+    modify_parser.add_argument("--temp", type=str, default="temp.txt", help="Path to temp.txt")
+
+    # Generate temp.txt command
+    generate_parser = subparsers.add_parser("generate", help="Generate a temp.txt snippet.")
+    generate_parser.add_argument("--filename", type=str, required=True, help="Target filename to modify")
+    generate_parser.add_argument("--start", type=int, required=True, help="Start line number")
+    generate_parser.add_argument("--end", type=int, required=True, help="End line number")
+    generate_parser.add_argument("--code", type=str, required=True, help="Code to insert at start line")
+
+    args = parser.parse_args()
+
+    if args.command == "split":
+        split_game_txt(input_file=args.input)
+    elif args.command == "rebuild":
+        rebuild_game_txt(output_file=args.output)
+    elif args.command == "modify":
+        modify_file_from_temp(temp_file=args.temp)
+    elif args.command == "generate":
+        generate_temp_snippet(args.filename, args.start, args.end, args.code)
+
+    # Automatically rebuild game.txt after every run
+    rebuild_game_txt()
+media_rw
 class CombatManager:
     def __init__(self, map_buttons, player_stats, enemy_stats):
         """
@@ -43,7 +329,6 @@ class CombatManager:
         if self.player_stats["hp"] <= 0:
             return "Player is defeated!"
         return f"Player HP reduced to {self.player_stats['hp']}."
-
 media_rw
 import random
 
@@ -90,8 +375,9 @@ class EnemyManager:
         Returns:
             str: The new position of the enemy unit.
         """
-        player_row, player_col = ord(player_position[0]), int(player_position[1])
         enemy_row, enemy_col = ord(enemy_position[0]), int(enemy_position[1])
+        player_row, player_col = ord(player_position[0]), int(player_position[1])
+
         dr = player_row - enemy_row
         dc = player_col - enemy_col
 
@@ -110,6 +396,26 @@ class EnemyManager:
         # Stay in place if movement is invalid
         return enemy_position
 
+    def retreat_if_damaged(self, enemy_position, enemy_name):
+        """
+        Makes an enemy retreat to a safe position if their health is below a threshold.
+        Args:
+            enemy_position (str): The current position of the enemy.
+            enemy_name (str): The name of the enemy unit.
+        Returns:
+            str: The new position of the enemy unit after retreating, or None if no retreat is possible.
+        """
+        empty_cells = [
+            coord for coord, terr in self.terrain_manager.terrain.items()
+            if terr == "Empty" and self.map_buttons[coord].cget("text") == "Empty"
+        ]
+        if empty_cells:
+            safe_position = random.choice(empty_cells)
+            self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
+            self.map_buttons[safe_position].config(text=enemy_name, bg="orange")
+            return safe_position
+        return None
+
     def is_adjacent(self, pos1, pos2):
         """
         Checks if two positions are adjacent on the map.
@@ -121,7 +427,8 @@ class EnemyManager:
         """
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
         col_diff = abs(int(pos1[1]) - int(pos2[1]))
-        return max(row_diff, col_diff) == 1media_rw
+        return max(row_diff, col_diff) == 1
+media_rw
 import tkinter as tk
 from tkinter import ttk
 
@@ -277,7 +584,8 @@ class GameUI:
         label = tk.Label(end_screen, text=message, font=("Arial", 16), padx=20, pady=20)
         label.pack()
         close_button = tk.Button(end_screen, text="Close Game", command=self.root.destroy)
-        close_button.pack(pady=10)media_rw
+        close_button.pack(pady=10)
+media_rw
 import random
 
 class PlayerManager:
@@ -319,7 +627,8 @@ class PlayerManager:
         self.map_buttons[self.player_position].config(text="Empty", bg="lightgray")
         self.map_buttons[target_position].config(text=unit_name, bg="blue")
         self.player_position = target_position
-        return self.player_positionmedia_rw
+        return self.player_position
+media_rw
 import tkinter as tk
 from GameUI import GameUI
 from TerrainManager import TerrainManager
@@ -375,12 +684,9 @@ class TacticalMap:
         self.restart_game()
 
     def restart_game(self):
-        """
-        Restarts the game by clearing existing states and reinitializing.
-        """
         self.ui.update_log("Restarting game...")
         self.enemy_manager.enemy_positions.clear()
-        self.player_manager.player_position = None  # Clear previous player position
+        self.player_manager.player_position = None 
         self.initialize_game()
 
     def on_cell_click(self, coord):
@@ -525,7 +831,8 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.title("Turn-Based Tactical Simulation")
     game = TacticalMap(root)
-    root.mainloop()media_rw
+    root.mainloop()
+media_rw
 import random
 
 class TerrainManager:
@@ -586,7 +893,8 @@ class TerrainManager:
         Returns:
             str: The terrain type (e.g., "Forest", "Mountain", "Water", or "Empty").
         """
-        return self.terrain.get(coord, "Unknown")media_rw
+        return self.terrain.get(coord, "Unknown")
+media_rw
 import random
 
 class UnitManager:
@@ -650,63 +958,4 @@ class UnitManager:
         """
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
         col_diff = abs(int(pos1[1]) - int(pos2[1]))
-        return max(row_diff, col_diff) == 1media_rw
-import re
-import os
-
-def split_and_merge_game_txt(input_file="game.txt"):
-    try:
-        # Read the content of game.txt
-        with open(input_file, "r") as file:
-            content = file.read()
-
-        # Split the content using "media_rw" as the separator
-        sections = content.split("media_rw")
-
-        class_content_map = {}
-
-        for section in sections:
-            section = section.strip()  # Remove extra spaces
-            if not section:  # Skip empty sections
-                continue
-
-            # Extract the first class name using regex
-            match = re.search(r"class\s+(\w+)", section)
-            if match:
-                class_name = match.group(1)
-
-                # Add the section to the corresponding class
-                if class_name not in class_content_map:
-                    class_content_map[class_name] = section
-                else:
-                    # Append additional content to the existing class
-                    class_content_map[class_name] += "\n\n" + section
-            else:
-                # Merge unmatched sections to the last identified class
-                if class_content_map:
-                    last_class = list(class_content_map.keys())[-1]
-                    class_content_map[last_class] += "\n\n" + section
-                else:
-                    print("Warning: Content without a class and no previous class to merge into.")
-
-        # Write each class's content into a separate .py file
-        for class_name, class_content in class_content_map.items():
-            filename = f"{class_name}.py"
-            with open(filename, "w") as py_file:
-                py_file.write(class_content)
-            print(f"Created: {filename}")
-
-        print("All sections have been successfully processed.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
-if __name__ == "__main__":
-    import argparse
-
-    # Add argument parsing
-    parser = argparse.ArgumentParser(description="Split and merge game.txt into separate Python files.")
-    parser.add_argument("--input", type=str, default="game.txt", help="Path to the input game.txt file")
-    args = parser.parse_args()
-
-    # Call the main function
-    split_and_merge_game_txt(input_file=args.input)
+        return max(row_diff, col_diff) == 1
