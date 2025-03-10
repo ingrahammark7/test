@@ -42,46 +42,8 @@ class CombatManager:
         self.player_stats["hp"] -= 5  # Adjust damage value as needed
         if self.player_stats["hp"] <= 0:
             return "Player is defeated!"
-        return f"Player HP reduced to {self.player_stats['hp']}."media_rw
-import re
+        return f"Player HP reduced to {self.player_stats['hp']}."
 
-def extract_and_clean_files(game_txt_path="game.txt"):
-    """
-    Parses the game.txt file, tokenizes content based on `media_rw` markers,
-    removes tar headers from the start and end of each section, and saves
-    clean Python files in the current directory.
-    """
-    try:
-        with open(game_txt_path, "r") as f:
-            content = f.read()
-
-        # Tokenize the content based on `media_rw`, marking each new file section
-        sections = re.split(r"media_rw", content)
-
-        for section in sections:
-            # Extract the filename from the tar-like header
-            filename_match = re.search(r"game/([\w_]+\.py)", section)
-            if filename_match:
-                filename = filename_match.group(1)
-
-                # Remove any leading or trailing tar headers (lines starting with numbers)
-                cleaned_content = "\n".join(
-                    line for line in section.splitlines()
-                    if not re.match(r"^\d", line)
-                ).strip()  # Remove leading/trailing whitespace for clean output
-
-                # Write the cleaned content to a .py file
-                with open(filename, "w") as output_file:
-                    output_file.write(cleaned_content)
-                print(f"Extracted and cleaned: {filename}")
-
-        print("All files have been successfully extracted and cleaned.")
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
-if __name__ == "__main__":
-    extract_and_clean_files("game.txt")
 media_rw
 import random
 
@@ -359,11 +321,11 @@ class PlayerManager:
         self.player_position = target_position
         return self.player_positionmedia_rw
 import tkinter as tk
-from game_ui import GameUI
-from terrain_manager import TerrainManager
-from player_manager import PlayerManager
-from enemy_manager import EnemyManager
-from combat_manager import CombatManager
+from GameUI import GameUI
+from TerrainManager import TerrainManager
+from PlayerManager import PlayerManager
+from EnemyManager import EnemyManager
+from CombatManager import CombatManager
 
 class TacticalMap:
     def __init__(self, root):
@@ -688,4 +650,63 @@ class UnitManager:
         """
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
         col_diff = abs(int(pos1[1]) - int(pos2[1]))
-        return max(row_diff, col_diff) == 1
+        return max(row_diff, col_diff) == 1media_rw
+import re
+import os
+
+def split_and_merge_game_txt(input_file="game.txt"):
+    try:
+        # Read the content of game.txt
+        with open(input_file, "r") as file:
+            content = file.read()
+
+        # Split the content using "media_rw" as the separator
+        sections = content.split("media_rw")
+
+        class_content_map = {}
+
+        for section in sections:
+            section = section.strip()  # Remove extra spaces
+            if not section:  # Skip empty sections
+                continue
+
+            # Extract the first class name using regex
+            match = re.search(r"class\s+(\w+)", section)
+            if match:
+                class_name = match.group(1)
+
+                # Add the section to the corresponding class
+                if class_name not in class_content_map:
+                    class_content_map[class_name] = section
+                else:
+                    # Append additional content to the existing class
+                    class_content_map[class_name] += "\n\n" + section
+            else:
+                # Merge unmatched sections to the last identified class
+                if class_content_map:
+                    last_class = list(class_content_map.keys())[-1]
+                    class_content_map[last_class] += "\n\n" + section
+                else:
+                    print("Warning: Content without a class and no previous class to merge into.")
+
+        # Write each class's content into a separate .py file
+        for class_name, class_content in class_content_map.items():
+            filename = f"{class_name}.py"
+            with open(filename, "w") as py_file:
+                py_file.write(class_content)
+            print(f"Created: {filename}")
+
+        print("All sections have been successfully processed.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    import argparse
+
+    # Add argument parsing
+    parser = argparse.ArgumentParser(description="Split and merge game.txt into separate Python files.")
+    parser.add_argument("--input", type=str, default="game.txt", help="Path to the input game.txt file")
+    args = parser.parse_args()
+
+    # Call the main function
+    split_and_merge_game_txt(input_file=args.input)
