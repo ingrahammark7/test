@@ -1,137 +1,364 @@
-## START FILE: UnitManager.py
-import tempfile
+media_rw
+class CombatManager:
+    def __init__(self, map_buttons, player_stats, enemy_stats):
+        """
+        Initializes the CombatManager with references to the map buttons
+        and the stats for the player and enemies.
+        """
+        self.map_buttons = map_buttons  # Reference to the map buttons
+        self.player_stats = player_stats  # Dictionary containing player stats (e.g., HP, ammo)
+        self.enemy_stats = enemy_stats  # Dictionary containing enemy stats (e.g., HP)
+
+    def player_attack(self, target_coord, enemy_positions):
+        """
+        Handles the player's attack on an enemy unit.
+        Args:
+            target_coord (str): The coordinate of the enemy being attacked.
+            enemy_positions (list): The list of current enemy positions.
+        Returns:
+            str: A message describing the result of the attack.
+        """
+        if target_coord in enemy_positions:
+            # Reduce enemy health
+            self.enemy_stats["hp"] -= 5  # Adjust damage value as needed
+            if self.enemy_stats["hp"] <= 0:
+                # Enemy defeated, remove from the map
+                self.map_buttons[target_coord].config(text="Empty", bg="lightgray")
+                enemy_positions.remove(target_coord)
+                return f"Enemy at {target_coord} is defeated!"
+            else:
+                return f"Enemy at {target_coord} HP reduced to {self.enemy_stats['hp']}."
+        return "No enemy to attack at the selected position."
+
+    def enemy_attack(self, player_position):
+        """
+        Handles the enemy's attack on the player unit.
+        Args:
+            player_position (str): The current position of the player unit.
+        Returns:
+            str: A message describing the result of the attack.
+        """
+        # Enemy attack reduces player health
+        self.player_stats["hp"] -= 5  # Adjust damage value as needed
+        if self.player_stats["hp"] <= 0:
+            return "Player is defeated!"
+        return f"Player HP reduced to {self.player_stats['hp']}."media_rw
+import re
+
+def extract_and_clean_files(game_txt_path="game.txt"):
+    """
+    Parses the game.txt file, tokenizes content based on `media_rw` markers,
+    removes tar headers from the start and end of each section, and saves
+    clean Python files in the current directory.
+    """
+    try:
+        with open(game_txt_path, "r") as f:
+            content = f.read()
+
+        # Tokenize the content based on `media_rw`, marking each new file section
+        sections = re.split(r"media_rw", content)
+
+        for section in sections:
+            # Extract the filename from the tar-like header
+            filename_match = re.search(r"game/([\w_]+\.py)", section)
+            if filename_match:
+                filename = filename_match.group(1)
+
+                # Remove any leading or trailing tar headers (lines starting with numbers)
+                cleaned_content = "\n".join(
+                    line for line in section.splitlines()
+                    if not re.match(r"^\d", line)
+                ).strip()  # Remove leading/trailing whitespace for clean output
+
+                # Write the cleaned content to a .py file
+                with open(filename, "w") as output_file:
+                    output_file.write(cleaned_content)
+                print(f"Extracted and cleaned: {filename}")
+
+        print("All files have been successfully extracted and cleaned.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    extract_and_clean_files("game.txt")
+media_rw
+import random
+
+class EnemyManager:
+    def __init__(self, map_buttons, terrain_manager, enemy_count):
+        """
+        Initializes the EnemyManager with references to the map buttons,
+        terrain manager, and the number of enemy units.
+        """
+        self.map_buttons = map_buttons  # Reference to map buttons
+        self.terrain_manager = terrain_manager  # Reference to terrain manager
+        self.enemy_positions = []  # List of enemy positions
+        self.enemy_count = enemy_count  # Number of enemy units
+
+    def deploy_enemies(self, enemy_unit_name):
+        """
+        Deploys enemy units on random empty tiles.
+        Args:
+            enemy_unit_name (str): The name of the enemy units (e.g., "Enemy Unit").
+        Returns:
+            list: A list of coordinates where the enemies are deployed.
+        Raises:
+            ValueError: If there are not enough empty spaces for deployment.
+        """
+        empty_cells = [
+            coord for coord, terr in self.terrain_manager.terrain.items()
+            if terr == "Empty" and self.map_buttons[coord].cget("text") == "Empty"
+        ]
+        if len(empty_cells) < self.enemy_count:
+            raise ValueError("Not enough empty spaces to deploy enemies.")
+
+        self.enemy_positions = random.sample(empty_cells, self.enemy_count)
+        for enemy_position in self.enemy_positions:
+            self.map_buttons[enemy_position].config(text=enemy_unit_name, bg="red")
+        return self.enemy_positions
+
+    def move_toward_player(self, enemy_position, player_position, enemy_name):
+        """
+        Moves an enemy unit toward the player.
+        Args:
+            enemy_position (str): The current position of the enemy unit.
+            player_position (str): The current position of the player unit.
+            enemy_name (str): The name of the enemy unit (e.g., "Enemy Unit").
+        Returns:
+            str: The new position of the enemy unit.
+        """
+        player_row, player_col = ord(player_position[0]), int(player_position[1])
+        enemy_row, enemy_col = ord(enemy_position[0]), int(enemy_position[1])
+        dr = player_row - enemy_row
+        dc = player_col - enemy_col
+
+        # Determine the direction of movement
+        if abs(dr) > abs(dc):
+            new_pos = f"{chr(enemy_row + (1 if dr > 0 else -1))}{enemy_col}"
+        else:
+            new_pos = f"{chr(enemy_row)}{enemy_col + (1 if dc > 0 else -1)}"
+
+        # Validate and perform the move
+        if new_pos in self.map_buttons and self.terrain_manager.get_terrain(new_pos) in ["Empty", "Forest"]:
+            self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
+            self.map_buttons[new_pos].config(text=enemy_name, bg="red")
+            return new_pos
+
+        # Stay in place if movement is invalid
+        return enemy_position
+
+    def is_adjacent(self, pos1, pos2):
+        """
+        Checks if two positions are adjacent on the map.
+        Args:
+            pos1 (str): The first position (e.g., "A1").
+            pos2 (str): The second position (e.g., "B2").
+        Returns:
+            bool: True if the positions are adjacent, False otherwise.
+        """
+        row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
+        col_diff = abs(int(pos1[1]) - int(pos2[1]))
+        return max(row_diff, col_diff) == 1media_rw
+import tkinter as tk
+from tkinter import ttk
 
 class GameUI:
     def __init__(self, root):
         """
-        Initializes the GameUI with a persistent, always-visible log area on top and
-        dynamically sized map cells below. Log messages are written to a temporary file
-        as well as shown in the UI.
+        Initializes the GameUI with a scrollable map, zoom controls, and a persistent log box.
         """
         self.root = root
-        
-        # Main container for layout
-        self.main_frame = tk.Frame(root)
+
+        # Main container for layout organization
+        self.main_frame = tk.Frame(self.root)
         self.main_frame.pack(fill="both", expand=True)
-        
-        # Get screen dimensions (for button sizing)
-        self.screen_width = self.root.winfo_screenwidth()
-        self.screen_height = self.root.winfo_screenheight()
-        
-        self.map_buttons = {}      # Will hold our map grid buttons
-        self.cell_states = {}      # Will hold the state (text) for each cell
-        
-        # Create a temporary file to store log messages
-        self.log_file = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.log')
-        self.write_log("Game log initialized. Log file: " + self.log_file.name)
-        
-        # Create the log area at the top
+
+        # Create a canvas for the map with a vertical scrollbar
+        self.canvas = tk.Canvas(self.main_frame)
+        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas)
+
+        # Add the scrollable frame to the canvas
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
+        # Configure the canvas and scrollbar
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+        # Initialize zoom state and map buttons
+        self.zoom_level = 1.0
+        self.map_buttons = {}
+        self.cell_states = {}  # Store each cell's current value (terrain, units, etc.)
+
+        # Create zoom controls
+        self.create_zoom_controls()
+
+        # Create the log area below the map
         self.create_log_area()
-        
-        # Create a container for the game map below the log area
-        self.map_frame = tk.Frame(self.main_frame)
-        self.map_frame.pack(side="top", fill="both", expand=True)
-        
+
     def create_map(self, rows, cols, on_cell_click):
         """
-        Creates a dynamically sized map grid of buttons that should fit on the screen.
+        Creates a dynamically zoomable map grid of buttons.
         """
         # Clear any existing map buttons
-        for widget in self.map_frame.winfo_children():
+        for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
         self.map_buttons.clear()
 
-        # Compute button size based on screen dimensions and desired grid size.
-        # (Adjust the divisor constants to fit your needs.)
-        button_width = int(self.screen_width / cols / 10)
-        button_height = int((self.screen_height / 1.5) / rows / 10)
-
-        # Create the grid
+        # Generate the map grid
         for row in range(rows):
             for col in range(cols):
-                coord = f"{chr(65 + row)}{col + 1}"  # e.g., A1, B1, ...
+                coord = f"{chr(65 + row)}{col + 1}"  # Example: A1, B1, etc.
+
+                # Get the saved state (e.g., terrain type) for the cell, or default to "Empty"
                 cell_value = self.cell_states.get(coord, "Empty")
+
                 button = tk.Button(
-                    self.map_frame,
+                    self.scrollable_frame,
                     text=cell_value,
-                    width=button_width,
-                    height=button_height,
+                    width=int(10 * self.zoom_level),  # Adjusted width for zoom
+                    height=int(3 * self.zoom_level),  # Adjusted height for zoom
                     command=lambda c=coord: on_cell_click(c)
                 )
-                button.grid(row=row, column=col, sticky="nsew")
+                button.grid(row=row, column=col)
                 self.map_buttons[coord] = button
 
-        # Ensure grid resizing works nicely
-        for r in range(rows):
-            self.map_frame.rowconfigure(r, weight=1)
-        for c in range(cols):
-            self.map_frame.columnconfigure(c, weight=1)
+        # Update the scrollable area
+        self.canvas.update_idletasks()
 
-    def create_log_area(self):
+    def create_zoom_controls(self):
         """
-        Creates a persistent, scrollable log area at the top of the screen.
+        Adds Zoom In and Zoom Out buttons to the UI.
         """
-        self.log_frame = tk.Frame(self.main_frame)
-        self.log_frame.pack(side="top", fill="x")
-        # Create the scrollbar for the log
-        self.scrollbar = tk.Scrollbar(self.log_frame, orient="vertical")
-        self.scrollbar.pack(side="right", fill="y")
-        # Create the log text area.
-        # Set state to "normal" initially so we can insert text.
-        self.log_area = tk.Text(
-            self.log_frame,
-            height=5,
-            width=50,
-            state="normal",
-            wrap="word",
-            yscrollcommand=self.scrollbar.set
-        )
-        self.log_area.pack(side="left", fill="both", expand=True)
-        self.scrollbar.config(command=self.log_area.yview)
-        # Start with an initialization message visible.
-        self.log_area.insert(tk.END, "Log initialized successfully.\n")
-        self.log_area.see(tk.END)
-        self.log_area.configure(state="disabled")
+        control_frame = tk.Frame(self.root)
+        control_frame.pack(side="top", fill="x")
+
+        zoom_in_button = tk.Button(control_frame, text="Zoom In", command=self.zoom_in)
+        zoom_in_button.pack(side="left", padx=10, pady=5)
+
+        zoom_out_button = tk.Button(control_frame, text="Zoom Out", command=self.zoom_out)
+        zoom_out_button.pack(side="left", padx=10, pady=5)
+
+    def zoom_in(self):
+        """
+        Increases the zoom level and redraws the map.
+        """
+        if self.zoom_level < 2.0:  # Limit maximum zoom level
+            self.zoom_level += 0.2
+            self.update_zoom()
+
+    def zoom_out(self):
+        """
+        Decreases the zoom level and redraws the map.
+        """
+        max_zoom_out = self.calculate_max_zoom_out()
+        if self.zoom_level > max_zoom_out:  # Ensure we don't shrink too much
+            self.zoom_level -= 0.2
+            self.update_zoom()
+
+    def calculate_max_zoom_out(self):
+        """
+        Dynamically calculates the maximum zoom-out level based on screen size.
+        """
+        screen_width = self.root.winfo_screenwidth() // 100
+        screen_height = self.root.winfo_screenheight() // 50
+
+        max_width_zoom = screen_width / 3 # Adjust for 7 columns
+        max_height_zoom = screen_height / 3  # Adjust for 7 rows
+
+        return min(max_width_zoom, max_height_zoom)  # Use the smaller of the two values
+
+    def update_zoom(self):
+        """
+        Redraws the map at the new zoom level.
+        """
+        rows = len(self.map_buttons) // 7  # Assume 7x7 grid for now
+        self.create_map(rows, 7, lambda x: None)  # Redraw with updated zoom level
 
     def update_cell_state(self, coord, value):
         """
-        Updates the displayed text for a given cell on the map.
+        Updates the state of a specific cell (e.g., terrain type, units).
         """
         self.cell_states[coord] = value
         if coord in self.map_buttons:
             self.map_buttons[coord].config(text=value)
 
+    def create_log_area(self):
+        """
+        Creates a text area to display the game log.
+        """
+        self.log_area = tk.Text(self.root, height=5, width=50, state="normal", wrap="word")
+        self.log_area.pack(side="bottom", fill="x")
+
     def update_log(self, message):
         """
-        Updates the game log (both in the UI and in a temporary log file)
-        with a human-readable message.
+        Updates the game log with a new message.
         """
-        # First, update the UI log area.
-        self.log_area.configure(state="normal")
-        self.log_area.insert(tk.END, message + "\n")
-        self.log_area.see(tk.END)
-        self.log_area.configure(state="disabled")
-        # Then write the same message to the temporary log file.
-        self.write_log(message)
-
-    def write_log(self, message):
-        """
-        Writes a log message to the temporary log file.
-        """
-        if self.log_file:
-            self.log_file.write(message + "\n")
-            self.log_file.flush()
+        if self.log_area:
+            self.log_area.configure(state="normal")
+            self.log_area.insert(tk.END, message + "\n")
+            self.log_area.see(tk.END)
+            self.log_area.configure(state="disabled")
 
     def show_end_screen(self, message):
         """
-        Displays a popup window with a victory or defeat message.
+        Displays a popup with a victory or defeat message.
         """
         end_screen = tk.Toplevel(self.root)
         end_screen.title("Game Over")
         label = tk.Label(end_screen, text=message, font=("Arial", 16), padx=20, pady=20)
         label.pack()
         close_button = tk.Button(end_screen, text="Close Game", command=self.root.destroy)
-        close_button.pack(pady=10)game/tactical_map.py0000660002424300017770000002103714763157532014437 0ustar  u0_a403media_rwimport tkinter as tk
+        close_button.pack(pady=10)media_rw
+import random
+
+class PlayerManager:
+    def __init__(self, map_buttons, terrain_manager):
+        """
+        Initializes the PlayerManager with references to the map buttons
+        and the terrain manager.
+        """
+        self.map_buttons = map_buttons  # Reference to the map buttons
+        self.terrain_manager = terrain_manager  # Reference to the terrain manager
+        self.player_position = None  # The player's starting position
+
+    def deploy_player(self, player_unit_name):
+        """
+        Deploys the player unit on a random empty tile.
+        Args:
+            player_unit_name (str): The name of the player unit (e.g., "T-64 Tank").
+        Returns:
+            str: The coordinate of the deployed player unit.
+        Raises:
+            ValueError: If deployment fails after multiple attempts.
+        """
+        for _ in range(10):  # Retry up to 10 times for deployment
+            self.player_position = random.choice(list(self.map_buttons.keys()))
+            if self.terrain_manager.get_terrain(self.player_position) == "Empty":
+                self.map_buttons[self.player_position].config(text=player_unit_name, bg="blue")
+                return self.player_position
+        raise ValueError("Failed to deploy player unit after multiple attempts.")
+
+    def move_player(self, target_position, unit_name):
+        """
+        Moves the player unit to a specified target position.
+        Args:
+            target_position (str): The coordinate to move the player unit to.
+            unit_name (str): The name of the player unit (e.g., "T-64 Tank").
+        Returns:
+            str: The new position of the player unit.
+        """
+        self.map_buttons[self.player_position].config(text="Empty", bg="lightgray")
+        self.map_buttons[target_position].config(text=unit_name, bg="blue")
+        self.player_position = target_position
+        return self.player_positionmedia_rw
+import tkinter as tk
 from game_ui import GameUI
 from terrain_manager import TerrainManager
 from player_manager import PlayerManager
@@ -336,167 +563,8 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.title("Turn-Based Tactical Simulation")
     game = TacticalMap(root)
-    root.mainloop()game/combat_manager.py0000660002424300017770000000377614763157532014767 0ustar  u0_a403media_rwclass CombatManager:
-    def __init__(self, map_buttons, player_stats, enemy_stats):
-        """
-        Initializes the CombatManager with references to the map buttons
-        and the stats for the player and enemies.
-        """
-        self.map_buttons = map_buttons  # Reference to the map buttons
-        self.player_stats = player_stats  # Dictionary containing player stats (e.g., HP, ammo)
-        self.enemy_stats = enemy_stats  # Dictionary containing enemy stats (e.g., HP)
-
-    def player_attack(self, target_coord, enemy_positions):
-        """
-        Handles the player's attack on an enemy unit.
-        Args:
-            target_coord (str): The coordinate of the enemy being attacked.
-            enemy_positions (list): The list of current enemy positions.
-        Returns:
-            str: A message describing the result of the attack.
-        """
-        if target_coord in enemy_positions:
-            # Reduce enemy health
-            self.enemy_stats["hp"] -= 5  # Adjust damage value as needed
-            if self.enemy_stats["hp"] <= 0:
-                # Enemy defeated, remove from the map
-                self.map_buttons[target_coord].config(text="Empty", bg="lightgray")
-                enemy_positions.remove(target_coord)
-                return f"Enemy at {target_coord} is defeated!"
-            else:
-                return f"Enemy at {target_coord} HP reduced to {self.enemy_stats['hp']}."
-        return "No enemy to attack at the selected position."
-
-    def enemy_attack(self, player_position):
-        """
-        Handles the enemy's attack on the player unit.
-        Args:
-            player_position (str): The current position of the player unit.
-        Returns:
-            str: A message describing the result of the attack.
-        """
-        # Enemy attack reduces player health
-        self.player_stats["hp"] -= 5  # Adjust damage value as needed
-        if self.player_stats["hp"] <= 0:
-            return "Player is defeated!"
-        return f"Player HP reduced to {self.player_stats['hp']}."game/enemy_manager.py0000660002424300017770000000640014763157532014622 0ustar  u0_a403media_rwimport random
-
-class EnemyManager:
-    def __init__(self, map_buttons, terrain_manager, enemy_count):
-        """
-        Initializes the EnemyManager with references to the map buttons,
-        terrain manager, and the number of enemy units.
-        """
-        self.map_buttons = map_buttons  # Reference to map buttons
-        self.terrain_manager = terrain_manager  # Reference to terrain manager
-        self.enemy_positions = []  # List of enemy positions
-        self.enemy_count = enemy_count  # Number of enemy units
-
-    def deploy_enemies(self, enemy_unit_name):
-        """
-        Deploys enemy units on random empty tiles.
-        Args:
-            enemy_unit_name (str): The name of the enemy units (e.g., "Enemy Unit").
-        Returns:
-            list: A list of coordinates where the enemies are deployed.
-        Raises:
-            ValueError: If there are not enough empty spaces for deployment.
-        """
-        empty_cells = [
-            coord for coord, terr in self.terrain_manager.terrain.items()
-            if terr == "Empty" and self.map_buttons[coord].cget("text") == "Empty"
-        ]
-        if len(empty_cells) < self.enemy_count:
-            raise ValueError("Not enough empty spaces to deploy enemies.")
-
-        self.enemy_positions = random.sample(empty_cells, self.enemy_count)
-        for enemy_position in self.enemy_positions:
-            self.map_buttons[enemy_position].config(text=enemy_unit_name, bg="red")
-        return self.enemy_positions
-
-    def move_toward_player(self, enemy_position, player_position, enemy_name):
-        """
-        Moves an enemy unit toward the player.
-        Args:
-            enemy_position (str): The current position of the enemy unit.
-            player_position (str): The current position of the player unit.
-            enemy_name (str): The name of the enemy unit (e.g., "Enemy Unit").
-        Returns:
-            str: The new position of the enemy unit.
-        """
-        player_row, player_col = ord(player_position[0]), int(player_position[1])
-        enemy_row, enemy_col = ord(enemy_position[0]), int(enemy_position[1])
-        dr = player_row - enemy_row
-        dc = player_col - enemy_col
-
-        # Determine the direction of movement
-        if abs(dr) > abs(dc):
-            new_pos = f"{chr(enemy_row + (1 if dr > 0 else -1))}{enemy_col}"
-        else:
-            new_pos = f"{chr(enemy_row)}{enemy_col + (1 if dc > 0 else -1)}"
-
-        # Validate and perform the move
-        if new_pos in self.map_buttons and self.terrain_manager.get_terrain(new_pos) in ["Empty", "Forest"]:
-            self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
-            self.map_buttons[new_pos].config(text=enemy_name, bg="red")
-            return new_pos
-
-        # Stay in place if movement is invalid
-        return enemy_position
-
-    def is_adjacent(self, pos1, pos2):
-        """
-        Checks if two positions are adjacent on the map.
-        Args:
-            pos1 (str): The first position (e.g., "A1").
-            pos2 (str): The second position (e.g., "B2").
-        Returns:
-            bool: True if the positions are adjacent, False otherwise.
-        """
-        row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
-        col_diff = abs(int(pos1[1]) - int(pos2[1]))
-        return max(row_diff, col_diff) == 1game/player_manager.py0000660002424300017770000000356614763157532015013 0ustar  u0_a403media_rwimport random
-
-class PlayerManager:
-    def __init__(self, map_buttons, terrain_manager):
-        """
-        Initializes the PlayerManager with references to the map buttons
-        and the terrain manager.
-        """
-        self.map_buttons = map_buttons  # Reference to the map buttons
-        self.terrain_manager = terrain_manager  # Reference to the terrain manager
-        self.player_position = None  # The player's starting position
-
-    def deploy_player(self, player_unit_name):
-        """
-        Deploys the player unit on a random empty tile.
-        Args:
-            player_unit_name (str): The name of the player unit (e.g., "T-64 Tank").
-        Returns:
-            str: The coordinate of the deployed player unit.
-        Raises:
-            ValueError: If deployment fails after multiple attempts.
-        """
-        for _ in range(10):  # Retry up to 10 times for deployment
-            self.player_position = random.choice(list(self.map_buttons.keys()))
-            if self.terrain_manager.get_terrain(self.player_position) == "Empty":
-                self.map_buttons[self.player_position].config(text=player_unit_name, bg="blue")
-                return self.player_position
-        raise ValueError("Failed to deploy player unit after multiple attempts.")
-
-    def move_player(self, target_position, unit_name):
-        """
-        Moves the player unit to a specified target position.
-        Args:
-            target_position (str): The coordinate to move the player unit to.
-            unit_name (str): The name of the player unit (e.g., "T-64 Tank").
-        Returns:
-            str: The new position of the player unit.
-        """
-        self.map_buttons[self.player_position].config(text="Empty", bg="lightgray")
-        self.map_buttons[target_position].config(text=unit_name, bg="blue")
-        self.player_position = target_position
-        return self.player_positiongame/terrain_manager.py0000660002424300017770000000476414763157532015164 0ustar  u0_a403media_rwimport random
+    root.mainloop()media_rw
+import random
 
 class TerrainManager:
     def __init__(self, map_buttons):
@@ -556,7 +624,8 @@ class TerrainManager:
         Returns:
             str: The terrain type (e.g., "Forest", "Mountain", "Water", or "Empty").
         """
-        return self.terrain.get(coord, "Unknown")game/unit_manager.py0000660002424300017770000000546514763157532014476 0ustar  u0_a403media_rwimport random
+        return self.terrain.get(coord, "Unknown")media_rw
+import random
 
 class UnitManager:
     def __init__(self, map_buttons, terrain_manager, enemy_count):
@@ -620,6 +689,3 @@ class UnitManager:
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
         col_diff = abs(int(pos1[1]) - int(pos2[1]))
         return max(row_diff, col_diff) == 1
-
-## END FILE ##
-
