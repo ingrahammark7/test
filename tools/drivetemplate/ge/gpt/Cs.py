@@ -1,5 +1,6 @@
 import re
 import os
+import ast
 
 def split_game_txt(input_file="game.txt"):
     """
@@ -57,6 +58,18 @@ def rebuild_game_txt(output_file="game.txt"):
     except Exception as e:
         print(f"An error occurred during rebuilding: {e}")
 
+def validate_snippet(snippet):
+    """
+    Validates the syntax of a code snippet using Python's AST module.
+    """
+    try:
+        ast.parse(snippet)
+        print("Snippet is syntactically valid.")
+        return True
+    except SyntaxError as e:
+        print(f"Syntax error in snippet: {e}")
+        return False
+
 def modify_file_from_temp(temp_file="temp.txt"):
     """
     Modifies a .py file based on instructions from temp.txt.
@@ -70,11 +83,21 @@ def modify_file_from_temp(temp_file="temp.txt"):
         end_line = int(lines[2].strip())
         snippet = "".join(lines[3:])
 
+        # Validate the snippet syntax before applying
+        if not validate_snippet(snippet):
+            print("Modification aborted due to invalid syntax in snippet.")
+            return
+
         if not os.path.exists(filename):
             print(f"File {filename} not found.")
             return
 
-        with open(filename, "r") as file:
+        # Create a backup of the file
+        backup_filename = f"{filename}.bak"
+        os.rename(filename, backup_filename)
+        print(f"Backup created: {backup_filename}")
+
+        with open(backup_filename, "r") as file:
             file_contents = file.readlines()
 
         # Replace lines
