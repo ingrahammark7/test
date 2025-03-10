@@ -87,6 +87,19 @@ def modify_file_from_temp(temp_file="temp.txt"):
     except Exception as e:
         print(f"An error occurred during modification: {e}")
 
+def generate_temp_snippet(filename, start_line, end_line, new_code):
+    """
+    Dynamically generates temp.txt based on the parameters provided.
+    """
+    try:
+        temp_content = f"{filename}\n{start_line}\n{end_line}\n{new_code}"
+        with open("temp.txt", "w") as temp_file:
+            temp_file.write(temp_content)
+        print("Generated temp.txt with the following content:")
+        print(temp_content)
+    except Exception as e:
+        print(f"An error occurred during temp.txt generation: {e}")
+
 if __name__ == "__main__":
     import argparse
 
@@ -105,6 +118,13 @@ if __name__ == "__main__":
     modify_parser = subparsers.add_parser("modify", help="Modify a .py file based on temp.txt.")
     modify_parser.add_argument("--temp", type=str, default="temp.txt", help="Path to temp.txt")
 
+    # Generate temp.txt command
+    generate_parser = subparsers.add_parser("generate", help="Generate a temp.txt snippet.")
+    generate_parser.add_argument("--filename", type=str, required=True, help="Target filename to modify")
+    generate_parser.add_argument("--start", type=int, required=True, help="Start line number")
+    generate_parser.add_argument("--end", type=int, required=True, help="End line number")
+    generate_parser.add_argument("--code", type=str, required=True, help="Code to insert at start line")
+
     args = parser.parse_args()
 
     if args.command == "split":
@@ -113,5 +133,8 @@ if __name__ == "__main__":
         rebuild_game_txt(output_file=args.output)
     elif args.command == "modify":
         modify_file_from_temp(temp_file=args.temp)
-    else:
-        print("Please specify a valid command: split, rebuild, or modify.")
+    elif args.command == "generate":
+        generate_temp_snippet(args.filename, args.start, args.end, args.code)
+
+    # Automatically rebuild game.txt after every run
+    rebuild_game_txt()
