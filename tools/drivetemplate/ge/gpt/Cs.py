@@ -1,3 +1,5 @@
+#python cs.py rebuild --output game.txt
+
 import re
 import os
 import ast
