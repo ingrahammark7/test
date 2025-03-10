@@ -1,11 +1,10 @@
 import re
 import os
 import ast
+import textwrap
 
 def split_game_txt(input_file="game.txt"):
-    """
-    Splits game.txt into individual Python files based on class names.
-    """
+    """Splits game.txt into individual Python files based on class names."""
     try:
         with open(input_file, "r") as file:
             content = file.read()
@@ -43,9 +42,7 @@ def split_game_txt(input_file="game.txt"):
         print(f"An error occurred during splitting: {e}")
 
 def rebuild_game_txt(output_file="game.txt"):
-    """
-    Rebuilds game.txt by concatenating all .py files in the current directory.
-    """
+    """Rebuilds game.txt by concatenating all .py files in the current directory."""
     try:
         py_files = [f for f in os.listdir() if f.endswith(".py")]
         with open(output_file, "w") as game_file:
@@ -59,21 +56,20 @@ def rebuild_game_txt(output_file="game.txt"):
         print(f"An error occurred during rebuilding: {e}")
 
 def validate_snippet(snippet):
-    """
-    Validates the syntax of a code snippet using Python's AST module.
-    """
+    """Validates the syntax of a code snippet using Python's AST module."""
     try:
-        ast.parse(snippet)
+        dedented_snippet = textwrap.dedent(snippet)  # Remove unnecessary indentation
+        ast.parse(dedented_snippet)
         print("Snippet is syntactically valid.")
         return True
     except SyntaxError as e:
         print(f"Syntax error in snippet: {e}")
+        print("Snippet content:")
+        print(snippet)
         return False
 
 def modify_file_from_temp(temp_file="temp.txt"):
-    """
-    Modifies a .py file based on instructions from temp.txt.
-    """
+    """Modifies a .py file based on instructions from temp.txt."""
     try:
         with open(temp_file, "r") as file:
             lines = file.readlines()
@@ -92,17 +88,23 @@ def modify_file_from_temp(temp_file="temp.txt"):
             print(f"File {filename} not found.")
             return
 
+        # Ensure the specified line range is valid
+        with open(filename, "r") as file:
+            file_contents = file.readlines()
+        if start_line > len(file_contents) or end_line > len(file_contents) + 1:
+            print(f"Invalid line range: {start_line}-{end_line}. File has {len(file_contents)} lines.")
+            return
+
         # Create a backup of the file
         backup_filename = f"{filename}.bak"
         os.rename(filename, backup_filename)
         print(f"Backup created: {backup_filename}")
 
-        with open(backup_filename, "r") as file:
-            file_contents = file.readlines()
-
-        # Replace lines
-        modified_contents = file_contents[:start_line - 1] + file_contents[end_line:]
-        modified_contents.insert(start_line - 1, snippet)
+        # Apply modification
+        modified_contents = (
+            file_contents[:start_line - 1] + file_contents[end_line:]  # Remove specified lines
+        )
+        modified_contents.insert(start_line - 1, snippet)  # Insert new snippet
 
         with open(filename, "w") as file:
             file.writelines(modified_contents)
@@ -111,9 +113,7 @@ def modify_file_from_temp(temp_file="temp.txt"):
         print(f"An error occurred during modification: {e}")
 
 def generate_temp_snippet(filename, start_line, end_line, new_code):
-    """
-    Dynamically generates temp.txt based on the parameters provided.
-    """
+    """Dynamically generates temp.txt based on the parameters provided."""
     try:
         temp_content = f"{filename}\n{start_line}\n{end_line}\n{new_code}"
         with open("temp.txt", "w") as temp_file:
