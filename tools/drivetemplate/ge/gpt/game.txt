@@ -1,4 +1,6 @@
 media_rw
+#python cs.py rebuild --output game.txt
+
 import re
 import os
 import ast
@@ -205,15 +207,29 @@ class TacticalMap:
         self.turn = "Player"
         self.crossing_turns = 0
         self.target_position = None
+        self.grid_rows = 7
+        self.grid_cols = 7
 
+        self.determine_grid_dimensions()
         self.initialize_game()
+
+    def determine_grid_dimensions(self):
+        """
+        Dynamically sets the grid dimensions based on screen size.
+        """
+        screen_width = self.ui.root.winfo_screenwidth()
+        screen_height = self.ui.root.winfo_screenheight()
+        if screen_height >= 2 * screen_width:
+            self.grid_rows, self.grid_cols = 14, 7
+        else:
+            self.grid_rows, self.grid_cols = 7, 7
 
     def initialize_game(self):
         """
         Initializes the game, including map creation, terrain generation,
         and unit deployment. Retries until a valid game state is generated.
         """
-        self.ui.create_map(rows=7, cols=7, on_cell_click=self.on_cell_click)
+        self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, on_cell_click=self.on_cell_click)
         self.ui.create_log_area()
 
         # Retry generating terrain until successful
@@ -231,6 +247,9 @@ class TacticalMap:
         self.restart_game()
 
     def restart_game(self):
+        """
+        Restarts the game by clearing previous states and reinitializing.
+        """
         self.ui.update_log("Restarting game...")
         self.enemy_manager.enemy_positions.clear()
         self.player_manager.player_position = None
@@ -714,24 +733,20 @@ class GameUI:
     def create_map(self, rows, cols, on_cell_click):
         """
         Creates a dynamically auto-sizing map grid of buttons.
-        Adjusts button size so the grid fits the screen dimensions.
+        Adjusts grid size and applies the .3 scaling factor for Pydroid behavior.
         """
         # Clear any existing map buttons
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
         self.map_buttons.clear()
 
-        # Calculate button size based on screen dimensions
-        screen_width = self.root.winfo_screenwidth()
+        # Calculate button size with .3 width scaling
+        screen_width = self.root.winfo_screenwidth() * 0.3  # Apply scaling factor
         screen_height = self.root.winfo_screenheight()
 
         # Dedicate space for the grid, leaving room for controls/logs
-        available_width = screen_width * 0.3
-        available_height = screen_height * 0.8
-
-        # Calculate button size to fit the 7x7 grid
-        button_width = int(available_width / cols)
-        button_height = int(available_height / rows)
+        button_width = int(screen_width / cols)
+        button_height = int(screen_height / rows)
         button_size = min(button_width, button_height)  # Ensure square buttons
 
         # Generate the map grid
@@ -777,7 +792,7 @@ class GameUI:
         end_screen.title("Game Over")
         label = tk.Label(end_screen, text=message, font=("Arial", 16), padx=20, pady=20)
         label.pack()
-        close_button = tk.Button(end_screen, text="Close Game", command=self.root.destroy)
+        close_button = tk.Button(end_screen, text="Close", command=self.root.destroy)
         close_button.pack(pady=10)
 media_rw
 import random
