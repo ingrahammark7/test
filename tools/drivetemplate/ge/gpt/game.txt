@@ -200,8 +200,7 @@ class TacticalMap:
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
             enemy_stats={"name": "Enemy Unit", "hp": 10}
         )
-
-        # General game state
+        # Setup game state
         self.player_unit = "T-64 Tank"
         self.enemy_unit = "Enemy Unit"
         self.turn = "Player"
@@ -209,13 +208,12 @@ class TacticalMap:
         self.target_position = None
         self.grid_rows = 7
         self.grid_cols = 7
-
         self.determine_grid_dimensions()
         self.initialize_game()
 
     def determine_grid_dimensions(self):
         """
-        Dynamically sets the grid dimensions based on screen size.
+        Dynamically sets grid dimensions based on screen size.
         """
         screen_width = self.ui.root.winfo_screenwidth()
         screen_height = self.ui.root.winfo_screenheight()
@@ -226,14 +224,13 @@ class TacticalMap:
 
     def initialize_game(self):
         """
-        Initializes the game, including map creation, terrain generation,
-        and unit deployment. Retries until a valid game state is generated.
+        Initializes the game: creates the grid, terrain, and deploys units.
+        Retries if necessary.
         """
         self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, on_cell_click=self.on_cell_click)
         self.ui.create_log_area()
 
-        # Retry generating terrain until successful
-        for _ in range(5):  # Maximum of 5 retries
+        for _ in range(5):  # Attempt up to 5 times
             if self.terrain_manager.generate_terrain(enemy_count=5):
                 try:
                     self.player_manager.deploy_player(self.player_unit)
@@ -242,13 +239,12 @@ class TacticalMap:
                     return
                 except ValueError:
                     self.ui.update_log("Deployment failed. Retrying...")
-        # If retries fail, restart the game
         self.ui.update_log("Failed to initialize game. Restarting...")
         self.restart_game()
 
     def restart_game(self):
         """
-        Restarts the game by clearing previous states and reinitializing.
+        Restarts the game by clearing previous state and reinitializing.
         """
         self.ui.update_log("Restarting game...")
         self.enemy_manager.enemy_positions.clear()
@@ -257,23 +253,23 @@ class TacticalMap:
 
     def on_cell_click(self, coord):
         """
-        Handles player's action upon clicking a cell.
+        Called when a cell is clicked. If it's the player's turn and not crossing, process the action.
         """
         if self.turn == "Player" and self.crossing_turns == 0:
             self.handle_player_action(coord)
-
+    
     def handle_player_action(self, coord):
         """
-        Processes player actions: move, attack, or terrain interaction.
+        Processes the player's action: move, attack, or interact based on terrain.
         """
         distance_row = abs(ord(coord[0]) - ord(self.player_manager.player_position[0]))
         distance_col = abs(int(coord[1]) - int(self.player_manager.player_position[1]))
-        if max(distance_row, distance_col) == 1:  # Check adjacency
+        if max(distance_row, distance_col) == 1:  # Must be adjacent
             if coord in self.enemy_manager.enemy_positions:
                 result = self.combat_manager.player_attack(coord, self.enemy_manager.enemy_positions)
                 self.ui.update_log(result)
                 if "defeated" in result and not self.enemy_manager.enemy_positions:
-                    self.end_game(victory=True)  # Trigger victory if no enemies remain
+                    self.end_game(victory=True)
             elif self.terrain_manager.get_terrain(coord) in ["Empty", "Forest"]:
                 self.player_manager.player_position = self.player_manager.move_player(coord, self.player_unit)
                 self.end_turn()
@@ -288,57 +284,52 @@ class TacticalMap:
 
     def start_crossing(self, coord, turns):
         """
-        Handles crossing of water or mountain tiles by automatically moving
-        into the next empty square in the specified direction.
+        Begins the process of crossing a terrain feature.
         """
         self.ui.update_log(f"Starting to cross towards {coord}. This will take {turns} turn(s).")
         self.crossing_turns = turns
         self.target_position = coord
-        self.end_turn()  # Enemy action while crossing happens
+        self.end_turn()  # Trigger enemy turn
 
     def process_crossing(self):
         """
-        Moves the player automatically toward the target, avoiding obstacles.
+        Moves the player automatically towards the target while crossing.
         """
         if self.crossing_turns > 0:
-            # Calculate next move direction
             self.crossing_turns -= 1
-            player_row, player_col = ord(self.player_manager.player_position[0]), int(self.player_manager.player_position[1])
-            target_row, target_col = ord(self.target_position[0]), int(self.target_position[1])
-
-            if player_row < target_row:  # Move down
-                next_position = f"{chr(player_row + 1)}{player_col}"
-            elif player_row > target_row:  # Move up
-                next_position = f"{chr(player_row - 1)}{player_col}"
-            elif player_col < target_col:  # Move right
-                next_position = f"{chr(player_row)}{player_col + 1}"
-            elif player_col > target_col:  # Move left
-                next_position = f"{chr(player_row)}{player_col - 1}"
+            player_row = ord(self.player_manager.player_position[0])
+            player_col = int(self.player_manager.player_position[1])
+            target_row = ord(self.target_position[0])
+            target_col = int(self.target_position[1])
+            if player_row < target_row:
+                next_pos = f"{chr(player_row+1)}{player_col}"
+            elif player_row > target_row:
+                next_pos = f"{chr(player_row-1)}{player_col}"
+            elif player_col < target_col:
+                next_pos = f"{chr(player_row)}{player_col+1}"
+            elif player_col > target_col:
+                next_pos = f"{chr(player_row)}{player_col-1}"
             else:
-                next_position = self.player_manager.player_position  # Stay in place if no valid move
-
-            # Check if the next position is empty or traversable
-            terrain = self.terrain_manager.get_terrain(next_position)
+                next_pos = self.player_manager.player_position
+            terrain = self.terrain_manager.get_terrain(next_pos)
             if terrain in ["Empty", "Forest"]:
-                self.player_manager.player_position = self.player_manager.move_player(next_position, self.player_unit)
-                self.ui.update_log(f"Moved to {next_position}. {self.crossing_turns} turn(s) left to cross.")
+                self.player_manager.player_position = self.player_manager.move_player(next_pos, self.player_unit)
+                self.ui.update_log(f"Moved to {next_pos}. {self.crossing_turns} turn(s) left to cross.")
             else:
-                self.ui.update_log(f"Cannot move into {next_position} due to {terrain}. Waiting...")
-
+                self.ui.update_log(f"Cannot move into {next_pos} due to {terrain}. Waiting...")
             self.end_turn()
         else:
-            # Crossing complete
             self.ui.update_log(f"Crossing complete. Reached {self.target_position}.")
             self.target_position = None
             self.end_turn()
 
     def enemy_action(self):
         """
-        Processes enemy actions: attack if adjacent, otherwise move closer.
+        Processes the enemy's turn: moving enemies and making them attack.
         """
         self.ui.update_log("Enemies are taking their turn...")
-        new_positions = []
-        for enemy_pos in self.enemy_manager.enemy_positions:
+        new_positions = {}
+        for enemy_pos in list(self.enemy_manager.enemy_positions.keys()):
             if self.enemy_manager.is_adjacent(enemy_pos, self.player_manager.player_position):
                 result = self.combat_manager.enemy_attack(self.player_manager.player_position)
                 self.ui.update_log(result)
@@ -349,11 +340,8 @@ class TacticalMap:
                 new_pos = self.enemy_manager.move_toward_player(
                     enemy_pos, self.player_manager.player_position, self.enemy_unit
                 )
-                new_positions.append(new_pos)
-
+                new_positions[new_pos] = self.enemy_manager.enemy_positions[enemy_pos]
         self.enemy_manager.enemy_positions = new_positions
-
-        # Check if all enemies are defeated
         if not self.enemy_manager.enemy_positions:
             self.end_game(victory=True)
         else:
@@ -361,10 +349,9 @@ class TacticalMap:
 
     def end_turn(self):
         """
-        Switches turns between Player and Enemy, considering crossing state.
+        Switches the turn between the player and the enemy.
         """
         if self.turn == "Player":
-            # If crossing, process the next crossing step
             if self.crossing_turns > 0:
                 self.turn = "Enemy"
                 self.enemy_action()
@@ -380,19 +367,16 @@ class TacticalMap:
 
     def end_game(self, victory):
         """
-        Ends the game with either a victory or defeat message.
+        Ends the game with a victory or defeat message.
         """
         if victory:
             message = "You Win!"
-            self.ui.update_log("Congratulations, Commander! All enemies have been defeated. You are victorious!")
+            self.ui.update_log("Congratulations, Commander! All enemies have been defeated.")
         else:
             message = "Game Over"
             self.ui.update_log("Mission failed. Your forces have been defeated.")
-
         self.ui.show_end_screen(message)
 
-
-# Main program entry point
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Turn-Based Tactical Simulation")
@@ -533,47 +517,97 @@ media_rw
 class CombatManager:
     def __init__(self, map_buttons, player_stats, enemy_stats):
         """
-        Initializes the CombatManager with references to the map buttons
-        and the stats for the player and enemies.
+        Initializes the CombatManager with references to the map buttons,
+        the player's statistics, and the enemy's statistics.
+
+        Args:
+            map_buttons (dict): Dictionary of map cell buttons.
+            player_stats (dict): Dictionary containing player stats (e.g., {"hp": 20, "ammo": 5}).
+            enemy_stats (dict): Dictionary containing enemy stats (e.g., {"hp": 10}).
         """
-        self.map_buttons = map_buttons  # Reference to the map buttons
-        self.player_stats = player_stats  # Dictionary containing player stats (e.g., HP, ammo)
-        self.enemy_stats = enemy_stats  # Dictionary containing enemy stats (e.g., HP)
+        self.map_buttons = map_buttons
+        self.player_stats = player_stats
+        self.enemy_stats = enemy_stats
 
     def player_attack(self, target_coord, enemy_positions):
         """
         Handles the player's attack on an enemy unit.
+
         Args:
             target_coord (str): The coordinate of the enemy being attacked.
-            enemy_positions (list): The list of current enemy positions.
+            enemy_positions (dict): A dictionary of enemy positions mapped to their HP.
+        
         Returns:
-            str: A message describing the result of the attack.
+            str: A message describing the outcome of the attack.
         """
         if target_coord in enemy_positions:
-            # Reduce enemy health
-            self.enemy_stats["hp"] -= 5  # Adjust damage value as needed
-            if self.enemy_stats["hp"] <= 0:
-                # Enemy defeated, remove from the map
+            # Damage the enemy by 5 points.
+            enemy_positions[target_coord] -= 5
+            if enemy_positions[target_coord] <= 0:
+                # Enemy is defeated; remove it from the dictionary and update the UI.
+                del enemy_positions[target_coord]
                 self.map_buttons[target_coord].config(text="Empty", bg="lightgray")
-                enemy_positions.remove(target_coord)
                 return f"Enemy at {target_coord} is defeated!"
             else:
-                return f"Enemy at {target_coord} HP reduced to {self.enemy_stats['hp']}."
+                return f"Enemy at {target_coord} HP reduced to {enemy_positions[target_coord]}."
         return "No enemy to attack at the selected position."
 
     def enemy_attack(self, player_position):
         """
-        Handles the enemy's attack on the player unit.
+        Handles the enemy's attack on the player.
+
         Args:
-            player_position (str): The current position of the player unit.
+            player_position (str): The current position of the player.
+        
         Returns:
-            str: A message describing the result of the attack.
+            str: A message describing the result of the enemy's attack.
         """
-        # Enemy attack reduces player health
-        self.player_stats["hp"] -= 5  # Adjust damage value as needed
+        # Enemy deals a fixed 5 damage to the player's HP.
+        self.player_stats["hp"] -= 5
         if self.player_stats["hp"] <= 0:
             return "Player is defeated!"
-        return f"Player HP reduced to {self.player_stats['hp']}."
+        else:
+            return f"Player HP reduced to {self.player_stats['hp']}."
+
+    def fortification_attack(self, fortification_positions, player_position):
+        """
+        Processes fortification attacks against the player for any fortification
+        adjacent (including diagonally) to the player.
+
+        Args:
+            fortification_positions (list): A list of coordinates where fortifications reside.
+            player_position (str): The current position of the player.
+        
+        Returns:
+            str or None: A message describing the fortification attack (if one occurred),
+                         or None if no fortification is adjacent.
+        """
+        for fort_pos in fortification_positions:
+            if self.is_adjacent(fort_pos, player_position):
+                # Fortification deals 5 damage to the player.
+                self.player_stats["hp"] -= 5
+                if self.player_stats["hp"] <= 0:
+                    return f"Fortification at {fort_pos} attacked! Player is defeated!"
+                else:
+                    return f"Fortification at {fort_pos} attacked! Player HP reduced to {self.player_stats['hp']}."
+        return None
+
+    def is_adjacent(self, pos1, pos2):
+        """
+        Determines if two grid positions are adjacent (including diagonally).
+        
+        Args:
+            pos1 (str): The first grid position (e.g., "A1").
+            pos2 (str): The second grid position (e.g., "B2").
+        
+        Returns:
+            bool: True if the two positions share a side or corner, False otherwise.
+        """
+        # Compute row difference using ASCII values and column difference.
+        row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
+        # Using pos[1:] to handle multi-digit columns (e.g., "A10")
+        col_diff = abs(int(pos1[1:]) - int(pos2[1:]))
+        return max(row_diff, col_diff) == 1
 media_rw
 import random
 
@@ -585,12 +619,12 @@ class EnemyManager:
         """
         self.map_buttons = map_buttons  # Reference to map buttons
         self.terrain_manager = terrain_manager  # Reference to terrain manager
-        self.enemy_positions = []  # List of enemy positions
+        self.enemy_positions = {}  # Dictionary to track enemy positions and their HP
         self.enemy_count = enemy_count  # Number of enemy units
 
     def deploy_enemies(self, enemy_unit_name):
         """
-        Deploys enemy units on random empty tiles.
+        Deploys enemy units on random empty tiles with starting HP.
         Args:
             enemy_unit_name (str): The name of the enemy units (e.g., "Enemy Unit").
         Returns:
@@ -605,10 +639,10 @@ class EnemyManager:
         if len(empty_cells) < self.enemy_count:
             raise ValueError("Not enough empty spaces to deploy enemies.")
 
-        self.enemy_positions = random.sample(empty_cells, self.enemy_count)
-        for enemy_position in self.enemy_positions:
-            self.map_buttons[enemy_position].config(text=enemy_unit_name, bg="red")
-        return self.enemy_positions
+        for coord in random.sample(empty_cells, self.enemy_count):
+            self.enemy_positions[coord] = 10  # Assign each enemy 10 HP
+            self.map_buttons[coord].config(text=enemy_unit_name, bg="red")
+        return list(self.enemy_positions.keys())
 
     def move_toward_player(self, enemy_position, player_position, enemy_name):
         """
@@ -641,7 +675,6 @@ class EnemyManager:
                     self.map_buttons[new_pos].config(text=enemy_name, bg="red")
                     return new_pos
                 else:
-                    self.map_buttons[enemy_position].config(text=enemy_name, bg="red")  # Wasted move
                     return enemy_position
             elif terrain == "Mountain":
                 if random.random() < 0.3:  # 30% chance to cross
@@ -649,7 +682,6 @@ class EnemyManager:
                     self.map_buttons[new_pos].config(text=enemy_name, bg="red")
                     return new_pos
                 else:
-                    self.map_buttons[enemy_position].config(text=enemy_name, bg="red")  # Wasted move
                     return enemy_position
             elif terrain in ["Empty", "Forest"]:
                 self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
@@ -658,26 +690,6 @@ class EnemyManager:
 
         # Stay in place if the move is invalid
         return enemy_position
-
-    def retreat_if_damaged(self, enemy_position, enemy_name):
-        """
-        Makes an enemy retreat to a safe position if their health is below a threshold.
-        Args:
-            enemy_position (str): The current position of the enemy.
-            enemy_name (str): The name of the enemy unit.
-        Returns:
-            str: The new position of the enemy unit after retreating, or None if no retreat is possible.
-        """
-        empty_cells = [
-            coord for coord, terr in self.terrain_manager.terrain.items()
-            if terr == "Empty" and self.map_buttons[coord].cget("text") == "Empty"
-        ]
-        if empty_cells:
-            safe_position = random.choice(empty_cells)
-            self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
-            self.map_buttons[safe_position].config(text=enemy_name, bg="orange")
-            return safe_position
-        return None
 
     def is_adjacent(self, pos1, pos2):
         """
