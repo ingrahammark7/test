@@ -1,3 +1,4 @@
+#python cs.py split --input game.txt
 #python cs.py rebuild --output game.txt
 
 import re
