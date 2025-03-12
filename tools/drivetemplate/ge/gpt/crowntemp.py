@@ -19,3 +19,6 @@ current_air_temp_c = base_air_temp_c + (temperature_increase_f - 32) * 5 / 9  # 
 crown_temp_c = current_air_temp_c * slope  # linear relationship
 
 current_air_temp_c, slope, crown_temp_c
+print(current_air_temp_c)
+print(slope)
+print(crown_temp_c)
