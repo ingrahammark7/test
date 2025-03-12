@@ -1,4 +1,52 @@
 media_rw
+#python cs.py split --input game.txt
+#python cs.py rebuild --output game.txt
+
+import re
+import os
+import ast
+import textwrap
+
+def split_game_txt(input_file="game.txt"):
+    """Splits game.txt into individual Python files based on class names."""
+    try:
+        with open(input_file, "r") as file:
+            content = file.read()
+
+        # Split by separator
+        sections = content.split("
+
+#python cs.py rebuild --output game.txt
+
+import re
+import os
+import ast
+import textwrap
+
+def split_game_txt(input_file="game.txt"):
+    """Splits game.txt into individual Python files based on class names."""
+    try:
+        with open(input_file, "r") as file:
+            content = file.read()
+
+        # Split by separator
+        sections = content.split("
+
+import re
+import os
+
+def split_game_txt(input_file="game.txt"):
+    """
+    Splits game.txt into individual Python files based on class names.
+    """
+    try:
+        with open(input_file, "r") as file:
+            content = file.read()
+
+        # Split by separator
+        sections = content.split("
+media_rw
+#python cs.py split --input game.txt
 #python cs.py rebuild --output game.txt
 
 import re
@@ -165,224 +213,314 @@ if __name__ == "__main__":
     # Automatically rebuild game.txt after every run
     rebuild_game_txt()
 media_rw
-import re
-import os
+")
+        class_content_map = {}
 
-def split_game_txt(input_file="game.txt"):
-    """
-    Splits game.txt into individual Python files based on class names.
-    """
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+
+            # Extract class name
+            match = re.search(r"class\s+(\w+)", section)
+            if match:
+                class_name = match.group(1)
+                if class_name not in class_content_map:
+                    class_content_map[class_name] = section
+                else:
+                    class_content_map[class_name] += "\n\n" + section
+            else:
+                if class_content_map:
+                    last_class = list(class_content_map.keys())[-1]
+                    class_content_map[last_class] += "\n\n" + section
+
+        # Write each class to its own .py file
+        for class_name, content in class_content_map.items():
+            with open(f"{class_name}.py", "w") as py_file:
+                py_file.write(content)
+            print(f"Created: {class_name}.py")
+
+        print("Splitting completed.")
+    except Exception as e:
+        print(f"An error occurred during splitting: {e}")
+
+def rebuild_game_txt(output_file="game.txt"):
+    """Rebuilds game.txt by concatenating all .py files in the current directory."""
     try:
-        with open(input_file, "r") as file:
-            content = file.read()
+        py_files = [f for f in os.listdir() if f.endswith(".py")]
+        with open(output_file, "w") as game_file:
+            for py_file in py_files:
+                with open(py_file, "r") as file:
+                    content = file.read()
+                    game_file.write("
 
-        # Split by separator
-        sections = content.split("
-media_rw
-import tkinter as tk
-from GameUI import GameUI
-from TerrainManager import TerrainManager
-from PlayerManager import PlayerManager
-from EnemyManager import EnemyManager
-from CombatManager import CombatManager
+\n")
+                    game_file.write(content.strip() + "\n")
+        print(f"{output_file} successfully rebuilt from .py files.")
+    except Exception as e:
+        print(f"An error occurred during rebuilding: {e}")
 
-class TacticalMap:
-    def __init__(self, root):
-        """
-        Initializes the TacticalMap, setting up the game managers and the UI.
-        """
-        self.ui = GameUI(root)
-        self.terrain_manager = TerrainManager(self.ui.map_buttons)
-        self.player_manager = PlayerManager(self.ui.map_buttons, self.terrain_manager)
-        self.enemy_manager = EnemyManager(self.ui.map_buttons, self.terrain_manager, enemy_count=5)
-        self.combat_manager = CombatManager(
-            self.ui.map_buttons,
-            player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
-            enemy_stats={"name": "Enemy Unit", "hp": 10}
+def validate_snippet(snippet):
+    """Validates the syntax of a code snippet using Python's AST module."""
+    try:
+        dedented_snippet = textwrap.dedent(snippet)  # Remove unnecessary indentation
+        ast.parse(dedented_snippet)
+        print("Snippet is syntactically valid.")
+        return True
+    except SyntaxError as e:
+        print(f"Syntax error in snippet: {e}")
+        print("Snippet content:")
+        print(snippet)
+        return False
+
+def modify_file_from_temp(temp_file="temp.txt"):
+    """Modifies a .py file based on instructions from temp.txt."""
+    try:
+        with open(temp_file, "r") as file:
+            lines = file.readlines()
+
+        filename = lines[0].strip()
+        start_line = int(lines[1].strip())
+        end_line = int(lines[2].strip())
+        snippet = "".join(lines[3:])
+
+        # Validate the snippet syntax before applying
+        if not validate_snippet(snippet):
+            print("Modification aborted due to invalid syntax in snippet.")
+            return
+
+        if not os.path.exists(filename):
+            print(f"File {filename} not found.")
+            return
+
+        # Ensure the specified line range is valid
+        with open(filename, "r") as file:
+            file_contents = file.readlines()
+        if start_line > len(file_contents) or end_line > len(file_contents) + 1:
+            print(f"Invalid line range: {start_line}-{end_line}. File has {len(file_contents)} lines.")
+            return
+
+        # Create a backup of the file
+        backup_filename = f"{filename}.bak"
+        os.rename(filename, backup_filename)
+        print(f"Backup created: {backup_filename}")
+
+        # Apply modification
+        modified_contents = (
+            file_contents[:start_line - 1] + file_contents[end_line:]  # Remove specified lines
         )
-        # Setup game state
-        self.player_unit = "T-64 Tank"
-        self.enemy_unit = "Enemy Unit"
-        self.turn = "Player"
-        self.crossing_turns = 0
-        self.target_position = None
-        self.grid_rows = 7
-        self.grid_cols = 7
-        self.determine_grid_dimensions()
-        self.initialize_game()
+        modified_contents.insert(start_line - 1, snippet)  # Insert new snippet
 
-    def determine_grid_dimensions(self):
-        """
-        Dynamically sets grid dimensions based on screen size.
-        """
-        screen_width = self.ui.root.winfo_screenwidth()
-        screen_height = self.ui.root.winfo_screenheight()
-        if screen_height >= 2 * screen_width:
-            self.grid_rows, self.grid_cols = 14, 7
-        else:
-            self.grid_rows, self.grid_cols = 7, 7
+        with open(filename, "w") as file:
+            file.writelines(modified_contents)
+        print(f"{filename} successfully modified.")
+    except Exception as e:
+        print(f"An error occurred during modification: {e}")
 
-    def initialize_game(self):
-        """
-        Initializes the game: creates the grid, terrain, and deploys units.
-        Retries if necessary.
-        """
-        self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, on_cell_click=self.on_cell_click)
-        self.ui.create_log_area()
-
-        for _ in range(5):  # Attempt up to 5 times
-            if self.terrain_manager.generate_terrain(enemy_count=5):
-                try:
-                    self.player_manager.deploy_player(self.player_unit)
-                    self.enemy_manager.deploy_enemies(self.enemy_unit)
-                    self.ui.update_log("Game initialized. Player's turn begins.")
-                    return
-                except ValueError:
-                    self.ui.update_log("Deployment failed. Retrying...")
-        self.ui.update_log("Failed to initialize game. Restarting...")
-        self.restart_game()
-
-    def restart_game(self):
-        """
-        Restarts the game by clearing previous state and reinitializing.
-        """
-        self.ui.update_log("Restarting game...")
-        self.enemy_manager.enemy_positions.clear()
-        self.player_manager.player_position = None
-        self.initialize_game()
-
-    def on_cell_click(self, coord):
-        """
-        Called when a cell is clicked. If it's the player's turn and not crossing, process the action.
-        """
-        if self.turn == "Player" and self.crossing_turns == 0:
-            self.handle_player_action(coord)
-    
-    def handle_player_action(self, coord):
-        """
-        Processes the player's action: move, attack, or interact based on terrain.
-        """
-        distance_row = abs(ord(coord[0]) - ord(self.player_manager.player_position[0]))
-        distance_col = abs(int(coord[1]) - int(self.player_manager.player_position[1]))
-        if max(distance_row, distance_col) == 1:  # Must be adjacent
-            if coord in self.enemy_manager.enemy_positions:
-                result = self.combat_manager.player_attack(coord, self.enemy_manager.enemy_positions)
-                self.ui.update_log(result)
-                if "defeated" in result and not self.enemy_manager.enemy_positions:
-                    self.end_game(victory=True)
-            elif self.terrain_manager.get_terrain(coord) in ["Empty", "Forest"]:
-                self.player_manager.player_position = self.player_manager.move_player(coord, self.player_unit)
-                self.end_turn()
-            elif self.terrain_manager.get_terrain(coord) == "Water":
-                self.start_crossing(coord, turns=2)
-            elif self.terrain_manager.get_terrain(coord) == "Mountain":
-                self.start_crossing(coord, turns=3)
-            else:
-                self.ui.update_log("Cannot interact with that terrain!")
-        else:
-            self.ui.update_log("Invalid move. Choose an adjacent tile.")
-
-    def start_crossing(self, coord, turns):
-        """
-        Begins the process of crossing a terrain feature.
-        """
-        self.ui.update_log(f"Starting to cross towards {coord}. This will take {turns} turn(s).")
-        self.crossing_turns = turns
-        self.target_position = coord
-        self.end_turn()  # Trigger enemy turn
-
-    def process_crossing(self):
-        """
-        Moves the player automatically towards the target while crossing.
-        """
-        if self.crossing_turns > 0:
-            self.crossing_turns -= 1
-            player_row = ord(self.player_manager.player_position[0])
-            player_col = int(self.player_manager.player_position[1])
-            target_row = ord(self.target_position[0])
-            target_col = int(self.target_position[1])
-            if player_row < target_row:
-                next_pos = f"{chr(player_row+1)}{player_col}"
-            elif player_row > target_row:
-                next_pos = f"{chr(player_row-1)}{player_col}"
-            elif player_col < target_col:
-                next_pos = f"{chr(player_row)}{player_col+1}"
-            elif player_col > target_col:
-                next_pos = f"{chr(player_row)}{player_col-1}"
-            else:
-                next_pos = self.player_manager.player_position
-            terrain = self.terrain_manager.get_terrain(next_pos)
-            if terrain in ["Empty", "Forest"]:
-                self.player_manager.player_position = self.player_manager.move_player(next_pos, self.player_unit)
-                self.ui.update_log(f"Moved to {next_pos}. {self.crossing_turns} turn(s) left to cross.")
-            else:
-                self.ui.update_log(f"Cannot move into {next_pos} due to {terrain}. Waiting...")
-            self.end_turn()
-        else:
-            self.ui.update_log(f"Crossing complete. Reached {self.target_position}.")
-            self.target_position = None
-            self.end_turn()
-
-    def enemy_action(self):
-        """
-        Processes the enemy's turn: moving enemies and making them attack.
-        """
-        self.ui.update_log("Enemies are taking their turn...")
-        new_positions = {}
-        for enemy_pos in list(self.enemy_manager.enemy_positions.keys()):
-            if self.enemy_manager.is_adjacent(enemy_pos, self.player_manager.player_position):
-                result = self.combat_manager.enemy_attack(self.player_manager.player_position)
-                self.ui.update_log(result)
-                if "defeated" in result:
-                    self.end_game(victory=False)
-                    return
-            else:
-                new_pos = self.enemy_manager.move_toward_player(
-                    enemy_pos, self.player_manager.player_position, self.enemy_unit
-                )
-                new_positions[new_pos] = self.enemy_manager.enemy_positions[enemy_pos]
-        self.enemy_manager.enemy_positions = new_positions
-        if not self.enemy_manager.enemy_positions:
-            self.end_game(victory=True)
-        else:
-            self.end_turn()
-
-    def end_turn(self):
-        """
-        Switches the turn between the player and the enemy.
-        """
-        if self.turn == "Player":
-            if self.crossing_turns > 0:
-                self.turn = "Enemy"
-                self.enemy_action()
-            else:
-                self.turn = "Enemy"
-                self.enemy_action()
-        else:
-            self.turn = "Player"
-            if self.crossing_turns > 0:
-                self.process_crossing()
-            else:
-                self.ui.update_log("Player's turn.")
-
-    def end_game(self, victory):
-        """
-        Ends the game with a victory or defeat message.
-        """
-        if victory:
-            message = "You Win!"
-            self.ui.update_log("Congratulations, Commander! All enemies have been defeated.")
-        else:
-            message = "Game Over"
-            self.ui.update_log("Mission failed. Your forces have been defeated.")
-        self.ui.show_end_screen(message)
+def generate_temp_snippet(filename, start_line, end_line, new_code):
+    """Dynamically generates temp.txt based on the parameters provided."""
+    try:
+        temp_content = f"{filename}\n{start_line}\n{end_line}\n{new_code}"
+        with open("temp.txt", "w") as temp_file:
+            temp_file.write(temp_content)
+        print("Generated temp.txt with the following content:")
+        print(temp_content)
+    except Exception as e:
+        print(f"An error occurred during temp.txt generation: {e}")
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Turn-Based Tactical Simulation")
-    game = TacticalMap(root)
-    root.mainloop()
-media_rw
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Manage game.txt and Python files.")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Split command
+    split_parser = subparsers.add_parser("split", help="Split game.txt into individual .py files.")
+    split_parser.add_argument("--input", type=str, default="game.txt", help="Path to game.txt")
+
+    # Rebuild command
+    rebuild_parser = subparsers.add_parser("rebuild", help="Rebuild game.txt from .py files.")
+    rebuild_parser.add_argument("--output", type=str, default="game.txt", help="Path to output game.txt")
+
+    # Modify command
+    modify_parser = subparsers.add_parser("modify", help="Modify a .py file based on temp.txt.")
+    modify_parser.add_argument("--temp", type=str, default="temp.txt", help="Path to temp.txt")
+
+    # Generate temp.txt command
+    generate_parser = subparsers.add_parser("generate", help="Generate a temp.txt snippet.")
+    generate_parser.add_argument("--filename", type=str, required=True, help="Target filename to modify")
+    generate_parser.add_argument("--start", type=int, required=True, help="Start line number")
+    generate_parser.add_argument("--end", type=int, required=True, help="End line number")
+    generate_parser.add_argument("--code", type=str, required=True, help="Code to insert at start line")
+
+    args = parser.parse_args()
+
+    if args.command == "split":
+        split_game_txt(input_file=args.input)
+    elif args.command == "rebuild":
+        rebuild_game_txt(output_file=args.output)
+    elif args.command == "modify":
+        modify_file_from_temp(temp_file=args.temp)
+    elif args.command == "generate":
+        generate_temp_snippet(args.filename, args.start, args.end, args.code)
+
+    # Automatically rebuild game.txt after every run
+    rebuild_game_txt()
+
+")
+        class_content_map = {}
+
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+
+            # Extract class name
+            match = re.search(r"class\s+(\w+)", section)
+            if match:
+                class_name = match.group(1)
+                if class_name not in class_content_map:
+                    class_content_map[class_name] = section
+                else:
+                    class_content_map[class_name] += "\n\n" + section
+            else:
+                if class_content_map:
+                    last_class = list(class_content_map.keys())[-1]
+                    class_content_map[last_class] += "\n\n" + section
+
+        # Write each class to its own .py file
+        for class_name, content in class_content_map.items():
+            with open(f"{class_name}.py", "w") as py_file:
+                py_file.write(content)
+            print(f"Created: {class_name}.py")
+
+        print("Splitting completed.")
+    except Exception as e:
+        print(f"An error occurred during splitting: {e}")
+
+def rebuild_game_txt(output_file="game.txt"):
+    """Rebuilds game.txt by concatenating all .py files in the current directory."""
+    try:
+        py_files = [f for f in os.listdir() if f.endswith(".py")]
+        with open(output_file, "w") as game_file:
+            for py_file in py_files:
+                with open(py_file, "r") as file:
+                    content = file.read()
+                    game_file.write("
+
+\n")
+                    game_file.write(content.strip() + "\n")
+        print(f"{output_file} successfully rebuilt from .py files.")
+    except Exception as e:
+        print(f"An error occurred during rebuilding: {e}")
+
+def validate_snippet(snippet):
+    """Validates the syntax of a code snippet using Python's AST module."""
+    try:
+        dedented_snippet = textwrap.dedent(snippet)  # Remove unnecessary indentation
+        ast.parse(dedented_snippet)
+        print("Snippet is syntactically valid.")
+        return True
+    except SyntaxError as e:
+        print(f"Syntax error in snippet: {e}")
+        print("Snippet content:")
+        print(snippet)
+        return False
+
+def modify_file_from_temp(temp_file="temp.txt"):
+    """Modifies a .py file based on instructions from temp.txt."""
+    try:
+        with open(temp_file, "r") as file:
+            lines = file.readlines()
+
+        filename = lines[0].strip()
+        start_line = int(lines[1].strip())
+        end_line = int(lines[2].strip())
+        snippet = "".join(lines[3:])
+
+        # Validate the snippet syntax before applying
+        if not validate_snippet(snippet):
+            print("Modification aborted due to invalid syntax in snippet.")
+            return
+
+        if not os.path.exists(filename):
+            print(f"File {filename} not found.")
+            return
+
+        # Ensure the specified line range is valid
+        with open(filename, "r") as file:
+            file_contents = file.readlines()
+        if start_line > len(file_contents) or end_line > len(file_contents) + 1:
+            print(f"Invalid line range: {start_line}-{end_line}. File has {len(file_contents)} lines.")
+            return
+
+        # Create a backup of the file
+        backup_filename = f"{filename}.bak"
+        os.rename(filename, backup_filename)
+        print(f"Backup created: {backup_filename}")
+
+        # Apply modification
+        modified_contents = (
+            file_contents[:start_line - 1] + file_contents[end_line:]  # Remove specified lines
+        )
+        modified_contents.insert(start_line - 1, snippet)  # Insert new snippet
+
+        with open(filename, "w") as file:
+            file.writelines(modified_contents)
+        print(f"{filename} successfully modified.")
+    except Exception as e:
+        print(f"An error occurred during modification: {e}")
+
+def generate_temp_snippet(filename, start_line, end_line, new_code):
+    """Dynamically generates temp.txt based on the parameters provided."""
+    try:
+        temp_content = f"{filename}\n{start_line}\n{end_line}\n{new_code}"
+        with open("temp.txt", "w") as temp_file:
+            temp_file.write(temp_content)
+        print("Generated temp.txt with the following content:")
+        print(temp_content)
+    except Exception as e:
+        print(f"An error occurred during temp.txt generation: {e}")
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Manage game.txt and Python files.")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Split command
+    split_parser = subparsers.add_parser("split", help="Split game.txt into individual .py files.")
+    split_parser.add_argument("--input", type=str, default="game.txt", help="Path to game.txt")
+
+    # Rebuild command
+    rebuild_parser = subparsers.add_parser("rebuild", help="Rebuild game.txt from .py files.")
+    rebuild_parser.add_argument("--output", type=str, default="game.txt", help="Path to output game.txt")
+
+    # Modify command
+    modify_parser = subparsers.add_parser("modify", help="Modify a .py file based on temp.txt.")
+    modify_parser.add_argument("--temp", type=str, default="temp.txt", help="Path to temp.txt")
+
+    # Generate temp.txt command
+    generate_parser = subparsers.add_parser("generate", help="Generate a temp.txt snippet.")
+    generate_parser.add_argument("--filename", type=str, required=True, help="Target filename to modify")
+    generate_parser.add_argument("--start", type=int, required=True, help="Start line number")
+    generate_parser.add_argument("--end", type=int, required=True, help="End line number")
+    generate_parser.add_argument("--code", type=str, required=True, help="Code to insert at start line")
+
+    args = parser.parse_args()
+
+    if args.command == "split":
+        split_game_txt(input_file=args.input)
+    elif args.command == "rebuild":
+        rebuild_game_txt(output_file=args.output)
+    elif args.command == "modify":
+        modify_file_from_temp(temp_file=args.temp)
+    elif args.command == "generate":
+        generate_temp_snippet(args.filename, args.start, args.end, args.code)
+
+    # Automatically rebuild game.txt after every run
+    rebuild_game_txt()
+
 ")
         class_content_map = {}
 
@@ -514,6 +652,220 @@ if __name__ == "__main__":
     # Automatically rebuild game.txt after every run
     rebuild_game_txt()
 media_rw
+import tkinter as tk
+from GameUI import GameUI
+from TerrainManager import TerrainManager
+from PlayerManager import PlayerManager
+from EnemyManager import EnemyManager
+from CombatManager import CombatManager
+
+class TacticalMap:
+    def __init__(self, root):
+        """
+        Initializes the TacticalMap, setting up the game managers and the UI.
+        """
+        self.ui = GameUI(root)
+        self.terrain_manager = TerrainManager(self.ui.map_buttons)
+        self.player_manager = PlayerManager(self.ui.map_buttons, self.terrain_manager)
+        self.enemy_manager = EnemyManager(self.ui.map_buttons, self.terrain_manager, enemy_count=5)
+        self.combat_manager = CombatManager(
+            self.ui.map_buttons,
+            player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
+            enemy_stats={"name": "Enemy Unit", "hp": 10}
+        )
+        # Setup game state
+        self.player_unit = "T-64 Tank"  # Default player unit
+        self.enemy_unit = "Enemy Unit"
+        self.turn = "Player"
+        self.crossing_turns = 0
+        self.target_position = None
+        self.grid_rows = 7
+        self.grid_cols = 7
+        self.determine_grid_dimensions()
+        self.initialize_game()
+
+    def determine_grid_dimensions(self):
+        """
+        Dynamically sets grid dimensions based on screen size.
+        """
+        screen_width = self.ui.root.winfo_screenwidth()
+        screen_height = self.ui.root.winfo_screenheight()
+        if screen_height >= 2 * screen_width:
+            self.grid_rows, self.grid_cols = 14, 7
+        else:
+            self.grid_rows, self.grid_cols = 7, 7
+
+    def initialize_game(self):
+        """
+        Initializes the game: creates the grid, terrain, and deploys units.
+        Retries if necessary.
+        """
+        self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, on_cell_click=self.on_cell_click)
+        self.ui.create_log_area()
+
+        for _ in range(5):  # Attempt up to 5 times
+            if self.terrain_manager.generate_terrain(enemy_count=5):
+                try:
+                    self.player_manager.deploy_player(self.player_unit)
+                    self.enemy_manager.deploy_enemies(self.enemy_unit)
+                    self.ui.update_log("Game initialized. Player's turn begins.")
+                    return
+                except ValueError:
+                    self.ui.update_log("Deployment failed. Retrying...")
+        self.ui.update_log("Failed to initialize game. Restarting...")
+        self.restart_game()
+
+    def restart_game(self):
+        """
+        Restarts the game by clearing previous state and reinitializing.
+        """
+        self.ui.update_log("Restarting game...")
+        self.enemy_manager.enemy_positions.clear()
+        self.player_manager.player_position = None
+        self.initialize_game()
+
+    def on_cell_click(self, coord):
+        """
+        Called when a cell is clicked. If it's the player's turn and not crossing, process the action.
+        """
+        if self.turn == "Player" and self.crossing_turns == 0:
+            self.handle_player_action(coord)
+
+    def handle_player_action(self, coord):
+        """
+        Processes the player's action: move, attack, or use artillery (if available).
+        """
+        distance_row = abs(ord(coord[0]) - ord(self.player_manager.player_position[0]))
+        distance_col = abs(int(coord[1]) - int(self.player_manager.player_position[1]))
+
+        # Artillery-specific behavior
+        if self.player_unit == "Artillery" and self.turn == "Player":
+            results = self.combat_manager.artillery_attack(coord, self.enemy_manager.enemy_positions)
+            for result in results:
+                self.ui.update_log(result)
+            self.end_turn()
+            return
+
+        # Regular player actions
+        if max(distance_row, distance_col) == 1:  # Must be adjacent
+            if coord in self.enemy_manager.enemy_positions:
+                result = self.combat_manager.player_attack(coord, self.enemy_manager.enemy_positions)
+                self.ui.update_log(result)
+                if "defeated" in result and not self.enemy_manager.enemy_positions:
+                    self.end_game(victory=True)
+            elif self.terrain_manager.get_terrain(coord) in ["Empty", "Forest"]:
+                self.player_manager.player_position = self.player_manager.move_player(coord, self.player_unit)
+                self.end_turn()
+            elif self.terrain_manager.get_terrain(coord) == "Water":
+                self.start_crossing(coord, turns=2)
+            elif self.terrain_manager.get_terrain(coord) == "Mountain":
+                self.start_crossing(coord, turns=3)
+            else:
+                self.ui.update_log("Cannot interact with that terrain!")
+        else:
+            self.ui.update_log("Invalid move. Choose an adjacent tile.")
+
+    def start_crossing(self, coord, turns):
+        """
+        Begins the process of crossing a terrain feature.
+        """
+        self.ui.update_log(f"Starting to cross towards {coord}. This will take {turns} turn(s).")
+        self.crossing_turns = turns
+        self.target_position = coord
+        self.end_turn()
+
+    def process_crossing(self):
+        """
+        Moves the player automatically towards the target while crossing.
+        """
+        if self.crossing_turns > 0:
+            self.crossing_turns -= 1
+            player_row = ord(self.player_manager.player_position[0])
+            player_col = int(self.player_manager.player_position[1])
+            target_row = ord(self.target_position[0])
+            target_col = int(self.target_position[1])
+            if player_row < target_row:
+                next_pos = f"{chr(player_row+1)}{player_col}"
+            elif player_row > target_row:
+                next_pos = f"{chr(player_row-1)}{player_col}"
+            elif player_col < target_col:
+                next_pos = f"{chr(player_row)}{player_col+1}"
+            elif player_col > target_col:
+                next_pos = f"{chr(player_row)}{player_col-1}"
+            else:
+                next_pos = self.player_manager.player_position
+            terrain = self.terrain_manager.get_terrain(next_pos)
+            if terrain in ["Empty", "Forest"]:
+                self.player_manager.player_position = self.player_manager.move_player(next_pos, self.player_unit)
+                self.ui.update_log(f"Moved to {next_pos}. {self.crossing_turns} turn(s) left to cross.")
+            else:
+                self.ui.update_log(f"Cannot move into {next_pos} due to {terrain}. Waiting...")
+            self.end_turn()
+        else:
+            self.ui.update_log(f"Crossing complete. Reached {self.target_position}.")
+            self.target_position = None
+            self.end_turn()
+
+    def enemy_action(self):
+        """
+        Processes the enemy's turn: moving enemies and making them attack.
+        """
+        self.ui.update_log("Enemies are taking their turn...")
+        new_positions = {}
+        for enemy_pos in list(self.enemy_manager.enemy_positions.keys()):
+            if self.enemy_manager.is_adjacent(enemy_pos, self.player_manager.player_position):
+                result = self.combat_manager.enemy_attack(self.player_manager.player_position)
+                self.ui.update_log(result)
+                if "defeated" in result:
+                    self.end_game(victory=False)
+                    return
+            else:
+                new_pos = self.enemy_manager.move_toward_player(
+                    enemy_pos, self.player_manager.player_position, self.enemy_unit
+                )
+                new_positions[new_pos] = self.enemy_manager.enemy_positions[enemy_pos]
+        self.enemy_manager.enemy_positions = new_positions
+        if not self.enemy_manager.enemy_positions:
+            self.end_game(victory=True)
+        else:
+            self.end_turn()
+
+    def end_turn(self):
+        """
+        Switches the turn between the player and the enemy.
+        """
+        if self.turn == "Player":
+            if self.crossing_turns > 0:
+                self.turn = "Enemy"
+                self.enemy_action()
+            else:
+                self.turn = "Enemy"
+                self.enemy_action()
+        else:
+            self.turn = "Player"
+            if self.crossing_turns > 0:
+                self.process_crossing()
+            else:
+                self.ui.update_log("Player's turn.")
+
+    def end_game(self, victory):
+        """
+        Ends the game with a victory or defeat message.
+        """
+        if victory:
+            message = "You Win!"
+            self.ui.update_log("Congratulations, Commander! All enemies have been defeated.")
+        else:
+            message = "Game Over"
+            self.ui.update_log("Mission failed. Your forces have been defeated.")
+        self.ui.show_end_screen(message)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Turn-Based Tactical Simulation")
+    game = TacticalMap(root)
+    root.mainloop()
+media_rw
 class CombatManager:
     def __init__(self, map_buttons, player_stats, enemy_stats):
         """
@@ -535,8 +887,8 @@ class CombatManager:
 
         Args:
             target_coord (str): The coordinate of the enemy being attacked.
-            enemy_positions (dict): A dictionary of enemy positions mapped to their HP.
-        
+            enemy_positions (dict): A dictionary mapping enemy positions to their HP.
+
         Returns:
             str: A message describing the outcome of the attack.
         """
@@ -552,13 +904,52 @@ class CombatManager:
                 return f"Enemy at {target_coord} HP reduced to {enemy_positions[target_coord]}."
         return "No enemy to attack at the selected position."
 
+    def artillery_attack(self, target_coord, enemy_positions):
+        """
+        Handles artillery attack, which damages the target coordinate and adjacent tiles.
+
+        Args:
+            target_coord (str): The main target coordinate for the artillery attack.
+            enemy_positions (dict): A dictionary mapping enemy positions to their HP.
+
+        Returns:
+            list: A list of messages describing the outcomes at each affected coordinate.
+        """
+        results = []
+        # Parse the target position
+        row = ord(target_coord[0])
+        col = int(target_coord[1:])
+
+        # Generate a list of affected coordinates (target + adjacent)
+        affected_coords = [
+            target_coord,
+            f"{chr(row - 1)}{col}",
+            f"{chr(row + 1)}{col}",
+            f"{chr(row)}{col - 1}",
+            f"{chr(row)}{col + 1}"
+        ]
+
+        for coord in affected_coords:
+            if coord in enemy_positions:
+                enemy_positions[coord] -= 10  # Artillery deals 10 damage
+                if enemy_positions[coord] <= 0:
+                    del enemy_positions[coord]
+                    self.map_buttons[coord].config(text="Empty", bg="lightgray")
+                    results.append(f"Enemy at {coord} destroyed by artillery.")
+                else:
+                    results.append(f"Enemy at {coord} hit by artillery. HP now {enemy_positions[coord]}.")
+            elif coord in self.map_buttons:
+                results.append(f"Artillery hit {coord}, but no enemies present.")
+
+        return results
+
     def enemy_attack(self, player_position):
         """
         Handles the enemy's attack on the player.
 
         Args:
             player_position (str): The current position of the player.
-        
+
         Returns:
             str: A message describing the result of the enemy's attack.
         """
@@ -569,43 +960,18 @@ class CombatManager:
         else:
             return f"Player HP reduced to {self.player_stats['hp']}."
 
-    def fortification_attack(self, fortification_positions, player_position):
-        """
-        Processes fortification attacks against the player for any fortification
-        adjacent (including diagonally) to the player.
-
-        Args:
-            fortification_positions (list): A list of coordinates where fortifications reside.
-            player_position (str): The current position of the player.
-        
-        Returns:
-            str or None: A message describing the fortification attack (if one occurred),
-                         or None if no fortification is adjacent.
-        """
-        for fort_pos in fortification_positions:
-            if self.is_adjacent(fort_pos, player_position):
-                # Fortification deals 5 damage to the player.
-                self.player_stats["hp"] -= 5
-                if self.player_stats["hp"] <= 0:
-                    return f"Fortification at {fort_pos} attacked! Player is defeated!"
-                else:
-                    return f"Fortification at {fort_pos} attacked! Player HP reduced to {self.player_stats['hp']}."
-        return None
-
     def is_adjacent(self, pos1, pos2):
         """
         Determines if two grid positions are adjacent (including diagonally).
-        
+
         Args:
             pos1 (str): The first grid position (e.g., "A1").
             pos2 (str): The second grid position (e.g., "B2").
-        
+
         Returns:
             bool: True if the two positions share a side or corner, False otherwise.
         """
-        # Compute row difference using ASCII values and column difference.
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
-        # Using pos[1:] to handle multi-digit columns (e.g., "A10")
         col_diff = abs(int(pos1[1:]) - int(pos2[1:]))
         return max(row_diff, col_diff) == 1
 media_rw
@@ -864,68 +1230,6 @@ class PlayerManager:
 media_rw
 import random
 
-class TerrainManager:
-    def __init__(self, map_buttons):
-        """
-        Initializes the TerrainManager with a reference to the map buttons.
-        """
-        self.map_buttons = map_buttons  # Reference to the map buttons
-        self.terrain = {}  # Dictionary to store terrain types for each cell
-
-    def generate_terrain(self, enemy_count, extra_empty=5):
-        """
-        Generates terrain for the map and ensures a minimum number of empty tiles.
-        Args:
-            enemy_count (int): Number of enemies to deploy (affects empty tiles needed).
-            extra_empty (int): Extra empty tiles to ensure playability.
-        Returns:
-            bool: True if terrain generation is successful, False otherwise.
-        """
-        retries = 5  # Maximum number of attempts to generate a valid map
-        for _ in range(retries):
-            self.terrain.clear()
-            empty_count = 0
-
-            # Randomly assign terrain types to each cell
-            for coord in self.map_buttons.keys():
-                terrain_type = random.choice(["Forest", "Mountain", "Water", "Empty"])
-                self.terrain[coord] = terrain_type
-                if terrain_type == "Empty":
-                    empty_count += 1
-
-            # Check if enough empty tiles are available
-            if empty_count >= enemy_count + extra_empty:
-                self._apply_terrain_to_map()
-                return True  # Successful generation
-
-        return False  # Failed to generate a valid map after retries
-
-    def _apply_terrain_to_map(self):
-        """
-        Applies the generated terrain to the map buttons, updating their appearance.
-        """
-        for coord, terrain_type in self.terrain.items():
-            if terrain_type == "Forest":
-                self.map_buttons[coord].config(bg="green", text="Forest")
-            elif terrain_type == "Mountain":
-                self.map_buttons[coord].config(bg="brown", text="Mountain")
-            elif terrain_type == "Water":
-                self.map_buttons[coord].config(bg="blue", text="Water")
-            elif terrain_type == "Empty":
-                self.map_buttons[coord].config(bg="lightgray", text="Empty")
-
-    def get_terrain(self, coord):
-        """
-        Gets the terrain type for a specific coordinate.
-        Args:
-            coord (str): The map coordinate (e.g., "A1").
-        Returns:
-            str: The terrain type (e.g., "Forest", "Mountain", "Water", or "Empty").
-        """
-        return self.terrain.get(coord, "Unknown")
-media_rw
-import random
-
 class UnitManager:
     def __init__(self, map_buttons, terrain_manager, enemy_count):
         """
@@ -988,3 +1292,65 @@ class UnitManager:
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
         col_diff = abs(int(pos1[1]) - int(pos2[1]))
         return max(row_diff, col_diff) == 1
+media_rw
+import random
+
+class TerrainManager:
+    def __init__(self, map_buttons):
+        """
+        Initializes the TerrainManager with a reference to the map buttons.
+        """
+        self.map_buttons = map_buttons  # Reference to the map buttons
+        self.terrain = {}  # Dictionary to store terrain types for each cell
+
+    def generate_terrain(self, enemy_count, extra_empty=5):
+        """
+        Generates terrain for the map and ensures a minimum number of empty tiles.
+        Args:
+            enemy_count (int): Number of enemies to deploy (affects empty tiles needed).
+            extra_empty (int): Extra empty tiles to ensure playability.
+        Returns:
+            bool: True if terrain generation is successful, False otherwise.
+        """
+        retries = 5  # Maximum number of attempts to generate a valid map
+        for _ in range(retries):
+            self.terrain.clear()
+            empty_count = 0
+
+            # Randomly assign terrain types to each cell
+            for coord in self.map_buttons.keys():
+                terrain_type = random.choice(["Forest", "Mountain", "Water", "Empty"])
+                self.terrain[coord] = terrain_type
+                if terrain_type == "Empty":
+                    empty_count += 1
+
+            # Check if enough empty tiles are available
+            if empty_count >= enemy_count + extra_empty:
+                self._apply_terrain_to_map()
+                return True  # Successful generation
+
+        return False  # Failed to generate a valid map after retries
+
+    def _apply_terrain_to_map(self):
+        """
+        Applies the generated terrain to the map buttons, updating their appearance.
+        """
+        for coord, terrain_type in self.terrain.items():
+            if terrain_type == "Forest":
+                self.map_buttons[coord].config(bg="green", text="Forest")
+            elif terrain_type == "Mountain":
+                self.map_buttons[coord].config(bg="brown", text="Mountain")
+            elif terrain_type == "Water":
+                self.map_buttons[coord].config(bg="blue", text="Water")
+            elif terrain_type == "Empty":
+                self.map_buttons[coord].config(bg="lightgray", text="Empty")
+
+    def get_terrain(self, coord):
+        """
+        Gets the terrain type for a specific coordinate.
+        Args:
+            coord (str): The map coordinate (e.g., "A1").
+        Returns:
+            str: The terrain type (e.g., "Forest", "Mountain", "Water", or "Empty").
+        """
+        return self.terrain.get(coord, "Unknown")
