@@ -738,15 +738,21 @@ class TacticalMap:
         distance_row = abs(ord(coord[0]) - ord(self.player_manager.player_position[0]))
         distance_col = abs(int(coord[1]) - int(self.player_manager.player_position[1]))
 
-        # Artillery-specific behavior
-        if self.player_unit == "Artillery" and self.turn == "Player":
-            results = self.combat_manager.artillery_attack(coord, self.enemy_manager.enemy_positions)
-            for result in results:
-                self.ui.update_log(result)
-            self.end_turn()
+        # Handle artillery attack for out-of-range targets
+        if self.turn == "Player" and max(distance_row, distance_col) > 1:
+            # Ensure artillery is available and ammo is greater than 0
+            if self.player_manager.player_stats["ammo"] > 0:
+                results = self.combat_manager.artillery_attack(coord, self.enemy_manager.enemy_positions)
+                self.player_manager.player_stats["ammo"] -= 1  # Deduct ammo
+                for result in results:
+                    self.ui.update_log(result)
+                self.ui.update_log(f"Artillery fired. Remaining ammo: {self.player_manager.player_stats['ammo']}")
+                self.end_turn()
+            else:
+                self.ui.update_log("No ammo left for artillery!")
             return
 
-        # Regular player actions
+        # Regular player actions for adjacent targets
         if max(distance_row, distance_col) == 1:  # Must be adjacent
             if coord in self.enemy_manager.enemy_positions:
                 result = self.combat_manager.player_attack(coord, self.enemy_manager.enemy_positions)
@@ -1105,45 +1111,37 @@ class GameUI:
         self.map_buttons = {}
         self.cell_states = {}  # Store each cell's current value (terrain, units, etc.)
 
-        # Create the log area below the map
-        self.create_log_area()
-
     def create_map(self, rows, cols, on_cell_click):
         """
         Creates a dynamically auto-sizing map grid of buttons.
-        Adjusts grid size and applies the .3 scaling factor for Pydroid behavior.
         """
         # Clear any existing map buttons
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
         self.map_buttons.clear()
 
-        # Calculate button size with .3 width scaling
+        # Calculate button size dynamically
         screen_width = self.root.winfo_screenwidth() * 0.3  # Apply scaling factor
         screen_height = self.root.winfo_screenheight()
 
-        # Dedicate space for the grid, leaving room for controls/logs
         button_width = int(screen_width / cols)
         button_height = int(screen_height / rows)
-        button_size = min(button_width, button_height)  # Ensure square buttons
+        button_size = min(button_width, button_height)
 
         # Generate the map grid
         for row in range(rows):
             for col in range(cols):
                 coord = f"{chr(65 + row)}{col + 1}"  # Example: A1, B1, etc.
-                cell_value = self.cell_states.get(coord, "Empty")  # Default terrain to "Empty"
+                cell_value = self.cell_states.get(coord, "Empty")
                 button = tk.Button(
                     self.scrollable_frame,
                     text=cell_value,
-                    width=int(button_size / 10),  # Scale width
-                    height=int(button_size / 20),  # Scale height
+                    width=int(button_size / 10),  # Scaled width
+                    height=int(button_size / 20),  # Scaled height
                     command=lambda c=coord: on_cell_click(c)
                 )
                 button.grid(row=row, column=col)
                 self.map_buttons[coord] = button
-
-        # Update the scrollable area
-        self.canvas.update_idletasks()
 
     def create_log_area(self):
         """
@@ -1184,7 +1182,7 @@ class PlayerManager:
         self.map_buttons = map_buttons  # Reference to the map buttons
         self.terrain_manager = terrain_manager  # Reference to the terrain manager
         self.player_position = None  # The player's starting position
-        self.player_stats = {"hp": 20}  # Player's stats, including health
+        self.player_stats = {"hp": 20, "ammo": 1}  # Player's stats, including health and ammo
 
     def deploy_player(self, player_unit_name):
         """
@@ -1226,7 +1224,17 @@ class PlayerManager:
         self.player_stats["hp"] += amount
         if self.player_stats["hp"] > 20:  # Cap at max health
             self.player_stats["hp"] = 20
-        print(f"Player health restored to {self.player_stats['hp']}")
+
+    def use_ammo(self):
+        """
+        Reduces the player's ammo by 1 when artillery is fired.
+        Returns:
+            bool: True if ammo was used successfully, False if no ammo is left.
+        """
+        if self.player_stats["ammo"] > 0:
+            self.player_stats["ammo"] -= 1
+            return True
+        return False
 media_rw
 import random
 
