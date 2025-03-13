@@ -1021,8 +1021,6 @@ class TacticalMap:
         )
         self.on_replay = on_replay
         self.turn = "Player"
-        self.crossing_turns = 0
-        self.target_position = None
         self.grid_rows = 7
         self.grid_cols = 7
         self.determine_grid_dimensions()
@@ -1066,12 +1064,12 @@ class TacticalMap:
         Args:
             coord (str): The coordinate of the clicked cell.
         """
-        if self.turn == "Player" and self.crossing_turns == 0:
+        if self.turn == "Player":
             self.handle_player_action(coord)
 
     def handle_player_action(self, coord):
         """
-        Processes the player's action: move, attack, or use artillery.
+        Processes the player's action: move or attack.
 
         Args:
             coord (str): The target cell coordinate.
@@ -1080,20 +1078,6 @@ class TacticalMap:
         distance_row = abs(ord(coord[0]) - ord(player_position[0]))
         distance_col = abs(int(coord[1]) - int(player_position[1]))
 
-        # Artillery attack
-        if max(distance_row, distance_col) > 1:
-            if self.player_manager.player_stats["ammo"] > 0:
-                results = self.combat_manager.artillery_attack(coord, self.enemy_manager.enemy_positions)
-                self.player_manager.player_stats["ammo"] -= 1
-                for result in results:
-                    self.ui.update_log(result)
-                self.ui.update_log(f"Artillery fired. Ammo left: {self.player_manager.player_stats['ammo']}")
-                self.end_turn()
-            else:
-                self.ui.update_log("No ammo left!")
-            return
-
-        # Regular move or attack
         if max(distance_row, distance_col) == 1:
             terrain = self.terrain_manager.get_terrain(coord)
             if coord in self.enemy_manager.enemy_positions:
@@ -1104,42 +1088,10 @@ class TacticalMap:
             elif terrain in ["Empty", "Forest"]:
                 self.player_manager.move_player(coord, "T-64 Tank")
                 self.end_turn()
-            elif terrain == "Water":
-                self.start_crossing(coord, turns=2)
-            elif terrain == "Mountain":
-                self.start_crossing(coord, turns=3)
             else:
                 self.ui.update_log("Cannot move to that terrain!")
         else:
             self.ui.update_log("Invalid move. Choose an adjacent tile.")
-
-    def start_crossing(self, coord, turns):
-        """
-        Starts crossing a terrain feature, which takes multiple turns.
-
-        Args:
-            coord (str): The target cell coordinate.
-            turns (int): Number of turns required to cross.
-        """
-        self.ui.update_log(f"Crossing to {coord}. Requires {turns} turn(s).")
-        self.crossing_turns = turns
-        self.target_position = coord
-        self.end_turn()
-
-    def process_crossing(self):
-        """
-        Handles player movement during terrain crossing.
-        """
-        if self.crossing_turns > 0:
-            self.crossing_turns -= 1
-            self.player_manager.move_player(self.target_position, "T-64 Tank")
-            if self.crossing_turns == 0:
-                self.ui.update_log(f"Crossing complete. Reached {self.target_position}.")
-            self.end_turn()
-        else:
-            self.ui.update_log("Crossing completed.")
-            self.target_position = None
-            self.end_turn()
 
     def enemy_action(self):
         """
@@ -1158,7 +1110,6 @@ class TacticalMap:
                     enemy_pos, self.player_manager.player_position, "Enemy Unit"
                 )
                 self.enemy_manager.enemy_positions[new_pos] = self.enemy_manager.enemy_positions.pop(enemy_pos)
-        # Check if all enemies are defeated after action
         if not self.enemy_manager.enemy_positions:
             self.end_game(victory=True)
         else:
@@ -1173,10 +1124,7 @@ class TacticalMap:
             self.enemy_action()
         else:
             self.turn = "Player"
-            if self.crossing_turns > 0:
-                self.process_crossing()
-            else:
-                self.ui.update_log("Your turn!")
+            self.ui.update_log("Your turn!")
 
     def end_game(self, victory):
         """
@@ -1406,6 +1354,8 @@ class EnemyManager:
 media_rw
 import tkinter as tk
 from tkinter import ttk
+import sys
+import os
 
 class GameUI:
     def __init__(self, root):
@@ -1508,7 +1458,7 @@ class GameUI:
             replay_button = tk.Button(
                 end_screen,
                 text="Replay",
-                command=lambda: [end_screen.destroy(), replay_callback()]
+                command=lambda: [os.execl(sys.executable, sys.executable, *sys.argv), replay_callback()]
             )
             replay_button.pack(pady=10)
 
