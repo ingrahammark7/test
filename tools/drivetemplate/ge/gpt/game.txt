@@ -1494,7 +1494,7 @@ class GameUI:
 
         Args:
             message (str): The message to display in the popup.
-            replay_callback (callable): A function to call when the Replay button is clicked.
+            replay_callback (callable, optional): A function to call when the Replay button is clicked.
         """
         # Create a popup window for the end screen
         end_screen = tk.Toplevel(self.root)
@@ -1503,7 +1503,7 @@ class GameUI:
         # Add the game result message
         tk.Label(end_screen, text=message, font=("Arial", 16), padx=20, pady=20).pack()
 
-        # Add the Replay button, which invokes the replay_callback
+        # Add the Replay button if a callback is provided
         if replay_callback:
             replay_button = tk.Button(
                 end_screen,
@@ -1709,47 +1709,41 @@ class TerrainManager:
         return self.terrain.get(coord, "Unknown")
 media_rw
 import tkinter as tk
-import threading
-from TacticalMap import TacticalMap
 
-class GameManager:
+class GameApp:
     def __init__(self):
+        from TacticalMap import TacticalMap
         """
-        Initializes the GameManager class, which orchestrates the game's lifecycle.
+        Wraps the entire game within a single object.
+        Initializes the Tkinter root and game session.
         """
-        self.root = None
+        self.root = tk.Tk()
+        self.root.title("Turn-Based Tactical Simulation")
+        self.tactical_map = None
+        self.start_game()
 
     def start_game(self):
         """
-        Starts a new game session by creating the Tkinter root and initializing TacticalMap.
+        Starts a new game session by initializing TacticalMap and passing the replay callback.
         """
-        # Destroy the existing root if replaying
-        if self.root:
-            self.root.destroy()
-
-        # Create a new root
-        self.root = tk.Tk()
-        self.root.title("Turn-Based Tactical Simulation")
-
-        # Initialize TacticalMap and pass the replay callback
-        TacticalMap(self.root, on_replay=self.restart_game)
-        self.root.mainloop()
+        if self.tactical_map:
+            # Ensure TacticalMap is destroyed before starting a new game
+            self.tactical_map = None
+        self.tactical_map = TacticalMap(self.root, on_replay=self.restart_game)
 
     def restart_game(self):
         """
-        Restarts the game by launching a new thread with a fresh game instance.
+        Destroys the current game instance and starts a new session.
         """
-        threading.Thread(target=self.start_game).start()
-        if self.root:
-            self.root.quit()  # Exit the current mainloop to allow the thread to take over
+        self.root.destroy()  # Close the current root window
+        self.__init__()  # Reinitialize the program
 
     def run(self):
         """
-        Entry point for running the game. Starts the initial game session.
+        Runs the Tkinter main loop.
         """
-        self.start_game()
-
+        self.root.mainloop()
 
 if __name__ == "__main__":
-    game_manager = GameManager()
-    game_manager.run()
+    app = GameApp()
+    app.run()
