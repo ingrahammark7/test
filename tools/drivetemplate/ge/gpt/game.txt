@@ -1069,7 +1069,7 @@ class TacticalMap:
 
     def handle_player_action(self, coord):
         """
-        Processes the player's action: move or attack.
+        Processes the player's action: move, attack, or use artillery.
 
         Args:
             coord (str): The target cell coordinate.
@@ -1078,6 +1078,20 @@ class TacticalMap:
         distance_row = abs(ord(coord[0]) - ord(player_position[0]))
         distance_col = abs(int(coord[1]) - int(player_position[1]))
 
+        # Artillery attack for distant targets
+        if max(distance_row, distance_col) > 1:
+            if self.player_manager.player_stats["ammo"] > 0:
+                results = self.combat_manager.artillery_attack(coord, self.enemy_manager.enemy_positions)
+                self.player_manager.player_stats["ammo"] -= 1
+                for result in results:
+                    self.ui.update_log(result)
+                self.ui.update_log(f"Artillery fired. Ammo left: {self.player_manager.player_stats['ammo']}")
+                self.end_turn()
+            else:
+                self.ui.update_log("No ammo left!")
+            return
+
+        # Regular move or attack for adjacent cells
         if max(distance_row, distance_col) == 1:
             terrain = self.terrain_manager.get_terrain(coord)
             if coord in self.enemy_manager.enemy_positions:
@@ -1356,6 +1370,7 @@ import tkinter as tk
 from tkinter import ttk
 import sys
 import os
+import GameManager
 
 class GameUI:
     def __init__(self, root):
@@ -1458,7 +1473,7 @@ class GameUI:
             replay_button = tk.Button(
                 end_screen,
                 text="Replay",
-                command=lambda: [os.execl(sys.executable, sys.executable, *sys.argv), replay_callback()]
+                command=lambda: [GameApp(self), replay_callback()]
             )
             replay_button.pack(pady=10)
 
