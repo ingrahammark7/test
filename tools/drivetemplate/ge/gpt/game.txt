@@ -1150,7 +1150,7 @@ class TacticalMap:
         """
         message = "You Win!" if victory else "Game Over!"
         self.ui.update_log(message)
-        self.ui.show_end_screen(message, replay_callback=self.on_replay)
+        self.ui.show_end_screen(message)  # Replay callback removed
 
     def reset(self):
         """
@@ -1177,7 +1177,7 @@ if __name__ == "__main__":
     """
     root = tk.Tk()
     root.title("Turn-Based Tactical Simulation")
-    game = TacticalMap(root, on_replay=lambda: root.quit() or TacticalMap(root))
+    game = TacticalMap(root)
     root.mainloop()
 media_rw
 class CombatManager:
@@ -1496,13 +1496,12 @@ class GameUI:
             self.log_area.see(tk.END)
             self.log_area.configure(state="disabled")
 
-    def show_end_screen(self, message, replay_callback=None):
+    def show_end_screen(self, message):
         """
-        Displays a popup with a victory or defeat message and replay/exit buttons.
+        Displays a popup with a victory or defeat message and an exit button.
 
         Args:
             message (str): The message to display in the popup.
-            replay_callback (callable, optional): A function to call when the Replay button is clicked.
         """
         # Create a popup window for the end screen
         end_screen = tk.Toplevel(self.root)
@@ -1510,15 +1509,6 @@ class GameUI:
 
         # Add the game result message
         tk.Label(end_screen, text=message, font=("Arial", 16), padx=20, pady=20).pack()
-
-        # Add the Replay button if a callback is provided
-        if replay_callback:
-            replay_button = tk.Button(
-                end_screen,
-                text="Replay",
-                command=lambda: [end_screen.destroy(), replay_callback()]
-            )
-            replay_button.pack(pady=10)
 
         # Add the Exit button to close the application
         exit_button = tk.Button(end_screen, text="Exit", command=self.root.destroy)
