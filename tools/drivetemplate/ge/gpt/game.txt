@@ -1010,6 +1010,7 @@ class TacticalMap:
             root (tk.Tk): The root window for the game.
             on_replay (callable): A callback function to restart the game.
         """
+        self.root = root
         self.ui = GameUI(root)
         self.terrain_manager = TerrainManager(self.ui.map_buttons)
         self.player_manager = PlayerManager(self.ui.map_buttons, self.terrain_manager)
@@ -1151,6 +1152,23 @@ class TacticalMap:
         self.ui.update_log(message)
         self.ui.show_end_screen(message, replay_callback=self.on_replay)
 
+    def reset(self):
+        """
+        Resets the TacticalMap to its initial state for a new game.
+        """
+        self.ui.map_buttons.clear()
+        self.ui.cell_states.clear()
+        self.terrain_manager.reset()
+        self.player_manager.reset()
+        self.enemy_manager.reset()
+        self.combat_manager = CombatManager(
+            self.ui.map_buttons,
+            player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
+            enemy_stats={"name": "Enemy Unit", "hp": 10}
+        )
+        self.turn = "Player"
+        self.initialize_game()
+
 
 if __name__ == "__main__":
     """
@@ -1270,6 +1288,18 @@ class CombatManager:
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
         col_diff = abs(int(pos1[1:]) - int(pos2[1:]))
         return max(row_diff, col_diff) == 1
+
+    def reset(self, player_stats=None, enemy_stats=None):
+        """
+        Resets the CombatManager to its initial state for a new game.
+
+        Args:
+            player_stats (dict, optional): Updated stats for the player.
+            enemy_stats (dict, optional): Updated stats for the enemies.
+        """
+        # Reset player and enemy stats if provided, or default to starting stats
+        self.player_stats = player_stats if player_stats else {"hp": 20, "ammo": 5}
+        self.enemy_stats = enemy_stats if enemy_stats else {"hp": 10}
 media_rw
 import random
 
@@ -1287,10 +1317,13 @@ class EnemyManager:
     def deploy_enemies(self, enemy_unit_name):
         """
         Deploys enemy units on random empty tiles with starting HP.
+
         Args:
             enemy_unit_name (str): The name of the enemy units (e.g., "Enemy Unit").
+
         Returns:
             list: A list of coordinates where the enemies are deployed.
+
         Raises:
             ValueError: If there are not enough empty spaces for deployment.
         """
@@ -1309,10 +1342,12 @@ class EnemyManager:
     def move_toward_player(self, enemy_position, player_position, enemy_name):
         """
         Moves an enemy unit toward the player. Handles crossing probabilities for terrain.
+
         Args:
             enemy_position (str): The current position of the enemy unit.
             player_position (str): The current position of the player unit.
             enemy_name (str): The name of the enemy unit (e.g., "Enemy Unit").
+
         Returns:
             str: The new position of the enemy unit.
         """
@@ -1356,21 +1391,29 @@ class EnemyManager:
     def is_adjacent(self, pos1, pos2):
         """
         Checks if two positions are adjacent on the map.
+
         Args:
             pos1 (str): The first position (e.g., "A1").
             pos2 (str): The second position (e.g., "B2").
+
         Returns:
             bool: True if the positions are adjacent, False otherwise.
         """
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
         col_diff = abs(int(pos1[1]) - int(pos2[1]))
         return max(row_diff, col_diff) == 1
+
+    def reset(self):
+        """
+        Resets the EnemyManager to its initial state for a new game.
+        """
+        # Clear enemy positions and reset the enemy count if needed
+        for coord in self.enemy_positions.keys():
+            self.map_buttons[coord].config(text="Empty", bg="lightgray")
+        self.enemy_positions.clear()
 media_rw
 import tkinter as tk
 from tkinter import ttk
-import sys
-import os
-from GameManager import GameApp
 
 class GameUI:
     def __init__(self, root):
@@ -1473,13 +1516,31 @@ class GameUI:
             replay_button = tk.Button(
                 end_screen,
                 text="Replay",
-                command=lambda: [GameApp(), replay_callback()]
+                command=lambda: [end_screen.destroy(), replay_callback()]
             )
             replay_button.pack(pady=10)
 
         # Add the Exit button to close the application
         exit_button = tk.Button(end_screen, text="Exit", command=self.root.destroy)
         exit_button.pack(pady=10)
+
+    def reset(self):
+        """
+        Resets the GameUI components to their initial state for a new game session.
+        """
+        # Clear the map and reset all buttons
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+        self.map_buttons.clear()
+
+        # Reset the log area
+        if hasattr(self, "log_area"):
+            self.log_area.configure(state="normal")
+            self.log_area.delete(1.0, tk.END)
+            self.log_area.configure(state="disabled")
+
+        # Clear cell states
+        self.cell_states.clear()
 media_rw
 import random
 
@@ -1497,10 +1558,13 @@ class PlayerManager:
     def deploy_player(self, player_unit_name):
         """
         Deploys the player unit on a random empty tile.
+
         Args:
             player_unit_name (str): The name of the player unit (e.g., "T-64 Tank").
+
         Returns:
             str: The coordinate of the deployed player unit.
+
         Raises:
             ValueError: If deployment fails after multiple attempts.
         """
@@ -1514,9 +1578,11 @@ class PlayerManager:
     def move_player(self, target_position, unit_name):
         """
         Moves the player unit to a specified target position.
+
         Args:
             target_position (str): The coordinate to move the player unit to.
             unit_name (str): The name of the player unit (e.g., "T-64 Tank").
+
         Returns:
             str: The new position of the player unit.
         """
@@ -1528,6 +1594,7 @@ class PlayerManager:
     def heal_player(self, amount):
         """
         Heals the player by a specified amount.
+
         Args:
             amount (int): The amount of health to restore.
         """
@@ -1538,6 +1605,7 @@ class PlayerManager:
     def use_ammo(self):
         """
         Reduces the player's ammo by 1 when artillery is fired.
+
         Returns:
             bool: True if ammo was used successfully, False if no ammo is left.
         """
@@ -1545,6 +1613,13 @@ class PlayerManager:
             self.player_stats["ammo"] -= 1
             return True
         return False
+
+    def reset(self):
+        """
+        Resets the PlayerManager to its initial state for a new game.
+        """
+        self.player_position = None
+        self.player_stats = {"hp": 20, "ammo": 1}  # Reset health and ammo
 media_rw
 import random
 
@@ -1624,9 +1699,11 @@ class TerrainManager:
     def generate_terrain(self, enemy_count, extra_empty=5):
         """
         Generates terrain for the map and ensures a minimum number of empty tiles.
+
         Args:
             enemy_count (int): Number of enemies to deploy (affects empty tiles needed).
             extra_empty (int): Extra empty tiles to ensure playability.
+
         Returns:
             bool: True if terrain generation is successful, False otherwise.
         """
@@ -1666,18 +1743,28 @@ class TerrainManager:
     def get_terrain(self, coord):
         """
         Gets the terrain type for a specific coordinate.
+
         Args:
             coord (str): The map coordinate (e.g., "A1").
+
         Returns:
             str: The terrain type (e.g., "Forest", "Mountain", "Water", or "Empty").
         """
         return self.terrain.get(coord, "Unknown")
+
+    def reset(self):
+        """
+        Resets the TerrainManager to its initial state for a new game.
+        """
+        # Clear current terrain and reset the map buttons to default "Empty" state
+        self.terrain.clear()
+        for coord, button in self.map_buttons.items():
+            button.config(bg="lightgray", text="Empty")
 media_rw
 import tkinter as tk
 
 class GameApp:
     def __init__(self):
-        
         """
         Wraps the entire game within a single object.
         Initializes the Tkinter root and game session.
@@ -1688,28 +1775,27 @@ class GameApp:
         self.start_game()
 
     def start_game(self):
-        from TacticalMap import TacticalMap
         """
         Starts a new game session by initializing TacticalMap and passing the replay callback.
         """
+        from TacticalMap import TacticalMap  # Import here to avoid circular dependency
         if self.tactical_map:
-            # Ensure TacticalMap is destroyed before starting a new game
-            self.tactical_map = None
-        self.tactical_map = TacticalMap(self.root, on_replay=self.restart_game)
+            # Ensure TacticalMap is cleared before starting a new game
+            self.tactical_map.reset()
+        else:
+            self.tactical_map = TacticalMap(self.root, on_replay=self.restart_game)
 
     def restart_game(self):
         """
-        Destroys the current game instance and starts a new session.
+        Resets the game session without destroying the entire root window.
         """
-        self.root.destroy()  # Close the current root window
-        self.__init__()  # Reinitialize the program
+        if self.tactical_map:
+            self.tactical_map.reset()
+        else:
+            self.start_game()
 
     def run(self):
         """
         Runs the Tkinter main loop.
         """
         self.root.mainloop()
-
-if __name__ == "__main__":
-    app = GameApp()
-    app.run()
