@@ -1002,9 +1002,13 @@ from EnemyManager import EnemyManager
 from CombatManager import CombatManager
 
 class TacticalMap:
-    def __init__(self, root):
+    def __init__(self, root, on_replay=None):
         """
         Initializes the TacticalMap, setting up game managers and the UI.
+
+        Args:
+            root (tk.Tk): The root window for the game.
+            on_replay (callable): A callback function to restart the game.
         """
         self.ui = GameUI(root)
         self.terrain_manager = TerrainManager(self.ui.map_buttons)
@@ -1015,9 +1019,7 @@ class TacticalMap:
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
             enemy_stats={"name": "Enemy Unit", "hp": 10}
         )
-        # Setup game state
-        self.player_unit = "T-64 Tank"  # Default player unit
-        self.enemy_unit = "Enemy Unit"
+        self.on_replay = on_replay
         self.turn = "Player"
         self.crossing_turns = 0
         self.target_position = None
@@ -1039,7 +1041,7 @@ class TacticalMap:
 
     def initialize_game(self):
         """
-        Initializes the game: creates the grid, terrain, and deploys units.
+        Sets up the game grid, generates terrain, and deploys units.
         Retries if necessary.
         """
         self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, on_cell_click=self.on_cell_click)
@@ -1048,131 +1050,115 @@ class TacticalMap:
         for _ in range(5):  # Attempt up to 5 times
             if self.terrain_manager.generate_terrain(enemy_count=5):
                 try:
-                    self.player_manager.deploy_player(self.player_unit)
-                    self.enemy_manager.deploy_enemies(self.enemy_unit)
+                    self.player_manager.deploy_player("T-64 Tank")
+                    self.enemy_manager.deploy_enemies("Enemy Unit")
                     self.ui.update_log("Game initialized. Player's turn begins.")
                     return
                 except ValueError:
                     self.ui.update_log("Deployment failed. Retrying...")
-        self.ui.update_log("Failed to initialize game. Restarting...")
-        self.restart_game()
-
-    def restart_game(self):
-        """
-        Restarts the game by clearing previous state and reinitializing.
-        """
-        self.ui.update_log("Restarting game...")
-        self.enemy_manager.enemy_positions.clear()
-        self.player_manager.player_position = None
-        self.initialize_game()
+        self.ui.update_log("Failed to initialize game.")
+        self.end_game(victory=False)
 
     def on_cell_click(self, coord):
         """
-        Called when a cell is clicked. If it's the player's turn and not crossing, process the action.
+        Handles a player's action when a cell is clicked.
+
+        Args:
+            coord (str): The coordinate of the clicked cell.
         """
         if self.turn == "Player" and self.crossing_turns == 0:
             self.handle_player_action(coord)
 
     def handle_player_action(self, coord):
         """
-        Processes the player's action: move, attack, or use artillery (if available).
-        """
-        distance_row = abs(ord(coord[0]) - ord(self.player_manager.player_position[0]))
-        distance_col = abs(int(coord[1]) - int(self.player_manager.player_position[1]))
+        Processes the player's action: move, attack, or use artillery.
 
-        # Handle artillery attack for out-of-range targets
-        if self.turn == "Player" and max(distance_row, distance_col) > 1:
-            # Ensure artillery is available and ammo is greater than 0
+        Args:
+            coord (str): The target cell coordinate.
+        """
+        player_position = self.player_manager.player_position
+        distance_row = abs(ord(coord[0]) - ord(player_position[0]))
+        distance_col = abs(int(coord[1]) - int(player_position[1]))
+
+        # Artillery attack
+        if max(distance_row, distance_col) > 1:
             if self.player_manager.player_stats["ammo"] > 0:
                 results = self.combat_manager.artillery_attack(coord, self.enemy_manager.enemy_positions)
-                self.player_manager.player_stats["ammo"] -= 1  # Deduct ammo
+                self.player_manager.player_stats["ammo"] -= 1
                 for result in results:
                     self.ui.update_log(result)
-                self.ui.update_log(f"Artillery fired. Remaining ammo: {self.player_manager.player_stats['ammo']}")
+                self.ui.update_log(f"Artillery fired. Ammo left: {self.player_manager.player_stats['ammo']}")
                 self.end_turn()
             else:
-                self.ui.update_log("No ammo left for artillery!")
+                self.ui.update_log("No ammo left!")
             return
 
-        # Regular player actions for adjacent targets
-        if max(distance_row, distance_col) == 1:  # Must be adjacent
+        # Regular move or attack
+        if max(distance_row, distance_col) == 1:
+            terrain = self.terrain_manager.get_terrain(coord)
             if coord in self.enemy_manager.enemy_positions:
                 result = self.combat_manager.player_attack(coord, self.enemy_manager.enemy_positions)
                 self.ui.update_log(result)
-                if "defeated" in result and not self.enemy_manager.enemy_positions:
+                if not self.enemy_manager.enemy_positions:
                     self.end_game(victory=True)
-            elif self.terrain_manager.get_terrain(coord) in ["Empty", "Forest"]:
-                self.player_manager.player_position = self.player_manager.move_player(coord, self.player_unit)
+            elif terrain in ["Empty", "Forest"]:
+                self.player_manager.move_player(coord, "T-64 Tank")
                 self.end_turn()
-            elif self.terrain_manager.get_terrain(coord) == "Water":
+            elif terrain == "Water":
                 self.start_crossing(coord, turns=2)
-            elif self.terrain_manager.get_terrain(coord) == "Mountain":
+            elif terrain == "Mountain":
                 self.start_crossing(coord, turns=3)
             else:
-                self.ui.update_log("Cannot interact with that terrain!")
+                self.ui.update_log("Cannot move to that terrain!")
         else:
             self.ui.update_log("Invalid move. Choose an adjacent tile.")
 
     def start_crossing(self, coord, turns):
         """
-        Begins the process of crossing a terrain feature.
+        Starts crossing a terrain feature, which takes multiple turns.
+
+        Args:
+            coord (str): The target cell coordinate.
+            turns (int): Number of turns required to cross.
         """
-        self.ui.update_log(f"Starting to cross towards {coord}. This will take {turns} turn(s).")
+        self.ui.update_log(f"Crossing to {coord}. Requires {turns} turn(s).")
         self.crossing_turns = turns
         self.target_position = coord
         self.end_turn()
 
     def process_crossing(self):
         """
-        Moves the player automatically towards the target while crossing.
+        Handles player movement during terrain crossing.
         """
         if self.crossing_turns > 0:
             self.crossing_turns -= 1
-            player_row = ord(self.player_manager.player_position[0])
-            player_col = int(self.player_manager.player_position[1])
-            target_row = ord(self.target_position[0])
-            target_col = int(self.target_position[1])
-            if player_row < target_row:
-                next_pos = f"{chr(player_row+1)}{player_col}"
-            elif player_row > target_row:
-                next_pos = f"{chr(player_row-1)}{player_col}"
-            elif player_col < target_col:
-                next_pos = f"{chr(player_row)}{player_col+1}"
-            elif player_col > target_col:
-                next_pos = f"{chr(player_row)}{player_col-1}"
-            else:
-                next_pos = self.player_manager.player_position
-            terrain = self.terrain_manager.get_terrain(next_pos)
-            if terrain in ["Empty", "Forest"]:
-                self.player_manager.player_position = self.player_manager.move_player(next_pos, self.player_unit)
-                self.ui.update_log(f"Moved to {next_pos}. {self.crossing_turns} turn(s) left to cross.")
-            else:
-                self.ui.update_log(f"Cannot move into {next_pos} due to {terrain}. Waiting...")
+            self.player_manager.move_player(self.target_position, "T-64 Tank")
+            if self.crossing_turns == 0:
+                self.ui.update_log(f"Crossing complete. Reached {self.target_position}.")
             self.end_turn()
         else:
-            self.ui.update_log(f"Crossing complete. Reached {self.target_position}.")
+            self.ui.update_log("Crossing completed.")
             self.target_position = None
             self.end_turn()
 
     def enemy_action(self):
         """
-        Processes the enemy's turn: moving enemies and making them attack.
+        Executes the enemies' turn, including movement and attacks.
         """
         self.ui.update_log("Enemies are taking their turn...")
-        new_positions = {}
         for enemy_pos in list(self.enemy_manager.enemy_positions.keys()):
             if self.enemy_manager.is_adjacent(enemy_pos, self.player_manager.player_position):
                 result = self.combat_manager.enemy_attack(self.player_manager.player_position)
                 self.ui.update_log(result)
-                if "defeated" in result:
+                if self.player_manager.player_stats["hp"] <= 0:
                     self.end_game(victory=False)
                     return
             else:
                 new_pos = self.enemy_manager.move_toward_player(
-                    enemy_pos, self.player_manager.player_position, self.enemy_unit
+                    enemy_pos, self.player_manager.player_position, "Enemy Unit"
                 )
-                new_positions[new_pos] = self.enemy_manager.enemy_positions[enemy_pos]
-        self.enemy_manager.enemy_positions = new_positions
+                self.enemy_manager.enemy_positions[new_pos] = self.enemy_manager.enemy_positions.pop(enemy_pos)
+        # Check if all enemies are defeated after action
         if not self.enemy_manager.enemy_positions:
             self.end_game(victory=True)
         else:
@@ -1180,38 +1166,38 @@ class TacticalMap:
 
     def end_turn(self):
         """
-        Switches the turn between the player and the enemy.
+        Alternates turns between the player and the enemies.
         """
         if self.turn == "Player":
-            if self.crossing_turns > 0:
-                self.turn = "Enemy"
-                self.enemy_action()
-            else:
-                self.turn = "Enemy"
-                self.enemy_action()
+            self.turn = "Enemy"
+            self.enemy_action()
         else:
             self.turn = "Player"
             if self.crossing_turns > 0:
                 self.process_crossing()
             else:
-                self.ui.update_log("Player's turn.")
+                self.ui.update_log("Your turn!")
 
     def end_game(self, victory):
         """
-        Ends the game with a victory or defeat message.
+        Concludes the game with a victory or defeat message.
+
+        Args:
+            victory (bool): True if the player wins, False otherwise.
         """
-        if victory:
-            message = "You Win!"
-            self.ui.update_log("Congratulations, Commander! All enemies have been defeated.")
-        else:
-            message = "Game Over"
-            self.ui.update_log("Mission failed. Your forces have been defeated.")
-        self.ui.show_end_screen(message)
+        message = "You Win!" if victory else "Game Over!"
+        self.ui.update_log(message)
+        self.ui.show_end_screen(message, replay_callback=self.on_replay)
+
 
 if __name__ == "__main__":
+    """
+    Entry point for running the TacticalMap as a standalone game.
+    Creates the root window and starts the game.
+    """
     root = tk.Tk()
     root.title("Turn-Based Tactical Simulation")
-    game = TacticalMap(root)
+    game = TacticalMap(root, on_replay=lambda: root.quit() or TacticalMap(root))
     root.mainloop()
 media_rw
 class CombatManager:
@@ -1502,16 +1488,33 @@ class GameUI:
             self.log_area.see(tk.END)
             self.log_area.configure(state="disabled")
 
-    def show_end_screen(self, message):
+    def show_end_screen(self, message, replay_callback=None):
         """
-        Displays a popup with a victory or defeat message.
+        Displays a popup with a victory or defeat message and replay/exit buttons.
+
+        Args:
+            message (str): The message to display in the popup.
+            replay_callback (callable): A function to call when the Replay button is clicked.
         """
+        # Create a popup window for the end screen
         end_screen = tk.Toplevel(self.root)
         end_screen.title("Game Over")
-        label = tk.Label(end_screen, text=message, font=("Arial", 16), padx=20, pady=20)
-        label.pack()
-        close_button = tk.Button(end_screen, text="Close", command=self.root.destroy)
-        close_button.pack(pady=10)
+
+        # Add the game result message
+        tk.Label(end_screen, text=message, font=("Arial", 16), padx=20, pady=20).pack()
+
+        # Add the Replay button, which invokes the replay_callback
+        if replay_callback:
+            replay_button = tk.Button(
+                end_screen,
+                text="Replay",
+                command=lambda: [end_screen.destroy(), replay_callback()]
+            )
+            replay_button.pack(pady=10)
+
+        # Add the Exit button to close the application
+        exit_button = tk.Button(end_screen, text="Exit", command=self.root.destroy)
+        exit_button.pack(pady=10)
 media_rw
 import random
 
@@ -1706,6 +1709,7 @@ class TerrainManager:
         return self.terrain.get(coord, "Unknown")
 media_rw
 import tkinter as tk
+import threading
 from TacticalMap import TacticalMap
 
 class GameManager:
@@ -1719,16 +1723,32 @@ class GameManager:
         """
         Starts a new game session by creating the Tkinter root and initializing TacticalMap.
         """
+        # Destroy the existing root if replaying
+        if self.root:
+            self.root.destroy()
+
+        # Create a new root
         self.root = tk.Tk()
         self.root.title("Turn-Based Tactical Simulation")
-        TacticalMap(self.root, on_replay=self.start_game)  # Pass the replay callback
+
+        # Initialize TacticalMap and pass the replay callback
+        TacticalMap(self.root, on_replay=self.restart_game)
         self.root.mainloop()
+
+    def restart_game(self):
+        """
+        Restarts the game by launching a new thread with a fresh game instance.
+        """
+        threading.Thread(target=self.start_game).start()
+        if self.root:
+            self.root.quit()  # Exit the current mainloop to allow the thread to take over
 
     def run(self):
         """
-        The entry point for running the game. Calls start_game to begin the first session.
+        Entry point for running the game. Starts the initial game session.
         """
         self.start_game()
+
 
 if __name__ == "__main__":
     game_manager = GameManager()
