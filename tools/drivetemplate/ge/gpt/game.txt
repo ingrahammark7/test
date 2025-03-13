@@ -1370,7 +1370,7 @@ import tkinter as tk
 from tkinter import ttk
 import sys
 import os
-import GameManager
+from GameManager import GameApp
 
 class GameUI:
     def __init__(self, root):
@@ -1473,7 +1473,7 @@ class GameUI:
             replay_button = tk.Button(
                 end_screen,
                 text="Replay",
-                command=lambda: [GameApp(self), replay_callback()]
+                command=lambda: [GameApp(), replay_callback()]
             )
             replay_button.pack(pady=10)
 
@@ -1677,7 +1677,7 @@ import tkinter as tk
 
 class GameApp:
     def __init__(self):
-        from TacticalMap import TacticalMap
+        
         """
         Wraps the entire game within a single object.
         Initializes the Tkinter root and game session.
@@ -1688,6 +1688,7 @@ class GameApp:
         self.start_game()
 
     def start_game(self):
+        from TacticalMap import TacticalMap
         """
         Starts a new game session by initializing TacticalMap and passing the replay callback.
         """
