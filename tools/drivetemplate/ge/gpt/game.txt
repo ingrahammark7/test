@@ -200,6 +200,23 @@ def split_game_txt(input_file="game.txt"):
         # Split by separator
         sections = content.split("
 
+#python cs.py split --input game.txt
+#python cs.py rebuild --output game.txt
+
+import re
+import os
+import ast
+import textwrap
+
+def split_game_txt(input_file="game.txt"):
+    """Splits game.txt into individual Python files based on class names."""
+    try:
+        with open(input_file, "r") as file:
+            content = file.read()
+
+        # Split by separator
+        sections = content.split("
+
 #python cs.py rebuild --output game.txt
 
 import re
@@ -247,6 +264,160 @@ def split_game_txt(input_file="game.txt"):
         # Split by separator
         sections = content.split("
 media_rw
+")
+        class_content_map = {}
+
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+
+            # Extract class name
+            match = re.search(r"class\s+(\w+)", section)
+            if match:
+                class_name = match.group(1)
+                if class_name not in class_content_map:
+                    class_content_map[class_name] = section
+                else:
+                    class_content_map[class_name] += "\n\n" + section
+            else:
+                if class_content_map:
+                    last_class = list(class_content_map.keys())[-1]
+                    class_content_map[last_class] += "\n\n" + section
+
+        # Write each class to its own .py file
+        for class_name, content in class_content_map.items():
+            with open(f"{class_name}.py", "w") as py_file:
+                py_file.write(content)
+            print(f"Created: {class_name}.py")
+
+        print("Splitting completed.")
+    except Exception as e:
+        print(f"An error occurred during splitting: {e}")
+
+def rebuild_game_txt(output_file="game.txt"):
+    """Rebuilds game.txt by concatenating all .py files in the current directory."""
+    try:
+        py_files = [f for f in os.listdir() if f.endswith(".py")]
+        with open(output_file, "w") as game_file:
+            for py_file in py_files:
+                with open(py_file, "r") as file:
+                    content = file.read()
+                    game_file.write("
+
+\n")
+                    game_file.write(content.strip() + "\n")
+        print(f"{output_file} successfully rebuilt from .py files.")
+    except Exception as e:
+        print(f"An error occurred during rebuilding: {e}")
+
+def validate_snippet(snippet):
+    """Validates the syntax of a code snippet using Python's AST module."""
+    try:
+        dedented_snippet = textwrap.dedent(snippet)  # Remove unnecessary indentation
+        ast.parse(dedented_snippet)
+        print("Snippet is syntactically valid.")
+        return True
+    except SyntaxError as e:
+        print(f"Syntax error in snippet: {e}")
+        print("Snippet content:")
+        print(snippet)
+        return False
+
+def modify_file_from_temp(temp_file="temp.txt"):
+    """Modifies a .py file based on instructions from temp.txt."""
+    try:
+        with open(temp_file, "r") as file:
+            lines = file.readlines()
+
+        filename = lines[0].strip()
+        start_line = int(lines[1].strip())
+        end_line = int(lines[2].strip())
+        snippet = "".join(lines[3:])
+
+        # Validate the snippet syntax before applying
+        if not validate_snippet(snippet):
+            print("Modification aborted due to invalid syntax in snippet.")
+            return
+
+        if not os.path.exists(filename):
+            print(f"File {filename} not found.")
+            return
+
+        # Ensure the specified line range is valid
+        with open(filename, "r") as file:
+            file_contents = file.readlines()
+        if start_line > len(file_contents) or end_line > len(file_contents) + 1:
+            print(f"Invalid line range: {start_line}-{end_line}. File has {len(file_contents)} lines.")
+            return
+
+        # Create a backup of the file
+        backup_filename = f"{filename}.bak"
+        os.rename(filename, backup_filename)
+        print(f"Backup created: {backup_filename}")
+
+        # Apply modification
+        modified_contents = (
+            file_contents[:start_line - 1] + file_contents[end_line:]  # Remove specified lines
+        )
+        modified_contents.insert(start_line - 1, snippet)  # Insert new snippet
+
+        with open(filename, "w") as file:
+            file.writelines(modified_contents)
+        print(f"{filename} successfully modified.")
+    except Exception as e:
+        print(f"An error occurred during modification: {e}")
+
+def generate_temp_snippet(filename, start_line, end_line, new_code):
+    """Dynamically generates temp.txt based on the parameters provided."""
+    try:
+        temp_content = f"{filename}\n{start_line}\n{end_line}\n{new_code}"
+        with open("temp.txt", "w") as temp_file:
+            temp_file.write(temp_content)
+        print("Generated temp.txt with the following content:")
+        print(temp_content)
+    except Exception as e:
+        print(f"An error occurred during temp.txt generation: {e}")
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Manage game.txt and Python files.")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Split command
+    split_parser = subparsers.add_parser("split", help="Split game.txt into individual .py files.")
+    split_parser.add_argument("--input", type=str, default="game.txt", help="Path to game.txt")
+
+    # Rebuild command
+    rebuild_parser = subparsers.add_parser("rebuild", help="Rebuild game.txt from .py files.")
+    rebuild_parser.add_argument("--output", type=str, default="game.txt", help="Path to output game.txt")
+
+    # Modify command
+    modify_parser = subparsers.add_parser("modify", help="Modify a .py file based on temp.txt.")
+    modify_parser.add_argument("--temp", type=str, default="temp.txt", help="Path to temp.txt")
+
+    # Generate temp.txt command
+    generate_parser = subparsers.add_parser("generate", help="Generate a temp.txt snippet.")
+    generate_parser.add_argument("--filename", type=str, required=True, help="Target filename to modify")
+    generate_parser.add_argument("--start", type=int, required=True, help="Start line number")
+    generate_parser.add_argument("--end", type=int, required=True, help="End line number")
+    generate_parser.add_argument("--code", type=str, required=True, help="Code to insert at start line")
+
+    args = parser.parse_args()
+
+    if args.command == "split":
+        split_game_txt(input_file=args.input)
+    elif args.command == "rebuild":
+        rebuild_game_txt(output_file=args.output)
+    elif args.command == "modify":
+        modify_file_from_temp(temp_file=args.temp)
+    elif args.command == "generate":
+        generate_temp_snippet(args.filename, args.start, args.end, args.code)
+
+    # Automatically rebuild game.txt after every run
+    rebuild_game_txt()
+
 ")
         class_content_map = {}
 
@@ -1001,7 +1172,6 @@ from PlayerManager import PlayerManager
 from EnemyManager import EnemyManager
 from CombatManager import CombatManager
 
-
 class TacticalMap:
     def __init__(self, root, on_replay=None):
         """
@@ -1014,12 +1184,12 @@ class TacticalMap:
         self.root = root
         self.ui = GameUI(root)
         self.terrain_manager = TerrainManager(self.ui.map_buttons)
-        self.player_manager = PlayerManager(self.ui.map_buttons, self.terrain_manager, self.ui)
+        self.player_manager = PlayerManager(self.ui.map_buttons, self.terrain_manager)
         self.enemy_manager = EnemyManager(self.ui.map_buttons, self.terrain_manager, enemy_count=5)
         self.combat_manager = CombatManager(
             self.ui.map_buttons,
-            player_stats={"hp": 20, "ammo": 3},
-            enemy_stats={"hp": 10}
+            player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
+            enemy_stats={"name": "Enemy Unit", "hp": 10}
         )
         self.on_replay = on_replay
         self.turn = "Player"
@@ -1082,10 +1252,12 @@ class TacticalMap:
 
         # Artillery attack for distant targets
         if max(distance_row, distance_col) > 1:
-            if self.player_manager.use_ammo():
+            if self.player_manager.player_stats["ammo"] > 0:
                 results = self.combat_manager.artillery_attack(coord, self.enemy_manager.enemy_positions)
+                self.player_manager.player_stats["ammo"] -= 1
                 for result in results:
                     self.ui.update_log(result)
+                self.ui.update_log(f"Artillery fired. Ammo left: {self.player_manager.player_stats['ammo']}")
                 self.end_turn()
             else:
                 self.ui.update_log("No ammo left!")
@@ -1149,7 +1321,7 @@ class TacticalMap:
         """
         message = "You Win!" if victory else "Game Over!"
         self.ui.update_log(message)
-        self.ui.show_end_screen(message)
+        self.ui.show_end_screen(message)  # Replay callback removed
 
     def reset(self):
         """
@@ -1162,8 +1334,8 @@ class TacticalMap:
         self.enemy_manager.reset()
         self.combat_manager = CombatManager(
             self.ui.map_buttons,
-            player_stats={"hp": 20, "ammo": 3},
-            enemy_stats={"hp": 10}
+            player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
+            enemy_stats={"name": "Enemy Unit", "hp": 10}
         )
         self.turn = "Player"
         self.initialize_game()
@@ -1182,7 +1354,7 @@ media_rw
 class CombatManager:
     def __init__(self, map_buttons, player_stats, enemy_stats):
         """
-        Initializes the CombatManager with references to map buttons,
+        Initializes the CombatManager with references to the map buttons,
         the player's statistics, and the enemy's statistics.
 
         Args:
@@ -1190,9 +1362,9 @@ class CombatManager:
             player_stats (dict): Dictionary containing player stats (e.g., {"hp": 20, "ammo": 5}).
             enemy_stats (dict): Dictionary containing enemy stats (e.g., {"hp": 10}).
         """
-        self.map_buttons = map_buttons  # Reference to the map buttons
-        self.player_stats = player_stats  # Player's statistics
-        self.enemy_stats = enemy_stats  # Enemy's statistics
+        self.map_buttons = map_buttons
+        self.player_stats = player_stats
+        self.enemy_stats = enemy_stats
 
     def player_attack(self, target_coord, enemy_positions):
         """
@@ -1206,10 +1378,10 @@ class CombatManager:
             str: A message describing the outcome of the attack.
         """
         if target_coord in enemy_positions:
-            # Damage the enemy by 5 points
+            # Damage the enemy by 5 points.
             enemy_positions[target_coord] -= 5
             if enemy_positions[target_coord] <= 0:
-                # Enemy is defeated; update map visuals
+                # Enemy is defeated; remove it from the dictionary and update the UI.
                 del enemy_positions[target_coord]
                 self.map_buttons[target_coord].config(text="Empty", bg="lightgray")
                 return f"Enemy at {target_coord} is defeated!"
@@ -1219,20 +1391,21 @@ class CombatManager:
 
     def artillery_attack(self, target_coord, enemy_positions):
         """
-        Handles artillery attacks, damaging the target and adjacent tiles.
+        Handles artillery attack, which damages the target coordinate and adjacent tiles.
 
         Args:
-            target_coord (str): The main target coordinate.
-            enemy_positions (dict): A dictionary of enemy positions and their HP.
+            target_coord (str): The main target coordinate for the artillery attack.
+            enemy_positions (dict): A dictionary mapping enemy positions to their HP.
 
         Returns:
-            list: Messages describing the results of the attack.
+            list: A list of messages describing the outcomes at each affected coordinate.
         """
         results = []
+        # Parse the target position
         row = ord(target_coord[0])
         col = int(target_coord[1:])
 
-        # Calculate affected coordinates (target + adjacent tiles)
+        # Generate a list of affected coordinates (target + adjacent)
         affected_coords = [
             target_coord,
             f"{chr(row - 1)}{col}",
@@ -1263,23 +1436,39 @@ class CombatManager:
             player_position (str): The current position of the player.
 
         Returns:
-            str: Message describing the result of the attack.
+            str: A message describing the result of the enemy's attack.
         """
-        # Enemies deal a fixed 5 damage to the player
+        # Enemy deals a fixed 5 damage to the player's HP.
         self.player_stats["hp"] -= 5
         if self.player_stats["hp"] <= 0:
             return "Player is defeated!"
         else:
             return f"Player HP reduced to {self.player_stats['hp']}."
 
+    def is_adjacent(self, pos1, pos2):
+        """
+        Determines if two grid positions are adjacent (including diagonally).
+
+        Args:
+            pos1 (str): The first grid position (e.g., "A1").
+            pos2 (str): The second grid position (e.g., "B2").
+
+        Returns:
+            bool: True if the two positions share a side or corner, False otherwise.
+        """
+        row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
+        col_diff = abs(int(pos1[1:]) - int(pos2[1:]))
+        return max(row_diff, col_diff) == 1
+
     def reset(self, player_stats=None, enemy_stats=None):
         """
-        Resets the CombatManager to its initial state.
+        Resets the CombatManager to its initial state for a new game.
 
         Args:
             player_stats (dict, optional): Updated stats for the player.
             enemy_stats (dict, optional): Updated stats for the enemies.
         """
+        # Reset player and enemy stats if provided, or default to starting stats
         self.player_stats = player_stats if player_stats else {"hp": 20, "ammo": 5}
         self.enemy_stats = enemy_stats if enemy_stats else {"hp": 10}
 media_rw
@@ -1290,16 +1479,11 @@ class EnemyManager:
         """
         Initializes the EnemyManager with references to the map buttons,
         terrain manager, and the number of enemy units.
-
-        Args:
-            map_buttons (dict): Dictionary of map cell buttons.
-            terrain_manager (TerrainManager): Instance managing map terrain.
-            enemy_count (int): Number of enemy units to deploy.
         """
-        self.map_buttons = map_buttons  # Reference to the map buttons
-        self.terrain_manager = terrain_manager  # Reference to the terrain manager
+        self.map_buttons = map_buttons  # Reference to map buttons
+        self.terrain_manager = terrain_manager  # Reference to terrain manager
         self.enemy_positions = {}  # Dictionary to track enemy positions and their HP
-        self.enemy_count = enemy_count  # Total number of enemy units to deploy
+        self.enemy_count = enemy_count  # Number of enemy units
 
     def deploy_enemies(self, enemy_unit_name):
         """
@@ -1314,7 +1498,6 @@ class EnemyManager:
         Raises:
             ValueError: If there are not enough empty spaces for deployment.
         """
-        # Find all empty cells suitable for enemy deployment
         empty_cells = [
             coord for coord, terr in self.terrain_manager.terrain.items()
             if terr == "Empty" and self.map_buttons[coord].cget("text") == "Empty"
@@ -1322,15 +1505,14 @@ class EnemyManager:
         if len(empty_cells) < self.enemy_count:
             raise ValueError("Not enough empty spaces to deploy enemies.")
 
-        # Randomly deploy enemies in empty cells
         for coord in random.sample(empty_cells, self.enemy_count):
-            self.enemy_positions[coord] = 10  # Each enemy starts with 10 HP
+            self.enemy_positions[coord] = 10  # Assign each enemy 10 HP
             self.map_buttons[coord].config(text=enemy_unit_name, bg="red")
         return list(self.enemy_positions.keys())
 
     def move_toward_player(self, enemy_position, player_position, enemy_name):
         """
-        Moves an enemy unit toward the player's position.
+        Moves an enemy unit toward the player. Handles crossing probabilities for terrain.
 
         Args:
             enemy_position (str): The current position of the enemy unit.
@@ -1340,52 +1522,42 @@ class EnemyManager:
         Returns:
             str: The new position of the enemy unit.
         """
-        enemy_row, enemy_col = ord(enemy_position[0]), int(enemy_position[1:])
-        player_row, player_col = ord(player_position[0]), int(player_position[1:])
+        enemy_row, enemy_col = ord(enemy_position[0]), int(enemy_position[1])
+        player_row, player_col = ord(player_position[0]), int(player_position[1])
 
         dr = player_row - enemy_row
         dc = player_col - enemy_col
 
-        # Determine the best movement direction
+        # Determine the direction of movement
         if abs(dr) > abs(dc):
             new_pos = f"{chr(enemy_row + (1 if dr > 0 else -1))}{enemy_col}"
         else:
             new_pos = f"{chr(enemy_row)}{enemy_col + (1 if dc > 0 else -1)}"
 
-        # Validate the move
+        # Validate and attempt the move
         if new_pos in self.map_buttons:
             terrain = self.terrain_manager.get_terrain(new_pos)
             if terrain == "Water":
-                # Enemies have a 50% chance to cross water
-                if random.random() < 0.5:
-                    self._move_enemy(enemy_position, new_pos, enemy_name)
+                if random.random() < 0.5:  # 50% chance to cross
+                    self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
+                    self.map_buttons[new_pos].config(text=enemy_name, bg="red")
                     return new_pos
-                return enemy_position
+                else:
+                    return enemy_position
             elif terrain == "Mountain":
-                # Enemies have a 30% chance to cross mountains
-                if random.random() < 0.3:
-                    self._move_enemy(enemy_position, new_pos, enemy_name)
+                if random.random() < 0.3:  # 30% chance to cross
+                    self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
+                    self.map_buttons[new_pos].config(text=enemy_name, bg="red")
                     return new_pos
-                return enemy_position
+                else:
+                    return enemy_position
             elif terrain in ["Empty", "Forest"]:
-                self._move_enemy(enemy_position, new_pos, enemy_name)
+                self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
+                self.map_buttons[new_pos].config(text=enemy_name, bg="red")
                 return new_pos
 
         # Stay in place if the move is invalid
         return enemy_position
-
-    def _move_enemy(self, current_position, target_position, enemy_name):
-        """
-        Handles the actual movement of an enemy unit.
-
-        Args:
-            current_position (str): The current position of the enemy unit.
-            target_position (str): The target position to move to.
-            enemy_name (str): The name of the enemy unit.
-        """
-        # Update map visuals to reflect the enemy movement
-        self.map_buttons[current_position].config(text="Empty", bg="lightgray")
-        self.map_buttons[target_position].config(text=enemy_name, bg="red")
 
     def is_adjacent(self, pos1, pos2):
         """
@@ -1399,7 +1571,7 @@ class EnemyManager:
             bool: True if the positions are adjacent, False otherwise.
         """
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
-        col_diff = abs(int(pos1[1:]) - int(pos2[1:]))
+        col_diff = abs(int(pos1[1]) - int(pos2[1]))
         return max(row_diff, col_diff) == 1
 
     def reset(self):
@@ -1407,221 +1579,142 @@ class EnemyManager:
         Resets the EnemyManager to its initial state for a new game.
         """
         # Clear enemy positions and reset the enemy count if needed
-        for coord in list(self.enemy_positions.keys()):
+        for coord in self.enemy_positions.keys():
             self.map_buttons[coord].config(text="Empty", bg="lightgray")
         self.enemy_positions.clear()
 media_rw
 import tkinter as tk
-import math
-import random
-
-class MapButtonWrapper:
-    def __init__(self, rect, text_id, canvas):
-        """
-        Wraps a canvas cell (rectangle and text) so that it mimics a widget
-        with config() and cget() methods.
-        """
-        self.rect = rect
-        self.text_id = text_id
-        self.canvas = canvas
-        self.config_dict = {"text": "Empty", "bg": "lightgray"}
-
-    def config(self, **kwargs):
-        """
-        Simulates the config() method of a Tkinter widget.
-        """
-        if "text" in kwargs:
-            self.canvas.itemconfigure(self.text_id, text=kwargs["text"])
-            self.config_dict["text"] = kwargs["text"]
-        if "bg" in kwargs:
-            self.canvas.itemconfigure(self.rect, fill=kwargs["bg"])
-            self.config_dict["bg"] = kwargs["bg"]
-
-    def cget(self, key):
-        """
-        Simulates the cget() method of a Tkinter widget.
-        """
-        return self.config_dict.get(key, None)
+from tkinter import ttk
 
 class GameUI:
     def __init__(self, root):
         """
-        Initializes the GameUI with a 3D-style grid, spinning cube animation,
-        terrain, and logging area.
+        Initializes the GameUI with a scrollable map and a persistent log area.
         """
         self.root = root
-        self.canvas = tk.Canvas(self.root, bg="black")
-        self.canvas.pack(fill="both", expand=True)
 
-        # Grid parameters
-        self.grid_rows = 7
-        self.grid_cols = 7
-        self.cell_size = 80  # Each cell is 80x80 pixels
-        self.map_buttons = {}  # Dictionary to store cells
-        self.angle = 0
-        self.current_cube_coord = None
-        self.cube_animation_id = None
+        # Main container for layout organization
+        self.main_frame = tk.Frame(self.root)
+        self.main_frame.pack(fill="both", expand=True)
 
-        # Terrain colors
-        self.terrain_colors = {
-            "Empty": "lightgray",
-            "Forest": "green",
-            "Mountain": "brown",
-            "Water": "blue",
-            "Enemy": "red"
-        }
+        # Create a canvas for the map with a vertical scrollbar
+        self.canvas = tk.Canvas(self.main_frame)
+        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas)
 
-        # Set up logging
-        self.create_log_area()
+        # Add the scrollable frame to the canvas
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
 
-    def create_map(self, rows=7, cols=7, on_cell_click=None):
+        # Configure the canvas and scrollbar
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+        # Initialize map buttons
+        self.map_buttons = {}
+        self.cell_states = {}  # Store each cell's current value (terrain, units, etc.)
+
+    def create_map(self, rows, cols, on_cell_click):
         """
-        Creates a 3D-style grid by rendering all cells with assigned terrain.
-        Each cell starts as "Empty".
+        Creates a dynamically sized map grid of buttons.
         """
-        self.canvas.delete("all")
+        # Clear any existing map buttons
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
         self.map_buttons.clear()
 
-        for r in range(rows):
-            for c in range(cols):
-                x1 = c * self.cell_size
-                y1 = r * self.cell_size
-                x2 = x1 + self.cell_size
-                y2 = y1 + self.cell_size
-                coord = f"{chr(65 + r)}{c + 1}"  # e.g., "A1", "B2", etc.
+        # Calculate button size dynamically
+        screen_width = self.root.winfo_screenwidth() * 0.3  # Apply scaling factor
+        screen_height = self.root.winfo_screenheight()
 
-                # Draw the rectangle for the cell
-                rect_id = self.canvas.create_rectangle(
-                    x1, y1, x2, y2, fill="lightgray", outline="white", tags="cell"
+        button_width = int(screen_width / cols)
+        button_height = int(screen_height / rows)
+        button_size = min(button_width, button_height)
+
+        # Generate the map grid
+        for row in range(rows):
+            for col in range(cols):
+                coord = f"{chr(65 + row)}{col + 1}"  # Example: A1, B1, etc.
+                cell_value = self.cell_states.get(coord, "Empty")
+                button = tk.Button(
+                    self.scrollable_frame,
+                    text=cell_value,
+                    width=int(button_size / 10),  # Scaled width
+                    height=int(button_size / 20),  # Scaled height
+                    command=lambda c=coord: on_cell_click(c)
                 )
-                # Center text for the cell
-                text_id = self.canvas.create_text(
-                    (x1 + x2) / 2, (y1 + y2) / 2, text="Empty", fill="black", tags="cell_text"
-                )
-
-                # Bind click event
-                if on_cell_click:
-                    self.canvas.tag_bind(rect_id, "<Button-1>", lambda event, c=coord: on_cell_click(c))
-
-                self.map_buttons[coord] = MapButtonWrapper(rect_id, text_id, self.canvas)
-
-        # Raise the cube to always display above terrain
-        self.canvas.tag_raise("cube")
-
-    def generate_terrain(self):
-        """
-        Randomly assigns terrain types to each cell in the grid.
-        """
-        for coord, button in self.map_buttons.items():
-            terrain_type = random.choice(["Empty", "Forest", "Mountain", "Water"])
-            button.config(bg=self.terrain_colors[terrain_type], text=terrain_type)
-
-    def place_enemies(self, enemy_count=5):
-        """
-        Randomly places enemy units on the grid in empty cells.
-        """
-        empty_cells = [coord for coord, button in self.map_buttons.items()
-                       if button.cget("text") == "Empty"]
-        enemy_positions = random.sample(empty_cells, enemy_count)
-
-        for coord in enemy_positions:
-            self.map_buttons[coord].config(bg=self.terrain_colors["Enemy"], text="Enemy")
+                button.grid(row=row, column=col)
+                self.map_buttons[coord] = button
 
     def create_log_area(self):
         """
-        Creates a log area below the canvas for displaying messages.
+        Creates a text area to display the game log.
         """
-        self.log_area = tk.Text(self.root, height=5, wrap="word", bg="#222222", fg="white")
+        self.log_area = tk.Text(self.root, height=5, width=50, state="normal", wrap="word")
         self.log_area.pack(side="bottom", fill="x")
 
     def update_log(self, message):
         """
-        Logs a message to the log area.
+        Updates the game log with a new message.
         """
-        self.log_area.configure(state="normal")
-        self.log_area.insert(tk.END, message + "\n")
-        self.log_area.see(tk.END)
-        self.log_area.configure(state="disabled")
+        if self.log_area:
+            self.log_area.configure(state="normal")
+            self.log_area.insert(tk.END, message + "\n")
+            self.log_area.see(tk.END)
+            self.log_area.configure(state="disabled")
 
-    def config_map_button(self, coord, text=None, bg=None):
+    def show_end_screen(self, message):
         """
-        Updates a specific cell's appearance by modifying its text and/or background color.
+        Displays a popup with a victory or defeat message and an exit button.
+
+        Args:
+            message (str): The message to display in the popup.
         """
-        if coord in self.map_buttons:
-            button = self.map_buttons[coord]
-            if text is not None:
-                button.config(text=text)
-            if bg is not None:
-                button.config(bg=bg)
+        # Create a popup window for the end screen
+        end_screen = tk.Toplevel(self.root)
+        end_screen.title("Game Over")
 
-    def draw_spinning_3d_cube(self, coord, size=50, frame_delay=100):
+        # Add the game result message
+        tk.Label(end_screen, text=message, font=("Arial", 16), padx=20, pady=20).pack()
+
+        # Add the Exit button to close the application
+        exit_button = tk.Button(end_screen, text="Exit", command=self.root.destroy)
+        exit_button.pack(pady=10)
+
+    def reset(self):
         """
-        Animates a spinning cube over the given cell coordinate.
+        Resets the GameUI components to their initial state for a new game session.
         """
-        if coord not in self.map_buttons:
-            return
+        # Clear the map and reset all buttons
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+        self.map_buttons.clear()
 
-        # Reset animation if moving to a new cell
-        if self.current_cube_coord != coord:
-            if self.cube_animation_id:
-                self.canvas.after_cancel(self.cube_animation_id)
-            self.current_cube_coord = coord
-            self.angle = 0
+        # Reset the log area
+        if hasattr(self, "log_area"):
+            self.log_area.configure(state="normal")
+            self.log_area.delete(1.0, tk.END)
+            self.log_area.configure(state="disabled")
 
-        # Get the cell's center coordinates
-        button = self.map_buttons[coord]
-        x1, y1, x2, y2 = self.canvas.coords(button.rect)
-        cx = (x1 + x2) / 2
-        cy = (y1 + y2) / 2
-
-        half_size = size / 2
-
-        # Define 4 corners of the "cube" (a rotating square in 2D)
-        points = [
-            (-half_size, -half_size),
-            (half_size, -half_size),
-            (half_size, half_size),
-            (-half_size, half_size)
-        ]
-
-        # Rotate the square
-        rotated_points = []
-        for px, py in points:
-            cos_a = math.cos(self.angle)
-            sin_a = math.sin(self.angle)
-            rx = px * cos_a - py * sin_a
-            ry = px * sin_a + py * cos_a
-            rotated_points.append((cx + rx, cy + ry))
-
-        # Draw the cube
-        self.canvas.delete("cube")
-        for i in range(len(rotated_points)):
-            p1 = rotated_points[i]
-            p2 = rotated_points[(i + 1) % len(rotated_points)]
-            self.canvas.create_line(p1[0], p1[1], p2[0], p2[1], fill="red", width=2, tags="cube")
-
-        # Schedule the next frame
-        self.angle += 0.05
-        self.cube_animation_id = self.canvas.after(frame_delay, lambda: self.draw_spinning_3d_cube(coord, size, frame_delay))
+        # Clear cell states
+        self.cell_states.clear()
 media_rw
 import random
 
 class PlayerManager:
-    def __init__(self, map_buttons, terrain_manager, game_ui):
+    def __init__(self, map_buttons, terrain_manager):
         """
-        Initializes the PlayerManager with references to the map buttons,
-        terrain manager, and GameUI for rendering.
-
-        Args:
-            map_buttons (dict): Dictionary of map cell buttons.
-            terrain_manager (TerrainManager): Instance managing map terrain.
-            game_ui (GameUI): Instance managing UI interactions.
+        Initializes the PlayerManager with references to the map buttons
+        and the terrain manager.
         """
         self.map_buttons = map_buttons  # Reference to the map buttons
         self.terrain_manager = terrain_manager  # Reference to the terrain manager
-        self.game_ui = game_ui  # Reference to the GameUI instance
-        self.player_position = None  # The player's current position
-        self.player_stats = {"hp": 20, "ammo": 3}  # Player's stats, including health and ammo
+        self.player_position = None  # The player's starting position
+        self.player_stats = {"hp": 20, "ammo": 1}  # Player's stats, including health and ammo
 
     def deploy_player(self, player_unit_name):
         """
@@ -1640,8 +1733,6 @@ class PlayerManager:
             self.player_position = random.choice(list(self.map_buttons.keys()))
             if self.terrain_manager.get_terrain(self.player_position) == "Empty":
                 self.map_buttons[self.player_position].config(text=player_unit_name, bg="blue")
-                # Render spinning 3D cube
-                self.game_ui.draw_spinning_3d_cube(self.player_position)
                 return self.player_position
         raise ValueError("Failed to deploy player unit after multiple attempts.")
 
@@ -1656,18 +1747,9 @@ class PlayerManager:
         Returns:
             str: The new position of the player unit.
         """
-        if target_position not in self.map_buttons:
-            raise ValueError("Invalid target position.")
-
-        # Reset the current position to empty
         self.map_buttons[self.player_position].config(text="Empty", bg="lightgray")
-
-        # Move the player to the new position
         self.map_buttons[target_position].config(text=unit_name, bg="blue")
         self.player_position = target_position
-
-        # Update the spinning cube's position to follow the player
-        self.game_ui.draw_spinning_3d_cube(self.player_position)
         return self.player_position
 
     def heal_player(self, amount):
@@ -1680,7 +1762,6 @@ class PlayerManager:
         self.player_stats["hp"] += amount
         if self.player_stats["hp"] > 20:  # Cap at max health
             self.player_stats["hp"] = 20
-        self.game_ui.update_log(f"Player healed! Current HP: {self.player_stats['hp']}")
 
     def use_ammo(self):
         """
@@ -1691,20 +1772,15 @@ class PlayerManager:
         """
         if self.player_stats["ammo"] > 0:
             self.player_stats["ammo"] -= 1
-            self.game_ui.update_log(f"Ammo used! Remaining ammo: {self.player_stats['ammo']}")
             return True
-        self.game_ui.update_log("No ammo left!")
         return False
 
     def reset(self):
         """
         Resets the PlayerManager to its initial state for a new game.
         """
-        # Reset player position and stats
-        if self.player_position:
-            self.map_buttons[self.player_position].config(text="Empty", bg="lightgray")
         self.player_position = None
-        self.player_stats = {"hp": 20, "ammo": 3}  # Reset health and ammo
+        self.player_stats = {"hp": 20, "ammo": 1}  # Reset health and ammo
 media_rw
 import random
 
@@ -1816,15 +1892,14 @@ class TerrainManager:
         Applies the generated terrain to the map buttons, updating their appearance.
         """
         for coord, terrain_type in self.terrain.items():
-            if coord in self.map_buttons:  # Ensure the cell exists in map_buttons
-                if terrain_type == "Forest":
-                    self.map_buttons[coord].config(bg="green", text="Forest")
-                elif terrain_type == "Mountain":
-                    self.map_buttons[coord].config(bg="brown", text="Mountain")
-                elif terrain_type == "Water":
-                    self.map_buttons[coord].config(bg="blue", text="Water")
-                elif terrain_type == "Empty":
-                    self.map_buttons[coord].config(bg="lightgray", text="Empty")
+            if terrain_type == "Forest":
+                self.map_buttons[coord].config(bg="green", text="Forest")
+            elif terrain_type == "Mountain":
+                self.map_buttons[coord].config(bg="brown", text="Mountain")
+            elif terrain_type == "Water":
+                self.map_buttons[coord].config(bg="blue", text="Water")
+            elif terrain_type == "Empty":
+                self.map_buttons[coord].config(bg="lightgray", text="Empty")
 
     def get_terrain(self, coord):
         """
@@ -1846,6 +1921,45 @@ class TerrainManager:
         self.terrain.clear()
         for coord, button in self.map_buttons.items():
             button.config(bg="lightgray", text="Empty")
+media_rw
+import tkinter as tk
+
+class GameApp:
+    def __init__(self):
+        """
+        Wraps the entire game within a single object.
+        Initializes the Tkinter root and game session.
+        """
+        self.root = tk.Tk()
+        self.root.title("Turn-Based Tactical Simulation")
+        self.tactical_map = None
+        self.start_game()
+
+    def start_game(self):
+        """
+        Starts a new game session by initializing TacticalMap and passing the replay callback.
+        """
+        from TacticalMap import TacticalMap  # Import here to avoid circular dependency
+        if self.tactical_map:
+            # Ensure TacticalMap is cleared before starting a new game
+            self.tactical_map.reset()
+        else:
+            self.tactical_map = TacticalMap(self.root, on_replay=self.restart_game)
+
+    def restart_game(self):
+        """
+        Resets the game session without destroying the entire root window.
+        """
+        if self.tactical_map:
+            self.tactical_map.reset()
+        else:
+            self.start_game()
+
+    def run(self):
+        """
+        Runs the Tkinter main loop.
+        """
+        self.root.mainloop()
 media_rw
 import tkinter as tk
 
