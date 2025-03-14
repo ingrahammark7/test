@@ -1413,18 +1413,19 @@ class EnemyManager:
 media_rw
 import tkinter as tk
 import math
+import random
 
 class MapButtonWrapper:
     def __init__(self, rect, text_id, canvas):
         """
         Wraps a canvas cell (rectangle and text) so that it mimics a widget
-        with a config() and cget() method.
+        with config() and cget() methods.
         """
         self.rect = rect
         self.text_id = text_id
         self.canvas = canvas
-        self.config_dict = {"text": "Empty", "bg": "gray"}
-        
+        self.config_dict = {"text": "Empty", "bg": "lightgray"}
+
     def config(self, **kwargs):
         """
         Simulates the config() method of a Tkinter widget.
@@ -1435,7 +1436,7 @@ class MapButtonWrapper:
         if "bg" in kwargs:
             self.canvas.itemconfigure(self.rect, fill=kwargs["bg"])
             self.config_dict["bg"] = kwargs["bg"]
-            
+
     def cget(self, key):
         """
         Simulates the cget() method of a Tkinter widget.
@@ -1445,7 +1446,8 @@ class MapButtonWrapper:
 class GameUI:
     def __init__(self, root):
         """
-        Initializes the GameUI with a canvas-based grid and a persistent log area.
+        Initializes the GameUI with a 3D-style grid, spinning cube animation,
+        terrain, and logging area.
         """
         self.root = root
         self.canvas = tk.Canvas(self.root, bg="black")
@@ -1455,152 +1457,152 @@ class GameUI:
         self.grid_rows = 7
         self.grid_cols = 7
         self.cell_size = 80  # Each cell is 80x80 pixels
-        
-        # Simulates the map_buttons that other managers expect.
-        self.map_buttons = {}  
-        self.angle = 0  # Rotation angle for the cube
+        self.map_buttons = {}  # Dictionary to store cells
+        self.angle = 0
+        self.current_cube_coord = None
+        self.cube_animation_id = None
 
+        # Terrain colors
+        self.terrain_colors = {
+            "Empty": "lightgray",
+            "Forest": "green",
+            "Mountain": "brown",
+            "Water": "blue",
+            "Enemy": "red"
+        }
+
+        # Set up logging
         self.create_log_area()
-        
+
     def create_map(self, rows=7, cols=7, on_cell_click=None):
         """
-        Draws a grid of cells directly on the Canvas and stores each cell in
-        self.map_buttons as a MapButtonWrapper for compatibility.
-        
-        Args:
-            rows (int): Number of rows for the grid.
-            cols (int): Number of columns for the grid.
-            on_cell_click (callable): Optional callback when a cell is clicked.
+        Creates a 3D-style grid by rendering all cells with assigned terrain.
+        Each cell starts as "Empty".
         """
-        # First, clear the canvas (if needed)
         self.canvas.delete("all")
         self.map_buttons.clear()
 
-        for row in range(rows):
-            for col in range(cols):
-                x1 = col * self.cell_size
-                y1 = row * self.cell_size
+        for r in range(rows):
+            for c in range(cols):
+                x1 = c * self.cell_size
+                y1 = r * self.cell_size
                 x2 = x1 + self.cell_size
                 y2 = y1 + self.cell_size
-                coord = f"{chr(65 + row)}{col + 1}"  # e.g., "A1", "B2", etc.
+                coord = f"{chr(65 + r)}{c + 1}"  # e.g., "A1", "B2", etc.
 
-                # Draw the cell rectangle and its text on the canvas
+                # Draw the rectangle for the cell
                 rect_id = self.canvas.create_rectangle(
-                    x1, y1, x2, y2, fill="gray", outline="white", tags="cell"
+                    x1, y1, x2, y2, fill="lightgray", outline="white", tags="cell"
                 )
+                # Center text for the cell
                 text_id = self.canvas.create_text(
-                    (x1 + x2) / 2, (y1 + y2) / 2, text="Empty", fill="white", tags="cell_text"
+                    (x1 + x2) / 2, (y1 + y2) / 2, text="Empty", fill="black", tags="cell_text"
                 )
 
-                # Bind the cell click if provided
+                # Bind click event
                 if on_cell_click:
                     self.canvas.tag_bind(rect_id, "<Button-1>", lambda event, c=coord: on_cell_click(c))
 
-                # Store the virtual button using our wrapper
                 self.map_buttons[coord] = MapButtonWrapper(rect_id, text_id, self.canvas)
+
+        # Raise the cube to always display above terrain
+        self.canvas.tag_raise("cube")
+
+    def generate_terrain(self):
+        """
+        Randomly assigns terrain types to each cell in the grid.
+        """
+        for coord, button in self.map_buttons.items():
+            terrain_type = random.choice(["Empty", "Forest", "Mountain", "Water"])
+            button.config(bg=self.terrain_colors[terrain_type], text=terrain_type)
+
+    def place_enemies(self, enemy_count=5):
+        """
+        Randomly places enemy units on the grid in empty cells.
+        """
+        empty_cells = [coord for coord, button in self.map_buttons.items()
+                       if button.cget("text") == "Empty"]
+        enemy_positions = random.sample(empty_cells, enemy_count)
+
+        for coord in enemy_positions:
+            self.map_buttons[coord].config(bg=self.terrain_colors["Enemy"], text="Enemy")
 
     def create_log_area(self):
         """
-        Creates a simple Text widget for logging which is separate from the Canvas.
+        Creates a log area below the canvas for displaying messages.
         """
-        self.log_area = tk.Text(self.root, height=5, width=50, state="normal", wrap="word", bg="#222222", fg="white")
+        self.log_area = tk.Text(self.root, height=5, wrap="word", bg="#222222", fg="white")
         self.log_area.pack(side="bottom", fill="x")
 
     def update_log(self, message):
         """
-        Appends a message to the log area.
+        Logs a message to the log area.
         """
-        if self.log_area:
-            self.log_area.configure(state="normal")
-            self.log_area.insert(tk.END, message + "\n")
-            self.log_area.see(tk.END)
-            self.log_area.configure(state="disabled")
+        self.log_area.configure(state="normal")
+        self.log_area.insert(tk.END, message + "\n")
+        self.log_area.see(tk.END)
+        self.log_area.configure(state="disabled")
 
     def config_map_button(self, coord, text=None, bg=None):
         """
-        Updates a cell's appearance using the MapButtonWrapper.
-        
-        Args:
-            coord (str): The cell coordinate, e.g., "A1".
-            text (str): New text for the cell.
-            bg (str): New background color for the cell.
+        Updates a specific cell's appearance by modifying its text and/or background color.
         """
         if coord in self.map_buttons:
-            mb = self.map_buttons[coord]
+            button = self.map_buttons[coord]
             if text is not None:
-                mb.config(text=text)
+                button.config(text=text)
             if bg is not None:
-                mb.config(bg=bg)
+                button.config(bg=bg)
 
-    def draw_spinning_3d_cube(self, coord, size=50):
+    def draw_spinning_3d_cube(self, coord, size=50, frame_delay=100):
         """
-        Draws a spinning cube over the specified grid cell.
-        
-        Args:
-            coord (str): The grid coordinate (e.g., "A1") over which the cube is drawn.
-            size (int): The size of the cube (default: 50 pixels).
+        Animates a spinning cube over the given cell coordinate.
         """
         if coord not in self.map_buttons:
             return
 
-        # Get the coordinates of the cell from its rectangle
-        mb = self.map_buttons[coord]
-        rect = mb.rect
-        x1, y1, x2, y2 = self.canvas.coords(rect)
-        x_center = (x1 + x2) / 2
-        y_center = (y1 + y2) / 2
+        # Reset animation if moving to a new cell
+        if self.current_cube_coord != coord:
+            if self.cube_animation_id:
+                self.canvas.after_cancel(self.cube_animation_id)
+            self.current_cube_coord = coord
+            self.angle = 0
 
-        half_size = size // 2
+        # Get the cell's center coordinates
+        button = self.map_buttons[coord]
+        x1, y1, x2, y2 = self.canvas.coords(button.rect)
+        cx = (x1 + x2) / 2
+        cy = (y1 + y2) / 2
 
-        # Define the cube's 3D vertices (for a cube centered at origin)
+        half_size = size / 2
+
+        # Define 4 corners of the "cube" (a rotating square in 2D)
         points = [
-            (-half_size, -half_size, -half_size),  # Front-top-left
-            ( half_size, -half_size, -half_size),  # Front-top-right
-            ( half_size,  half_size, -half_size),  # Front-bottom-right
-            (-half_size,  half_size, -half_size),  # Front-bottom-left
-            (-half_size, -half_size,  half_size),  # Back-top-left
-            ( half_size, -half_size,  half_size),  # Back-top-right
-            ( half_size,  half_size,  half_size),  # Back-bottom-right
-            (-half_size,  half_size,  half_size)   # Back-bottom-left
+            (-half_size, -half_size),
+            (half_size, -half_size),
+            (half_size, half_size),
+            (-half_size, half_size)
         ]
 
-        # Rotate points around the Y-axis (simple rotation for 3D effect)
+        # Rotate the square
         rotated_points = []
-        angle = self.angle
-        for px, py, pz in points:
-            cos_a, sin_a = math.cos(angle), math.sin(angle)
-            # Rotate: x' = x*cos(angle) - z*sin(angle), z' = x*sin(angle) + z*cos(angle)
-            x_rot = px * cos_a - pz * sin_a
-            z_rot = px * sin_a + pz * cos_a
-            rotated_points.append((x_center + x_rot, y_center + py))
+        for px, py in points:
+            cos_a = math.cos(self.angle)
+            sin_a = math.sin(self.angle)
+            rx = px * cos_a - py * sin_a
+            ry = px * sin_a + py * cos_a
+            rotated_points.append((cx + rx, cy + ry))
 
-        # Draw edges of the cube on the canvas
+        # Draw the cube
         self.canvas.delete("cube")
-        edges = [
-            (0, 1), (1, 2), (2, 3), (3, 0),  # Front face
-            (4, 5), (5, 6), (6, 7), (7, 4),  # Back face
-            (0, 4), (1, 5), (2, 6), (3, 7)   # Connecting edges
-        ]
-        for a, b in edges:
-            x_a, y_a = rotated_points[a]
-            x_b, y_b = rotated_points[b]
-            self.canvas.create_line(x_a, y_a, x_b, y_b, fill="red", width=2, tags="cube")
-        
-        # Increment the cube's angle for animation and schedule the next frame
-        self.angle += 0.1
-        self.canvas.after(16, lambda: self.draw_spinning_3d_cube(coord, size))
+        for i in range(len(rotated_points)):
+            p1 = rotated_points[i]
+            p2 = rotated_points[(i + 1) % len(rotated_points)]
+            self.canvas.create_line(p1[0], p1[1], p2[0], p2[1], fill="red", width=2, tags="cube")
 
-    def on_canvas_click(self, event):
-        """
-        Handles canvas click events, determining which cell was clicked and triggering logic.
-        """
-        x, y = event.x, event.y
-        for coord, mb in self.map_buttons.items():
-            rect = mb.rect
-            x1, y1, x2, y2 = self.canvas.coords(rect)
-            if x1 <= x <= x2 and y1 <= y <= y2:
-                self.update_log(f"Cell {coord} clicked.")
-                break
+        # Schedule the next frame
+        self.angle += 0.05
+        self.cube_animation_id = self.canvas.after(frame_delay, lambda: self.draw_spinning_3d_cube(coord, size, frame_delay))
 media_rw
 import random
 
@@ -1656,14 +1658,14 @@ class PlayerManager:
         """
         if target_position not in self.map_buttons:
             raise ValueError("Invalid target position.")
-        
+
         # Reset the current position to empty
         self.map_buttons[self.player_position].config(text="Empty", bg="lightgray")
-        
+
         # Move the player to the new position
         self.map_buttons[target_position].config(text=unit_name, bg="blue")
         self.player_position = target_position
-        
+
         # Update the spinning cube's position to follow the player
         self.game_ui.draw_spinning_3d_cube(self.player_position)
         return self.player_position
