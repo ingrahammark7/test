@@ -1172,6 +1172,7 @@ from PlayerManager import PlayerManager
 from EnemyManager import EnemyManager
 from CombatManager import CombatManager
 
+
 class TacticalMap:
     def __init__(self, root, on_replay=None):
         """
@@ -1183,13 +1184,14 @@ class TacticalMap:
         """
         self.root = root
         self.ui = GameUI(root)
-        self.terrain_manager = TerrainManager(self.ui.map_buttons)
-        self.player_manager = PlayerManager(self.ui.map_buttons, self.terrain_manager)
-        self.enemy_manager = EnemyManager(self.ui.map_buttons, self.terrain_manager, enemy_count=5)
+        self.terrain_manager = TerrainManager(self.ui.grid_elements)
+        self.player_manager = PlayerManager(self.ui.grid_elements, self.terrain_manager, self.ui)
+        self.enemy_manager = EnemyManager(self.ui.grid_elements, self.terrain_manager, enemy_count=5, ui=self.ui)
         self.combat_manager = CombatManager(
-            self.ui.map_buttons,
+            self.ui.grid_elements,
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
-            enemy_stats={"name": "Enemy Unit", "hp": 10}
+            enemy_stats={"name": "Enemy Unit", "hp": 10},
+            ui = self.ui
         )
         self.on_replay = on_replay
         self.turn = "Player"
@@ -1214,18 +1216,18 @@ class TacticalMap:
         Sets up the game grid, generates terrain, and deploys units.
         Retries if necessary.
         """
-        self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, on_cell_click=self.on_cell_click)
+        self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols)
         self.ui.create_log_area()
 
         for _ in range(5):  # Attempt up to 5 times
             if self.terrain_manager.generate_terrain(enemy_count=5):
                 try:
-                    player_pos = self.player_manager.deploy_player("T-64 Tank")
-                    self.enemy_manager.deploy_enemies("Enemy Unit")
-                    # Log player spawn along with game initialization message
+                    player_pos = self.player_manager.deploy_player()
+                    enemy_positions = self.enemy_manager.deploy_enemies()
+                    # Log initialization message
                     log_message = f"Game initialized. Player spawned at: {player_pos}"
                     self.ui.update_log(log_message)
-                    print(log_message)  # Optional: Log in the console for debugging
+                    print(log_message)  # Debugging log
                     return
                 except ValueError:
                     self.ui.update_log("Deployment failed. Retrying...")
@@ -1251,7 +1253,7 @@ class TacticalMap:
         """
         player_position = self.player_manager.player_position
         distance_row = abs(ord(coord[0]) - ord(player_position[0]))
-        distance_col = abs(int(coord[1]) - int(player_position[1]))
+        distance_col = abs(int(coord[1:]) - int(player_position[1:]))
 
         # Artillery attack for distant targets
         if max(distance_row, distance_col) > 1:
@@ -1275,7 +1277,7 @@ class TacticalMap:
                 if not self.enemy_manager.enemy_positions:
                     self.end_game(victory=True)
             elif terrain in ["Empty", "Forest"]:
-                self.player_manager.move_player(coord, "T-64 Tank")
+                self.player_manager.move_player(coord)
                 self.end_turn()
             else:
                 self.ui.update_log("Cannot move to that terrain!")
@@ -1289,7 +1291,7 @@ class TacticalMap:
         self.ui.update_log("Enemies are taking their turn...")
         for enemy_pos in list(self.enemy_manager.enemy_positions.keys()):
             if enemy_pos not in self.enemy_manager.enemy_positions:
-                print(f"Skipping invalid enemy position: {enemy_pos}")  # Debug logging
+                print(f"Skipping invalid enemy position: {enemy_pos}")  # Debugging log
                 continue
 
             if self.enemy_manager.is_adjacent(enemy_pos, self.player_manager.player_position):
@@ -1299,12 +1301,9 @@ class TacticalMap:
                     self.end_game(victory=False)
                     return
             else:
-                new_pos = self.enemy_manager.move_toward_player(
-                    enemy_pos, self.player_manager.player_position, "Enemy Unit"
-                )
+                new_pos = self.enemy_manager.move_toward_player(enemy_pos, self.player_manager.player_position)
                 if new_pos != enemy_pos:
-                    if enemy_pos in self.enemy_manager.enemy_positions:
-                        self.enemy_manager.enemy_positions[new_pos] = self.enemy_manager.enemy_positions.pop(enemy_pos)
+                    self.enemy_manager.update_enemy_position(enemy_pos, new_pos)
         if not self.enemy_manager.enemy_positions:
             self.end_game(victory=True)
         else:
@@ -1336,13 +1335,12 @@ class TacticalMap:
         """
         Resets the TacticalMap to its initial state for a new game.
         """
-        self.ui.map_buttons.clear()
-        self.ui.cell_states.clear()
+        self.ui.reset()
         self.terrain_manager.reset()
         self.player_manager.reset()
         self.enemy_manager.reset()
         self.combat_manager = CombatManager(
-            self.ui.map_buttons,
+            self.ui.grid_elements,
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
             enemy_stats={"name": "Enemy Unit", "hp": 10}
         )
@@ -1361,19 +1359,21 @@ if __name__ == "__main__":
     root.mainloop()
 media_rw
 class CombatManager:
-    def __init__(self, map_buttons, player_stats, enemy_stats):
+    def __init__(self, grid_elements, player_stats, enemy_stats, ui):
         """
-        Initializes the CombatManager with references to the map buttons,
-        the player's statistics, and the enemy's statistics.
+        Initializes the CombatManager with references to the grid elements,
+        the player's statistics, the enemy's statistics, and GameUI.
 
         Args:
-            map_buttons (dict): Dictionary of map cell buttons.
+            grid_elements (dict): Dictionary of canvas rectangles for the grid.
             player_stats (dict): Dictionary containing player stats (e.g., {"hp": 20, "ammo": 5}).
             enemy_stats (dict): Dictionary containing enemy stats (e.g., {"hp": 10}).
+            ui (GameUI): Instance of GameUI for rendering on the canvas.
         """
-        self.map_buttons = map_buttons
+        self.grid_elements = grid_elements
         self.player_stats = player_stats
         self.enemy_stats = enemy_stats
+        self.ui = ui  # Reference to the GameUI
 
     def player_attack(self, target_coord, enemy_positions):
         """
@@ -1387,12 +1387,12 @@ class CombatManager:
             str: A message describing the outcome of the attack.
         """
         if target_coord in enemy_positions:
-            # Damage the enemy by 5 points.
+            # Damage the enemy by 5 points
             enemy_positions[target_coord] -= 5
             if enemy_positions[target_coord] <= 0:
-                # Enemy is defeated; remove it from the dictionary and update the UI.
+                # Enemy is defeated; remove it and update the UI
                 del enemy_positions[target_coord]
-                self.map_buttons[target_coord].config(text="Empty", bg="lightgray")
+                self.ui.update_cell(target_coord, "Empty", "lightgray")
                 return f"Enemy at {target_coord} is defeated!"
             else:
                 return f"Enemy at {target_coord} HP reduced to {enemy_positions[target_coord]}."
@@ -1410,7 +1410,6 @@ class CombatManager:
             list: A list of messages describing the outcomes at each affected coordinate.
         """
         results = []
-        # Parse the target position
         row = ord(target_coord[0])
         col = int(target_coord[1:])
 
@@ -1425,14 +1424,16 @@ class CombatManager:
 
         for coord in affected_coords:
             if coord in enemy_positions:
+                # Damage enemy units
                 enemy_positions[coord] -= 10  # Artillery deals 10 damage
                 if enemy_positions[coord] <= 0:
                     del enemy_positions[coord]
-                    self.map_buttons[coord].config(text="Empty", bg="lightgray")
+                    self.ui.update_cell(coord, "Empty", "lightgray")
                     results.append(f"Enemy at {coord} destroyed by artillery.")
                 else:
                     results.append(f"Enemy at {coord} hit by artillery. HP now {enemy_positions[coord]}.")
-            elif coord in self.map_buttons:
+            elif coord in self.grid_elements:
+                # Empty tiles hit by artillery
                 results.append(f"Artillery hit {coord}, but no enemies present.")
 
         return results
@@ -1447,7 +1448,7 @@ class CombatManager:
         Returns:
             str: A message describing the result of the enemy's attack.
         """
-        # Enemy deals a fixed 5 damage to the player's HP.
+        # Enemy deals a fixed 5 damage to the player
         self.player_stats["hp"] -= 5
         if self.player_stats["hp"] <= 0:
             return "Player is defeated!"
@@ -1479,28 +1480,31 @@ class CombatManager:
         """
         # Reset player and enemy stats if provided, or default to starting stats
         self.player_stats = player_stats if player_stats else {"hp": 20, "ammo": 5}
-        self.enemy_stats = enemy_stats if enemy_stats else {"hp": 10}
+        self.enemy_stats = enemy_stats if enemy_stats else {"hp": "10"}
 media_rw
 import random
-import tkinter as tk
 
 class EnemyManager:
-    def __init__(self, map_buttons, terrain_manager, enemy_count):
+    def __init__(self, grid_elements, terrain_manager, enemy_count, ui):
         """
-        Initializes the EnemyManager with references to the map buttons,
-        terrain manager, and the number of enemy units.
+        Initializes the EnemyManager with references to the grid elements, terrain manager,
+        the number of enemy units, and the GameUI instance.
+
+        Args:
+            grid_elements (dict): Dictionary of canvas rectangles for the grid.
+            terrain_manager (TerrainManager): Instance of TerrainManager for managing terrains.
+            enemy_count (int): Number of enemy units to deploy.
+            ui (GameUI): Instance of GameUI for rendering on the canvas.
         """
-        self.map_buttons = map_buttons  # Reference to map buttons
+        self.grid_elements = grid_elements  # Reference to canvas elements for the grid
         self.terrain_manager = terrain_manager  # Reference to terrain manager
         self.enemy_positions = {}  # Dictionary to track enemy positions and their HP
         self.enemy_count = enemy_count  # Number of enemy units
+        self.ui = ui  # Reference to the GameUI
 
-    def deploy_enemies(self, enemy_unit_name):
+    def deploy_enemies(self):
         """
-        Deploys enemy units on random empty tiles with starting HP.
-
-        Args:
-            enemy_unit_name (str): The name of the enemy units (e.g., "Enemy Unit").
+        Deploys enemy units on random empty tiles and renders them on the canvas.
 
         Returns:
             list: A list of coordinates where the enemies are deployed.
@@ -1510,24 +1514,23 @@ class EnemyManager:
         """
         empty_cells = [
             coord for coord, terr in self.terrain_manager.terrain.items()
-            if terr == "Empty" and isinstance(self.map_buttons[coord], tk.Button) and self.map_buttons[coord].cget("text") == "Empty"
+            if terr == "Empty" and coord not in self.enemy_positions
         ]
         if len(empty_cells) < self.enemy_count:
             raise ValueError("Not enough empty spaces to deploy enemies.")
 
         for coord in random.sample(empty_cells, self.enemy_count):
-            self.enemy_positions[coord] = 10  # Assign each enemy 10 HP
-            self.map_buttons[coord].config(text=enemy_unit_name, bg="red")
+            self.enemy_positions[coord] = 10  # Assign 10 HP to each enemy
+            self.ui.update_cell(coord, "Enemy", "red")  # Render the enemy in red
         return list(self.enemy_positions.keys())
 
-    def move_toward_player(self, enemy_position, player_position, enemy_name):
+    def move_toward_player(self, enemy_position, player_position):
         """
-        Moves an enemy unit toward the player. Handles crossing probabilities for terrain.
+        Moves an enemy unit toward the player. Handles terrain crossing probabilities.
 
         Args:
             enemy_position (str): The current position of the enemy unit.
             player_position (str): The current position of the player unit.
-            enemy_name (str): The name of the enemy unit (e.g., "Enemy Unit").
 
         Returns:
             str: The new position of the enemy unit.
@@ -1538,50 +1541,50 @@ class EnemyManager:
         dr = player_row - enemy_row
         dc = player_col - enemy_col
 
-        # Determine the direction of movement
+        # Determine direction of movement
         if abs(dr) > abs(dc):
             new_pos = f"{chr(enemy_row + (1 if dr > 0 else -1))}{enemy_col}"
         else:
             new_pos = f"{chr(enemy_row)}{enemy_col + (1 if dc > 0 else -1)}"
 
         # Validate and attempt the move
-        if new_pos in self.map_buttons and enemy_position in self.enemy_positions:
+        if new_pos in self.grid_elements and enemy_position in self.enemy_positions:
             terrain = self.terrain_manager.get_terrain(new_pos)
             if terrain == "Water":
                 if random.random() < 0.5:  # 50% chance to cross
-                    self.update_enemy_position(enemy_position, new_pos, enemy_name)
+                    self.update_enemy_position(enemy_position, new_pos)
                     return new_pos
                 else:
                     return enemy_position
             elif terrain == "Mountain":
                 if random.random() < 0.3:  # 30% chance to cross
-                    self.update_enemy_position(enemy_position, new_pos, enemy_name)
+                    self.update_enemy_position(enemy_position, new_pos)
                     return new_pos
                 else:
                     return enemy_position
             elif terrain in ["Empty", "Forest"]:
-                self.update_enemy_position(enemy_position, new_pos, enemy_name)
+                self.update_enemy_position(enemy_position, new_pos)
                 return new_pos
 
-        # Stay in place if the move is invalid
+        # Stay in place if move is invalid
         return enemy_position
 
-    def update_enemy_position(self, old_position, new_position, enemy_name):
+    def update_enemy_position(self, old_position, new_position):
         """
-        Updates the enemy's position on the map.
+        Updates the enemy's position on the canvas.
 
         Args:
             old_position (str): The previous position of the enemy.
             new_position (str): The new position of the enemy.
-            enemy_name (str): The name of the enemy unit.
         """
-        self.map_buttons[old_position].config(text="Empty", bg="lightgray")
-        self.map_buttons[new_position].config(text=enemy_name, bg="red")
+        # Clear the old position and update the new one
+        self.ui.update_cell(old_position, "Empty", "lightgray")
+        self.ui.update_cell(new_position, "Enemy", "red")
         self.enemy_positions[new_position] = self.enemy_positions.pop(old_position)
 
     def is_adjacent(self, pos1, pos2):
         """
-        Checks if two positions are adjacent on the map.
+        Checks if two positions are adjacent on the grid.
 
         Args:
             pos1 (str): The first position (e.g., "A1").
@@ -1598,19 +1601,19 @@ class EnemyManager:
         """
         Resets the EnemyManager to its initial state for a new game.
         """
-        # Clear enemy positions and reset the enemy count if needed
+        # Clear enemy positions and reset the canvas
         for coord in list(self.enemy_positions.keys()):
-            if coord in self.map_buttons and isinstance(self.map_buttons[coord], tk.Button):
-                self.map_buttons[coord].config(text="Empty", bg="lightgray")
+            self.ui.update_cell(coord, "Empty", "lightgray")
         self.enemy_positions.clear()
 media_rw
 import tkinter as tk
 from tkinter import ttk
 
+
 class GameUI:
     def __init__(self, root):
         """
-        Initializes the GameUI with a scrollable map and a persistent log area.
+        Initializes the GameUI with a scrollable map (canvas-based), log area, and tank rendering.
         """
         self.root = root
 
@@ -1618,69 +1621,68 @@ class GameUI:
         self.main_frame = tk.Frame(self.root)
         self.main_frame.pack(fill="both", expand=True)
 
-        # Create a canvas for the map with a vertical scrollbar
-        self.canvas = tk.Canvas(self.main_frame, bg="white")  # Added background color for clarity
-        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
-        self.scrollable_frame = tk.Frame(self.canvas)
+        # Create a canvas for the map with vertical and horizontal scrollbars
+        self.canvas = tk.Canvas(self.main_frame, bg="white", width=800, height=600)
+        self.scrollbar_y = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollbar_x = ttk.Scrollbar(self.main_frame, orient="horizontal", command=self.canvas.xview)
 
-        # Add the scrollable frame to the canvas
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        )
-        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-
-        # Configure the canvas and scrollbar
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        # Configure the canvas for scrolling
+        self.canvas.configure(yscrollcommand=self.scrollbar_y.set, xscrollcommand=self.scrollbar_x.set)
+        self.scrollbar_y.pack(side="right", fill="y")
+        self.scrollbar_x.pack(side="bottom", fill="x")
         self.canvas.pack(side="left", fill="both", expand=True)
-        self.scrollbar.pack(side="right", fill="y")
 
-        # Initialize map buttons
-        self.map_buttons = {}
-        self.cell_states = {}  # Store each cell's current value (terrain, units, etc.)
+        # Internal data structures for managing canvas elements
+        self.grid_elements = {}  # Holds grid rectangle IDs and their coordinates
+        self.cell_states = {}    # Store each cell's current state (terrain, units, etc.)
+        self.tank_graphics = {}  # Track the tank's graphical components
 
-    def create_map(self, rows, cols, on_cell_click):
+        # Log area for messages
+        self.log_area = None
+
+    def create_map(self, rows, cols):
         """
-        Creates a dynamically sized map grid of buttons.
+        Creates a dynamically sized map grid using canvas rectangles.
+
+        Args:
+            rows (int): Number of rows in the grid.
+            cols (int): Number of columns in the grid.
         """
-        # Clear any existing map buttons
-        for widget in self.scrollable_frame.winfo_children():
-            widget.destroy()
-        self.map_buttons.clear()
+        self.grid_elements.clear()
+        self.cell_states.clear()
 
-        # Calculate button size dynamically
-        screen_width = self.root.winfo_screenwidth() * 0.3  # Scaling factor
-        screen_height = self.root.winfo_screenheight()
+        # Dimensions of each cell
+        cell_width = 50
+        cell_height = 50
 
-        button_width = int(screen_width / cols)
-        button_height = int(screen_height / rows)
-        button_size = min(button_width, button_height)
-
-        # Generate the map grid
+        # Draw the grid on the canvas
         for row in range(rows):
             for col in range(cols):
                 coord = f"{chr(65 + row)}{col + 1}"  # Example: A1, B1, etc.
-                cell_value = self.cell_states.get(coord, "Empty")
-                button = tk.Button(
-                    self.scrollable_frame,
-                    text=cell_value,
-                    width=int(button_size / 10),  # Adjusted width for clarity
-                    height=int(button_size / 20),  # Adjusted height for clarity
-                    command=lambda c=coord: on_cell_click(c)
-                )
-                button.grid(row=row, column=col, padx=2, pady=2)  # Added padding for spacing
-                self.map_buttons[coord] = button
+                x1, y1 = col * cell_width, row * cell_height
+                x2, y2 = x1 + cell_width, y1 + cell_height
+
+                # Draw a rectangle for each cell
+                rect_id = self.canvas.create_rectangle(x1, y1, x2, y2, fill="lightgray", outline="black")
+                self.grid_elements[coord] = rect_id
+                self.cell_states[coord] = "Empty"  # Initialize as empty
+
+                # Bind left-click events to the rectangle
+                self.canvas.tag_bind(rect_id, "<Button-1>", lambda event, c=coord: self.on_cell_click(c))
 
     def create_log_area(self):
         """
         Creates a text area to display the game log.
         """
-        self.log_area = tk.Text(self.root, height=5, width=50, state="normal", wrap="word", bg="lightyellow")
+        self.log_area = tk.Text(self.root, height=5, state="normal", wrap="word", bg="lightyellow")
         self.log_area.pack(side="bottom", fill="x")
 
     def update_log(self, message):
         """
         Updates the game log with a new message.
+
+        Args:
+            message (str): The message to display.
         """
         if self.log_area:
             self.log_area.configure(state="normal")
@@ -1688,61 +1690,121 @@ class GameUI:
             self.log_area.see(tk.END)
             self.log_area.configure(state="disabled")
 
-    def show_end_screen(self, message):
+    def draw_tank(self, coord):
         """
-        Displays a popup with a victory or defeat message and an exit button.
+        Draws a tank on the canvas at the specified coordinate.
 
         Args:
-            message (str): The message to display in the popup.
+            coord (str): The grid cell (e.g., "A1") to place the tank.
         """
-        # Create a popup window for the end screen
-        end_screen = tk.Toplevel(self.root)
-        end_screen.title("Game Over")
+        if coord not in self.grid_elements:
+            print(f"[LOG] {coord} is not a valid coordinate.")
+            return
 
-        # Add the game result message
-        tk.Label(end_screen, text=message, font=("Arial", 16), padx=20, pady=20).pack()
+        # Clear any existing tank graphics
+        self.clear_tank()
 
-        # Add the Exit button to close the application
-        exit_button = tk.Button(end_screen, text="Exit", command=self.root.destroy)
-        exit_button.pack(pady=10)
+        # Get rectangle coordinates
+        rect_id = self.grid_elements[coord]
+        x1, y1, x2, y2 = self.canvas.coords(rect_id)
+
+        # Calculate the center of the rectangle
+        center_x, center_y = (x1 + x2) / 2, (y1 + y2) / 2
+
+        # Tank dimensions
+        hull_width, hull_height = 30, 20
+        turret_radius = 8
+
+        # Draw the tank's hull (rectangle)
+        self.tank_graphics["hull"] = self.canvas.create_rectangle(
+            center_x - hull_width / 2, center_y - hull_height / 2,
+            center_x + hull_width / 2, center_y + hull_height / 2,
+            fill="green"
+        )
+
+        # Draw the tank's turret (circle)
+        self.tank_graphics["turret"] = self.canvas.create_oval(
+            center_x - turret_radius, center_y - turret_radius,
+            center_x + turret_radius, center_y + turret_radius,
+            fill="darkgreen"
+        )
+
+        # Draw the tank's gun (line)
+        gun_length = 20
+        self.tank_graphics["gun"] = self.canvas.create_line(
+            center_x, center_y,
+            center_x + gun_length, center_y,
+            fill="black", width=3
+        )
+
+        # Log the tank's position for debugging
+        print(f"[LOG] Tank drawn at {coord} ({center_x}, {center_y}).")
+
+    def clear_tank(self):
+        """
+        Clears the tank graphic from the canvas.
+        """
+        for part in self.tank_graphics.values():
+            self.canvas.delete(part)
+        self.tank_graphics.clear()
+
+    def update_cell(self, coord, terrain_type, color):
+        """
+        Updates a specific cell with a given terrain type and color.
+
+        Args:
+            coord (str): The coordinate of the cell (e.g., "A1").
+            terrain_type (str): The type of terrain (e.g., "Forest").
+            color (str): The fill color for the terrain.
+        """
+        if coord in self.grid_elements:
+            rect_id = self.grid_elements[coord]
+            self.canvas.itemconfig(rect_id, fill=color)
+            self.cell_states[coord] = terrain_type
+
+    def on_cell_click(self, coord):
+        """
+        Placeholder for cell click actions. Can be overridden by TacticalMap.
+
+        Args:
+            coord (str): The clicked cell's coordinate (e.g., "A1").
+        """
+        print(f"[LOG] Cell {coord} clicked.")
 
     def reset(self):
         """
-        Resets the GameUI components to their initial state for a new game session.
+        Resets the GameUI components for a new game session.
         """
-        # Clear the map and reset all buttons
-        for widget in self.scrollable_frame.winfo_children():
-            widget.destroy()
-        self.map_buttons.clear()
-
-        # Reset the log area
-        if hasattr(self, "log_area"):
+        self.canvas.delete("all")
+        self.grid_elements.clear()
+        self.cell_states.clear()
+        self.tank_graphics.clear()
+        if self.log_area:
             self.log_area.configure(state="normal")
             self.log_area.delete(1.0, tk.END)
             self.log_area.configure(state="disabled")
-
-        # Clear cell states
-        self.cell_states.clear()
 media_rw
 import random
 
 class PlayerManager:
-    def __init__(self, map_buttons, terrain_manager):
+    def __init__(self, grid_elements, terrain_manager, ui):
         """
-        Initializes the PlayerManager with references to the map buttons
-        and the terrain manager.
-        """
-        self.map_buttons = map_buttons  # Reference to the map buttons
-        self.terrain_manager = terrain_manager  # Reference to the terrain manager
-        self.player_position = None  # The player's starting position
-        self.player_stats = {"hp": 20, "ammo": 1}  # Player's stats, including health and ammo
-
-    def deploy_player(self, player_unit_name):
-        """
-        Deploys the player unit on a random empty tile.
+        Initializes the PlayerManager with references to the grid elements, terrain manager, and GameUI.
 
         Args:
-            player_unit_name (str): The name of the player unit (e.g., "T-64 Tank").
+            grid_elements (dict): The dictionary containing the canvas rectangles for the grid.
+            terrain_manager (TerrainManager): Instance of TerrainManager for managing terrains.
+            ui (GameUI): Instance of GameUI for drawing and managing the UI.
+        """
+        self.grid_elements = grid_elements
+        self.terrain_manager = terrain_manager
+        self.ui = ui  # Reference to the GameUI
+        self.player_position = None
+        self.player_stats = {"hp": 20, "ammo": 1}  # Default player stats
+
+    def deploy_player(self):
+        """
+        Deploys the player unit on a random empty tile and displays the tank graphic.
 
         Returns:
             str: The coordinate of the deployed player unit.
@@ -1751,34 +1813,38 @@ class PlayerManager:
             ValueError: If deployment fails after multiple attempts.
         """
         for _ in range(10):  # Retry up to 10 times for deployment
-            self.player_position = random.choice(list(self.map_buttons.keys()))
+            self.player_position = random.choice(list(self.grid_elements.keys()))
             if self.terrain_manager.get_terrain(self.player_position) == "Empty":
-                # Update the button to visually represent the player's tank
-                self.map_buttons[self.player_position].config(
-                    text=player_unit_name,
-                    bg="blue",  # Blue color represents the tank
-                    fg="white"  # Set text color for better contrast
-                )
-                print(f"Player deployed at: {self.player_position}")  # Log deployment location
+                # Draw the player's tank on the selected coordinate
+                self.ui.draw_tank(self.player_position)
+                print(f"[LOG] Player deployed at: {self.player_position}")  # Debug log
                 return self.player_position
+
         raise ValueError("Failed to deploy player unit after multiple attempts.")
 
-    def move_player(self, target_position, unit_name):
+    def move_player(self, target_position):
         """
-        Moves the player unit to a specified target position.
+        Moves the player unit to a specified target position and updates the tank graphic.
 
         Args:
             target_position (str): The coordinate to move the player unit to.
-            unit_name (str): The name of the player unit (e.g., "T-64 Tank").
 
         Returns:
             str: The new position of the player unit.
         """
-        # Clear the previous position
-        self.map_buttons[self.player_position].config(text="Empty", bg="lightgray")
-        # Update the new position to represent the player's tank
-        self.map_buttons[target_position].config(text=unit_name, bg="blue", fg="white")
+        if target_position not in self.grid_elements:
+            print(f"[LOG] Invalid target position: {target_position}")
+            return self.player_position
+
+        # Log the move action
+        print(f"[LOG] Moving player from {self.player_position} to {target_position}")
+
+        # Update the tank graphic
+        self.ui.draw_tank(target_position)
         self.player_position = target_position
+
+        # Log the updated position
+        print(f"[LOG] Player successfully moved to {self.player_position}")
         return self.player_position
 
     def heal_player(self, amount):
@@ -1877,14 +1943,16 @@ class UnitManager:
         return max(row_diff, col_diff) == 1
 media_rw
 import random
-import tkinter as tk
 
 class TerrainManager:
-    def __init__(self, map_buttons):
+    def __init__(self, grid_elements):
         """
-        Initializes the TerrainManager with a reference to the map buttons.
+        Initializes the TerrainManager with a reference to the grid elements.
+
+        Args:
+            grid_elements (dict): Dictionary of canvas rectangles for the grid.
         """
-        self.map_buttons = map_buttons  # Reference to the map buttons
+        self.grid_elements = grid_elements  # Reference to the grid elements
         self.terrain = {}  # Dictionary to store terrain types for each cell
 
     def generate_terrain(self, enemy_count, extra_empty=5):
@@ -1904,7 +1972,7 @@ class TerrainManager:
             empty_count = 0
 
             # Randomly assign terrain types to each cell
-            for coord in self.map_buttons.keys():
+            for coord in self.grid_elements.keys():
                 terrain_type = random.choice(["Forest", "Mountain", "Water", "Empty"])
                 self.terrain[coord] = terrain_type
                 if terrain_type == "Empty":
@@ -1912,28 +1980,41 @@ class TerrainManager:
 
             # Check if enough empty tiles are available
             if empty_count >= enemy_count + extra_empty:
-                self._apply_terrain_to_map()
+                self._apply_terrain_to_canvas()
                 return True  # Successful generation
 
         return False  # Failed to generate a valid map after retries
 
-    def _apply_terrain_to_map(self):
+    def _apply_terrain_to_canvas(self):
         """
-        Applies the generated terrain to the map buttons, updating their appearance.
+        Applies the generated terrain to the canvas, updating its appearance.
         """
         for coord, terrain_type in self.terrain.items():
-            button = self.map_buttons.get(coord)
-            if isinstance(button, tk.Button):  # Ensure the object is a button
+            rect_id = self.grid_elements.get(coord)
+            if rect_id:  # Ensure the coordinate exists in the grid
                 if terrain_type == "Forest":
-                    button.config(bg="green", text="Forest")
+                    self._update_canvas_cell(rect_id, "Forest", "green")
                 elif terrain_type == "Mountain":
-                    button.config(bg="brown", text="Mountain")
+                    self._update_canvas_cell(rect_id, "Mountain", "brown")
                 elif terrain_type == "Water":
-                    button.config(bg="blue", text="Water")
+                    self._update_canvas_cell(rect_id, "Water", "blue")
                 elif terrain_type == "Empty":
-                    button.config(bg="lightgray", text="Empty")
-            else:
-                print(f"Warning: {coord} does not map to a valid button.")
+                    self._update_canvas_cell(rect_id, "Empty", "lightgray")
+
+    def _update_canvas_cell(self, rect_id, terrain_type, color):
+        """
+        Updates the appearance of a canvas cell based on the terrain type.
+
+        Args:
+            rect_id (int): The ID of the rectangle on the canvas.
+            terrain_type (str): The type of terrain to display.
+            color (str): The fill color for the rectangle.
+        """
+        # Update the rectangle's fill color and optionally add a label
+        self.grid_elements[rect_id] = terrain_type
+        self.grid_elements[rect_id] = {
+            "fill": color,
+        }
 
     def get_terrain(self, coord):
         """
@@ -1951,11 +2032,10 @@ class TerrainManager:
         """
         Resets the TerrainManager to its initial state for a new game.
         """
-        # Clear current terrain and reset the map buttons to default "Empty" state
+        # Clear current terrain and reset the canvas cells to default "Empty" state
         self.terrain.clear()
-        for coord, button in self.map_buttons.items():
-            if isinstance(button, tk.Button):  # Ensure the object is a button
-                button.config(bg="lightgray", text="Empty")
+        for coord, rect_id in self.grid_elements.items():
+            self._update_canvas_cell(rect_id, "Empty", "lightgray")
 media_rw
 import tkinter as tk
 
