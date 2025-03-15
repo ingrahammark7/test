@@ -1220,9 +1220,12 @@ class TacticalMap:
         for _ in range(5):  # Attempt up to 5 times
             if self.terrain_manager.generate_terrain(enemy_count=5):
                 try:
-                    self.player_manager.deploy_player("T-64 Tank")
+                    player_pos = self.player_manager.deploy_player("T-64 Tank")
                     self.enemy_manager.deploy_enemies("Enemy Unit")
-                    self.ui.update_log("Game initialized. Player's turn begins.")
+                    # Log player spawn along with game initialization message
+                    log_message = f"Game initialized. Player spawned at: {player_pos}"
+                    self.ui.update_log(log_message)
+                    print(log_message)  # Optional: Log in the console for debugging
                     return
                 except ValueError:
                     self.ui.update_log("Deployment failed. Retrying...")
@@ -1285,6 +1288,10 @@ class TacticalMap:
         """
         self.ui.update_log("Enemies are taking their turn...")
         for enemy_pos in list(self.enemy_manager.enemy_positions.keys()):
+            if enemy_pos not in self.enemy_manager.enemy_positions:
+                print(f"Skipping invalid enemy position: {enemy_pos}")  # Debug logging
+                continue
+
             if self.enemy_manager.is_adjacent(enemy_pos, self.player_manager.player_position):
                 result = self.combat_manager.enemy_attack(self.player_manager.player_position)
                 self.ui.update_log(result)
@@ -1295,7 +1302,9 @@ class TacticalMap:
                 new_pos = self.enemy_manager.move_toward_player(
                     enemy_pos, self.player_manager.player_position, "Enemy Unit"
                 )
-                self.enemy_manager.enemy_positions[new_pos] = self.enemy_manager.enemy_positions.pop(enemy_pos)
+                if new_pos != enemy_pos:
+                    if enemy_pos in self.enemy_manager.enemy_positions:
+                        self.enemy_manager.enemy_positions[new_pos] = self.enemy_manager.enemy_positions.pop(enemy_pos)
         if not self.enemy_manager.enemy_positions:
             self.end_game(victory=True)
         else:
@@ -1321,7 +1330,7 @@ class TacticalMap:
         """
         message = "You Win!" if victory else "Game Over!"
         self.ui.update_log(message)
-        self.ui.show_end_screen(message)  # Replay callback removed
+        self.ui.show_end_screen(message)
 
     def reset(self):
         """
@@ -1473,6 +1482,7 @@ class CombatManager:
         self.enemy_stats = enemy_stats if enemy_stats else {"hp": 10}
 media_rw
 import random
+import tkinter as tk
 
 class EnemyManager:
     def __init__(self, map_buttons, terrain_manager, enemy_count):
@@ -1500,7 +1510,7 @@ class EnemyManager:
         """
         empty_cells = [
             coord for coord, terr in self.terrain_manager.terrain.items()
-            if terr == "Empty" and self.map_buttons[coord].cget("text") == "Empty"
+            if terr == "Empty" and isinstance(self.map_buttons[coord], tk.Button) and self.map_buttons[coord].cget("text") == "Empty"
         ]
         if len(empty_cells) < self.enemy_count:
             raise ValueError("Not enough empty spaces to deploy enemies.")
@@ -1522,8 +1532,8 @@ class EnemyManager:
         Returns:
             str: The new position of the enemy unit.
         """
-        enemy_row, enemy_col = ord(enemy_position[0]), int(enemy_position[1])
-        player_row, player_col = ord(player_position[0]), int(player_position[1])
+        enemy_row, enemy_col = ord(enemy_position[0]), int(enemy_position[1:])
+        player_row, player_col = ord(player_position[0]), int(player_position[1:])
 
         dr = player_row - enemy_row
         dc = player_col - enemy_col
@@ -1535,29 +1545,39 @@ class EnemyManager:
             new_pos = f"{chr(enemy_row)}{enemy_col + (1 if dc > 0 else -1)}"
 
         # Validate and attempt the move
-        if new_pos in self.map_buttons:
+        if new_pos in self.map_buttons and enemy_position in self.enemy_positions:
             terrain = self.terrain_manager.get_terrain(new_pos)
             if terrain == "Water":
                 if random.random() < 0.5:  # 50% chance to cross
-                    self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
-                    self.map_buttons[new_pos].config(text=enemy_name, bg="red")
+                    self.update_enemy_position(enemy_position, new_pos, enemy_name)
                     return new_pos
                 else:
                     return enemy_position
             elif terrain == "Mountain":
                 if random.random() < 0.3:  # 30% chance to cross
-                    self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
-                    self.map_buttons[new_pos].config(text=enemy_name, bg="red")
+                    self.update_enemy_position(enemy_position, new_pos, enemy_name)
                     return new_pos
                 else:
                     return enemy_position
             elif terrain in ["Empty", "Forest"]:
-                self.map_buttons[enemy_position].config(text="Empty", bg="lightgray")
-                self.map_buttons[new_pos].config(text=enemy_name, bg="red")
+                self.update_enemy_position(enemy_position, new_pos, enemy_name)
                 return new_pos
 
         # Stay in place if the move is invalid
         return enemy_position
+
+    def update_enemy_position(self, old_position, new_position, enemy_name):
+        """
+        Updates the enemy's position on the map.
+
+        Args:
+            old_position (str): The previous position of the enemy.
+            new_position (str): The new position of the enemy.
+            enemy_name (str): The name of the enemy unit.
+        """
+        self.map_buttons[old_position].config(text="Empty", bg="lightgray")
+        self.map_buttons[new_position].config(text=enemy_name, bg="red")
+        self.enemy_positions[new_position] = self.enemy_positions.pop(old_position)
 
     def is_adjacent(self, pos1, pos2):
         """
@@ -1571,7 +1591,7 @@ class EnemyManager:
             bool: True if the positions are adjacent, False otherwise.
         """
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
-        col_diff = abs(int(pos1[1]) - int(pos2[1]))
+        col_diff = abs(int(pos1[1:]) - int(pos2[1:]))
         return max(row_diff, col_diff) == 1
 
     def reset(self):
@@ -1579,8 +1599,9 @@ class EnemyManager:
         Resets the EnemyManager to its initial state for a new game.
         """
         # Clear enemy positions and reset the enemy count if needed
-        for coord in self.enemy_positions.keys():
-            self.map_buttons[coord].config(text="Empty", bg="lightgray")
+        for coord in list(self.enemy_positions.keys()):
+            if coord in self.map_buttons and isinstance(self.map_buttons[coord], tk.Button):
+                self.map_buttons[coord].config(text="Empty", bg="lightgray")
         self.enemy_positions.clear()
 media_rw
 import tkinter as tk
@@ -1598,7 +1619,7 @@ class GameUI:
         self.main_frame.pack(fill="both", expand=True)
 
         # Create a canvas for the map with a vertical scrollbar
-        self.canvas = tk.Canvas(self.main_frame)
+        self.canvas = tk.Canvas(self.main_frame, bg="white")  # Added background color for clarity
         self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = tk.Frame(self.canvas)
 
@@ -1628,7 +1649,7 @@ class GameUI:
         self.map_buttons.clear()
 
         # Calculate button size dynamically
-        screen_width = self.root.winfo_screenwidth() * 0.3  # Apply scaling factor
+        screen_width = self.root.winfo_screenwidth() * 0.3  # Scaling factor
         screen_height = self.root.winfo_screenheight()
 
         button_width = int(screen_width / cols)
@@ -1643,18 +1664,18 @@ class GameUI:
                 button = tk.Button(
                     self.scrollable_frame,
                     text=cell_value,
-                    width=int(button_size / 10),  # Scaled width
-                    height=int(button_size / 20),  # Scaled height
+                    width=int(button_size / 10),  # Adjusted width for clarity
+                    height=int(button_size / 20),  # Adjusted height for clarity
                     command=lambda c=coord: on_cell_click(c)
                 )
-                button.grid(row=row, column=col)
+                button.grid(row=row, column=col, padx=2, pady=2)  # Added padding for spacing
                 self.map_buttons[coord] = button
 
     def create_log_area(self):
         """
         Creates a text area to display the game log.
         """
-        self.log_area = tk.Text(self.root, height=5, width=50, state="normal", wrap="word")
+        self.log_area = tk.Text(self.root, height=5, width=50, state="normal", wrap="word", bg="lightyellow")
         self.log_area.pack(side="bottom", fill="x")
 
     def update_log(self, message):
@@ -1732,7 +1753,13 @@ class PlayerManager:
         for _ in range(10):  # Retry up to 10 times for deployment
             self.player_position = random.choice(list(self.map_buttons.keys()))
             if self.terrain_manager.get_terrain(self.player_position) == "Empty":
-                self.map_buttons[self.player_position].config(text=player_unit_name, bg="blue")
+                # Update the button to visually represent the player's tank
+                self.map_buttons[self.player_position].config(
+                    text=player_unit_name,
+                    bg="blue",  # Blue color represents the tank
+                    fg="white"  # Set text color for better contrast
+                )
+                print(f"Player deployed at: {self.player_position}")  # Log deployment location
                 return self.player_position
         raise ValueError("Failed to deploy player unit after multiple attempts.")
 
@@ -1747,8 +1774,10 @@ class PlayerManager:
         Returns:
             str: The new position of the player unit.
         """
+        # Clear the previous position
         self.map_buttons[self.player_position].config(text="Empty", bg="lightgray")
-        self.map_buttons[target_position].config(text=unit_name, bg="blue")
+        # Update the new position to represent the player's tank
+        self.map_buttons[target_position].config(text=unit_name, bg="blue", fg="white")
         self.player_position = target_position
         return self.player_position
 
@@ -1848,6 +1877,7 @@ class UnitManager:
         return max(row_diff, col_diff) == 1
 media_rw
 import random
+import tkinter as tk
 
 class TerrainManager:
     def __init__(self, map_buttons):
@@ -1892,14 +1922,18 @@ class TerrainManager:
         Applies the generated terrain to the map buttons, updating their appearance.
         """
         for coord, terrain_type in self.terrain.items():
-            if terrain_type == "Forest":
-                self.map_buttons[coord].config(bg="green", text="Forest")
-            elif terrain_type == "Mountain":
-                self.map_buttons[coord].config(bg="brown", text="Mountain")
-            elif terrain_type == "Water":
-                self.map_buttons[coord].config(bg="blue", text="Water")
-            elif terrain_type == "Empty":
-                self.map_buttons[coord].config(bg="lightgray", text="Empty")
+            button = self.map_buttons.get(coord)
+            if isinstance(button, tk.Button):  # Ensure the object is a button
+                if terrain_type == "Forest":
+                    button.config(bg="green", text="Forest")
+                elif terrain_type == "Mountain":
+                    button.config(bg="brown", text="Mountain")
+                elif terrain_type == "Water":
+                    button.config(bg="blue", text="Water")
+                elif terrain_type == "Empty":
+                    button.config(bg="lightgray", text="Empty")
+            else:
+                print(f"Warning: {coord} does not map to a valid button.")
 
     def get_terrain(self, coord):
         """
@@ -1920,7 +1954,8 @@ class TerrainManager:
         # Clear current terrain and reset the map buttons to default "Empty" state
         self.terrain.clear()
         for coord, button in self.map_buttons.items():
-            button.config(bg="lightgray", text="Empty")
+            if isinstance(button, tk.Button):  # Ensure the object is a button
+                button.config(bg="lightgray", text="Empty")
 media_rw
 import tkinter as tk
 
