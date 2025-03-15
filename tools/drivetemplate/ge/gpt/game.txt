@@ -1325,15 +1325,48 @@ class TacticalMap:
             self.turn = "Player"
             self.ui.update_log("Your turn!")
 
+    def display_game_over(self, victory, alpha=0):
+        """
+        Displays a Game Over screen with a fade-in animation.
+
+        Args:
+            victory (bool): True if the player wins, False otherwise.
+            alpha (float): The transparency level for the fade-in effect (0 to 1.0).
+        """
+        if alpha > 1.0:
+            # Add a restart button after the fade-in animation is complete
+            canvas_width = self.ui.canvas.winfo_width()
+            canvas_height = self.ui.canvas.winfo_height()
+            restart_button = tk.Button(self.root, text="Play Again", command=self.reset, bg="green", fg="white")
+            self.ui.canvas.create_window(canvas_width // 2, canvas_height // 2 + 50, window=restart_button)
+            return
+
+        # Freeze the canvas interactions
+        self.ui.canvas.unbind("<Button-1>")
+
+        # Create a semi-transparent overlay
+        overlay_color = f"#{int(alpha * 255):02x}0000"  # Red fade-in based on alpha
+        self.ui.canvas.create_rectangle(0, 0, self.ui.canvas.winfo_width(), self.ui.canvas.winfo_height(),
+                                         fill=overlay_color, outline="", tags="game_over_overlay")
+
+        # Display the victory or game over text
+        message = "You Win!" if victory else "Game Over"
+        self.ui.canvas.create_text(self.ui.canvas.winfo_width() // 2, self.ui.canvas.winfo_height() // 2,
+                                    text=message, fill="white", font=("Helvetica", 48, "bold"),
+                                    tags="game_over_text")
+
+        # Schedule the next fade-in step
+        self.root.after(50, lambda: self.display_game_over(victory, alpha + 0.05))
+
     def end_game(self, victory):
         """
-        Concludes the game with a victory or defeat message.
+        Concludes the game with a victory or defeat message and displays the end screen.
 
         Args:
             victory (bool): True if the player wins, False otherwise.
         """
-        message = "You Win!" if victory else "Game Over!"
-        self.ui.update_log(message)
+        self.ui.update_log("You Win!" if victory else "Game Over!")
+        self.display_game_over(victory)
 
     def reset(self):
         """
@@ -1622,7 +1655,6 @@ media_rw
 import tkinter as tk
 from tkinter import ttk
 
-
 class GameUI:
     def __init__(self, root):
         """
@@ -1775,6 +1807,24 @@ class GameUI:
             rect_id = self.grid_elements[coord]
             self.canvas.itemconfig(rect_id, fill=color)
             self.cell_states[coord] = terrain_type
+
+    def display_game_over_overlay(self, message):
+        """
+        Displays a Game Over overlay on the canvas.
+
+        Args:
+            message (str): The Game Over message to display.
+        """
+        # Freeze the canvas interactions
+        self.canvas.unbind("<Button-1>")
+
+        # Create a semi-transparent overlay
+        self.canvas.create_rectangle(0, 0, self.canvas.winfo_width(), self.canvas.winfo_height(),
+                                      fill="black", stipple="gray50", tags="game_over_overlay")
+
+        # Display the Game Over message
+        self.canvas.create_text(self.canvas.winfo_width() // 2, self.canvas.winfo_height() // 2,
+                                 text=message, fill="white", font=("Helvetica", 32, "bold"), tags="game_over_text")
 
     def reset(self):
         """
