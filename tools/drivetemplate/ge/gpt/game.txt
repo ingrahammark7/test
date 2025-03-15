@@ -1184,14 +1184,14 @@ class TacticalMap:
         """
         self.root = root
         self.ui = GameUI(root)
-        self.terrain_manager = TerrainManager(self.ui.grid_elements)
+        self.terrain_manager = TerrainManager(self.ui.grid_elements, self.ui.canvas)  # Updated to pass canvas
         self.player_manager = PlayerManager(self.ui.grid_elements, self.terrain_manager, self.ui)
         self.enemy_manager = EnemyManager(self.ui.grid_elements, self.terrain_manager, enemy_count=5, ui=self.ui)
         self.combat_manager = CombatManager(
             self.ui.grid_elements,
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
             enemy_stats={"name": "Enemy Unit", "hp": 10},
-            ui = self.ui
+            ui=self.ui
         )
         self.on_replay = on_replay
         self.turn = "Player"
@@ -1216,7 +1216,7 @@ class TacticalMap:
         Sets up the game grid, generates terrain, and deploys units.
         Retries if necessary.
         """
-        self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols)
+        self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, cell_click_callback=self.on_cell_click)
         self.ui.create_log_area()
 
         for _ in range(5):  # Attempt up to 5 times
@@ -1289,9 +1289,11 @@ class TacticalMap:
         Executes the enemies' turn, including movement and attacks.
         """
         self.ui.update_log("Enemies are taking their turn...")
+        print("[DEBUG] Starting enemy action. Current positions:", self.enemy_manager.enemy_positions)
+
         for enemy_pos in list(self.enemy_manager.enemy_positions.keys()):
             if enemy_pos not in self.enemy_manager.enemy_positions:
-                print(f"Skipping invalid enemy position: {enemy_pos}")  # Debugging log
+                print(f"[DEBUG] Skipping invalid enemy position: {enemy_pos}")  # Debugging log
                 continue
 
             if self.enemy_manager.is_adjacent(enemy_pos, self.player_manager.player_position):
@@ -1304,6 +1306,9 @@ class TacticalMap:
                 new_pos = self.enemy_manager.move_toward_player(enemy_pos, self.player_manager.player_position)
                 if new_pos != enemy_pos:
                     self.enemy_manager.update_enemy_position(enemy_pos, new_pos)
+
+        print("[DEBUG] Ending enemy action. Updated positions:", self.enemy_manager.enemy_positions)
+
         if not self.enemy_manager.enemy_positions:
             self.end_game(victory=True)
         else:
@@ -1329,7 +1334,6 @@ class TacticalMap:
         """
         message = "You Win!" if victory else "Game Over!"
         self.ui.update_log(message)
-        self.ui.show_end_screen(message)
 
     def reset(self):
         """
@@ -1342,7 +1346,8 @@ class TacticalMap:
         self.combat_manager = CombatManager(
             self.ui.grid_elements,
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
-            enemy_stats={"name": "Enemy Unit", "hp": 10}
+            enemy_stats={"name": "Enemy Unit", "hp": 10},
+            ui=self.ui
         )
         self.turn = "Player"
         self.initialize_game()
@@ -1577,6 +1582,14 @@ class EnemyManager:
             old_position (str): The previous position of the enemy.
             new_position (str): The new position of the enemy.
         """
+        # Validate positions
+        if old_position not in self.enemy_positions:
+            print(f"[DEBUG] Invalid old_position: {old_position}. Cannot move enemy.")
+            return
+        if new_position in self.enemy_positions:
+            print(f"[DEBUG] Collision detected! {new_position} is already occupied.")
+            return
+
         # Clear the old position and update the new one
         self.ui.update_cell(old_position, "Empty", "lightgray")
         self.ui.update_cell(new_position, "Enemy", "red")
@@ -1640,13 +1653,14 @@ class GameUI:
         # Log area for messages
         self.log_area = None
 
-    def create_map(self, rows, cols):
+    def create_map(self, rows, cols, cell_click_callback):
         """
         Creates a dynamically sized map grid using canvas rectangles.
 
         Args:
             rows (int): Number of rows in the grid.
             cols (int): Number of columns in the grid.
+            cell_click_callback (callable): Callback function triggered when a cell is clicked.
         """
         self.grid_elements.clear()
         self.cell_states.clear()
@@ -1668,7 +1682,7 @@ class GameUI:
                 self.cell_states[coord] = "Empty"  # Initialize as empty
 
                 # Bind left-click events to the rectangle
-                self.canvas.tag_bind(rect_id, "<Button-1>", lambda event, c=coord: self.on_cell_click(c))
+                self.canvas.tag_bind(rect_id, "<Button-1>", lambda event, c=coord: cell_click_callback(c))
 
     def create_log_area(self):
         """
@@ -1761,15 +1775,6 @@ class GameUI:
             rect_id = self.grid_elements[coord]
             self.canvas.itemconfig(rect_id, fill=color)
             self.cell_states[coord] = terrain_type
-
-    def on_cell_click(self, coord):
-        """
-        Placeholder for cell click actions. Can be overridden by TacticalMap.
-
-        Args:
-            coord (str): The clicked cell's coordinate (e.g., "A1").
-        """
-        print(f"[LOG] Cell {coord} clicked.")
 
     def reset(self):
         """
@@ -1945,14 +1950,16 @@ media_rw
 import random
 
 class TerrainManager:
-    def __init__(self, grid_elements):
+    def __init__(self, grid_elements, canvas):
         """
-        Initializes the TerrainManager with a reference to the grid elements.
+        Initializes the TerrainManager with references to the grid elements and canvas.
 
         Args:
             grid_elements (dict): Dictionary of canvas rectangles for the grid.
+            canvas (tk.Canvas): The canvas object to update terrain appearance.
         """
         self.grid_elements = grid_elements  # Reference to the grid elements
+        self.canvas = canvas  # Reference to the canvas
         self.terrain = {}  # Dictionary to store terrain types for each cell
 
     def generate_terrain(self, enemy_count, extra_empty=5):
@@ -1993,28 +2000,23 @@ class TerrainManager:
             rect_id = self.grid_elements.get(coord)
             if rect_id:  # Ensure the coordinate exists in the grid
                 if terrain_type == "Forest":
-                    self._update_canvas_cell(rect_id, "Forest", "green")
+                    self._update_canvas_cell(rect_id, "green")
                 elif terrain_type == "Mountain":
-                    self._update_canvas_cell(rect_id, "Mountain", "brown")
+                    self._update_canvas_cell(rect_id, "brown")
                 elif terrain_type == "Water":
-                    self._update_canvas_cell(rect_id, "Water", "blue")
+                    self._update_canvas_cell(rect_id, "blue")
                 elif terrain_type == "Empty":
-                    self._update_canvas_cell(rect_id, "Empty", "lightgray")
+                    self._update_canvas_cell(rect_id, "lightgray")
 
-    def _update_canvas_cell(self, rect_id, terrain_type, color):
+    def _update_canvas_cell(self, rect_id, color):
         """
-        Updates the appearance of a canvas cell based on the terrain type.
+        Updates the appearance of a canvas cell based on the given color.
 
         Args:
             rect_id (int): The ID of the rectangle on the canvas.
-            terrain_type (str): The type of terrain to display.
             color (str): The fill color for the rectangle.
         """
-        # Update the rectangle's fill color and optionally add a label
-        self.grid_elements[rect_id] = terrain_type
-        self.grid_elements[rect_id] = {
-            "fill": color,
-        }
+        self.canvas.itemconfig(rect_id, fill=color)
 
     def get_terrain(self, coord):
         """
@@ -2035,7 +2037,7 @@ class TerrainManager:
         # Clear current terrain and reset the canvas cells to default "Empty" state
         self.terrain.clear()
         for coord, rect_id in self.grid_elements.items():
-            self._update_canvas_cell(rect_id, "Empty", "lightgray")
+            self._update_canvas_cell(rect_id, "lightgray")
 media_rw
 import tkinter as tk
 
