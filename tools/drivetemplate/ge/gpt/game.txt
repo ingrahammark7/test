@@ -1165,13 +1165,82 @@ if __name__ == "__main__":
     # Automatically rebuild game.txt after every run
     rebuild_game_txt()
 media_rw
+class Tank:
+    def __init__(self, canvas, x, y, color="green"):
+        """
+        Initializes the Tank object and draws it on the canvas.
+
+        Args:
+            canvas (tk.Canvas): The canvas to draw the tank on.
+            x (float): The x-coordinate of the tank's center.
+            y (float): The y-coordinate of the tank's center.
+            color (str): The primary color of the tank (default: green).
+        """
+        self.canvas = canvas
+        self.x = x
+        self.y = y
+        self.color = color
+        self.hull = None
+        self.turret = None
+        self.gun = None
+        self.draw()
+
+    def draw(self):
+        """Draws the tank components (hull, turret, gun) on the canvas."""
+        hull_width, hull_height = 30, 20
+        turret_radius = 8
+        gun_length = 20
+
+        # Draw the tank's hull (rectangle)
+        self.hull = self.canvas.create_rectangle(
+            self.x - hull_width / 2, self.y - hull_height / 2,
+            self.x + hull_width / 2, self.y + hull_height / 2,
+            fill=self.color
+        )
+
+        # Draw the tank's turret (circle)
+        self.turret = self.canvas.create_oval(
+            self.x - turret_radius, self.y - turret_radius,
+            self.x + turret_radius, self.y + turret_radius,
+            fill="darkgreen"
+        )
+
+        # Draw the tank's gun (line)
+        self.gun = self.canvas.create_line(
+            self.x, self.y,
+            self.x + gun_length, self.y,
+            fill="black", width=3
+        )
+
+    def move(self, new_x, new_y):
+        """
+        Moves the tank to a new position on the canvas.
+
+        Args:
+            new_x (float): The new x-coordinate.
+            new_y (float): The new y-coordinate.
+        """
+        dx = new_x - self.x
+        dy = new_y - self.y
+        self.canvas.move(self.hull, dx, dy)
+        self.canvas.move(self.turret, dx, dy)
+        self.canvas.move(self.gun, dx, dy)
+        self.x = new_x
+        self.y = new_y
+
+    def delete(self):
+        """Deletes the tank components from the canvas."""
+        self.canvas.delete(self.hull)
+        self.canvas.delete(self.turret)
+        self.canvas.delete(self.gun)
+media_rw
 import tkinter as tk
+import random
 from GameUI import GameUI
 from TerrainManager import TerrainManager
 from PlayerManager import PlayerManager
 from EnemyManager import EnemyManager
 from CombatManager import CombatManager
-
 
 class TacticalMap:
     def __init__(self, root, on_replay=None):
@@ -1180,7 +1249,7 @@ class TacticalMap:
 
         Args:
             root (tk.Tk): The root window for the game.
-            on_replay (callable): A callback function to restart the game.
+            on_replay (callable): Optional callback function to restart the game.
         """
         self.root = root
         self.ui = GameUI(root)
@@ -1213,18 +1282,19 @@ class TacticalMap:
 
     def initialize_game(self):
         """
-        Sets up the game grid, generates terrain, and deploys units.
-        Retries if necessary.
+        Sets up the game grid, generates terrain, and deploys units. Retries if necessary.
         """
         self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, cell_click_callback=self.on_cell_click)
         self.ui.create_log_area()
 
-        for _ in range(5):  # Attempt up to 5 times
+        for _ in range(5):  # Attempt to initialize a valid game up to 5 times.
             if self.terrain_manager.generate_terrain(enemy_count=5):
                 try:
                     player_pos = self.player_manager.deploy_player()
                     self.enemy_manager.deploy_enemies()
-                    self.ui.update_log(f"Game initialized. Player spawned at: {player_pos}")
+                    log_message = f"Game initialized. Player spawned at: {player_pos}"
+                    self.ui.update_log(log_message)
+                    print(log_message)  # Debug log
                     return
                 except ValueError:
                     self.ui.update_log("Deployment failed. Retrying...")
@@ -1252,7 +1322,7 @@ class TacticalMap:
         distance_row = abs(ord(coord[0]) - ord(player_position[0]))
         distance_col = abs(int(coord[1:]) - int(player_position[1:]))
 
-        # Artillery attack for distant targets
+        # If target is beyond adjacent cells, treat it as an artillery attack.
         if max(distance_row, distance_col) > 1:
             if self.player_manager.player_stats["ammo"] > 0:
                 results = self.combat_manager.artillery_attack(coord, self.enemy_manager.enemy_positions)
@@ -1265,7 +1335,7 @@ class TacticalMap:
                 self.ui.update_log("No ammo left!")
             return
 
-        # Regular move or attack for adjacent cells
+        # For adjacent moves: either attack an enemy or move.
         if max(distance_row, distance_col) == 1:
             terrain = self.terrain_manager.get_terrain(coord)
             if coord in self.enemy_manager.enemy_positions:
@@ -1286,6 +1356,7 @@ class TacticalMap:
         Executes the enemies' turn, including movement and attacks.
         """
         self.ui.update_log("Enemies are taking their turn...")
+        print("[DEBUG] Starting enemy action. Current positions:", self.enemy_manager.enemy_positions)
 
         for enemy_pos in list(self.enemy_manager.enemy_positions.keys()):
             if self.enemy_manager.is_adjacent(enemy_pos, self.player_manager.player_position):
@@ -1299,6 +1370,7 @@ class TacticalMap:
                 if new_pos != enemy_pos:
                     self.enemy_manager.update_enemy_position(enemy_pos, new_pos)
 
+        print("[DEBUG] Ending enemy action. Updated positions:", self.enemy_manager.enemy_positions)
         if not self.enemy_manager.enemy_positions:
             self.end_game(victory=True)
         else:
@@ -1317,44 +1389,49 @@ class TacticalMap:
 
     def end_game(self, victory):
         """
-        Concludes the game with a victory or defeat message.
+        Concludes the game with a victory or defeat message and displays a game-over overlay.
 
         Args:
-            victory (bool): True if the player wins, False otherwise.
+            victory (bool): True if player wins; False otherwise.
         """
-        if not victory:
-            self._animate_explosion()
         message = "You Win!" if victory else "Game Over!"
         self.ui.update_log(message)
-        self.display_game_over(victory)
+        if not victory:
+            self._animate_explosion()
+        # Pass the on_replay callback if provided; otherwise, default to using reset.
+        restart_command = self.on_replay if self.on_replay is not None else self.reset
+        self.ui.display_game_over_overlay(message, restart_command=restart_command)
 
     def _animate_explosion(self):
         """
-        Animates the tank's destruction, with the turret flying off and debris left behind.
+        Animates the tank's destruction with turret and gun tossed together, then leaves debris.
         """
         tank_parts = self.ui.tank_graphics
         canvas = self.ui.canvas
 
-        # Ensure the tank exists before proceeding
-        if "hull" not in tank_parts:
-            print("[DEBUG] No tank to explode.")
+        # Ensure tank parts exist
+        if "hull" not in tank_parts or "turret" not in tank_parts or "gun" not in tank_parts:
+            print("[DEBUG] Tank graphics are missing. Explosion aborted.")
             return
 
-        # Get the tank's position
-        x1, y1, x2, y2 = canvas.coords(tank_parts["hull"])
-        center_x, center_y = (x1 + x2) / 2, (y1 + y2) / 2
+        # Get the turret's current position as the baseline for the explosion animation.
+        x1, y1, x2, y2 = canvas.coords(tank_parts["turret"])
 
-        def move_turret(step=0):
+        def move_turret_and_gun(step=0):
             if step > 10:
                 leave_debris()
                 return
-            canvas.move(tank_parts["turret"], step * 2, -step * 3)
-            canvas.after(50, move_turret, step + 1)
+            dx = step * 2
+            dy = -step * 3
+            canvas.move(tank_parts["turret"], dx, dy)
+            canvas.move(tank_parts["gun"], dx, dy)
+            canvas.after(50, move_turret_and_gun, step + 1)
 
         def leave_debris():
-            for part in tank_parts.values():
+            for part in [tank_parts["turret"], tank_parts["gun"]]:
                 canvas.delete(part)
             for _ in range(5):
+                # Random debris within the turret's bounding box
                 debris_x = random.randint(int(x1), int(x2))
                 debris_y = random.randint(int(y1), int(y2))
                 debris_size = random.randint(5, 15)
@@ -1363,19 +1440,7 @@ class TacticalMap:
                     debris_x + debris_size, debris_y + debris_size,
                     fill=random.choice(["#4c4c4c", "#2e2e2e", "#1a1a1a"])
                 )
-
-        move_turret()
-
-    def display_game_over(self, victory):
-        """
-        Displays the Game Over screen with a victory or defeat message.
-        """
-        message = "You Win!" if victory else "Game Over!"
-        self.ui.display_game_over_overlay(message)
-        restart_button = tk.Button(self.root, text="Play Again", command=self.reset, bg="green", fg="white")
-        self.ui.canvas.create_window(self.ui.canvas.winfo_width() // 2,
-                                      self.ui.canvas.winfo_height() // 2 + 50,
-                                      window=restart_button)
+        move_turret_and_gun()
 
     def reset(self):
         """
@@ -1430,12 +1495,10 @@ class CombatManager:
             str: A message describing the outcome of the attack.
         """
         if target_coord in enemy_positions:
-            # Damage the enemy by 5 points
-            enemy_positions[target_coord] -= 5
+            enemy_positions[target_coord] -= 5  # Damage the enemy by 5 points
             if enemy_positions[target_coord] <= 0:
-                # Enemy is defeated; remove it and update the UI
-                del enemy_positions[target_coord]
-                self.ui.update_cell(target_coord, "Empty", "lightgray")
+                del enemy_positions[target_coord]  # Remove defeated enemy
+                self.ui.update_cell(target_coord, "Empty", "lightgray")  # Clear cell
                 return f"Enemy at {target_coord} is defeated!"
             else:
                 return f"Enemy at {target_coord} HP reduced to {enemy_positions[target_coord]}."
@@ -1467,7 +1530,6 @@ class CombatManager:
 
         for coord in affected_coords:
             if coord in enemy_positions:
-                # Damage enemy units
                 enemy_positions[coord] -= 10  # Artillery deals 10 damage
                 if enemy_positions[coord] <= 0:
                     del enemy_positions[coord]
@@ -1476,7 +1538,6 @@ class CombatManager:
                 else:
                     results.append(f"Enemy at {coord} hit by artillery. HP now {enemy_positions[coord]}.")
             elif coord in self.grid_elements:
-                # Empty tiles hit by artillery
                 results.append(f"Artillery hit {coord}, but no enemies present.")
 
         return results
@@ -1491,10 +1552,9 @@ class CombatManager:
         Returns:
             str: A message describing the result of the enemy's attack.
         """
-        # Enemy deals a fixed 5 damage to the player
-        self.player_stats["hp"] -= 5
+        self.player_stats["hp"] -= 5  # Enemy deals a fixed 5 damage
         if self.player_stats["hp"] <= 0:
-            return "Player is defeated!"  # Triggers tank explosion in TacticalMap
+            return "Player is defeated!"
         else:
             return f"Player HP reduced to {self.player_stats['hp']}."
 
@@ -1521,9 +1581,8 @@ class CombatManager:
             player_stats (dict, optional): Updated stats for the player.
             enemy_stats (dict, optional): Updated stats for the enemies.
         """
-        # Reset player and enemy stats if provided, or default to starting stats
         self.player_stats = player_stats if player_stats else {"hp": 20, "ammo": 5}
-        self.enemy_stats = enemy_stats if enemy_stats else {"hp":"10"}
+        self.enemy_stats = enemy_stats if enemy_stats else {"hp": 10}
 media_rw
 import random
 
@@ -1660,11 +1719,11 @@ media_rw
 import tkinter as tk
 from tkinter import ttk
 
-
 class GameUI:
     def __init__(self, root):
         """
-        Initializes the GameUI with a scrollable map (canvas-based), log area, and tank rendering.
+        Initializes the GameUI with a scrollable map (canvas-based),
+        log area, and tank rendering.
         """
         self.root = root
 
@@ -1676,17 +1735,15 @@ class GameUI:
         self.canvas = tk.Canvas(self.main_frame, bg="white", width=800, height=600)
         self.scrollbar_y = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
         self.scrollbar_x = ttk.Scrollbar(self.main_frame, orient="horizontal", command=self.canvas.xview)
-
-        # Configure the canvas for scrolling
         self.canvas.configure(yscrollcommand=self.scrollbar_y.set, xscrollcommand=self.scrollbar_x.set)
         self.scrollbar_y.pack(side="right", fill="y")
         self.scrollbar_x.pack(side="bottom", fill="x")
         self.canvas.pack(side="left", fill="both", expand=True)
 
         # Internal data structures for managing canvas elements
-        self.grid_elements = {}  # Holds grid rectangle IDs and their coordinates
-        self.cell_states = {}    # Stores each cell's current state (terrain, units, etc.)
-        self.tank_graphics = {}  # Tracks the tank's graphical components
+        self.grid_elements = {}    # Holds grid rectangle IDs and their coordinates
+        self.cell_states = {}      # Stores each cell's current state (terrain, units, etc.)
+        self.tank_graphics = {}    # Tracks the tank's graphical components
 
         # Log area for messages
         self.log_area = None
@@ -1698,40 +1755,35 @@ class GameUI:
         Args:
             rows (int): Number of rows in the grid.
             cols (int): Number of columns in the grid.
-            cell_click_callback (callable): Callback function triggered when a cell is clicked.
+            cell_click_callback (callable): Function to call when a cell is clicked.
         """
         self.grid_elements.clear()
         self.cell_states.clear()
 
-        # Dimensions of each cell
         cell_width = 50
         cell_height = 50
 
-        # Draw the grid on the canvas
         for row in range(rows):
             for col in range(cols):
-                coord = f"{chr(65 + row)}{col + 1}"  # Example: A1, B1, etc.
+                coord = f"{chr(65 + row)}{col + 1}"  # e.g., A1, B1, etc.
                 x1, y1 = col * cell_width, row * cell_height
                 x2, y2 = x1 + cell_width, y1 + cell_height
 
-                # Draw a rectangle for each cell
                 rect_id = self.canvas.create_rectangle(x1, y1, x2, y2, fill="lightgray", outline="black")
                 self.grid_elements[coord] = rect_id
-                self.cell_states[coord] = "Empty"  # Initialize as empty
-
-                # Bind left-click events to the rectangle
+                self.cell_states[coord] = "Empty"
                 self.canvas.tag_bind(rect_id, "<Button-1>", lambda event, c=coord: cell_click_callback(c))
 
     def create_log_area(self):
         """
         Creates a text area to display the game log.
         """
-        self.log_area = tk.Text(self.root, height=5, state="normal", wrap="word", bg="lightyellow")
+        self.log_area = tk.Text(self.root, height=5, wrap="word", bg="lightyellow")
         self.log_area.pack(side="bottom", fill="x")
 
     def update_log(self, message):
         """
-        Updates the game log with a new message.
+        Appends a message to the log area.
 
         Args:
             message (str): The message to display.
@@ -1744,57 +1796,47 @@ class GameUI:
 
     def draw_tank(self, coord):
         """
-        Draws a tank on the canvas at the specified coordinate.
+        Draws a tank icon at the center of the specified cell.
 
         Args:
-            coord (str): The grid cell (e.g., "A1") to place the tank.
+            coord (str): The grid coordinate (e.g., "A1").
         """
         if coord not in self.grid_elements:
             print(f"[LOG] {coord} is not a valid coordinate.")
             return
 
-        # Clear any existing tank graphics
         self.clear_tank()
 
-        # Get rectangle coordinates
         rect_id = self.grid_elements[coord]
         x1, y1, x2, y2 = self.canvas.coords(rect_id)
+        center_x = (x1 + x2) / 2
+        center_y = (y1 + y2) / 2
 
-        # Calculate the center of the rectangle
-        center_x, center_y = (x1 + x2) / 2, (y1 + y2) / 2
-
-        # Tank dimensions
         hull_width, hull_height = 30, 20
         turret_radius = 8
+        gun_length = 20
 
-        # Draw the tank's hull (rectangle)
         self.tank_graphics["hull"] = self.canvas.create_rectangle(
             center_x - hull_width / 2, center_y - hull_height / 2,
             center_x + hull_width / 2, center_y + hull_height / 2,
             fill="green"
         )
-
-        # Draw the tank's turret (circle)
         self.tank_graphics["turret"] = self.canvas.create_oval(
             center_x - turret_radius, center_y - turret_radius,
             center_x + turret_radius, center_y + turret_radius,
             fill="darkgreen"
         )
-
-        # Draw the tank's gun (line)
-        gun_length = 20
         self.tank_graphics["gun"] = self.canvas.create_line(
             center_x, center_y,
             center_x + gun_length, center_y,
             fill="black", width=3
         )
 
-        # Log the tank's position for debugging
         print(f"[LOG] Tank drawn at {coord} ({center_x}, {center_y}).")
 
     def clear_tank(self):
         """
-        Clears the tank graphic from the canvas.
+        Clears all tank graphics from the canvas.
         """
         for part in self.tank_graphics.values():
             self.canvas.delete(part)
@@ -1802,39 +1844,50 @@ class GameUI:
 
     def update_cell(self, coord, terrain_type, color):
         """
-        Updates a specific cell with a given terrain type and color.
+        Updates the visual appearance of a cell on the grid.
 
         Args:
             coord (str): The coordinate of the cell (e.g., "A1").
-            terrain_type (str): The type of terrain (e.g., "Forest").
-            color (str): The fill color for the terrain.
+            terrain_type (str): The terrain type designation (e.g., "Forest").
+            color (str): The fill color for the cell.
         """
         if coord in self.grid_elements:
             rect_id = self.grid_elements[coord]
             self.canvas.itemconfig(rect_id, fill=color)
             self.cell_states[coord] = terrain_type
 
-    def display_game_over_overlay(self, message):
+    def display_game_over_overlay(self, message, restart_command=None):
         """
-        Displays a Game Over overlay on the canvas.
+        Displays a game over overlay on the canvas along with a 'Play Again' button if provided.
 
         Args:
-            message (str): The Game Over message to display.
+            message (str): A message to display (e.g., "You Win!" or "Game Over!").
+            restart_command (callable, optional): Function to call when the play-again button is clicked.
         """
-        # Freeze the canvas interactions
-        self.canvas.unbind("<Button-1>")
+        width = self.canvas.winfo_width()
+        height = self.canvas.winfo_height()
 
         # Create a semi-transparent overlay
-        self.canvas.create_rectangle(0, 0, self.canvas.winfo_width(), self.canvas.winfo_height(),
-                                      fill="black", stipple="gray50", tags="game_over_overlay")
+        self.canvas.create_rectangle(0, 0, width, height, fill="black", stipple="gray50", tags="game_over_overlay")
 
-        # Display the Game Over message
-        self.canvas.create_text(self.canvas.winfo_width() // 2, self.canvas.winfo_height() // 2,
-                                 text=message, fill="white", font=("Helvetica", 32, "bold"), tags="game_over_text")
+        # Display the game over message
+        self.canvas.create_text(
+            width // 2, height // 2,
+            text=message,
+            fill="white",
+            font=("Helvetica", 32, "bold"),
+            tags="game_over_text"
+        )
+
+        if restart_command:
+            restart_button = tk.Button(self.root, text="Play Again", command=restart_command, bg="green", fg="white")
+            self.canvas.create_window(width // 2, height // 2 + 50, window=restart_button, tags="restart_button")
+        
+        print(f"[LOG] Game Over overlay displayed with message: {message}")
 
     def reset(self):
         """
-        Resets the GameUI components for a new game session.
+        Resets the GameUI: clears canvas elements, grid, and log.
         """
         self.canvas.delete("all")
         self.grid_elements.clear()
@@ -1853,7 +1906,7 @@ class PlayerManager:
         Initializes the PlayerManager with references to the grid elements, terrain manager, and GameUI.
 
         Args:
-            grid_elements (dict): The dictionary containing the canvas rectangles for the grid.
+            grid_elements (dict): Dictionary of canvas rectangles for the grid.
             terrain_manager (TerrainManager): Instance of TerrainManager for managing terrains.
             ui (GameUI): Instance of GameUI for drawing and managing the UI.
         """
@@ -1885,7 +1938,7 @@ class PlayerManager:
 
     def move_player_smoothly(self, target_position):
         """
-        Smoothly animates the movement of the player unit to the specified target position.
+        Smoothly moves the player unit to a specified target position.
 
         Args:
             target_position (str): The coordinate to move the player unit to.
@@ -1897,48 +1950,48 @@ class PlayerManager:
             print(f"[LOG] Invalid target position: {target_position}")
             return self.player_position
 
-        # Log the move action
-        print(f"[LOG] Moving player from {self.player_position} to {target_position}")
+        # Get initial and target coordinates
+        rect_id_start = self.grid_elements[self.player_position]
+        rect_id_end = self.grid_elements[target_position]
+        x1, y1, x2, y2 = self.ui.canvas.coords(rect_id_start)
+        tx1, ty1, tx2, ty2 = self.ui.canvas.coords(rect_id_end)
 
-        # Get starting and target positions
-        start_coords = self.ui.canvas.coords(self.grid_elements[self.player_position])
-        target_coords = self.ui.canvas.coords(self.grid_elements[target_position])
+        # Calculate the center points for smooth movement
+        start_x, start_y = (x1 + x2) / 2, (y1 + y2) / 2
+        end_x, end_y = (tx1 + tx2) / 2, (ty1 + ty2) / 2
 
-        # Animate the tank
-        self._animate_tank(start_coords, target_coords)
+        # Perform the smooth movement animation
+        self._animate_tank_smoothly(start_x, start_y, end_x, end_y)
 
-        # Update logical position
+        # Update player's position
         self.player_position = target_position
-        print(f"[LOG] Player successfully moved to {self.player_position}")
+        print(f"[LOG] Player moved smoothly to {self.player_position}")
         return self.player_position
 
-    def _animate_tank(self, start_coords, target_coords, steps=10):
+    def _animate_tank_smoothly(self, start_x, start_y, end_x, end_y, steps=10):
         """
-        Animates the tank icon from the start position to the target position.
+        Animates the tank's movement from one position to another.
 
         Args:
-            start_coords (list): [x1, y1, x2, y2] for the starting cell.
-            target_coords (list): [x1, y1, x2, y2] for the target cell.
-            steps (int): Number of steps for the animation.
+            start_x (float): The starting x-coordinate of the tank.
+            start_y (float): The starting y-coordinate of the tank.
+            end_x (float): The ending x-coordinate of the tank.
+            end_y (float): The ending y-coordinate of the tank.
+            steps (int): The number of animation steps to transition smoothly.
         """
-        start_x, start_y = (start_coords[0] + start_coords[2]) / 2, (start_coords[1] + start_coords[3]) / 2
-        target_x, target_y = (target_coords[0] + target_coords[2]) / 2, (target_coords[1] + target_coords[3]) / 2
+        dx = (end_x - start_x) / steps
+        dy = (end_y - start_y) / steps
 
-        dx = (target_x - start_x) / steps
-        dy = (target_y - start_y) / steps
-
-        def perform_step(step=0):
+        def move_step(step=0):
             if step > steps:
                 return  # End the animation
+            # Update the tank's position
+            self.ui.canvas.move(self.ui.tank_graphics["hull"], dx, dy)
+            self.ui.canvas.move(self.ui.tank_graphics["turret"], dx, dy)
+            self.ui.canvas.move(self.ui.tank_graphics["gun"], dx, dy)
+            self.ui.canvas.after(50, move_step, step + 1)  # Schedule the next frame
 
-            # Move each tank component
-            for component in self.ui.tank_graphics.values():
-                self.ui.canvas.move(component, dx, dy)
-
-            # Schedule the next frame
-            self.ui.canvas.after(50, perform_step, step + 1)
-
-        perform_step()
+        move_step()
 
     def heal_player(self, amount):
         """
@@ -1950,6 +2003,7 @@ class PlayerManager:
         self.player_stats["hp"] += amount
         if self.player_stats["hp"] > 20:  # Cap at max health
             self.player_stats["hp"] = 20
+        print(f"[LOG] Player healed. Current HP: {self.player_stats['hp']}")
 
     def use_ammo(self):
         """
@@ -1960,24 +2014,18 @@ class PlayerManager:
         """
         if self.player_stats["ammo"] > 0:
             self.player_stats["ammo"] -= 1
+            print(f"[LOG] Ammo used. Remaining ammo: {self.player_stats['ammo']}")
             return True
+        print(f"[LOG] No ammo left!")
         return False
 
     def reset(self):
         """
         Resets the PlayerManager to its initial state for a new game.
         """
-        self._clear_tank()  # Clear the tank icon
         self.player_position = None
         self.player_stats = {"hp": 20, "ammo": 1}  # Reset health and ammo
-
-    def _clear_tank(self):
-        """
-        Clears the tank icon from the canvas.
-        """
-        for component in self.ui.tank_graphics.values():
-            self.ui.canvas.delete(component)
-        self.ui.tank_graphics.clear()
+        print(f"[LOG] PlayerManager reset. Stats: {self.player_stats}")
 media_rw
 import random
 
