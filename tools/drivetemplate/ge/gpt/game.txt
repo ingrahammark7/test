@@ -1272,20 +1272,38 @@ class TacticalMap:
     def determine_grid_dimensions(self):
         """
         Dynamically sets grid dimensions based on screen size.
+        The grid will utilize 80-90% of the available screen space.
         """
         screen_width = self.ui.root.winfo_screenwidth()
         screen_height = self.ui.root.winfo_screenheight()
-        if screen_height >= 2 * screen_width:
-            self.grid_rows, self.grid_cols = 14, 7
-        else:
-            self.grid_rows, self.grid_cols = 7, 7
+
+        # Target screen utilization (80-90%)
+        usable_width = int(screen_width * .9)
+        usable_height = int(screen_height * .9)
+
+        # Determine the optimal number of rows and columns based on a tile size
+        tile_size = 50  # Starting tile size for calculation
+        self.grid_cols = max(1, usable_width // tile_size)
+        self.grid_rows = max(1, usable_height // tile_size)
+
+        # Adjust the tile size to better fit within the usable space
+        tile_size_width = usable_width // self.grid_cols
+        tile_size_height = usable_height // self.grid_rows
+        tile_size = min(tile_size_width, tile_size_height)
+
+        # Log the calculated dimensions for debugging
+        print(f"[DEBUG] Screen: {screen_width}x{screen_height}")
+        print(f"[DEBUG] Usable: {usable_width}x{usable_height}")
+        print(f"[DEBUG] Grid: {self.grid_rows}x{self.grid_cols}, Tile Size: {tile_size}")
+
+        # Adjust the canvas dimensions
+        self.ui.canvas.config(width=usable_width, height=usable_height)
 
     def initialize_game(self):
         """
         Sets up the game grid, generates terrain, and deploys units. Retries if necessary.
         """
         self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, cell_click_callback=self.on_cell_click)
-        self.ui.create_log_area()
 
         for _ in range(5):  # Attempt to initialize a valid game up to 5 times.
             if self.terrain_manager.generate_terrain(enemy_count=5):
@@ -1745,8 +1763,19 @@ class GameUI:
         self.cell_states = {}      # Stores each cell's current state (terrain, units, etc.)
         self.tank_graphics = {}    # Tracks the tank's graphical components
 
-        # Log area for messages
+        # Create a log area (ensure it's created only once)
         self.log_area = None
+        self._initialize_log_area()
+
+    def _initialize_log_area(self):
+        """
+        Initializes the log area if it doesn't already exist.
+        Ensures that the log is created only once and reused across game sessions.
+        """
+        if not self.log_area:
+            self.log_area = tk.Text(self.root, height=5, wrap="word", bg="lightyellow", state="normal")
+            self.log_area.pack(side="bottom", fill="x")
+            self.log_area.configure(state="disabled")  # Initially disable editing
 
     def create_map(self, rows, cols, cell_click_callback):
         """
@@ -1774,25 +1803,18 @@ class GameUI:
                 self.cell_states[coord] = "Empty"
                 self.canvas.tag_bind(rect_id, "<Button-1>", lambda event, c=coord: cell_click_callback(c))
 
-    def create_log_area(self):
-        """
-        Creates a text area to display the game log.
-        """
-        self.log_area = tk.Text(self.root, height=5, wrap="word", bg="lightyellow")
-        self.log_area.pack(side="bottom", fill="x")
-
     def update_log(self, message):
         """
-        Appends a message to the log area.
+        Appends a message to the log area without creating duplicates.
 
         Args:
             message (str): The message to display.
         """
         if self.log_area:
-            self.log_area.configure(state="normal")
+            self.log_area.configure(state="normal")  # Allow updates
             self.log_area.insert(tk.END, message + "\n")
-            self.log_area.see(tk.END)
-            self.log_area.configure(state="disabled")
+            self.log_area.see(tk.END)  # Scroll to the latest entry
+            self.log_area.configure(state="disabled")  # Disable editing again
 
     def draw_tank(self, coord):
         """
@@ -1887,16 +1909,13 @@ class GameUI:
 
     def reset(self):
         """
-        Resets the GameUI: clears canvas elements, grid, and log.
+        Resets the GameUI: clears canvas elements and the grid.
+        Note: The log is not cleared to maintain continuity across sessions.
         """
         self.canvas.delete("all")
         self.grid_elements.clear()
         self.cell_states.clear()
         self.tank_graphics.clear()
-        if self.log_area:
-            self.log_area.configure(state="normal")
-            self.log_area.delete(1.0, tk.END)
-            self.log_area.configure(state="disabled")
 media_rw
 import random
 
