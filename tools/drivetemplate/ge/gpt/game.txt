@@ -1166,6 +1166,7 @@ if __name__ == "__main__":
     rebuild_game_txt()
 media_rw
 import math
+import random
 
 class Tank:
     def __init__(self, canvas, x, y, color="green", ui=None):
@@ -1193,6 +1194,9 @@ class Tank:
         self.hull = None
         self.turret = None
         self.gun = None
+
+        # Health for destruction logic
+        self.health = 10  # Default health for tank
 
         # Draw the initial tank
         self.draw()
@@ -1252,53 +1256,69 @@ class Tank:
         if self.gun:
             self.canvas.delete(self.gun)
 
-    def move(self, new_x, new_y):
+    def take_damage(self, damage):
         """
-        Moves the tank to a new position and updates the hull direction.
+        Reduces the tank's health by a specified amount and triggers destruction if health drops to zero.
 
         Args:
-            new_x (float): The new x-coordinate of the tank's center.
-            new_y (float): The new y-coordinate of the tank's center.
+            damage (int): The amount of damage to inflict.
         """
-        # Calculate direction of movement
-        dx = new_x - self.x
-        dy = new_y - self.y
+        self.health -= damage
+        if self.health <= 0:
+            self.health = 0
+            self.ui.update_log("[LOG] Tank destroyed!")
+            self.turret_toss()
 
-        # Update hull angle to reflect movement direction
-        if dx != 0 or dy != 0:
-            self.hull_angle = math.degrees(math.atan2(dy, dx))
-
-        # Update position and redraw
-        self.x = new_x
-        self.y = new_y
-        self.draw()
-
-    def aim_turret(self, target_x, target_y):
+    def turret_toss(self, debris_count=6, range_min=15, range_max=30):
         """
-        Rotates the turret to point at a specific target and logs the calculation.
+        Simulates the turret toss with randomized debris scattering.
 
         Args:
-            target_x (float): The x-coordinate of the target.
-            target_y (float): The y-coordinate of the target.
+            debris_count (int): Number of debris pieces.
+            range_min (int): Minimum range for debris to scatter.
+            range_max (int): Maximum range for debris to scatter.
         """
-        # Calculate direction to target
-        dx = target_x - self.x
-        dy = target_y - self.y
+        self.ui.update_log(f"[LOG] Turret toss initiated at ({self.x}, {self.y})")
 
-        # Update turret angle to face the target
-        if dx != 0 or dy != 0:
-            angle_radians = math.atan2(dy, dx)  # Angle in radians
-            self.turret_angle = math.degrees(angle_radians)  # Convert to degrees
+        # Toss the turret itself
+        turret_dx = random.uniform(-range_max, range_max)
+        turret_dy = random.uniform(-range_max, range_max)
+        turret_piece = self.canvas.create_oval(
+            self.x - 5, self.y - 5,
+            self.x + 5, self.y + 5,
+            fill="darkgreen"
+        )
+        self._animate_debris(turret_piece, turret_dx, turret_dy)
 
-            # Log debug info in the game log window
-            if self.ui:
-                debug_message = (f"Turret Aiming: dx={dx}, dy={dy}, "
-                                 f"angle_radians={angle_radians:.4f}, "
-                                 f"turret_angle={self.turret_angle:.2f}°")
-                self.ui.update_log(f"[DEBUG] {debug_message}")
+        # Scatter debris pieces
+        for _ in range(debris_count):
+            debris_dx = random.uniform(-range_max, range_max)
+            debris_dy = random.uniform(-range_max, range_max)
+            debris_piece = self.canvas.create_oval(
+                self.x - 3, self.y - 3,
+                self.x + 3, self.y + 3,
+                fill="gray"
+            )
+            self._animate_debris(debris_piece, debris_dx, debris_dy)
 
-        # Redraw the tank to update turret direction
-        self.draw()
+    def _animate_debris(self, debris, dx, dy, steps=20):
+        """
+        Animates a piece of debris along a given trajectory.
+
+        Args:
+            debris (int): The canvas object ID for the debris.
+            dx (float): The x-velocity of the debris.
+            dy (float): The y-velocity of the debris.
+            steps (int): Number of animation steps.
+        """
+        def step_animation(step=0):
+            if step < steps:
+                self.canvas.move(debris, dx / steps, dy / steps)
+                self.canvas.after(50, step_animation, step + 1)
+            else:
+                self.canvas.delete(debris)  # Remove debris when animation completes
+
+        step_animation()
 media_rw
 import tkinter as tk
 import random
@@ -1361,7 +1381,7 @@ class TacticalMap:
         """
         self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, cell_click_callback=self.on_cell_click)
 
-        for _ in range(5): 
+        for _ in range(5):
             if self.terrain_manager.generate_terrain(enemy_count=5):
                 try:
                     player_pos = self.player_manager.deploy_player()
@@ -1458,6 +1478,7 @@ class TacticalMap:
                 result = self.combat_manager.enemy_attack(self.player_manager.player_position)
                 self.ui.update_log(result)
                 if "Player is defeated!" in result:
+                    self.player_manager.handle_destruction()  # Trigger turret toss before ending the game
                     self.end_game(victory=False)
                     return
             else:
@@ -1613,7 +1634,12 @@ class CombatManager:
             str: A message describing the result of the enemy's attack.
         """
         self.player_stats["hp"] -= 5  # Enemy deals a fixed 5 damage
+        self.ui.update_log(f"[LOG] Enemy attacked! Player HP reduced to {self.player_stats['hp']}.")
+        
         if self.player_stats["hp"] <= 0:
+            self.ui.update_log("[DEBUG] Player HP has dropped to 0 or below. Triggering destruction.")
+            # Trigger the player's destruction sequence
+            self.player_manager.handle_destruction()
             return "Player is defeated!"
         else:
             return f"Player HP reduced to {self.player_stats['hp']}."
@@ -1642,7 +1668,7 @@ class CombatManager:
             enemy_stats (dict, optional): Updated stats for the enemies.
         """
         self.player_stats = player_stats if player_stats else {"hp": 20, "ammo": 5}
-        self.enemy_stats = enemy_stats if enemy_stats else {"hp":"10"}
+        self.enemy_stats = enemy_stats if enemy_stats else {"hp": 10}
 media_rw
 import random
 
@@ -1739,7 +1765,6 @@ class EnemyManager:
             old_position (str): The previous position of the enemy.
             new_position (str): The new position of the enemy.
         """
-        # Validate positions
         if old_position not in self.enemy_positions:
             print(f"[DEBUG] Invalid old_position: {old_position}. Cannot move enemy.")
             return
@@ -1747,10 +1772,88 @@ class EnemyManager:
             print(f"[DEBUG] Collision detected! {new_position} is already occupied.")
             return
 
-        # Clear the old position and update the new one
         self.ui.update_cell(old_position, "Empty", "lightgray")
         self.ui.update_cell(new_position, "Enemy", "red")
         self.enemy_positions[new_position] = self.enemy_positions.pop(old_position)
+
+    def take_damage(self, coord, damage=5):
+        """
+        Reduces an enemy unit's HP at the specified coordinate and handles its destruction.
+
+        Args:
+            coord (str): The coordinate of the enemy unit.
+            damage (int): The amount of damage to inflict.
+        """
+        if coord in self.enemy_positions:
+            self.enemy_positions[coord] -= damage
+            if self.enemy_positions[coord] <= 0:
+                self.handle_destruction(coord)
+            else:
+                self.ui.update_log(f"[LOG] Enemy at {coord} took {damage} damage. HP: {self.enemy_positions[coord]}")
+        else:
+            self.ui.update_log(f"[DEBUG] No enemy at {coord} to take damage.")
+
+    def handle_destruction(self, coord):
+        """
+        Handles the destruction of an enemy unit, including triggering a turret toss animation and removal.
+
+        Args:
+            coord (str): The coordinate of the enemy unit being destroyed.
+        """
+        if coord in self.enemy_positions:
+            self.ui.update_log(f"[LOG] Enemy at {coord} destroyed!")
+            
+            # Trigger turret toss animation at the enemy's position
+            rect_id = self.grid_elements.get(coord)
+            if rect_id:
+                x1, y1, x2, y2 = self.ui.canvas.coords(rect_id)
+                center_x, center_y = (x1 + x2) / 2, (y1 + y2) / 2
+                self.ui.update_log(f"[DEBUG] Enemy turret toss animation started at ({center_x}, {center_y}).")
+                self.ui.turret_toss(center_x, center_y, debris_count=6, range_min=15, range_max=30)
+                
+            # Remove the enemy and clear the cell
+            del self.enemy_positions[coord]
+            self.ui.update_cell(coord, "Empty", "lightgray")
+
+    def trigger_explosion(self, coord, debris_count=4):
+        """
+        Creates an explosion effect with debris at the specified coordinate.
+
+        Args:
+            coord (str): The coordinate of the explosion.
+            debris_count (int): Number of debris pieces to scatter.
+        """
+        rect_id = self.grid_elements.get(coord)
+        if rect_id:
+            x1, y1, x2, y2 = self.ui.canvas.coords(rect_id)
+            center_x, center_y = (x1 + x2) / 2, (y1 + y2) / 2
+            for _ in range(debris_count):
+                dx = random.uniform(-15, 15)
+                dy = random.uniform(-15, 15)
+                debris_piece = self.ui.canvas.create_oval(
+                    center_x - 3, center_y - 3,
+                    center_x + 3, center_y + 3,
+                    fill="orange"
+                )
+                self.ui.canvas.after(50, self._animate_debris, debris_piece, dx, dy)
+
+    def _animate_debris(self, debris, dx, dy, steps=20):
+        """
+        Animates a debris piece along a given trajectory.
+
+        Args:
+            debris (int): The canvas object ID for the debris.
+            dx (float): The x-velocity of the debris.
+            dy (float): The y-velocity of the debris.
+            steps (int): Number of animation steps.
+        """
+        def step_animation(step=0):
+            if step < steps:
+                self.ui.canvas.move(debris, dx / steps, dy / steps)
+                self.ui.canvas.after(50, step_animation, step + 1)
+            else:
+                self.ui.canvas.delete(debris)
+        step_animation()
 
     def is_adjacent(self, pos1, pos2):
         """
@@ -1771,7 +1874,6 @@ class EnemyManager:
         """
         Resets the EnemyManager to its initial state for a new game.
         """
-        # Clear enemy positions and reset the canvas
         for coord in list(self.enemy_positions.keys()):
             self.ui.update_cell(coord, "Empty", "lightgray")
         self.enemy_positions.clear()
@@ -1779,6 +1881,7 @@ media_rw
 import tkinter as tk
 from tkinter import ttk
 import math
+import random
 
 class GameUI:
     def __init__(self, root):
@@ -1793,7 +1896,7 @@ class GameUI:
         self.main_frame.pack(fill="both", expand=True)
 
         # Create a canvas for the map with vertical and horizontal scrollbars
-        self.canvas = tk.Canvas(self.main_frame, bg="white", width=800, height=600)
+        self.canvas = tk.Canvas(self.main_frame, bg="white", width=800, height=300)
         self.scrollbar_y = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
         self.scrollbar_x = ttk.Scrollbar(self.main_frame, orient="horizontal", command=self.canvas.xview)
         self.canvas.configure(yscrollcommand=self.scrollbar_y.set, xscrollcommand=self.scrollbar_x.set)
@@ -1979,6 +2082,43 @@ class GameUI:
             self.log_area.configure(state="normal")
             self.log_area.delete(1.0, tk.END)
             self.log_area.configure(state="disabled")
+            
+    def turret_toss(self, x, y, debris_count=6, range_min=15, range_max=30):
+        """
+        Creates a turret toss animation with randomized debris.
+
+        Args:
+            x (float): The x-coordinate for the toss center.
+            y (float): The y-coordinate for the toss center.
+            debris_count (int): Number of debris pieces to create.
+            range_min (int): Minimum scatter range.
+            range_max (int): Maximum scatter range.
+        """
+        for _ in range(debris_count):
+            dx = random.uniform(-range_max, range_max)
+            dy = random.uniform(-range_max, range_max)
+            debris_piece = self.canvas.create_oval(
+                x - 3, y - 3, x + 3, y + 3, fill="orange"
+            )
+            self._animate_debris(debris_piece, dx, dy)
+
+    def _animate_debris(self, debris, dx, dy, steps=20):
+        """
+        Animates a piece of debris along a trajectory.
+
+        Args:
+            debris (int): The canvas object ID of the debris.
+            dx (float): x-velocity.
+            dy (float): y-velocity.
+            steps (int): Number of animation steps.
+        """
+        def step_animation(step=0):
+            if step < steps:
+                self.canvas.move(debris, dx / steps, dy / steps)
+                self.canvas.after(50, step_animation, step + 1)
+            else:
+                self.canvas.delete(debris)
+        step_animation()
 media_rw
 import random
 import math
@@ -2108,6 +2248,44 @@ class PlayerManager:
         # Redraw tank to update turret orientation
         self.ui.draw_tank(self.player_position, self.hull_angle, self.turret_angle)
 
+    def take_damage(self, damage):
+        """
+        Handles the player's tank taking damage. Triggers destruction if HP falls to zero.
+
+        Args:
+            damage (int): The amount of damage to inflict on the player's tank.
+        """
+        self.player_stats["hp"] -= damage
+        self.ui.update_log(f"[LOG] Player took {damage} damage. HP: {self.player_stats['hp']}")
+        if self.player_stats["hp"] <= 0:
+            self.handle_destruction()
+
+    def handle_destruction(self):
+        """
+        Triggers the destruction sequence for the player's tank, including a turret toss animation,
+        and then displays the game over overlay.
+        """
+        self.ui.update_log("[DEBUG] Starting player tank destruction sequence.")
+        self.ui.update_log(f"[LOG] Player tank destroyed at {self.player_position}. Initiating turret toss.")
+        
+        # Calculate center of the cell where the tank is located
+        rect_id = self.grid_elements[self.player_position]
+        x1, y1, x2, y2 = self.ui.canvas.coords(rect_id)
+        center_x = (x1 + x2) / 2
+        center_y = (y1 + y2) / 2
+        self.ui.update_log(f"[DEBUG] Calculated center for turret toss: ({center_x}, {center_y}).")
+
+        # Trigger turret toss animation
+        self.ui.turret_toss(center_x, center_y, debris_count=6, range_min=15, range_max=30)
+        self.ui.update_log("[DEBUG] Turret toss executed. Waiting for animation to complete...")
+
+        # Delay displaying the game over overlay so the turret toss animation can play
+        self.ui.canvas.after(
+            1000,
+            lambda: self.ui.display_game_over_overlay("Game Over! Your tank has been destroyed!")
+        )
+        self.ui.update_log("[DEBUG] Game over overlay scheduled to display after delay.")
+
     def heal_player(self, amount):
         """
         Heals the player by a specified amount.
@@ -2116,30 +2294,16 @@ class PlayerManager:
             amount (int): The amount of health to restore.
         """
         self.player_stats["hp"] += amount
-        if self.player_stats["hp"] > 20:  # Cap at max health
+        if self.player_stats["hp"] > 20:
             self.player_stats["hp"] = 20
         self.ui.update_log(f"Player healed. Current HP: {self.player_stats['hp']}")
-
-    def use_ammo(self):
-        """
-        Reduces the player's ammo by 1 when artillery is fired.
-
-        Returns:
-            bool: True if ammo was used successfully, False if no ammo is left.
-        """
-        if self.player_stats["ammo"] > 0:
-            self.player_stats["ammo"] -= 1
-            self.ui.update_log(f"[LOG] Ammo used. Remaining ammo: {self.player_stats['ammo']}")
-            return True
-        self.ui.update_log(f"[LOG] No ammo left!")
-        return False
 
     def reset(self):
         """
         Resets the PlayerManager to its initial state for a new game.
         """
         self.player_position = None
-        self.player_stats = {"hp": 20, "ammo": 1}  # Reset health and ammo
+        self.player_stats = {"hp": 20, "ammo": 1}
         self.hull_angle = 0
         self.turret_angle = 0
         self.ui.update_log(f"[LOG] PlayerManager reset. Stats: {self.player_stats}")
