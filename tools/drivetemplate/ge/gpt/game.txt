@@ -1307,6 +1307,7 @@ from TerrainManager import TerrainManager
 from PlayerManager import PlayerManager
 from EnemyManager import EnemyManager
 from CombatManager import CombatManager
+from bomber import Bomber  # Import the new Bomber class
 import math
 
 class TacticalMap:
@@ -1330,6 +1331,7 @@ class TacticalMap:
             ui=self.ui,
             player_manager=self.player_manager
         )
+        self.bomber = None  # Bomber instance for debugging purposes
         self.on_replay = on_replay
         self.turn = "Player"
         self.grid_rows = 7
@@ -1355,7 +1357,7 @@ class TacticalMap:
 
     def initialize_game(self):
         """
-        Sets up the game grid, generates terrain, and deploys units. Retries if necessary.
+        Sets up the game grid, generates terrain, deploys units, and renders the bomber. Retries if necessary.
         """
         self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, cell_click_callback=self.on_cell_click)
 
@@ -1365,11 +1367,25 @@ class TacticalMap:
                     player_pos = self.player_manager.deploy_player()
                     self.enemy_manager.deploy_enemies()
                     self.ui.update_log(f"Game initialized. Player spawned at: {player_pos}")
+
+                    # Render the bomber for debugging purposes
+                    self.deploy_bomber_debug(x=200, y=150)  # Example coordinates on the canvas
                     return
                 except ValueError:
                     self.ui.update_log("Deployment failed. Retrying...")
         self.ui.update_log("Failed to initialize game.")
         self.end_game(victory=False)
+
+    def deploy_bomber_debug(self, x, y):
+        """
+        Renders the Myasischev M4 Bison bomber on the map for debugging purposes.
+
+        Args:
+            x (float): The x-coordinate on the canvas.
+            y (float): The y-coordinate on the canvas.
+        """
+        self.bomber = Bomber(self.ui.canvas, x=x, y=y, ui=self.ui)
+        self.ui.update_log("[DEBUG] Bomber rendered on the map for testing.")
 
     def on_cell_click(self, coord):
         """
@@ -2284,6 +2300,137 @@ class TerrainManager:
         self.terrain.clear()
         for coord, rect_id in self.grid_elements.items():
             self._update_canvas_cell(rect_id, "lightgray")
+media_rw
+import math
+from tank import Tank  # Ensure consistent lowercase import
+
+class Bomber(Tank):
+    def __init__(self, canvas, x, y, color="gray", ui=None):
+        """
+        Initializes the Bomber object and ensures that all attributes are properly initialized.
+
+        Args:
+            canvas (tk.Canvas): The canvas to draw the bomber on.
+            x (float): The x-coordinate of the bomber's center.
+            y (float): The y-coordinate of the bomber's center.
+            color (str): The primary color of the bomber (default: gray).
+            ui (GameUI, optional): An instance of GameUI for logging.
+        """
+        # Initialize bomber-specific components to avoid AttributeError
+        self.body = None
+        self.wings = None
+        self.engines = []
+        self.turrets = []
+        self.soviet_star = None
+
+        # Now call the parent constructor
+        super().__init__(canvas, x, y, color, ui)
+
+        print("[DEBUG] Bomber initialized successfully with all attributes set.")
+
+    def draw(self):
+        """
+        Draws the bomber components (body, engines, wings, turrets) on the canvas.
+        """
+        print("[DEBUG] Entering draw() method.")
+        self._clear_previous_drawings()
+
+        # Bomber dimensions
+        body_width, body_height = 80, 30
+        wing_span = 100
+        engine_radius = 8
+        turret_radius = 5
+
+        # Draw body (fuselage)
+        self.body = self.canvas.create_oval(
+            self.x - body_width / 2, self.y - body_height / 2,
+            self.x + body_width / 2, self.y + body_height / 2,
+            fill=self.color
+        )
+        print("[DEBUG] Bomber body created.")
+
+        # Draw wings
+        self.wings = self.canvas.create_line(
+            self.x - wing_span / 2, self.y,
+            self.x + wing_span / 2, self.y,
+            fill="darkgray", width=3
+        )
+        print("[DEBUG] Bomber wings created.")
+
+        # Draw engines (4 total, 2 on each wing root)
+        self.engines = [
+            self.canvas.create_oval(
+                self.x - 30 - engine_radius, self.y - 10 - engine_radius,
+                self.x - 30 + engine_radius, self.y - 10 + engine_radius,
+                fill="black"
+            ),
+            self.canvas.create_oval(
+                self.x - 30 - engine_radius, self.y + 10 - engine_radius,
+                self.x - 30 + engine_radius, self.y + 10 + engine_radius,
+                fill="black"
+            ),
+            self.canvas.create_oval(
+                self.x + 30 - engine_radius, self.y - 10 - engine_radius,
+                self.x + 30 + engine_radius, self.y - 10 + engine_radius,
+                fill="black"
+            ),
+            self.canvas.create_oval(
+                self.x + 30 - engine_radius, self.y + 10 - engine_radius,
+                self.x + 30 + engine_radius, self.y + 10 + engine_radius,
+                fill="black"
+            )
+        ]
+        print("[DEBUG] Bomber engines created.")
+
+        # Draw turrets
+        self.turrets = [
+            self.canvas.create_oval(  # Chin turret
+                self.x - turret_radius, self.y + body_height / 2 - turret_radius,
+                self.x + turret_radius, self.y + body_height / 2 + turret_radius,
+                fill="red"
+            ),
+            self.canvas.create_oval(  # Rear turret
+                self.x - turret_radius, self.y - body_height / 2 - turret_radius,
+                self.x + turret_radius, self.y - body_height / 2 + turret_radius,
+                fill="red"
+            ),
+            self.canvas.create_oval(  # Left turret
+                self.x - body_width / 2 - turret_radius, self.y - turret_radius,
+                self.x - body_width / 2 + turret_radius, self.y + turret_radius,
+                fill="red"
+            ),
+            self.canvas.create_oval(  # Right turret
+                self.x + body_width / 2 - turret_radius, self.y - turret_radius,
+                self.x + body_width / 2 + turret_radius, self.y + turret_radius,
+                fill="red"
+            )
+        ]
+        print("[DEBUG] Bomber turrets created.")
+
+        # Draw the Soviet star
+        self.soviet_star = self.canvas.create_text(
+            self.x, self.y,
+            text="★", fill="red", font=("Helvetica", 16, "bold")
+        )
+        print("[DEBUG] Soviet star created.")
+
+    def _clear_previous_drawings(self):
+        """
+        Safely clears the previous drawings of the bomber components before redrawing.
+        """
+        print("[DEBUG] Entering _clear_previous_drawings() method.")
+        components = [self.body, self.wings, self.soviet_star] + self.engines + self.turrets
+        for component in components:
+            if component:  # Check if component exists before attempting to delete
+                self.canvas.delete(component)
+
+        # Reset attributes to ensure they are not reused accidentally
+        self.body = None
+        self.wings = None
+        self.engines = []
+        self.turrets = []
+        self.soviet_star = None
+        print("[DEBUG] All previous components cleared.")
 media_rw
 import tkinter as tk
 
