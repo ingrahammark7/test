@@ -1165,6 +1165,8 @@ if __name__ == "__main__":
     # Automatically rebuild game.txt after every run
     rebuild_game_txt()
 media_rw
+import math
+
 class Tank:
     def __init__(self, canvas, x, y, color="green"):
         """
@@ -1180,59 +1182,113 @@ class Tank:
         self.x = x
         self.y = y
         self.color = color
+
+        # Default angles for hull and turret in degrees
+        self.hull_angle = 0
+        self.turret_angle = 0
+
+        # Components of the tank
         self.hull = None
         self.turret = None
         self.gun = None
+
+        # Draw the initial tank
         self.draw()
 
     def draw(self):
-        """Draws the tank components (hull, turret, gun) on the canvas."""
+        """
+        Draws the tank components (hull, turret, gun) on the canvas.
+        This method updates their positions and directions.
+        """
+        self._clear_previous_drawings()
+
+        # Hull dimensions
         hull_width, hull_height = 30, 20
         turret_radius = 8
         gun_length = 20
 
-        # Draw the tank's hull (rectangle)
-        self.hull = self.canvas.create_rectangle(
-            self.x - hull_width / 2, self.y - hull_height / 2,
-            self.x + hull_width / 2, self.y + hull_height / 2,
-            fill=self.color
-        )
+        # Calculate hull rotation (trigonometric rotation)
+        hull_dx = hull_width / 2 * math.cos(math.radians(self.hull_angle))
+        hull_dy = hull_width / 2 * math.sin(math.radians(self.hull_angle))
+        offset_x = hull_height / 2 * math.sin(math.radians(self.hull_angle))
+        offset_y = hull_height / 2 * math.cos(math.radians(self.hull_angle))
 
-        # Draw the tank's turret (circle)
+        # Define corners of the rotated hull rectangle
+        corners = [
+            (self.x - hull_dx - offset_x, self.y - hull_dy + offset_y),
+            (self.x + hull_dx - offset_x, self.y + hull_dy + offset_y),
+            (self.x + hull_dx + offset_x, self.y + hull_dy - offset_y),
+            (self.x - hull_dx + offset_x, self.y - hull_dy - offset_y),
+        ]
+
+        self.hull = self.canvas.create_polygon(corners, fill=self.color)
+
+        # Turret center remains at the hull's center
         self.turret = self.canvas.create_oval(
             self.x - turret_radius, self.y - turret_radius,
             self.x + turret_radius, self.y + turret_radius,
             fill="darkgreen"
         )
 
-        # Draw the tank's gun (line)
+        # Gun end point based on turret_angle
+        gun_dx = gun_length * math.cos(math.radians(self.turret_angle))
+        gun_dy = gun_length * math.sin(math.radians(self.turret_angle))
         self.gun = self.canvas.create_line(
             self.x, self.y,
-            self.x + gun_length, self.y,
+            self.x + gun_dx, self.y + gun_dy,
             fill="black", width=3
         )
 
+    def _clear_previous_drawings(self):
+        """
+        Clears the previous drawings of the tank components before redrawing.
+        """
+        if self.hull:
+            self.canvas.delete(self.hull)
+        if self.turret:
+            self.canvas.delete(self.turret)
+        if self.gun:
+            self.canvas.delete(self.gun)
+
     def move(self, new_x, new_y):
         """
-        Moves the tank to a new position on the canvas.
+        Moves the tank to a new position and updates the hull direction.
 
         Args:
-            new_x (float): The new x-coordinate.
-            new_y (float): The new y-coordinate.
+            new_x (float): The new x-coordinate of the tank's center.
+            new_y (float): The new y-coordinate of the tank's center.
         """
+        # Calculate direction of movement
         dx = new_x - self.x
         dy = new_y - self.y
-        self.canvas.move(self.hull, dx, dy)
-        self.canvas.move(self.turret, dx, dy)
-        self.canvas.move(self.gun, dx, dy)
+
+        # Update hull angle to reflect movement direction
+        if dx != 0 or dy != 0:
+            self.hull_angle = math.degrees(math.atan2(dy, dx))
+
+        # Update position and redraw
         self.x = new_x
         self.y = new_y
+        self.draw()
 
-    def delete(self):
-        """Deletes the tank components from the canvas."""
-        self.canvas.delete(self.hull)
-        self.canvas.delete(self.turret)
-        self.canvas.delete(self.gun)
+    def aim_turret(self, target_x, target_y):
+        """
+        Rotates the turret to point at a specific target.
+
+        Args:
+            target_x (float): The x-coordinate of the target.
+            target_y (float): The y-coordinate of the target.
+        """
+        # Calculate direction to target
+        dx = target_x - self.x
+        dy = target_y - self.y
+
+        # Update turret angle to face the target
+        if dx != 0 or dy != 0:
+            self.turret_angle = math.degrees(math.atan2(dy, dx))
+
+        # Redraw the tank to update turret direction
+        self.draw()
 media_rw
 import tkinter as tk
 import random
@@ -1260,7 +1316,8 @@ class TacticalMap:
             self.ui.grid_elements,
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
             enemy_stats={"name": "Enemy Unit", "hp": 10},
-            ui=self.ui
+            ui=self.ui,
+            player_manager=self.player_manager
         )
         self.on_replay = on_replay
         self.turn = "Player"
@@ -1278,7 +1335,7 @@ class TacticalMap:
         screen_height = self.ui.root.winfo_screenheight()
 
         # Target screen utilization (80-90%)
-        usable_width = int(screen_width * .9)
+        usable_width = int(screen_width * .95)
         usable_height = int(screen_height * .9)
 
         # Determine the optimal number of rows and columns based on a tile size
@@ -1462,7 +1519,7 @@ class TacticalMap:
 
     def reset(self):
         """
-        Resets the TacticalMap to its initial state for a new game.
+        Resets the TacticalMap to its initialstate for a new game.
         """
         self.ui.reset()
         self.terrain_manager.reset()
@@ -1472,7 +1529,8 @@ class TacticalMap:
             self.ui.grid_elements,
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
             enemy_stats={"name": "Enemy Unit", "hp": 10},
-            ui=self.ui
+            ui=self.ui,
+              player_manager=self.player_manager
         )
         self.turn = "Player"
         self.initialize_game()
@@ -1485,25 +1543,27 @@ if __name__ == "__main__":
     root.mainloop()
 media_rw
 class CombatManager:
-    def __init__(self, grid_elements, player_stats, enemy_stats, ui):
+    def __init__(self, grid_elements, player_stats, enemy_stats, ui, player_manager):
         """
         Initializes the CombatManager with references to the grid elements,
-        the player's statistics, the enemy's statistics, and GameUI.
+        the player's statistics, the enemy's statistics, the GameUI, and the PlayerManager.
 
         Args:
             grid_elements (dict): Dictionary of canvas rectangles for the grid.
             player_stats (dict): Dictionary containing player stats (e.g., {"hp": 20, "ammo": 5}).
             enemy_stats (dict): Dictionary containing enemy stats (e.g., {"hp": 10}).
             ui (GameUI): Instance of GameUI for rendering on the canvas.
+            player_manager (PlayerManager): Instance of PlayerManager for managing the player.
         """
         self.grid_elements = grid_elements
         self.player_stats = player_stats
         self.enemy_stats = enemy_stats
         self.ui = ui  # Reference to the GameUI
+        self.player_manager = player_manager  # Reference to the PlayerManager for turret updates
 
     def player_attack(self, target_coord, enemy_positions):
         """
-        Handles the player's attack on an enemy unit.
+        Handles the player's attack on an enemy unit and aims the turret at the target.
 
         Args:
             target_coord (str): The coordinate of the enemy being attacked.
@@ -1512,6 +1572,9 @@ class CombatManager:
         Returns:
             str: A message describing the outcome of the attack.
         """
+        # Aim the turret at the target coordinate
+        self.player_manager.aim_turret(target_coord)
+
         if target_coord in enemy_positions:
             enemy_positions[target_coord] -= 5  # Damage the enemy by 5 points
             if enemy_positions[target_coord] <= 0:
@@ -1525,6 +1588,7 @@ class CombatManager:
     def artillery_attack(self, target_coord, enemy_positions):
         """
         Handles artillery attack, which damages the target coordinate and adjacent tiles.
+        Aims the turret at the primary target coordinate.
 
         Args:
             target_coord (str): The main target coordinate for the artillery attack.
@@ -1533,6 +1597,9 @@ class CombatManager:
         Returns:
             list: A list of messages describing the outcomes at each affected coordinate.
         """
+        # Aim the turret at the primary target coordinate
+        self.player_manager.aim_turret(target_coord)
+
         results = []
         row = ord(target_coord[0])
         col = int(target_coord[1:])
@@ -1600,7 +1667,7 @@ class CombatManager:
             enemy_stats (dict, optional): Updated stats for the enemies.
         """
         self.player_stats = player_stats if player_stats else {"hp": 20, "ammo": 5}
-        self.enemy_stats = enemy_stats if enemy_stats else {"hp": 10}
+        self.enemy_stats = enemy_stats if enemy_stats else {"hp": "10"}
 media_rw
 import random
 
@@ -1736,6 +1803,7 @@ class EnemyManager:
 media_rw
 import tkinter as tk
 from tkinter import ttk
+import math
 
 class GameUI:
     def __init__(self, root):
@@ -1763,19 +1831,17 @@ class GameUI:
         self.cell_states = {}      # Stores each cell's current state (terrain, units, etc.)
         self.tank_graphics = {}    # Tracks the tank's graphical components
 
-        # Create a log area (ensure it's created only once)
+        # Log area for messages
         self.log_area = None
-        self._initialize_log_area()
+        self.create_log_area()
 
-    def _initialize_log_area(self):
+    def create_log_area(self):
         """
-        Initializes the log area if it doesn't already exist.
-        Ensures that the log is created only once and reused across game sessions.
+        Creates a text area to display the game log.
         """
-        if not self.log_area:
-            self.log_area = tk.Text(self.root, height=5, wrap="word", bg="lightyellow", state="normal")
-            self.log_area.pack(side="bottom", fill="x")
-            self.log_area.configure(state="disabled")  # Initially disable editing
+        self.log_area = tk.Text(self.root, height=5, wrap="word", bg="lightyellow")
+        self.log_area.pack(side="bottom", fill="x")
+        self.log_area.configure(state="disabled")
 
     def create_map(self, rows, cols, cell_click_callback):
         """
@@ -1805,23 +1871,25 @@ class GameUI:
 
     def update_log(self, message):
         """
-        Appends a message to the log area without creating duplicates.
+        Appends a message to the log area.
 
         Args:
             message (str): The message to display.
         """
         if self.log_area:
-            self.log_area.configure(state="normal")  # Allow updates
+            self.log_area.configure(state="normal")
             self.log_area.insert(tk.END, message + "\n")
-            self.log_area.see(tk.END)  # Scroll to the latest entry
-            self.log_area.configure(state="disabled")  # Disable editing again
+            self.log_area.see(tk.END)
+            self.log_area.configure(state="disabled")
 
-    def draw_tank(self, coord):
+    def draw_tank(self, coord, hull_angle=0, turret_angle=0):
         """
-        Draws a tank icon at the center of the specified cell.
+        Draws a tank at the specified coordinate, adjusting its hull and turret direction.
 
         Args:
             coord (str): The grid coordinate (e.g., "A1").
+            hull_angle (float): The angle of the hull (in degrees).
+            turret_angle (float): The angle of the turret (in degrees).
         """
         if coord not in self.grid_elements:
             print(f"[LOG] {coord} is not a valid coordinate.")
@@ -1834,27 +1902,44 @@ class GameUI:
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
 
+        # Dimensions
         hull_width, hull_height = 30, 20
         turret_radius = 8
         gun_length = 20
 
-        self.tank_graphics["hull"] = self.canvas.create_rectangle(
-            center_x - hull_width / 2, center_y - hull_height / 2,
-            center_x + hull_width / 2, center_y + hull_height / 2,
-            fill="green"
-        )
+        # Calculate hull corners based on the hull angle
+        hull_dx = hull_width / 2 * math.cos(math.radians(hull_angle))
+        hull_dy = hull_width / 2 * math.sin(math.radians(hull_angle))
+        offset_x = hull_height / 2 * math.sin(math.radians(hull_angle))
+        offset_y = hull_height / 2 * math.cos(math.radians(hull_angle))
+
+        hull_corners = [
+            (center_x - hull_dx - offset_x, center_y - hull_dy + offset_y),
+            (center_x + hull_dx - offset_x, center_y + hull_dy + offset_y),
+            (center_x + hull_dx + offset_x, center_y + hull_dy - offset_y),
+            (center_x - hull_dx + offset_x, center_y - hull_dy - offset_y),
+        ]
+
+        # Draw the hull
+        self.tank_graphics["hull"] = self.canvas.create_polygon(hull_corners, fill="green")
+
+        # Draw the turret
         self.tank_graphics["turret"] = self.canvas.create_oval(
             center_x - turret_radius, center_y - turret_radius,
             center_x + turret_radius, center_y + turret_radius,
             fill="darkgreen"
         )
+
+        # Draw the gun
+        gun_dx = gun_length * math.cos(math.radians(turret_angle))
+        gun_dy = gun_length * math.sin(math.radians(turret_angle))
         self.tank_graphics["gun"] = self.canvas.create_line(
             center_x, center_y,
-            center_x + gun_length, center_y,
+            center_x + gun_dx, center_y + gun_dy,
             fill="black", width=3
         )
 
-        print(f"[LOG] Tank drawn at {coord} ({center_x}, {center_y}).")
+        print(f"[LOG] Tank drawn at {coord} with hull_angle={hull_angle}° and turret_angle={turret_angle}°")
 
     def clear_tank(self):
         """
@@ -1909,15 +1994,19 @@ class GameUI:
 
     def reset(self):
         """
-        Resets the GameUI: clears canvas elements and the grid.
-        Note: The log is not cleared to maintain continuity across sessions.
+        Resets the GameUI: clears canvas elements, grid, and log.
         """
         self.canvas.delete("all")
         self.grid_elements.clear()
         self.cell_states.clear()
         self.tank_graphics.clear()
+        if self.log_area:
+            self.log_area.configure(state="normal")
+            self.log_area.delete(1.0, tk.END)
+            self.log_area.configure(state="disabled")
 media_rw
 import random
+import math
 
 class PlayerManager:
     def __init__(self, grid_elements, terrain_manager, ui):
@@ -1934,6 +2023,8 @@ class PlayerManager:
         self.ui = ui  # Reference to the GameUI
         self.player_position = None
         self.player_stats = {"hp": 20, "ammo": 1}  # Default player stats
+        self.hull_angle = 0  # Hull starts facing default direction
+        self.turret_angle = 0  # Turret aligns with hull initially
 
     def deploy_player(self):
         """
@@ -1949,7 +2040,7 @@ class PlayerManager:
             self.player_position = random.choice(list(self.grid_elements.keys()))
             if self.terrain_manager.get_terrain(self.player_position) == "Empty":
                 # Draw the player's tank on the selected coordinate
-                self.ui.draw_tank(self.player_position)
+                self.ui.draw_tank(self.player_position, self.hull_angle, self.turret_angle)
                 print(f"[LOG] Player deployed at: {self.player_position}")  # Debug log
                 return self.player_position
 
@@ -1957,7 +2048,7 @@ class PlayerManager:
 
     def move_player_smoothly(self, target_position):
         """
-        Smoothly moves the player unit to a specified target position.
+        Smoothly moves the player unit to a specified target position and adjusts the hull angle.
 
         Args:
             target_position (str): The coordinate to move the player unit to.
@@ -1969,48 +2060,74 @@ class PlayerManager:
             print(f"[LOG] Invalid target position: {target_position}")
             return self.player_position
 
-        # Get initial and target coordinates
-        rect_id_start = self.grid_elements[self.player_position]
-        rect_id_end = self.grid_elements[target_position]
-        x1, y1, x2, y2 = self.ui.canvas.coords(rect_id_start)
-        tx1, ty1, tx2, ty2 = self.ui.canvas.coords(rect_id_end)
+        # Calculate direction of movement
+        start_coord = self.player_position
+        dx = ord(target_position[0]) - ord(start_coord[0])
+        dy = int(target_position[1:]) - int(start_coord[1:])
+        if dx != 0 or dy != 0:
+            self.hull_angle = math.degrees(math.atan2(dy, dx))
 
-        # Calculate the center points for smooth movement
-        start_x, start_y = (x1 + x2) / 2, (y1 + y2) / 2
-        end_x, end_y = (tx1 + tx2) / 2, (ty1 + ty2) / 2
-
-        # Perform the smooth movement animation
-        self._animate_tank_smoothly(start_x, start_y, end_x, end_y)
+        # Animate the movement
+        self._animate_tank_smoothly(target_position)
 
         # Update player's position
         self.player_position = target_position
-        print(f"[LOG] Player moved smoothly to {self.player_position}")
+        print(f"[LOG] Player moved to {self.player_position}, Hull angle: {self.hull_angle}°")
         return self.player_position
 
-    def _animate_tank_smoothly(self, start_x, start_y, end_x, end_y, steps=10):
+    def _animate_tank_smoothly(self, target_position, steps=10):
         """
-        Animates the tank's movement from one position to another.
+        Animates the tank's movement from its current position to the target position.
 
         Args:
-            start_x (float): The starting x-coordinate of the tank.
-            start_y (float): The starting y-coordinate of the tank.
-            end_x (float): The ending x-coordinate of the tank.
-            end_y (float): The ending y-coordinate of the tank.
-            steps (int): The number of animation steps to transition smoothly.
+            target_position (str): The coordinate to move the tank to.
+            steps (int): Number of animation steps to transition smoothly.
         """
+        rect_id_start = self.grid_elements[self.player_position]
+        rect_id_end = self.grid_elements[target_position]
+
+        # Get coordinates for animation
+        x1, y1, x2, y2 = self.ui.canvas.coords(rect_id_start)
+        start_x, start_y = (x1 + x2) / 2, (y1 + y2) / 2
+        tx1, ty1, tx2, ty2 = self.ui.canvas.coords(rect_id_end)
+        end_x, end_y = (tx1 + tx2) / 2, (ty1 + ty2) / 2
+
         dx = (end_x - start_x) / steps
         dy = (end_y - start_y) / steps
 
         def move_step(step=0):
             if step > steps:
-                return  # End the animation
-            # Update the tank's position
+                # Redraw tank at final position with updated hull angle
+                self.ui.draw_tank(target_position, self.hull_angle, self.turret_angle)
+                return
             self.ui.canvas.move(self.ui.tank_graphics["hull"], dx, dy)
             self.ui.canvas.move(self.ui.tank_graphics["turret"], dx, dy)
             self.ui.canvas.move(self.ui.tank_graphics["gun"], dx, dy)
-            self.ui.canvas.after(50, move_step, step + 1)  # Schedule the next frame
+            self.ui.canvas.after(50, move_step, step + 1)
 
         move_step()
+
+    def aim_turret(self, target_position):
+        """
+        Adjusts the turret to point at the specified target position.
+
+        Args:
+            target_position (str): The coordinate to aim the turret at.
+        """
+        if target_position not in self.grid_elements:
+            print(f"[LOG] Invalid target position: {target_position}")
+            return
+
+        # Calculate direction to target
+        current_coord = self.player_position
+        dx = ord(target_position[0]) - ord(current_coord[0])
+        dy = int(target_position[1:]) - int(current_coord[1:])
+        if dx != 0 or dy != 0:
+            self.turret_angle = math.degrees(math.atan2(dy, dx))
+
+        # Redraw tank to update turret orientation
+        self.ui.draw_tank(self.player_position, self.hull_angle, self.turret_angle)
+        print(f"[LOG] Turret aimed at {target_position}, Turret angle: {self.turret_angle}°")
 
     def heal_player(self, amount):
         """
@@ -2044,6 +2161,8 @@ class PlayerManager:
         """
         self.player_position = None
         self.player_stats = {"hp": 20, "ammo": 1}  # Reset health and ammo
+        self.hull_angle = 0
+        self.turret_angle = 0
         print(f"[LOG] PlayerManager reset. Stats: {self.player_stats}")
 media_rw
 import random
