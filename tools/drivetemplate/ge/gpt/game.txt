@@ -1168,7 +1168,7 @@ media_rw
 import math
 
 class Tank:
-    def __init__(self, canvas, x, y, color="green"):
+    def __init__(self, canvas, x, y, color="green", ui=None):
         """
         Initializes the Tank object and draws it on the canvas.
 
@@ -1177,11 +1177,13 @@ class Tank:
             x (float): The x-coordinate of the tank's center.
             y (float): The y-coordinate of the tank's center.
             color (str): The primary color of the tank (default: green).
+            ui (GameUI, optional): An instance of GameUI for logging.
         """
         self.canvas = canvas
         self.x = x
         self.y = y
         self.color = color
+        self.ui = ui  # Optional: Reference to GameUI for logging
 
         # Default angles for hull and turret in degrees
         self.hull_angle = 0
@@ -1273,7 +1275,7 @@ class Tank:
 
     def aim_turret(self, target_x, target_y):
         """
-        Rotates the turret to point at a specific target.
+        Rotates the turret to point at a specific target and logs the calculation.
 
         Args:
             target_x (float): The x-coordinate of the target.
@@ -1285,7 +1287,15 @@ class Tank:
 
         # Update turret angle to face the target
         if dx != 0 or dy != 0:
-            self.turret_angle = math.degrees(math.atan2(dy, dx))
+            angle_radians = math.atan2(dy, dx)  # Angle in radians
+            self.turret_angle = math.degrees(angle_radians)  # Convert to degrees
+
+            # Log debug info in the game log window
+            if self.ui:
+                debug_message = (f"Turret Aiming: dx={dx}, dy={dy}, "
+                                 f"angle_radians={angle_radians:.4f}, "
+                                 f"turret_angle={self.turret_angle:.2f}°")
+                self.ui.update_log(f"[DEBUG] {debug_message}")
 
         # Redraw the tank to update turret direction
         self.draw()
@@ -1297,6 +1307,7 @@ from TerrainManager import TerrainManager
 from PlayerManager import PlayerManager
 from EnemyManager import EnemyManager
 from CombatManager import CombatManager
+import math
 
 class TacticalMap:
     def __init__(self, root, on_replay=None):
@@ -1329,31 +1340,17 @@ class TacticalMap:
     def determine_grid_dimensions(self):
         """
         Dynamically sets grid dimensions based on screen size.
-        The grid will utilize 80-90% of the available screen space.
         """
         screen_width = self.ui.root.winfo_screenwidth()
         screen_height = self.ui.root.winfo_screenheight()
 
-        # Target screen utilization (80-90%)
-        usable_width = int(screen_width * .95)
-        usable_height = int(screen_height * .9)
+        usable_width = int(screen_width * 0.95)
+        usable_height = int(screen_height * 0.90)
 
-        # Determine the optimal number of rows and columns based on a tile size
-        tile_size = 50  # Starting tile size for calculation
+        tile_size = 50
         self.grid_cols = max(1, usable_width // tile_size)
         self.grid_rows = max(1, usable_height // tile_size)
 
-        # Adjust the tile size to better fit within the usable space
-        tile_size_width = usable_width // self.grid_cols
-        tile_size_height = usable_height // self.grid_rows
-        tile_size = min(tile_size_width, tile_size_height)
-
-        # Log the calculated dimensions for debugging
-        print(f"[DEBUG] Screen: {screen_width}x{screen_height}")
-        print(f"[DEBUG] Usable: {usable_width}x{usable_height}")
-        print(f"[DEBUG] Grid: {self.grid_rows}x{self.grid_cols}, Tile Size: {tile_size}")
-
-        # Adjust the canvas dimensions
         self.ui.canvas.config(width=usable_width, height=usable_height)
 
     def initialize_game(self):
@@ -1362,14 +1359,12 @@ class TacticalMap:
         """
         self.ui.create_map(rows=self.grid_rows, cols=self.grid_cols, cell_click_callback=self.on_cell_click)
 
-        for _ in range(5):  # Attempt to initialize a valid game up to 5 times.
+        for _ in range(5): 
             if self.terrain_manager.generate_terrain(enemy_count=5):
                 try:
                     player_pos = self.player_manager.deploy_player()
                     self.enemy_manager.deploy_enemies()
-                    log_message = f"Game initialized. Player spawned at: {player_pos}"
-                    self.ui.update_log(log_message)
-                    print(log_message)  # Debug log
+                    self.ui.update_log(f"Game initialized. Player spawned at: {player_pos}")
                     return
                 except ValueError:
                     self.ui.update_log("Deployment failed. Retrying...")
@@ -1384,6 +1379,16 @@ class TacticalMap:
             coord (str): The coordinate of the clicked cell.
         """
         if self.turn == "Player":
+            # Update hull orientation immediately
+            player_position = self.player_manager.player_position
+            dx = int(coord[1:]) - int(player_position[1:])
+            dy = ord(coord[0]) - ord(player_position[0])
+
+            if dx != 0 or dy != 0:
+                self.player_manager.hull_angle = math.degrees(math.atan2(dy, dx))
+                self.ui.draw_tank(player_position, self.player_manager.hull_angle, self.player_manager.turret_angle)
+                self.ui.update_log(f"[DEBUG] Hull angle updated to {self.player_manager.hull_angle:.2f}° on click.")
+
             self.handle_player_action(coord)
 
     def handle_player_action(self, coord):
@@ -1397,7 +1402,7 @@ class TacticalMap:
         distance_row = abs(ord(coord[0]) - ord(player_position[0]))
         distance_col = abs(int(coord[1:]) - int(player_position[1:]))
 
-        # If target is beyond adjacent cells, treat it as an artillery attack.
+        # Handle artillery attack
         if max(distance_row, distance_col) > 1:
             if self.player_manager.player_stats["ammo"] > 0:
                 results = self.combat_manager.artillery_attack(coord, self.enemy_manager.enemy_positions)
@@ -1410,7 +1415,7 @@ class TacticalMap:
                 self.ui.update_log("No ammo left!")
             return
 
-        # For adjacent moves: either attack an enemy or move.
+        # Handle adjacent move or attack
         if max(distance_row, distance_col) == 1:
             terrain = self.terrain_manager.get_terrain(coord)
             if coord in self.enemy_manager.enemy_positions:
@@ -1431,7 +1436,6 @@ class TacticalMap:
         Executes the enemies' turn, including movement and attacks.
         """
         self.ui.update_log("Enemies are taking their turn...")
-        print("[DEBUG] Starting enemy action. Current positions:", self.enemy_manager.enemy_positions)
 
         for enemy_pos in list(self.enemy_manager.enemy_positions.keys()):
             if self.enemy_manager.is_adjacent(enemy_pos, self.player_manager.player_position):
@@ -1445,7 +1449,6 @@ class TacticalMap:
                 if new_pos != enemy_pos:
                     self.enemy_manager.update_enemy_position(enemy_pos, new_pos)
 
-        print("[DEBUG] Ending enemy action. Updated positions:", self.enemy_manager.enemy_positions)
         if not self.enemy_manager.enemy_positions:
             self.end_game(victory=True)
         else:
@@ -1464,62 +1467,16 @@ class TacticalMap:
 
     def end_game(self, victory):
         """
-        Concludes the game with a victory or defeat message and displays a game-over overlay.
-
-        Args:
-            victory (bool): True if player wins; False otherwise.
+        Concludes the game with a victory or defeat message.
         """
         message = "You Win!" if victory else "Game Over!"
         self.ui.update_log(message)
-        if not victory:
-            self._animate_explosion()
-        # Pass the on_replay callback if provided; otherwise, default to using reset.
         restart_command = self.on_replay if self.on_replay is not None else self.reset
         self.ui.display_game_over_overlay(message, restart_command=restart_command)
 
-    def _animate_explosion(self):
-        """
-        Animates the tank's destruction with turret and gun tossed together, then leaves debris.
-        """
-        tank_parts = self.ui.tank_graphics
-        canvas = self.ui.canvas
-
-        # Ensure tank parts exist
-        if "hull" not in tank_parts or "turret" not in tank_parts or "gun" not in tank_parts:
-            print("[DEBUG] Tank graphics are missing. Explosion aborted.")
-            return
-
-        # Get the turret's current position as the baseline for the explosion animation.
-        x1, y1, x2, y2 = canvas.coords(tank_parts["turret"])
-
-        def move_turret_and_gun(step=0):
-            if step > 10:
-                leave_debris()
-                return
-            dx = step * 2
-            dy = -step * 3
-            canvas.move(tank_parts["turret"], dx, dy)
-            canvas.move(tank_parts["gun"], dx, dy)
-            canvas.after(50, move_turret_and_gun, step + 1)
-
-        def leave_debris():
-            for part in [tank_parts["turret"], tank_parts["gun"]]:
-                canvas.delete(part)
-            for _ in range(5):
-                # Random debris within the turret's bounding box
-                debris_x = random.randint(int(x1), int(x2))
-                debris_y = random.randint(int(y1), int(y2))
-                debris_size = random.randint(5, 15)
-                canvas.create_rectangle(
-                    debris_x, debris_y,
-                    debris_x + debris_size, debris_y + debris_size,
-                    fill=random.choice(["#4c4c4c", "#2e2e2e", "#1a1a1a"])
-                )
-        move_turret_and_gun()
-
     def reset(self):
         """
-        Resets the TacticalMap to its initialstate for a new game.
+        Resets the TacticalMap to its initial state for a new game.
         """
         self.ui.reset()
         self.terrain_manager.reset()
@@ -1530,7 +1487,7 @@ class TacticalMap:
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
             enemy_stats={"name": "Enemy Unit", "hp": 10},
             ui=self.ui,
-              player_manager=self.player_manager
+            player_manager=self.player_manager
         )
         self.turn = "Player"
         self.initialize_game()
@@ -1613,6 +1570,8 @@ class CombatManager:
             f"{chr(row)}{col + 1}"
         ]
 
+        self.ui.update_log(f"[DEBUG] Artillery targeted at {target_coord}. Affected coordinates: {affected_coords}")
+
         for coord in affected_coords:
             if coord in enemy_positions:
                 enemy_positions[coord] -= 10  # Artillery deals 10 damage
@@ -1667,7 +1626,7 @@ class CombatManager:
             enemy_stats (dict, optional): Updated stats for the enemies.
         """
         self.player_stats = player_stats if player_stats else {"hp": 20, "ammo": 5}
-        self.enemy_stats = enemy_stats if enemy_stats else {"hp": "10"}
+        self.enemy_stats = enemy_stats if enemy_stats else {"hp":"10"}
 media_rw
 import random
 
@@ -2041,7 +2000,7 @@ class PlayerManager:
             if self.terrain_manager.get_terrain(self.player_position) == "Empty":
                 # Draw the player's tank on the selected coordinate
                 self.ui.draw_tank(self.player_position, self.hull_angle, self.turret_angle)
-                print(f"[LOG] Player deployed at: {self.player_position}")  # Debug log
+                self.ui.update_log(f"[DEBUG] Player deployed at: {self.player_position}")
                 return self.player_position
 
         raise ValueError("Failed to deploy player unit after multiple attempts.")
@@ -2057,22 +2016,25 @@ class PlayerManager:
             str: The new position of the player unit.
         """
         if target_position not in self.grid_elements:
-            print(f"[LOG] Invalid target position: {target_position}")
+            self.ui.update_log(f"[LOG] Invalid target position: {target_position}")
             return self.player_position
 
         # Calculate direction of movement
         start_coord = self.player_position
-        dx = ord(target_position[0]) - ord(start_coord[0])
-        dy = int(target_position[1:]) - int(start_coord[1:])
+        dx = int(target_position[1:]) - int(start_coord[1:])  # Horizontal difference
+        dy = ord(target_position[0]) - ord(start_coord[0])  # Vertical difference
+
+        # Update the hull angle immediately
         if dx != 0 or dy != 0:
-            self.hull_angle = math.degrees(math.atan2(dy, dx))
+            self.hull_angle = math.degrees(math.atan2(dy, dx))  # Proper angle calculation
+            self.ui.update_log(f"[DEBUG] Hull angle updated to {self.hull_angle:.2f}° on movement.")
 
         # Animate the movement
         self._animate_tank_smoothly(target_position)
 
         # Update player's position
         self.player_position = target_position
-        print(f"[LOG] Player moved to {self.player_position}, Hull angle: {self.hull_angle}°")
+        self.ui.update_log(f"[DEBUG] Player moved to {self.player_position}, Hull angle: {self.hull_angle:.2f}°")
         return self.player_position
 
     def _animate_tank_smoothly(self, target_position, steps=10):
@@ -2109,25 +2071,26 @@ class PlayerManager:
 
     def aim_turret(self, target_position):
         """
-        Adjusts the turret to point at the specified target position.
+        Adjusts the turret to point at the specified target position and logs the calculations.
 
         Args:
             target_position (str): The coordinate to aim the turret at.
         """
         if target_position not in self.grid_elements:
-            print(f"[LOG] Invalid target position: {target_position}")
+            self.ui.update_log(f"[LOG] Invalid target position: {target_position}")
             return
 
         # Calculate direction to target
         current_coord = self.player_position
-        dx = ord(target_position[0]) - ord(current_coord[0])
-        dy = int(target_position[1:]) - int(current_coord[1:])
+        dx = int(target_position[1:]) - int(current_coord[1:])
+        dy = ord(target_position[0]) - ord(current_coord[0])
+
         if dx != 0 or dy != 0:
             self.turret_angle = math.degrees(math.atan2(dy, dx))
+            self.ui.update_log(f"[DEBUG] Turret aimed at {target_position}, Turret angle: {self.turret_angle:.2f}°")
 
         # Redraw tank to update turret orientation
         self.ui.draw_tank(self.player_position, self.hull_angle, self.turret_angle)
-        print(f"[LOG] Turret aimed at {target_position}, Turret angle: {self.turret_angle}°")
 
     def heal_player(self, amount):
         """
@@ -2139,7 +2102,7 @@ class PlayerManager:
         self.player_stats["hp"] += amount
         if self.player_stats["hp"] > 20:  # Cap at max health
             self.player_stats["hp"] = 20
-        print(f"[LOG] Player healed. Current HP: {self.player_stats['hp']}")
+        self.ui.update_log(f"Player healed. Current HP: {self.player_stats['hp']}")
 
     def use_ammo(self):
         """
@@ -2150,9 +2113,9 @@ class PlayerManager:
         """
         if self.player_stats["ammo"] > 0:
             self.player_stats["ammo"] -= 1
-            print(f"[LOG] Ammo used. Remaining ammo: {self.player_stats['ammo']}")
+            self.ui.update_log(f"[LOG] Ammo used. Remaining ammo: {self.player_stats['ammo']}")
             return True
-        print(f"[LOG] No ammo left!")
+        self.ui.update_log(f"[LOG] No ammo left!")
         return False
 
     def reset(self):
@@ -2163,7 +2126,7 @@ class PlayerManager:
         self.player_stats = {"hp": 20, "ammo": 1}  # Reset health and ammo
         self.hull_angle = 0
         self.turret_angle = 0
-        print(f"[LOG] PlayerManager reset. Stats: {self.player_stats}")
+        self.ui.update_log(f"[LOG] PlayerManager reset. Stats: {self.player_stats}")
 media_rw
 import random
 
