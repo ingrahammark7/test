@@ -1327,8 +1327,9 @@ from TerrainManager import TerrainManager
 from PlayerManager import PlayerManager
 from EnemyManager import EnemyManager
 from CombatManager import CombatManager
-from bomber import Bomber  # Import the new Bomber class
+from bomber import Bomber  # Import the Bomber class
 import math
+
 
 class TacticalMap:
     def __init__(self, root, on_replay=None):
@@ -1343,13 +1344,15 @@ class TacticalMap:
         self.ui = GameUI(root)
         self.terrain_manager = TerrainManager(self.ui.grid_elements, self.ui.canvas)
         self.player_manager = PlayerManager(self.ui.grid_elements, self.terrain_manager, self.ui)
-        self.enemy_manager = EnemyManager(self.ui.grid_elements, self.terrain_manager, enemy_count=5, ui=self.ui)
+        self.enemy_manager = EnemyManager(
+            self.ui.grid_elements, self.terrain_manager, enemy_count=5, ui=self.ui
+        )
         self.combat_manager = CombatManager(
             self.ui.grid_elements,
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
             enemy_stats={"name": "Enemy Unit", "hp": 10},
             ui=self.ui,
-            player_manager=self.player_manager
+            player_manager=self.player_manager,
         )
         self.bomber = None  # Bomber instance for debugging purposes
         self.on_replay = on_replay
@@ -1407,6 +1410,19 @@ class TacticalMap:
         self.bomber = Bomber(self.ui.canvas, x=x, y=y, ui=self.ui)
         self.ui.update_log("[DEBUG] Bomber rendered on the map for testing.")
 
+        # Schedule the bomber to self-destruct after 10 seconds
+        self.ui.canvas.after(10000, self.trigger_bomber_explosion)
+
+    def trigger_bomber_explosion(self):
+        """
+        Handles the bomber's self-destruction by triggering an explosion.
+        """
+        if self.bomber:
+            self.ui.update_log("[DEBUG] Bomber self-destruction triggered!")
+            self.combat_manager.trigger_explosion((self.bomber.x, self.bomber.y))
+            self.bomber.trigger_explosion()  # Call the bomber's explosion method
+            self.bomber = None  # Remove bomber reference after explosion
+
     def on_cell_click(self, coord):
         """
         Handles a player's action when a cell is clicked.
@@ -1423,7 +1439,9 @@ class TacticalMap:
             if dx != 0 or dy != 0:
                 self.player_manager.hull_angle = math.degrees(math.atan2(dy, dx))
                 self.ui.draw_tank(player_position, self.player_manager.hull_angle, self.player_manager.turret_angle)
-                self.ui.update_log(f"[DEBUG] Hull angle updated to {self.player_manager.hull_angle:.2f}° on click.")
+                self.ui.update_log(
+                    f"[DEBUG] Hull angle updated to {self.player_manager.hull_angle:.2f}° on click."
+                )
 
             self.handle_player_action(coord)
 
@@ -1441,11 +1459,15 @@ class TacticalMap:
         # Handle artillery attack
         if max(distance_row, distance_col) > 1:
             if self.player_manager.player_stats["ammo"] > 0:
-                results = self.combat_manager.artillery_attack(coord, self.enemy_manager.enemy_positions)
+                results = self.combat_manager.artillery_attack(
+                    coord, self.enemy_manager.enemy_positions
+                )
                 self.player_manager.player_stats["ammo"] -= 1
                 for result in results:
                     self.ui.update_log(result)
-                self.ui.update_log(f"Artillery fired. Ammo left: {self.player_manager.player_stats['ammo']}")
+                self.ui.update_log(
+                    f"Artillery fired. Ammo left: {self.player_manager.player_stats['ammo']}"
+                )
                 self.end_turn()
             else:
                 self.ui.update_log("No ammo left!")
@@ -1482,7 +1504,9 @@ class TacticalMap:
                     self.end_game(victory=False)
                     return
             else:
-                new_pos = self.enemy_manager.move_toward_player(enemy_pos, self.player_manager.player_position)
+                new_pos = self.enemy_manager.move_toward_player(
+                    enemy_pos, self.player_manager.player_position
+                )
                 if new_pos != enemy_pos:
                     self.enemy_manager.update_enemy_position(enemy_pos, new_pos)
 
@@ -1524,7 +1548,7 @@ class TacticalMap:
             player_stats={"name": "T-64 Tank", "hp": 20, "ammo": 5},
             enemy_stats={"name": "Enemy Unit", "hp": 10},
             ui=self.ui,
-            player_manager=self.player_manager
+            player_manager=self.player_manager,
         )
         self.turn = "Player"
         self.initialize_game()
@@ -1536,6 +1560,8 @@ if __name__ == "__main__":
     game = TacticalMap(root)
     root.mainloop()
 media_rw
+import random
+
 class CombatManager:
     def __init__(self, grid_elements, player_stats, enemy_stats, ui, player_manager):
         """
@@ -1643,6 +1669,44 @@ class CombatManager:
             return "Player is defeated!"
         else:
             return f"Player HP reduced to {self.player_stats['hp']}."
+
+    def trigger_explosion(self, position, debris_count=8):
+        """
+        Creates an explosion effect with debris at the specified position.
+
+        Args:
+            position (tuple): (x, y) coordinates for the explosion center.
+            debris_count (int): Number of debris pieces to scatter.
+        """
+        x, y = position
+        self.ui.update_log(f"[DEBUG] Explosion triggered at ({x}, {y}).")
+
+        for _ in range(debris_count):
+            dx = random.uniform(-20, 20)
+            dy = random.uniform(-20, 20)
+            debris_piece = self.ui.canvas.create_oval(
+                x - 5, y - 5, x + 5, y + 5,
+                fill="orange"
+            )
+            self._animate_debris(debris_piece, dx, dy)
+
+    def _animate_debris(self, debris, dx, dy, steps=20):
+        """
+        Animates a piece of debris along a trajectory.
+
+        Args:
+            debris (int): The canvas object ID of the debris.
+            dx (float): x-velocity.
+            dy (float): y-velocity.
+            steps (int): Number of animation steps.
+        """
+        def step_animation(step=0):
+            if step < steps:
+                self.ui.canvas.move(debris, dx / steps, dy / steps)
+                self.ui.canvas.after(50, step_animation, step + 1)
+            else:
+                self.ui.canvas.delete(debris)
+        step_animation()
 
     def is_adjacent(self, pos1, pos2):
         """
@@ -2467,6 +2531,7 @@ class TerrainManager:
 media_rw
 import math
 from tank import Tank  # Import from the Tank base class
+import random
 
 class Bomber(Tank):
     def __init__(self, canvas, x, y, color="gray", ui=None):
@@ -2492,7 +2557,7 @@ class Bomber(Tank):
         self.engines = []
         self.turrets = {}
         self.soviet_star = None
-        self.heading_angle = 0  # Default direction the bomber is facing (0°)
+        self.heading_angle = 0  # Default direction (0°)
 
         # Define turret rotation constraints
         self.turret_limits = {
@@ -2545,6 +2610,53 @@ class Bomber(Tank):
             self.x, self.y,
             text="★", fill="red", font=("Helvetica", star_size, "bold")
         )
+
+    def spin_test(self):
+        """
+        Spins the bomber by 45-degree increments every second to test rotational functionality.
+        """
+        def rotate_step(angle=0):
+            if angle >= 360:
+                return
+            self.rotate_to_heading(angle)
+            self.ui.update_log(f"[DEBUG] Bomber rotated to {angle}°.")
+            self.fire_turrets()
+            self.canvas.after(1000, rotate_step, angle + 45)
+
+        rotate_step(0)
+
+    def fire_turrets(self):
+        """
+        Simulates turret firing by creating projectiles from turret locations.
+        """
+        self.ui.update_log("[DEBUG] Turrets firing projectiles!")
+        for turret_name, turret_data in self.turrets.items():
+            angle = turret_data["angle"]
+            radians = math.radians(angle)
+            projectile_dx = 15 * math.cos(radians)
+            projectile_dy = 15 * math.sin(radians)
+            x1, y1, x2, y2 = self.canvas.coords(turret_data["id"])
+            turret_x = (x1 + x2) / 2
+            turret_y = (y1 + y2) / 2
+            projectile = self.canvas.create_oval(
+                turret_x - 2, turret_y - 2,
+                turret_x + 2, turret_y + 2,
+                fill="yellow"
+            )
+            self._animate_projectile(projectile, projectile_dx, projectile_dy)
+
+    def trigger_explosion(self):
+        """
+        Triggers an explosion animation at the bomber's location.
+        """
+        self.ui.update_log("[DEBUG] Triggering airplane explosion.")
+        for _ in range(10):  # Generate debris
+            dx = random.uniform(-50, 50)
+            dy = random.uniform(-50, 50)
+            debris = self.canvas.create_oval(
+                self.x - 5, self.y - 5, self.x + 5, self.y + 5, fill="orange"
+            )
+            self._animate_debris(debris, dx, dy)
 
     def _calculate_fuselage_points(self, length, height):
         """
@@ -2618,43 +2730,6 @@ class Bomber(Tank):
                 x - 4, y - 4, x + 4, y + 4, fill="red"
             )
             self.turrets[turret_name] = {"id": turret, "angle": 0}
-
-    def aim_turret(self, turret_name, target_x, target_y):
-        """
-        Aims a specific turret at a target point, respecting rotation limits.
-
-        Args:
-            turret_name (str): The name of the turret (e.g., "top", "rear").
-            target_x (float): X-coordinate of the target.
-            target_y (float): Y-coordinate of the target.
-        """
-        if turret_name not in self.turrets:
-            self.ui.update_log(f"[DEBUG] Invalid turret name: {turret_name}")
-            return
-
-        # Calculate angle to target
-        dx, dy = target_x - self.x, target_y - self.y
-        angle = math.degrees(math.atan2(dy, dx))
-
-        # Enforce turret rotation constraints
-        min_angle, max_angle = self.turret_limits[turret_name]
-        if angle < min_angle or angle > max_angle:
-            self.ui.update_log(f"[DEBUG] Target out of {turret_name} turret range: {angle}°")
-            return
-
-        self.turrets[turret_name]["angle"] = angle
-        self.ui.update_log(f"[DEBUG] {turret_name.capitalize()} turret aimed at {angle:.2f}°.")
-
-    def rotate_to_heading(self, heading_angle):
-        """
-        Rotates the bomber to face a specific heading.
-
-        Args:
-            heading_angle (float): New heading angle in degrees.
-        """
-        self.heading_angle = heading_angle % 360  # Normalize the angle
-        self.ui.update_log(f"[DEBUG] Bomber rotated to heading {self.heading_angle:.2f}°.")
-        self.draw()
 
     def _clear_previous_drawings(self):
         """
