@@ -1330,7 +1330,6 @@ from CombatManager import CombatManager
 from bomber import Bomber  # Import the Bomber class
 import math
 
-
 class TacticalMap:
     def __init__(self, root, on_replay=None):
         """
@@ -1409,6 +1408,9 @@ class TacticalMap:
         """
         self.bomber = Bomber(self.ui.canvas, x=x, y=y, ui=self.ui)
         self.ui.update_log("[DEBUG] Bomber rendered on the map for testing.")
+
+        # Start the spin test for the bomber
+        self.bomber.spin_test()
 
         # Schedule the bomber to self-destruct after 10 seconds
         self.ui.canvas.after(10000, self.trigger_bomber_explosion)
@@ -1552,7 +1554,6 @@ class TacticalMap:
         )
         self.turn = "Player"
         self.initialize_game()
-
 
 if __name__ == "__main__":
     root = tk.Tk()
@@ -2561,11 +2562,11 @@ class Bomber(Tank):
 
         # Define turret rotation constraints
         self.turret_limits = {
-            "top": (-90, 90),  # Top turret: 180° range
-            "bottom": (90, 270),  # Bottom turret
-            "left": (180, 360),  # Left turret
-            "right": (0, 180),  # Right turret
-            "rear": (135, 225)  # Rear turret
+            "top": (-90, 90),
+            "bottom": (90, 270),
+            "left": (180, 360),
+            "right": (0, 180),
+            "rear": (135, 225),
         }
 
         super().__init__(canvas, x, y, color, ui)
@@ -2579,11 +2580,10 @@ class Bomber(Tank):
         self._clear_previous_drawings()
 
         # Dimensions
-        body_length = 120  # Total fuselage length
-        body_height = 10   # Height of the main fuselage rectangle
-        wing_span = 150    # Wingspan
-        engine_radius = 8  # Radius of engines
-        star_size = 12      # Size of the Soviet star
+        body_length = 120
+        body_height = 10
+        wing_span = 150
+        star_size = 12
 
         # Calculate and draw fuselage with taper and rotation
         fuselage_points = self._calculate_fuselage_points(body_length, body_height)
@@ -2598,7 +2598,7 @@ class Bomber(Tank):
 
         # Draw engines symmetrically
         self.engines = []
-        for offset in [-40, 40]:  # Two engines per wing
+        for offset in [-40, 40]:
             self.engines.append(self._draw_engine(offset, -10))
             self.engines.append(self._draw_engine(offset, 10))
 
@@ -2625,6 +2625,17 @@ class Bomber(Tank):
 
         rotate_step(0)
 
+    def rotate_to_heading(self, heading_angle):
+        """
+        Rotates the bomber to face a specific heading.
+
+        Args:
+            heading_angle (float): The target heading angle in degrees.
+        """
+        self.heading_angle = heading_angle % 360  # Normalize the angle to 0–360°
+        self.ui.update_log(f"[DEBUG] Bomber rotated to heading {self.heading_angle:.2f}°.")
+        self.draw()  # Redraw the bomber to reflect the updated heading
+
     def fire_turrets(self):
         """
         Simulates turret firing by creating projectiles from turret locations.
@@ -2645,18 +2656,57 @@ class Bomber(Tank):
             )
             self._animate_projectile(projectile, projectile_dx, projectile_dy)
 
+    def _animate_projectile(self, projectile, dx, dy, steps=20):
+        """
+        Animates a projectile along a trajectory.
+
+        Args:
+            projectile (int): The canvas object ID of the projectile.
+            dx (float): The x-velocity of the projectile.
+            dy (float): The y-velocity of the projectile.
+            steps (int): Number of animation steps.
+        """
+        def step_animation(step=0):
+            if step < steps:
+                self.canvas.move(projectile, dx / steps, dy / steps)
+                self.canvas.after(50, step_animation, step + 1)
+            else:
+                self.canvas.delete(projectile)
+
+        step_animation()
+
     def trigger_explosion(self):
         """
         Triggers an explosion animation at the bomber's location.
         """
         self.ui.update_log("[DEBUG] Triggering airplane explosion.")
-        for _ in range(10):  # Generate debris
+        for _ in range(10):
             dx = random.uniform(-50, 50)
             dy = random.uniform(-50, 50)
             debris = self.canvas.create_oval(
-                self.x - 5, self.y - 5, self.x + 5, self.y + 5, fill="orange"
+                self.x - 5, self.y - 5, self.x + 5, self.y + 5,
+                fill="orange"
             )
             self._animate_debris(debris, dx, dy)
+
+    def _animate_debris(self, debris, dx, dy, steps=20):
+        """
+        Animates debris from the airplane explosion.
+
+        Args:
+            debris (int): Canvas object ID for the debris.
+            dx (float): x-velocity of the debris.
+            dy (float): y-velocity of the debris.
+            steps (int): Number of animation steps.
+        """
+        def step_animation(step=0):
+            if step < steps:
+                self.canvas.move(debris, dx / steps, dy / steps)
+                self.canvas.after(50, step_animation, step + 1)
+            else:
+                self.canvas.delete(debris)
+
+        step_animation()
 
     def _calculate_fuselage_points(self, length, height):
         """
@@ -2671,12 +2721,12 @@ class Bomber(Tank):
         """
         taper_length = length * 0.25  # Define taper length (25%)
         points = [
-            (-length / 2 + taper_length, -height / 2),  # Rear top
-            (length / 2 - taper_length, -height / 2),  # Front top
-            (length / 2, 0),  # Front tip
-            (length / 2 - taper_length, height / 2),  # Front bottom
-            (-length / 2 + taper_length, height / 2),  # Rear bottom
-            (-length / 2, 0)  # Rear tip
+            (-length / 2 + taper_length, -height / 2),
+            (length / 2 - taper_length, -height / 2),
+            (length / 2, 0),
+            (length / 2 - taper_length, height / 2),
+            (-length / 2 + taper_length, height / 2),
+            (-length / 2, 0),
         ]
         return [self._rotate_point(x, y) for x, y in points]
 
@@ -2709,7 +2759,8 @@ class Bomber(Tank):
         """
         x, y = self._rotate_point(x_offset, y_offset)
         return self.canvas.create_oval(
-            x - 5, y - 5, x + 5, y + 5, fill="black"
+            x - 5, y - 5, x + 5, y + 5,
+            fill="black"
         )
 
     def _draw_turrets(self):
@@ -2721,7 +2772,7 @@ class Bomber(Tank):
             "bottom": (0, 50),
             "left": (-60, 0),
             "right": (60, 0),
-            "rear": (-40, 30)
+            "rear": (-40, 30),
         }
 
         for turret_name, (x_offset, y_offset) in turret_positions.items():
