@@ -2656,7 +2656,7 @@ class Bomber(Tank):
             )
             self._animate_projectile(projectile, projectile_dx, projectile_dy)
 
-    def _animate_projectile(self, projectile, dx, dy, steps=20):
+    def _animate_projectile(self, projectile, dx, dy, steps=0.1):
         """
         Animates a projectile along a trajectory.
 
@@ -2664,12 +2664,12 @@ class Bomber(Tank):
             projectile (int): The canvas object ID of the projectile.
             dx (float): The x-velocity of the projectile.
             dy (float): The y-velocity of the projectile.
-            steps (int): Number of animation steps.
+            steps (float): Number of animation steps.
         """
         def step_animation(step=0):
             if step < steps:
                 self.canvas.move(projectile, dx / steps, dy / steps)
-                self.canvas.after(50, step_animation, step + 1)
+                self.canvas.after(20, step_animation, step + 1)
             else:
                 self.canvas.delete(projectile)
 
@@ -2677,17 +2677,38 @@ class Bomber(Tank):
 
     def trigger_explosion(self):
         """
-        Triggers an explosion animation at the bomber's location.
+        Triggers an enhanced explosion animation at the bomber's location.
+        All sub-objects (wings, engines, turrets, etc.) fly apart dynamically.
         """
-        self.ui.update_log("[DEBUG] Triggering airplane explosion.")
-        for _ in range(10):
-            dx = random.uniform(-50, 50)
-            dy = random.uniform(-50, 50)
+        self.ui.update_log("[DEBUG] Triggering enhanced airplane explosion.")
+
+        # Fly apart bomber components
+        components = [self.body, self.wings, self.soviet_star] + self.engines
+        components += [turret["id"] for turret in self.turrets.values()]
+
+        for component in components:
+            if component:
+                # Apply random velocities for each component
+                dx = random.uniform(-70, 70)
+                dy = random.uniform(-70, 70)
+                self._animate_debris(component, dx, dy, steps=30)
+
+        # Additionally, scatter extra debris for visual effect
+        for _ in range(20):  # Number of random debris pieces
+            dx = random.uniform(-100, 100)
+            dy = random.uniform(-100, 100)
             debris = self.canvas.create_oval(
                 self.x - 5, self.y - 5, self.x + 5, self.y + 5,
                 fill="orange"
             )
-            self._animate_debris(debris, dx, dy)
+            self._animate_debris(debris, dx, dy, steps=30)
+
+        # Clear references to bomber components after explosion
+        self.body = None
+        self.wings = None
+        self.engines = []
+        self.turrets = {}
+        self.soviet_star = None
 
     def _animate_debris(self, debris, dx, dy, steps=20):
         """
@@ -2748,8 +2769,7 @@ class Bomber(Tank):
 
     def _draw_engine(self, x_offset, y_offset):
         """
-        Draws an engine at a specified offset, rotated based on the heading.
-
+        Draws an engine at a specified offset, rotated based on the
         Args:
             x_offset (float): Horizontal offset.
             y_offset (float): Vertical offset.
