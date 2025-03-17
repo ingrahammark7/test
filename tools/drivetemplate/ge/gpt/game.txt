@@ -2466,135 +2466,210 @@ class TerrainManager:
             self._update_canvas_cell(rect_id, "lightgray")
 media_rw
 import math
-from tank import Tank  # Ensure consistent lowercase import
+from tank import Tank  # Import from the Tank base class
 
 class Bomber(Tank):
     def __init__(self, canvas, x, y, color="gray", ui=None):
         """
-        Initializes the Bomber object and ensures that all attributes are properly initialized.
+        Initializes the Bomber object with attributes for its components and turret configuration.
 
         Args:
             canvas (tk.Canvas): The canvas to draw the bomber on.
             x (float): The x-coordinate of the bomber's center.
             y (float): The y-coordinate of the bomber's center.
             color (str): The primary color of the bomber (default: gray).
-            ui (GameUI, optional): An instance of GameUI for logging.
+            ui (GameUI, optional): Instance of GameUI for logging/debugging.
         """
-        # Initialize bomber-specific components to avoid AttributeError
+        self.canvas = canvas
+        self.x = x
+        self.y = y
+        self.color = color
+        self.ui = ui  # UI instance for logging/debugging
+
+        # Initialize graphical components
         self.body = None
         self.wings = None
         self.engines = []
-        self.turrets = []
+        self.turrets = {}
         self.soviet_star = None
+        self.heading_angle = 0  # Default direction the bomber is facing (0°)
 
-        # Now call the parent constructor
+        # Define turret rotation constraints
+        self.turret_limits = {
+            "top": (-90, 90),  # Top turret: 180° range
+            "bottom": (90, 270),  # Bottom turret
+            "left": (180, 360),  # Left turret
+            "right": (0, 180),  # Right turret
+            "rear": (135, 225)  # Rear turret
+        }
+
         super().__init__(canvas, x, y, color, ui)
-
-        print("[DEBUG] Bomber initialized successfully with all attributes set.")
+        self.ui.update_log("[DEBUG] Bomber initialized successfully.")
 
     def draw(self):
         """
-        Draws the bomber components (body, engines, wings, turrets) on the canvas.
+        Draws the bomber components, respecting the current heading angle and appearance.
         """
-        print("[DEBUG] Entering draw() method.")
+        self.ui.update_log("[DEBUG] Drawing bomber with aerodynamic fuselage and turrets.")
         self._clear_previous_drawings()
 
-        # Bomber dimensions
-        body_width, body_height = 80, 30
-        wing_span = 100
-        engine_radius = 8
-        turret_radius = 5
+        # Dimensions
+        body_length = 120  # Total fuselage length
+        body_height = 10   # Height of the main fuselage rectangle
+        wing_span = 150    # Wingspan
+        engine_radius = 8  # Radius of engines
+        star_size = 12      # Size of the Soviet star
 
-        # Draw body (fuselage)
-        self.body = self.canvas.create_oval(
-            self.x - body_width / 2, self.y - body_height / 2,
-            self.x + body_width / 2, self.y + body_height / 2,
-            fill=self.color
-        )
-        print("[DEBUG] Bomber body created.")
+        # Calculate and draw fuselage with taper and rotation
+        fuselage_points = self._calculate_fuselage_points(body_length, body_height)
+        self.body = self.canvas.create_polygon(fuselage_points, fill=self.color, outline="black")
 
         # Draw wings
         self.wings = self.canvas.create_line(
-            self.x - wing_span / 2, self.y,
-            self.x + wing_span / 2, self.y,
-            fill="darkgray", width=3
+            *self._rotate_point(-wing_span / 2, 0),
+            *self._rotate_point(wing_span / 2, 0),
+            fill="darkgray", width=4
         )
-        print("[DEBUG] Bomber wings created.")
 
-        # Draw engines (4 total, 2 on each wing root)
-        self.engines = [
-            self.canvas.create_oval(
-                self.x - 30 - engine_radius, self.y - 10 - engine_radius,
-                self.x - 30 + engine_radius, self.y - 10 + engine_radius,
-                fill="black"
-            ),
-            self.canvas.create_oval(
-                self.x - 30 - engine_radius, self.y + 10 - engine_radius,
-                self.x - 30 + engine_radius, self.y + 10 + engine_radius,
-                fill="black"
-            ),
-            self.canvas.create_oval(
-                self.x + 30 - engine_radius, self.y - 10 - engine_radius,
-                self.x + 30 + engine_radius, self.y - 10 + engine_radius,
-                fill="black"
-            ),
-            self.canvas.create_oval(
-                self.x + 30 - engine_radius, self.y + 10 - engine_radius,
-                self.x + 30 + engine_radius, self.y + 10 + engine_radius,
-                fill="black"
-            )
-        ]
-        print("[DEBUG] Bomber engines created.")
+        # Draw engines symmetrically
+        self.engines = []
+        for offset in [-40, 40]:  # Two engines per wing
+            self.engines.append(self._draw_engine(offset, -10))
+            self.engines.append(self._draw_engine(offset, 10))
 
         # Draw turrets
-        self.turrets = [
-            self.canvas.create_oval(  # Chin turret
-                self.x - turret_radius, self.y + body_height / 2 - turret_radius,
-                self.x + turret_radius, self.y + body_height / 2 + turret_radius,
-                fill="red"
-            ),
-            self.canvas.create_oval(  # Rear turret
-                self.x - turret_radius, self.y - body_height / 2 - turret_radius,
-                self.x + turret_radius, self.y - body_height / 2 + turret_radius,
-                fill="red"
-            ),
-            self.canvas.create_oval(  # Left turret
-                self.x - body_width / 2 - turret_radius, self.y - turret_radius,
-                self.x - body_width / 2 + turret_radius, self.y + turret_radius,
-                fill="red"
-            ),
-            self.canvas.create_oval(  # Right turret
-                self.x + body_width / 2 - turret_radius, self.y - turret_radius,
-                self.x + body_width / 2 + turret_radius, self.y + turret_radius,
-                fill="red"
-            )
-        ]
-        print("[DEBUG] Bomber turrets created.")
+        self._draw_turrets()
 
         # Draw the Soviet star
         self.soviet_star = self.canvas.create_text(
             self.x, self.y,
-            text="★", fill="red", font=("Helvetica", 16, "bold")
+            text="★", fill="red", font=("Helvetica", star_size, "bold")
         )
-        print("[DEBUG] Soviet star created.")
+
+    def _calculate_fuselage_points(self, length, height):
+        """
+        Calculates the rotated fuselage points for a tapered body.
+
+        Args:
+            length (float): Length of the fuselage.
+            height (float): Height of the main fuselage rectangle.
+
+        Returns:
+            list: List of rotated points for the fuselage polygon.
+        """
+        taper_length = length * 0.25  # Define taper length (25%)
+        points = [
+            (-length / 2 + taper_length, -height / 2),  # Rear top
+            (length / 2 - taper_length, -height / 2),  # Front top
+            (length / 2, 0),  # Front tip
+            (length / 2 - taper_length, height / 2),  # Front bottom
+            (-length / 2 + taper_length, height / 2),  # Rear bottom
+            (-length / 2, 0)  # Rear tip
+        ]
+        return [self._rotate_point(x, y) for x, y in points]
+
+    def _rotate_point(self, x, y):
+        """
+        Rotates a point around the bomber's center based on the current heading.
+
+        Args:
+            x (float): X-coordinate relative to the center.
+            y (float): Y-coordinate relative to the center.
+
+        Returns:
+            tuple: Rotated (x, y) coordinates.
+        """
+        radians = math.radians(self.heading_angle)
+        rotated_x = self.x + x * math.cos(radians) - y * math.sin(radians)
+        rotated_y = self.y + x * math.sin(radians) + y * math.cos(radians)
+        return rotated_x, rotated_y
+
+    def _draw_engine(self, x_offset, y_offset):
+        """
+        Draws an engine at a specified offset, rotated based on the heading.
+
+        Args:
+            x_offset (float): Horizontal offset.
+            y_offset (float): Vertical offset.
+
+        Returns:
+            int: Canvas object ID of the created engine.
+        """
+        x, y = self._rotate_point(x_offset, y_offset)
+        return self.canvas.create_oval(
+            x - 5, y - 5, x + 5, y + 5, fill="black"
+        )
+
+    def _draw_turrets(self):
+        """
+        Draws turrets at specified positions on the bomber.
+        """
+        turret_positions = {
+            "top": (0, -50),
+            "bottom": (0, 50),
+            "left": (-60, 0),
+            "right": (60, 0),
+            "rear": (-40, 30)
+        }
+
+        for turret_name, (x_offset, y_offset) in turret_positions.items():
+            x, y = self._rotate_point(x_offset, y_offset)
+            turret = self.canvas.create_oval(
+                x - 4, y - 4, x + 4, y + 4, fill="red"
+            )
+            self.turrets[turret_name] = {"id": turret, "angle": 0}
+
+    def aim_turret(self, turret_name, target_x, target_y):
+        """
+        Aims a specific turret at a target point, respecting rotation limits.
+
+        Args:
+            turret_name (str): The name of the turret (e.g., "top", "rear").
+            target_x (float): X-coordinate of the target.
+            target_y (float): Y-coordinate of the target.
+        """
+        if turret_name not in self.turrets:
+            self.ui.update_log(f"[DEBUG] Invalid turret name: {turret_name}")
+            return
+
+        # Calculate angle to target
+        dx, dy = target_x - self.x, target_y - self.y
+        angle = math.degrees(math.atan2(dy, dx))
+
+        # Enforce turret rotation constraints
+        min_angle, max_angle = self.turret_limits[turret_name]
+        if angle < min_angle or angle > max_angle:
+            self.ui.update_log(f"[DEBUG] Target out of {turret_name} turret range: {angle}°")
+            return
+
+        self.turrets[turret_name]["angle"] = angle
+        self.ui.update_log(f"[DEBUG] {turret_name.capitalize()} turret aimed at {angle:.2f}°.")
+
+    def rotate_to_heading(self, heading_angle):
+        """
+        Rotates the bomber to face a specific heading.
+
+        Args:
+            heading_angle (float): New heading angle in degrees.
+        """
+        self.heading_angle = heading_angle % 360  # Normalize the angle
+        self.ui.update_log(f"[DEBUG] Bomber rotated to heading {self.heading_angle:.2f}°.")
+        self.draw()
 
     def _clear_previous_drawings(self):
         """
-        Safely clears the previous drawings of the bomber components before redrawing.
+        Clears all previous drawings of the bomber.
         """
-        print("[DEBUG] Entering _clear_previous_drawings() method.")
-        components = [self.body, self.wings, self.soviet_star] + self.engines + self.turrets
+        components = [self.body, self.wings, self.soviet_star] + self.engines
+        components += [turret["id"] for turret in self.turrets.values()]
         for component in components:
-            if component:  # Check if component exists before attempting to delete
+            if component:
                 self.canvas.delete(component)
-
-        # Reset attributes to ensure they are not reused accidentally
         self.body = None
         self.wings = None
         self.engines = []
-        self.turrets = []
+        self.turrets = {}
         self.soviet_star = None
-        print("[DEBUG] All previous components cleared.")
 media_rw
 import tkinter as tk
 
