@@ -1,3 +1,5 @@
+#gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=flattened_f.pdf f.pdf
+
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
