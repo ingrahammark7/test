@@ -7,4 +7,5 @@ pip install yt-dlp setuptools youtube-dl gallery-dl beautifulsoup4 build reportl
 apt install root-repo
 apt install iw
 apt install libc++ libnl libpcap libsqlite openssl pcre zlib -y
+apt-get install -y ghostscript
 CFLAGS="-Wno-error=incompatible-function-pointer-types -O0" pip install lxml
