@@ -1,0 +1,141 @@
+
+import tkinter as tk
+from tkinter import ttk
+import math
+import random
+
+class GameUI():
+
+    def __init__(self, root):
+        '\n        Initializes the GameUI with a scrollable map (canvas-based),\n        log area, and tank rendering.\n        '
+        self.root = root
+        self.main_frame = tk.Frame(self.root)
+        self.main_frame.pack(fill='both', expand=True)
+        self.canvas = tk.Canvas(self.main_frame, bg='white', width=800, height=300)
+        self.scrollbar_y = ttk.Scrollbar(self.main_frame, orient='vertical', command=self.canvas.yview)
+        self.scrollbar_x = ttk.Scrollbar(self.main_frame, orient='horizontal', command=self.canvas.xview)
+        self.canvas.configure(yscrollcommand=self.scrollbar_y.set, xscrollcommand=self.scrollbar_x.set)
+        self.scrollbar_y.pack(side='right', fill='y')
+        self.scrollbar_x.pack(side='bottom', fill='x')
+        self.canvas.pack(side='left', fill='both', expand=True)
+        self.grid_elements = {}
+        self.cell_states = {}
+        self.tank_graphics = {}
+        self.log_area = None
+        self.create_log_area()
+
+    def create_log_area(self):
+        '\n        Creates a text area to display the game log.\n        '
+        self.log_area = tk.Text(self.root, height=5, wrap='word', bg='lightyellow')
+        self.log_area.pack(side='bottom', fill='x')
+        self.log_area.configure(state='disabled')
+
+    def create_map(self, rows, cols, cell_click_callback):
+        '\n        Creates a dynamically sized map grid.\n\n        Args:\n            rows (int): Number of rows in the grid.\n            cols (int): Number of columns in the grid.\n            cell_click_callback (callable): Function to call when a cell is clicked.\n        '
+        self.grid_elements.clear()
+        self.cell_states.clear()
+        cell_width = 50
+        cell_height = 50
+        for row in range(rows):
+            for col in range(cols):
+                coord = (row, col)
+                (x1, y1) = ((col * cell_width), (row * cell_height))
+                (x2, y2) = ((x1 + cell_width), (y1 + cell_height))
+                rect_id = self.canvas.create_rectangle(x1, y1, x2, y2, fill='lightgray', outline='black')
+                self.grid_elements[coord] = rect_id
+                self.cell_states[coord] = 'Empty'
+                self.canvas.tag_bind(rect_id, '<Button-1>', (lambda event, c=coord: cell_click_callback(c)))
+
+
+
+        def update_log(self, message):
+            '\n            Appends a message to the log area.\n    \n            Args:\n                message (str): The message to display.\n            '
+            if self.log_area:
+                self.log_area.configure(state='normal')
+                self.log_area.insert(tk.END, (message + '\n'))
+                self.log_area.see(tk.END)
+                self.log_area.configure(state='disabled')
+            try:
+                with open('t64log.txt', 'a') as log_file:
+                    log_file.write((message + '\n'))
+            except Exception as e:
+                print(f'[ERROR] Failed to write to log file: {e}')
+
+        def draw_tank(self, coord, hull_angle=0, turret_angle=0):
+            '\n            Draws a tank at the specified numeric coordinate, adjusting its hull and turret direction.\n    \n            Args:\n                coord (tuple): Numeric grid coordinate as (row, col).\n                hull_angle (float): The angle of the hull (in degrees).\n                turret_angle (float): The angle of the turret (in degrees).\n            '
+            if (coord not in self.grid_elements):
+                print(f'[LOG] {coord} is not a valid coordinate.')
+                return
+            self.clear_tank()
+            rect_id = self.grid_elements[coord]
+            (x1, y1, x2, y2) = self.canvas.coords(rect_id)
+            center_x = ((x1 + x2) / 2)
+            center_y = ((y1 + y2) / 2)
+            (hull_width, hull_height) = (30, 20)
+            turret_radius = 8
+            gun_length = 20
+            hull_dx = ((hull_width / 2) * math.cos(math.radians(hull_angle)))
+            hull_dy = ((hull_width / 2) * math.sin(math.radians(hull_angle)))
+            offset_x = ((hull_height / 2) * math.sin(math.radians(hull_angle)))
+            offset_y = ((hull_height / 2) * math.cos(math.radians(hull_angle)))
+            hull_corners = [(((center_x - hull_dx) - offset_x), ((center_y - hull_dy) + offset_y)), (((center_x + hull_dx) - offset_x), ((center_y + hull_dy) + offset_y)), (((center_x + hull_dx) + offset_x), ((center_y + hull_dy) - offset_y)), (((center_x - hull_dx) + offset_x), ((center_y - hull_dy) - offset_y))]
+            self.tank_graphics['hull'] = self.canvas.create_polygon(hull_corners, fill='green')
+            self.tank_graphics['turret'] = self.canvas.create_oval((center_x - turret_radius), (center_y - turret_radius), (center_x + turret_radius), (center_y + turret_radius), fill='darkgreen')
+            gun_dx = (gun_length * math.cos(math.radians(turret_angle)))
+            gun_dy = (gun_length * math.sin(math.radians(turret_angle)))
+            self.tank_graphics['gun'] = self.canvas.create_line(center_x, center_y, (center_x + gun_dx), (center_y + gun_dy), fill='black', width=3)
+            print(f'[LOG] Tank drawn at {coord} with hull_angle={hull_angle}° and turret_angle={turret_angle}°')
+
+        def clear_tank(self):
+            '\n            Clears all tank graphics from the canvas.\n            '
+            for part in self.tank_graphics.values():
+                self.canvas.delete(part)
+            self.tank_graphics.clear()
+
+        def update_cell(self, coord, terrain_type, color):
+            '\n            Updates the visual appearance of a cell on the grid.\n    \n            Args:\n                coord (tuple): Numeric grid coordinate as (row, col).\n                terrain_type (str): The terrain type designation (e.g., "Forest").\n                color (str): The fill color for the cell.\n            '
+            if (coord in self.grid_elements):
+                rect_id = self.grid_elements[coord]
+                self.canvas.itemconfig(rect_id, fill=color)
+                self.cell_states[coord] = terrain_type
+
+        def display_game_over_overlay(self, message, restart_command=None):
+            '\n            Displays a game over overlay on the canvas along with a \'Play Again\' button if provided.\n    \n            Args:\n                message (str): A message to display (e.g., "You Win!" or "Game Over!").\n                restart_command (callable, optional): Function to call when the play-again button is clicked.\n            '
+            width = self.canvas.winfo_width()
+            height = self.canvas.winfo_height()
+            self.canvas.create_rectangle(0, 0, width, height, fill='black', stipple='gray50', tags='game_over_overlay')
+            self.canvas.create_text((width // 2), (height // 2), text=message, fill='white', font=('Helvetica', 32, 'bold'), tags='game_over_text')
+            if restart_command:
+                restart_button = tk.Button(self.root, text='Play Again', command=restart_command, bg='green', fg='white')
+                self.canvas.create_window((width // 2), ((height // 2) + 50), window=restart_button, tags='restart_button')
+            print(f'[LOG] Game Over overlay displayed with message: {message}')
+
+        def reset(self):
+            '\n            Resets the GameUI: clears canvas elements, grid, and log.\n            '
+            self.canvas.delete('all')
+            self.grid_elements.clear()
+            self.cell_states.clear()
+            self.tank_graphics.clear()
+            if self.log_area:
+                self.log_area.configure(state='normal')
+                self.log_area.delete(1.0, tk.END)
+                self.log_area.configure(state='disabled')
+
+        def turret_toss(self, x, y, debris_count=6, range_min=15, range_max=30):
+            '\n            Creates a turret toss animation with randomized debris.\n    \n            Args:\n                x (float): The x-coordinate for the toss center.\n                y (float): The y-coordinate for the toss center.\n                debris_count (int): Number of debris pieces to create.\n                range_min (int): Minimum scatter range.\n                range_max (int): Maximum scatter range.\n            '
+            for _ in range(debris_count):
+                dx = random.uniform((- range_max), range_max)
+                dy = random.uniform((- range_max), range_max)
+                debris_piece = self.canvas.create_oval((x - 3), (y - 3), (x + 3), (y + 3), fill='orange')
+                self._animate_debris(debris_piece, dx, dy)
+
+        def _animate_debris(self, debris, dx, dy, steps=20):
+            '\n            Animates a piece of debris along a trajectory.\n    \n            Args:\n                debris (int): The canvas object ID of the debris.\n                dx (float): x-velocity.\n                dy (float): y-velocity.\n                steps (int): Number of animation steps.\n            '
+
+            def step_animation(step=0):
+                if (step < steps):
+                    self.canvas.move(debris, (dx / steps), (dy / steps))
+                    self.canvas.after(50, step_animation, (step + 1))
+                else:
+                    self.canvas.delete(debris)
+            step_animation()
