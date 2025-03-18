@@ -167,6 +167,7 @@ if __name__ == "__main__":
     rebuild_game_txt()
 media_rw
 import math
+import random
 
 class BomberHelper:
     def __init__(self, canvas, ui):
@@ -838,18 +839,18 @@ from BomberHelper import BomberHelper  # Ensure this helper is available
 import random
 
 class Bomber(Tank):
-    def __init__(self, canvas, x, y, color="gray", ui=None):
+    def __init__(self, canvas, x=200, y=150, color="gray", ui=None):
         """
         Initializes the Bomber object with components and configuration.
 
         Args:
             canvas (tk.Canvas): The canvas to draw the bomber.
-            x (float): X-coordinate of bomber's center.
-            y (float): Y-coordinate of bomber's center.
+            x (float, optional): X-coordinate of bomber's center (default: 200).
+            y (float, optional): Y-coordinate of bomber's center (default: 150).
             color (str): Bomber color.
             ui (GameUI, optional): Instance for logging/debugging.
         """
-        # Initialize Bomber-specific attributes BEFORE calling parent __init__
+        # Initialize Bomber-specific attributes before calling parent __init__
         self.helper = BomberHelper(canvas, ui)
         self.body = None
         self.wings = []
@@ -858,31 +859,30 @@ class Bomber(Tank):
         self.soviet_star = None
         self.heading_angle = 0  # Initial heading angle
 
-        # Call parent's constructor; it might call self.draw(),
-        # so attributes must already be defined.
+        # Call parent's constructor; ensures x, y are set to 200, 150 by default.
         super().__init__(canvas, x, y, color, ui)
-        self.ui.update_log("[DEBUG] Bomber initialized successfully.")
+        self.ui.update_log("[DEBUG] Bomber initialized successfully at (200, 150).")
 
     def draw(self):
         """
-        Draws the bomber's components—fuselage, wings, and engines—based on the current heading.
+        Draws the bomber's components—fuselage, wings, engines, etc.—based on the current heading.
         """
         self._clear_previous_drawings()
 
-        # Draw fuselage
+        # Draw fuselage using calculated points
         fuselage_points = self._calculate_fuselage_points(120, 10)
         self.body = self.canvas.create_polygon(fuselage_points, fill=self.color, outline="black")
 
-        # Draw left and right wings using the helper functions.
+        # Draw left and right wings using helper functions.
         self.wings = [
             self.helper.draw_wing(-60, 0, -60, 50, self.heading_angle),
-            self.helper.draw_wing(60, 0, 60, 50, self.heading_angle)
+            self.helper.draw_wing(60, 0, 60, 50, self.heading_angle),
         ]
 
-        # Draw engines symmetrically on each wing.
+        # Draw engines symmetrically using helper functions.
         self.engines = [
             self.helper.draw_engine(-40, -20, self.heading_angle),
-            self.helper.draw_engine(40, -20, self.heading_angle)
+            self.helper.draw_engine(40, -20, self.heading_angle),
         ]
 
     def rotate_to_heading(self, heading_angle):
@@ -892,7 +892,7 @@ class Bomber(Tank):
         Args:
             heading_angle (float): Target heading in degrees.
         """
-        self.heading_angle = heading_angle % 360  # Normalize angle to [0, 360)
+        self.heading_angle = heading_angle % 360  # Normalize heading to [0,360)
         self.ui.update_log(f"[DEBUG] Bomber rotated to heading {self.heading_angle:.2f}°.")
         self.draw()
 
@@ -934,9 +934,9 @@ class Bomber(Tank):
         Animates a projectile along a trajectory.
 
         Args:
-            projectile (int): Projectile canvas ID.
-            dx (float): Projectile x-velocity.
-            dy (float): Projectile y-velocity.
+            projectile (int): The canvas object ID of the projectile.
+            dx (float): The x-velocity.
+            dy (float): The y-velocity.
             steps (float): Number of animation steps.
         """
         def step_animation(step=0):
@@ -954,22 +954,20 @@ class Bomber(Tank):
         self.ui.update_log("[DEBUG] Triggering bomber explosion!")
         components = [self.body] + self.wings + self.engines
         self.helper.trigger_component_explosion(components, self.x, self.y)
-
-        # Clear component references after explosion.
         self.body = None
         self.wings = []
         self.engines = []
 
     def _calculate_fuselage_points(self, length, height):
         """
-        Calculates points for a tapered fuselage and rotates them.
+        Calculates rotated fuselage points for a tapered fuselage.
 
         Args:
             length (float): Fuselage length.
             height (float): Fuselage height.
 
         Returns:
-            list: Rotated points for fuselage polygon.
+            list: List of rotated points as tuples.
         """
         taper_length = length * 0.25
         points = [
@@ -984,7 +982,7 @@ class Bomber(Tank):
 
     def _clear_previous_drawings(self):
         """
-        Deletes all previously drawn bomber components and resets attributes.
+        Clears all previous bomber components.
         """
         components = []
         if self.body:
@@ -999,7 +997,6 @@ class Bomber(Tank):
             components.append(self.soviet_star)
         for comp in components:
             self.canvas.delete(comp)
-
         self.body = None
         self.wings = []
         self.engines = []
@@ -1295,6 +1292,11 @@ class GameUI:
             self.log_area.insert(tk.END, message + "\n")
             self.log_area.see(tk.END)
             self.log_area.configure(state="disabled")
+        try:
+            with open("t64log.txt", "a") as log_file:
+                log_file.write(message + "\n")
+        except Exception as e:
+           print(f"[ERROR] Failed to write to log file: {e}")
 
     def draw_tank(self, coord, hull_angle=0, turret_angle=0):
         """
