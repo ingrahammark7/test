@@ -1,46 +1,36 @@
 media_rw
-#python cs.py split --input game.txt
-#python cs.py rebuild --output game.txt
-
-import re
+#!/usr/bin/env python3
+import sys
 import os
-import ast
+import re
 import textwrap
+import ast
+import astunparse  # Install with: pip install astunparse
+import subprocess  # To execute the bash command
 
 def split_game_txt(input_file="game.txt"):
-    """Splits game.txt into individual Python files based on class names."""
+    """Splits game.txt into individual Python files based on class definitions."""
     try:
-        with open(input_file, "r") as file:
-            content = file.read()
-
-        # Split by separator
+        with open(input_file, "r") as f:
+            content = f.read()
         sections = content.split("media_rw")
         class_content_map = {}
-
         for section in sections:
             section = section.strip()
             if not section:
                 continue
-
-            # Extract class name
             match = re.search(r"class\s+(\w+)", section)
             if match:
                 class_name = match.group(1)
-                if class_name not in class_content_map:
-                    class_content_map[class_name] = section
-                else:
-                    class_content_map[class_name] += "\n\n" + section
+                class_content_map[class_name] = section
             else:
                 if class_content_map:
                     last_class = list(class_content_map.keys())[-1]
                     class_content_map[last_class] += "\n\n" + section
-
-        # Write each class to its own .py file
         for class_name, content in class_content_map.items():
-            with open(f"{class_name}.py", "w") as py_file:
-                py_file.write(content)
+            with open(f"{class_name}.py", "w") as pyfile:
+                pyfile.write(content)
             print(f"Created: {class_name}.py")
-
         print("Splitting completed.")
     except Exception as e:
         print(f"An error occurred during splitting: {e}")
@@ -49,87 +39,148 @@ def rebuild_game_txt(output_file="game.txt"):
     """Rebuilds game.txt by concatenating all .py files in the current directory."""
     try:
         py_files = [f for f in os.listdir() if f.endswith(".py")]
-        with open(output_file, "w") as game_file:
+        with open(output_file, "w") as outfile:
             for py_file in py_files:
-                with open(py_file, "r") as file:
-                    content = file.read()
-                    game_file.write("media_rw\n")
-                    game_file.write(content.strip() + "\n")
+                with open(py_file, "r") as f:
+                    content = f.read()
+                    outfile.write("media_rw\n")
+                    outfile.write(content.strip() + "\n")
         print(f"{output_file} successfully rebuilt from .py files.")
     except Exception as e:
         print(f"An error occurred during rebuilding: {e}")
 
-def validate_snippet(snippet):
-    """Validates the syntax of a code snippet using Python's AST module."""
+def combine_files(input1, input2, output):
+    """
+    Combines two Python files into one output file.
+
+    A fake class wrapper ("class Foo:") is added to temp2.txt if necessary
+    to ensure proper AST parsing. After merging, the fake class is removed
+    entirely from the final result using a bash command.
+
+    Args:
+        input1 (str): Path to the first input file (e.g., temp1.txt).
+        input2 (str): Path to the second input file (e.g., temp2.txt).
+        output (str): Path for the output file (e.g., result.txt).
+    """
+    if not os.path.exists(input1) or not os.path.exists(input2):
+        print(f"Error: One or both input files do not exist.")
+        return
+
     try:
-        dedented_snippet = textwrap.dedent(snippet)  # Remove unnecessary indentation
-        ast.parse(dedented_snippet)
-        print("Snippet is syntactically valid.")
-        return True
-    except SyntaxError as e:
-        print(f"Syntax error in snippet: {e}")
-        print("Snippet content:")
-        print(snippet)
-        return False
+        # Normalize both input files for consistent indentation
+        norm1 = normalize_indentation(input1)
+        norm2 = normalize_indentation(input2)
 
-def modify_file_from_temp(temp_file="temp.txt"):
-    """Modifies a .py file based on instructions from temp.txt."""
-    try:
-        with open(temp_file, "r") as file:
-            lines = file.readlines()
+        # Add a fake wrapper to temp2.txt if needed
+        tree2 = parse_with_fake_wrapper(norm2, input2)
+        tree1 = ast.parse(norm1, filename=input1)
 
-        filename = lines[0].strip()
-        start_line = int(lines[1].strip())
-        end_line = int(lines[2].strip())
-        snippet = "".join(lines[3:])
+        # Merge the trees
+        merged_tree = merge_ast(tree1, tree2)
 
-        # Validate the snippet syntax before applying
-        if not validate_snippet(snippet):
-            print("Modification aborted due to invalid syntax in snippet.")
-            return
+        # Convert the merged AST back to Python code
+        merged_code = astunparse.unparse(merged_tree)
 
-        if not os.path.exists(filename):
-            print(f"File {filename} not found.")
-            return
+        # Write the merged code to the output file
+        with open(output, "w") as out:
+            out.write(merged_code)
 
-        # Ensure the specified line range is valid
-        with open(filename, "r") as file:
-            file_contents = file.readlines()
-        if start_line > len(file_contents) or end_line > len(file_contents) + 1:
-            print(f"Invalid line range: {start_line}-{end_line}. File has {len(file_contents)} lines.")
-            return
+        # Run a bash command to remove any line containing "foo" or "Foo"
+        remove_lines_with_foo(output)
 
-        # Create a backup of the file
-        backup_filename = f"{filename}.bak"
-        os.rename(filename, backup_filename)
-        print(f"Backup created: {backup_filename}")
-
-        # Apply modification
-        modified_contents = (
-            file_contents[:start_line - 1] + file_contents[end_line:]  # Remove specified lines
-        )
-        modified_contents.insert(start_line - 1, snippet)  # Insert new snippet
-
-        with open(filename, "w") as file:
-            file.writelines(modified_contents)
-        print(f"{filename} successfully modified.")
+        print(f"Successfully combined '{input1}' and '{input2}' into '{output}'.")
     except Exception as e:
-        print(f"An error occurred during modification: {e}")
+        print(f"An error occurred during combination: {e}")
 
-def generate_temp_snippet(filename, start_line, end_line, new_code):
-    """Dynamically generates temp.txt based on the parameters provided."""
+def normalize_indentation(file_path):
+    """
+    Reads a file and ensures consistent 4-space indentation.
+
+    Args:
+        file_path (str): Path to the file to normalize.
+
+    Returns:
+        str: The normalized file content as a string.
+    """
     try:
-        temp_content = f"{filename}\n{start_line}\n{end_line}\n{new_code}"
-        with open("temp.txt", "w") as temp_file:
-            temp_file.write(temp_content)
-        print("Generated temp.txt with the following content:")
-        print(temp_content)
+        with open(file_path, "r") as f:
+            lines = f.readlines()
+        # Replace tabs with 4 spaces and remove trailing whitespace.
+        norm_lines = [line.replace("\t", "    ").rstrip() for line in lines]
+        return "\n".join(norm_lines)
     except Exception as e:
-        print(f"An error occurred during temp.txt generation: {e}")
+        raise RuntimeError(f"Failed to normalize indentation for {file_path}: {e}")
 
-if __name__ == "__main__":
+def parse_with_fake_wrapper(content, filename):
+    """
+    Ensures the content of the second file is parsable by wrapping it in a fake class
+    if necessary.
+
+    Args:
+        content (str): The file content as a string.
+        filename (str): The file name for reference.
+
+    Returns:
+        ast.Module: The parsed AST, with a fake wrapper if applied.
+    """
+    stripped_content = content.lstrip()
+    if stripped_content and not stripped_content.startswith(" "):
+        # Add a fake wrapper to ensure proper indentation for parsing
+        wrapped_content = "class Foo:\n" + "\n".join("    " + line for line in content.splitlines())
+        tree_with_wrapper = ast.parse(wrapped_content, filename=filename)
+        print("Applied fake class wrapper to ensure parsing of input2.")
+        return tree_with_wrapper
+    return ast.parse(content, filename=filename)
+
+def remove_lines_with_foo(file_path):
+    """
+    Removes any line containing "foo" or "Foo" (case-insensitive) using a bash command.
+
+    Args:
+        file_path (str): Path to the file to modify.
+    """
+    try:
+        command = f"sed -i '/[Ff][Oo][Oo]/d' {file_path}"
+        subprocess.run(command, shell=True, check=True)
+        print("Removed all lines containing 'foo' or 'Foo' from the result file.")
+    except Exception as e:
+        raise RuntimeError(f"Failed to remove lines containing 'foo' or 'Foo' from {file_path}: {e}")
+
+def merge_ast(tree1, tree2):
+    """
+    Merges two ASTs by appending elements from tree2 into tree1.
+
+    If tree2 contains function definitions (methods) and tree1 ends with a class,
+    those functions are appended to the body of the last class in tree1.
+
+    Args:
+        tree1 (ast.Module): The AST of the first file.
+        tree2 (ast.Module): The AST of the second file.
+
+    Returns:
+        ast.Module: The merged AST.
+    """
+    if not isinstance(tree1, ast.Module) or not isinstance(tree2, ast.Module):
+        raise ValueError("Both ASTs must be ast.Module instances.")
+
+    body1 = tree1.body
+    body2 = tree2.body
+
+    # If the last element of tree1 is a class definition, append functions from tree2 to it.
+    if body1 and isinstance(body1[-1], ast.ClassDef):
+        class_node = body1[-1]
+        for node in body2:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                class_node.body.append(node)
+            else:
+                body1.append(node)
+    else:
+        body1.extend(body2)
+
+    return tree1
+
+def main():
     import argparse
-
     parser = argparse.ArgumentParser(description="Manage game.txt and Python files.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -138,33 +189,27 @@ if __name__ == "__main__":
     split_parser.add_argument("--input", type=str, default="game.txt", help="Path to game.txt")
 
     # Rebuild command
-    rebuild_parser = subparsers.add_parser("rebuild", help="Rebuild game.txt from .py files.")
-    rebuild_parser.add_argument("--output", type=str, default="game.txt", help="Path to output game.txt")
+    rebuild_parser = subparsers.add_parser("rebuild", help="Rebuild game.txt from the individual .py files.")
+    rebuild_parser.add_argument("--output", type=str, default="game.txt", help="Output path for game.txt")
 
-    # Modify command
-    modify_parser = subparsers.add_parser("modify", help="Modify a .py file based on temp.txt.")
-    modify_parser.add_argument("--temp", type=str, default="temp.txt", help="Path to temp.txt")
-
-    # Generate temp.txt command
-    generate_parser = subparsers.add_parser("generate", help="Generate a temp.txt snippet.")
-    generate_parser.add_argument("--filename", type=str, required=True, help="Target filename to modify")
-    generate_parser.add_argument("--start", type=int, required=True, help="Start line number")
-    generate_parser.add_argument("--end", type=int, required=True, help="End line number")
-    generate_parser.add_argument("--code", type=str, required=True, help="Code to insert at start line")
+    # Combine command
+    combine_parser = subparsers.add_parser("combine", help="Combine two files into one result file.")
+    combine_parser.add_argument("--input1", type=str, required=True, help="Path to the first input file (e.g., temp1.txt)")
+    combine_parser.add_argument("--input2", type=str, required=True, help="Path to the second input file (e.g., temp2.txt)")
+    combine_parser.add_argument("--output", type=str, default="result.txt", help="Output file path (e.g., result.txt)")
 
     args = parser.parse_args()
-
     if args.command == "split":
         split_game_txt(input_file=args.input)
     elif args.command == "rebuild":
         rebuild_game_txt(output_file=args.output)
-    elif args.command == "modify":
-        modify_file_from_temp(temp_file=args.temp)
-    elif args.command == "generate":
-        generate_temp_snippet(args.filename, args.start, args.end, args.code)
+    elif args.command == "combine":
+        combine_files(args.input1, args.input2, args.output)
+    else:
+        parser.print_help()
 
-    # Automatically rebuild game.txt after every run
-    rebuild_game_txt()
+if __name__ == "__main__":
+    main()
 media_rw
 import math
 import random
@@ -834,77 +879,95 @@ class CombatManager:
         self.enemy_stats = enemy_stats if enemy_stats else {"hp": 10}
 media_rw
 import math
-from tank import Tank
-from BomberHelper import BomberHelper  # Ensure this helper is available
 import random
+from tank import Tank
+from BomberHelper import BomberHelper  # Ensure this helper is implemented properly
 
 class Bomber(Tank):
-    def __init__(self, canvas, x=200, y=150, color="gray", ui=None):
+    def __init__(self, canvas, x=None, y=None, color="gray", ui=None):
         """
         Initializes the Bomber object with components and configuration.
 
         Args:
             canvas (tk.Canvas): The canvas to draw the bomber.
-            x (float, optional): X-coordinate of bomber's center (default: 200).
-            y (float, optional): Y-coordinate of bomber's center (default: 150).
+            x (float): X-coordinate of the bomber's center. Defaults to canvas center.
+            y (float): Y-coordinate of the bomber's center. Defaults to canvas center.
             color (str): Bomber color.
             ui (GameUI, optional): Instance for logging/debugging.
         """
-        # Initialize Bomber-specific attributes before calling parent __init__
+        # Get canvas dimensions for default coordinates if none provided.
+        canvas_width = int(canvas.cget("width"))
+        canvas_height = int(canvas.cget("height"))
+        x = x if x is not None else canvas_width / 2
+        y = y if y is not None else canvas_height / 2
+
+        # Initialize Bomber-specific attributes BEFORE calling parent initializer.
         self.helper = BomberHelper(canvas, ui)
         self.body = None
         self.wings = []
         self.engines = []
         self.turrets = {}
         self.soviet_star = None
-        self.heading_angle = 0  # Initial heading angle
+        self.heading_angle = 0  # Starting heading
 
-        # Call parent's constructor; ensures x, y are set to 200, 150 by default.
+        # Call parent's constructor
         super().__init__(canvas, x, y, color, ui)
-        self.ui.update_log("[DEBUG] Bomber initialized successfully at (200, 150).")
+
+        # Explicitly store deployment coordinates for this bomber.
+        self.x = x
+        self.y = y
+
+        if ui:
+            ui.update_log(f"[DEBUG] Bomber initialized at ({self.x}, {self.y}).")
 
     def draw(self):
         """
-        Draws the bomber's components—fuselage, wings, engines, etc.—based on the current heading.
+        Draws the bomber's components—fuselage, wings, and engines—based on the current heading.
         """
         self._clear_previous_drawings()
+        print(f"[DEBUG] Drawing bomber at ({self.x}, {self.y}) with heading {self.heading_angle}°.")
 
-        # Draw fuselage using calculated points
+        # Compute fuselage points and draw the fuselage.
         fuselage_points = self._calculate_fuselage_points(120, 10)
+        print(f"[DEBUG] Fuselage points: {fuselage_points}")
         self.body = self.canvas.create_polygon(fuselage_points, fill=self.color, outline="black")
 
         # Draw left and right wings using helper functions.
         self.wings = [
             self.helper.draw_wing(-60, 0, -60, 50, self.heading_angle),
-            self.helper.draw_wing(60, 0, 60, 50, self.heading_angle),
+            self.helper.draw_wing(60, 0, 60, 50, self.heading_angle)
         ]
 
         # Draw engines symmetrically using helper functions.
         self.engines = [
             self.helper.draw_engine(-40, -20, self.heading_angle),
-            self.helper.draw_engine(40, -20, self.heading_angle),
+            self.helper.draw_engine(40, -20, self.heading_angle)
         ]
+
+        print(f"[DEBUG] Bomber components drawn: Body ID {self.body}, {len(self.wings)} wings, {len(self.engines)} engines.")
 
     def rotate_to_heading(self, heading_angle):
         """
         Rotates the bomber to face a specific heading and redraws it.
-
+        
         Args:
             heading_angle (float): Target heading in degrees.
         """
-        self.heading_angle = heading_angle % 360  # Normalize heading to [0,360)
-        self.ui.update_log(f"[DEBUG] Bomber rotated to heading {self.heading_angle:.2f}°.")
+        self.heading_angle = heading_angle % 360
+        if self.ui:
+            self.ui.update_log(f"[DEBUG] Bomber rotated to heading {self.heading_angle:.2f}° at ({self.x}, {self.y}).")
         self.draw()
 
     def spin_test(self):
         """
-        Spins the bomber by 45° increments every second.
+        Spins the bomber by 45° increments every second for testing.
         """
         def rotate_step(angle=0):
             if angle >= 360:
                 return
             self.rotate_to_heading(angle)
-            self.ui.update_log(f"[DEBUG] Bomber rotated to {angle}°.")
+            if self.ui:
+                self.ui.update_log(f"[DEBUG] Spin test: Bomber rotated to {angle}° at ({self.x}, {self.y}).")
             self.fire_turrets()
             self.canvas.after(1000, rotate_step, angle + 45)
         rotate_step(0)
@@ -913,37 +976,45 @@ class Bomber(Tank):
         """
         Simulates turret firing by creating projectiles from turret locations.
         """
-        self.ui.update_log("[DEBUG] Turrets firing projectiles!")
+        if self.ui:
+            self.ui.update_log("[DEBUG] Turrets firing projectiles!")
         for turret_name, turret_data in self.turrets.items():
             angle = turret_data["angle"]
             radians = math.radians(angle)
             projectile_dx = 15 * math.cos(radians)
             projectile_dy = 15 * math.sin(radians)
-            x1, y1, x2, y2 = self.canvas.coords(turret_data["id"])
-            turret_x = (x1 + x2) / 2
-            turret_y = (y1 + y2) / 2
-            projectile = self.canvas.create_oval(
-                turret_x - 2, turret_y - 2,
-                turret_x + 2, turret_y + 2,
-                fill="yellow"
-            )
-            self._animate_projectile(projectile, projectile_dx, projectile_dy)
+            coords = self.canvas.coords(turret_data["id"])
+            if coords:
+                x1, y1, x2, y2 = coords
+                turret_x = (x1 + x2) / 2
+                turret_y = (y1 + y2) / 2
+                if self.ui:
+                    self.ui.update_log(f"[DEBUG] Firing turret '{turret_name}' from ({turret_x}, {turret_y}) at {angle}°.")
+                projectile = self.canvas.create_oval(
+                    turret_x - 2, turret_y - 2,
+                    turret_x + 2, turret_y + 2,
+                    fill="yellow"
+                )
+                self._animate_projectile(projectile, projectile_dx, projectile_dy)
 
-    def _animate_projectile(self, projectile, dx, dy, steps=0.1):
+    def _animate_projectile(self, projectile, dx, dy, steps=20):
         """
         Animates a projectile along a trajectory.
-
+        
         Args:
             projectile (int): The canvas object ID of the projectile.
-            dx (float): The x-velocity.
-            dy (float): The y-velocity.
-            steps (float): Number of animation steps.
+            dx (float): The x-velocity of the projectile.
+            dy (float): The y-velocity of the projectile.
+            steps (int): Number of animation steps.
         """
         def step_animation(step=0):
             if step < steps:
-                self.canvas.move(projectile, dx/steps, dy/steps)
-                self.canvas.after(20, step_animation, step+1)
+                coords = self.canvas.coords(projectile)
+                print(f"[DEBUG] Projectile at step {step}: {coords}")
+                self.canvas.move(projectile, dx / steps, dy / steps)
+                self.canvas.after(20, step_animation, step + 1)
             else:
+                print("[DEBUG] Deleting projectile.")
                 self.canvas.delete(projectile)
         step_animation()
 
@@ -951,7 +1022,9 @@ class Bomber(Tank):
         """
         Triggers an explosion that scatters bomber components.
         """
-        self.ui.update_log("[DEBUG] Triggering bomber explosion!")
+        if self.ui:
+            self.ui.update_log(f"[DEBUG] Triggering bomber explosion at ({self.x}, {self.y}).")
+        print(f"[DEBUG] Explosion triggered at ({self.x}, {self.y}).")
         components = [self.body] + self.wings + self.engines
         self.helper.trigger_component_explosion(components, self.x, self.y)
         self.body = None
@@ -960,29 +1033,30 @@ class Bomber(Tank):
 
     def _calculate_fuselage_points(self, length, height):
         """
-        Calculates rotated fuselage points for a tapered fuselage.
-
+        Calculates points for a tapered fuselage and rotates them.
+        
         Args:
             length (float): Fuselage length.
             height (float): Fuselage height.
-
+        
         Returns:
-            list: List of rotated points as tuples.
+            list: Rotated points for the fuselage polygon.
         """
         taper_length = length * 0.25
         points = [
-            (-length/2 + taper_length, -height/2),
-            (length/2 - taper_length, -height/2),
-            (length/2, 0),
-            (length/2 - taper_length, height/2),
-            (-length/2 + taper_length, height/2),
-            (-length/2, 0),
+            (-length / 2 + taper_length, -height / 2),
+            (length / 2 - taper_length, -height / 2),
+            (length / 2, 0),
+            (length / 2 - taper_length, height / 2),
+            (-length / 2 + taper_length, height / 2),
+            (-length / 2, 0)
         ]
-        return [self.helper._rotate_point(x, y, self.heading_angle) for x, y in points]
+        rotated_points = [self.helper._rotate_point(x, y, self.heading_angle) for x, y in points]
+        return rotated_points
 
     def _clear_previous_drawings(self):
         """
-        Clears all previous bomber components.
+        Deletes all previously drawn bomber components and resets attributes.
         """
         components = []
         if self.body:
@@ -1256,7 +1330,7 @@ class GameUI:
 
     def create_map(self, rows, cols, cell_click_callback):
         """
-        Creates a dynamically sized map grid using canvas rectangles.
+        Creates a dynamically sized map grid without debug coordinate labels.
 
         Args:
             rows (int): Number of rows in the grid.
@@ -1271,13 +1345,17 @@ class GameUI:
 
         for row in range(rows):
             for col in range(cols):
-                coord = f"{chr(65 + row)}{col + 1}"  # e.g., A1, B1, etc.
+                # Generate cell coordinates (e.g., A1, A2, ...)
+                coord = f"{chr(65 + row)}{col + 1}"  # 'A1', 'B1', etc.
                 x1, y1 = col * cell_width, row * cell_height
                 x2, y2 = x1 + cell_width, y1 + cell_height
 
+                # Draw the grid cell without text labels
                 rect_id = self.canvas.create_rectangle(x1, y1, x2, y2, fill="lightgray", outline="black")
                 self.grid_elements[coord] = rect_id
                 self.cell_states[coord] = "Empty"
+
+                # Bind the cell click event
                 self.canvas.tag_bind(rect_id, "<Button-1>", lambda event, c=coord: cell_click_callback(c))
 
     def update_log(self, message):
@@ -1296,7 +1374,7 @@ class GameUI:
             with open("t64log.txt", "a") as log_file:
                 log_file.write(message + "\n")
         except Exception as e:
-           print(f"[ERROR] Failed to write to log file: {e}")
+            print(f"[ERROR] Failed to write to log file: {e}")
 
     def draw_tank(self, coord, hull_angle=0, turret_angle=0):
         """
@@ -1405,7 +1483,7 @@ class GameUI:
         if restart_command:
             restart_button = tk.Button(self.root, text="Play Again", command=restart_command, bg="green", fg="white")
             self.canvas.create_window(width // 2, height // 2 + 50, window=restart_button, tags="restart_button")
-        
+
         print(f"[LOG] Game Over overlay displayed with message: {message}")
 
     def reset(self):
@@ -1420,11 +1498,11 @@ class GameUI:
             self.log_area.configure(state="normal")
             self.log_area.delete(1.0, tk.END)
             self.log_area.configure(state="disabled")
-            
+
     def turret_toss(self, x, y, debris_count=6, range_min=15, range_max=30):
         """
         Creates a turret toss animation with randomized debris.
-
+    
         Args:
             x (float): The x-coordinate for the toss center.
             y (float): The y-coordinate for the toss center.
@@ -1439,11 +1517,11 @@ class GameUI:
                 x - 3, y - 3, x + 3, y + 3, fill="orange"
             )
             self._animate_debris(debris_piece, dx, dy)
-
+    
     def _animate_debris(self, debris, dx, dy, steps=20):
         """
         Animates a piece of debris along a trajectory.
-
+    
         Args:
             debris (int): The canvas object ID of the debris.
             dx (float): x-velocity.
