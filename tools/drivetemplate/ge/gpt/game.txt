@@ -1737,7 +1737,7 @@ class BomberHelper2:
 
     def draw_engine(self, x, y, pivot_x, pivot_y, heading_angle, width=4, length=16):
         """
-        Draws an engine as an elongated rectangle with specified dimensions,
+        Draws an engine as an elongated rectangle with the specified dimensions,
         rotated relative to the bomber.
         
         Args:
@@ -1754,13 +1754,16 @@ class BomberHelper2:
         """
         half_width = width / 2
         half_length = length / 2
+        # Define rectangle corners so that engine's longer dimension is along the bomber's axis
         points = [
-            (x - half_length, y - half_width),
-            (x + half_length, y - half_width),
-            (x + half_length, y + half_width),
-            (x - half_length, y + half_width)
+            (x - half_width, y - half_length),  # Top-left (engine "end" facing forward)
+            (x + half_width, y - half_length),  # Top-right
+            (x + half_width, y + half_length),  # Bottom-right
+            (x - half_width, y + half_length)   # Bottom-left
         ]
-        rotated_points = [self._rotate_point_relative(px, py, pivot_x, pivot_y, heading_angle) for px, py in points]
+        # Rotate each point around the bomber's center.
+        rotated_points = [self._rotate_point_relative(px, py, pivot_x, pivot_y, heading_angle) 
+                          for px, py in points]
         flat_points = [coord for point in rotated_points for coord in point]
         if self.ui:
             self.ui.update_log(f"[DEBUG] draw_engine: Rotated points: {rotated_points}, length={length}, width={width}")
@@ -1769,7 +1772,7 @@ class BomberHelper2:
     def draw_wing(self, x_root, y_root, wing_span, pivot_x, pivot_y, heading_angle):
         """
         Draws a wing attached to a specified root position, extending symmetrically.
-        
+
         Args:
             x_root (float): Root x-coordinate.
             y_root (float): Root y-coordinate.
@@ -1777,7 +1780,7 @@ class BomberHelper2:
             pivot_x (float): Bomber's center x-coordinate.
             pivot_y (float): Bomber's center y-coordinate.
             heading_angle (float): Rotation angle in degrees.
-        
+
         Returns:
             int: Canvas object ID of the wing.
         """
@@ -1794,11 +1797,11 @@ class BomberHelper2:
     def draw_turret(self, x, y):
         """
         Draws a turret at the specified position.
-        
+
         Args:
             x (float): X-coordinate of the turret center.
             y (float): Y-coordinate of the turret center.
-        
+
         Returns:
             int: Canvas object ID of the turret.
         """
@@ -1811,13 +1814,13 @@ class BomberHelper2:
     def draw_gun(self, x, y, angle, length=20):
         """
         Draws a gun line extending from the turret.
-        
+
         Args:
             x (float): Turret center x-coordinate.
             y (float): Turret center y-coordinate.
             angle (float): Firing angle in degrees.
             length (float): Length of the gun line.
-        
+
         Returns:
             int: Canvas object ID of the gun line.
         """
@@ -1832,14 +1835,14 @@ class BomberHelper2:
     def _rotate_point_relative(self, x, y, pivot_x, pivot_y, angle):
         """
         Rotates a point around a pivot by the given angle in degrees.
-        
+
         Args:
             x (float): X-coordinate of the point.
             y (float): Y-coordinate of the point.
             pivot_x (float): Pivot x-coordinate.
             pivot_y (float): Pivot y-coordinate.
             angle (float): Rotation angle in degrees.
-        
+
         Returns:
             tuple: The rotated (x, y) coordinates.
         """
@@ -1872,8 +1875,8 @@ class BomberHelper2:
 
     def _animate_debris(self, debris, dx, dy, steps=20):
         """
-        Animates debris to scatter along given vectors.
-        
+        Animates debris to scatter along given vectors, then deletes it.
+
         Args:
             debris (int): Canvas object ID of the debris.
             dx (float): Total x displacement.
