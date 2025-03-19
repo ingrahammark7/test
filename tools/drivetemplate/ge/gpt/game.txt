@@ -1886,106 +1886,124 @@ media_rw
 import math
 
 class BomberHelper2:
-    def __init__(self, canvas, ui=None):
+    def __init__(self, canvas, ui):
         """
-        Initializes the BomberHelper2 with the canvas and a UI for logging.
+        Helper class for Bomber that handles drawing, animation, and component management.
 
         Args:
             canvas (tk.Canvas): The canvas to draw on.
-            ui (GameUI, optional): Instance for logging/debugging.
+            ui (GameUI): The UI instance for logging and debugging.
         """
         self.canvas = canvas
         self.ui = ui
 
-    def draw_wing(self, offset_x, offset_y, length, base_x, base_y, angle):
+    def draw_engine(self, x, y, pivot_x, pivot_y, heading_angle, width=4, length=16):
         """
-        Draws a wing offset from the center of the bomber.
+        Draws an engine as an elongated rectangle (polygon) with the specified length and width,
+        rotating the shape relative to the bomber.
 
         Args:
-            offset_x (float): X-offset relative to the bomber's center.
-            offset_y (float): Y-offset relative to the bomber's center.
-            length (float): Length of the wing.
-            base_x (float): X-coordinate of the bomber's center.
-            base_y (float): Y-coordinate of the bomber's center.
-            angle (float): Rotation angle of the bomber.
+            x (float): X-coordinate of the engine's center relative to the body.
+            y (float): Y-coordinate of the engine's center relative to the body.
+            pivot_x (float): X-coordinate of the bomber's center.
+            pivot_y (float): Y-coordinate of the bomber's center.
+            heading_angle (float): Rotation angle of the bomber in degrees.
+            width (float): The width of the engine (default 4 pixels).
+            length (float): The length of the engine (default 16 pixels).
+
+        Returns:
+            int: Canvas object ID of the engine polygon.
+        """
+        half_width = width / 2
+        half_length = length / 2
+        # Define the four corners of the rectangle (engine) centered at (x, y)
+        points = [
+            (x - half_length, y - half_width),  # Top-left
+            (x + half_length, y - half_width),  # Top-right
+            (x + half_length, y + half_width),  # Bottom-right
+            (x - half_length, y + half_width)   # Bottom-left
+        ]
+        # Rotate each point around the pivot (bomber's center)
+        rotated_points = [
+            self._rotate_point_relative(px, py, pivot_x, pivot_y, heading_angle)
+            for px, py in points
+        ]
+        # Flatten the rotated points into a list for create_polygon.
+        flat_points = [coord for point in rotated_points for coord in point]
+        return self.canvas.create_polygon(flat_points, fill="darkgray", outline="black")
+
+    def draw_wing(self, x_root, y_root, wing_span, pivot_x, pivot_y, heading_angle):
+        """
+        Draws a wing attached to a specified root position, extending symmetrically.
+
+        Args:
+            x_root (float): Root x-coordinate relative to the body.
+            y_root (float): Root y-coordinate relative to the body.
+            wing_span (float): Horizontal span of the wing.
+            pivot_x (float): Bomber's center x-coordinate.
+            pivot_y (float): Bomber's center y-coordinate.
+            heading_angle (float): The rotation angle of the bomber in degrees.
 
         Returns:
             int: Canvas object ID of the wing.
         """
-        wing_start = (base_x + offset_x, base_y + offset_y)
-        wing_end = (wing_start[0] + length, wing_start[1])
-        rotated_start = self._rotate_point_relative(*wing_start, base_x, base_y, angle)
-        rotated_end = self._rotate_point_relative(*wing_end, base_x, base_y, angle)
-        return self.canvas.create_line(rotated_start[0], rotated_start[1],
-                                       rotated_end[0], rotated_end[1], fill="black", width=2)
-
-    def draw_engine(self, engine_x, engine_y, pivot_x, pivot_y, angle):
-        """
-        Draws an engine at the specified position and rotates it relative to the bomber.
-
-        Args:
-            engine_x (float): X-coordinate for the engine's position.
-            engine_y (float): Y-coordinate for the engine's position.
-            pivot_x (float): X-coordinate for rotation's pivot.
-            pivot_y (float): Y-coordinate for rotation's pivot.
-            angle (float): Rotation angle of the bomber.
-
-        Returns:
-            int: Canvas object ID of the engine.
-        """
-        rotated_engine = self._rotate_point_relative(engine_x, engine_y, pivot_x, pivot_y, angle)
-        return self.canvas.create_oval(rotated_engine[0] - 5, rotated_engine[1] - 5,
-                                       rotated_engine[0] + 5, rotated_engine[1] + 5,
-                                       fill="black", outline="gray")
+        # Define wing points relative to the root.
+        points = [
+            (x_root - wing_span / 2, y_root),  # Left tip
+            (x_root + wing_span / 2, y_root),  # Right tip
+            (x_root, y_root + 5)               # Trailing edge (for a slight sweep)
+        ]
+        # Rotate each point around the pivot.
+        rotated_points = [
+            self._rotate_point_relative(px, py, pivot_x, pivot_y, heading_angle)
+            for px, py in points
+        ]
+        flat_points = [coord for point in rotated_points for coord in point]
+        return self.canvas.create_polygon(flat_points, fill="darkgray", outline="black")
 
     def _rotate_point_relative(self, x, y, pivot_x, pivot_y, angle):
         """
-        Rotates point (x, y) around the pivot (pivot_x, pivot_y) by the specified angle in degrees.
+        Rotates a point (x, y) around a pivot (pivot_x, pivot_y) by the given angle in degrees.
 
         Args:
             x (float): X-coordinate of the point.
             y (float): Y-coordinate of the point.
-            pivot_x (float): X-coordinate of the pivot.
-            pivot_y (float): Y-coordinate of the pivot.
-            angle (float): Angle in degrees.
+            pivot_x (float): Pivot x-coordinate.
+            pivot_y (float): Pivot y-coordinate.
+            angle (float): Rotation angle in degrees.
 
         Returns:
             tuple: The new (x, y) coordinates after rotation.
         """
         radians = math.radians(angle)
-        # Translate the point to the origin.
         translated_x = x - pivot_x
         translated_y = y - pivot_y
-        
-        # Rotate the point.
         rotated_x = translated_x * math.cos(radians) - translated_y * math.sin(radians)
         rotated_y = translated_x * math.sin(radians) + translated_y * math.cos(radians)
-        
-        # Translate the point back.
         new_x = rotated_x + pivot_x
         new_y = rotated_y + pivot_y
         return new_x, new_y
 
-    def _animate_debris(self, debris_id, dx, dy, steps=20):
+    def _animate_debris(self, debris, dx, dy, steps=20):
         """
-        Animates a debris object along a trajectory, then deletes it.
+        Animates debris moving along a specified vector, then deletes the debris.
 
         Args:
-            debris_id (int): The canvas object ID of the debris.
+            debris (int): The canvas object ID of the debris.
             dx (float): Total x distance to move.
             dy (float): Total y distance to move.
             steps (int): Number of animation steps.
         """
         def step_animation(step=0):
             if step < steps:
-                self.canvas.move(debris_id, dx / steps, dy / steps)
+                self.canvas.move(debris, dx / steps, dy / steps)
                 if self.ui:
                     self.ui.update_log(f"[DEBUG] _animate_debris: Step {step}, moving by ({dx/steps}, {dy/steps})")
                 self.canvas.after(50, step_animation, step + 1)
             else:
                 if self.ui:
-                    self.ui.update_log(f"[DEBUG] _animate_debris: Debris animation complete for id {debris_id}")
-                self.canvas.delete(debris_id)
+                    self.ui.update_log(f"[DEBUG] _animate_debris: Debris animation complete for id {debris}")
+                self.canvas.delete(debris)
         step_animation()
 media_rw
 import random
