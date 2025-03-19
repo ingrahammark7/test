@@ -249,7 +249,7 @@ class BomberHelper:
             (x - half_length, y - half_width),  # Top-left
             (x + half_length, y - half_width),  # Top-right
             (x + half_length, y + half_width),  # Bottom-right
-            (x - half_length, y + half_width),  # Bottom-left
+            (x - half_length, y + half_width)   # Bottom-left
         ]
 
         # Rotate each point around the pivot point
@@ -264,37 +264,37 @@ class BomberHelper:
         # Draw the beveled rectangle as a polygon
         return self.canvas.create_polygon(flat_points, fill="darkgray", outline="black")
 
-    def draw_wing(self, x1, y1, x2, y2, pivot_x, pivot_y, heading_angle):
+    def draw_wing(self, x_root, y_root, wing_span, pivot_x, pivot_y, heading_angle):
         """
-        Draws a wing by rotating its endpoints around a pivot point.
+        Draws a wing attached to a specified root position, extending symmetrically.
 
         Args:
-            x1, y1 (float): Start point of the wing relative to the body.
-            x2, y2 (float): End point of the wing relative to the body.
-            pivot_x (float): X-coordinate of the bomber's center.
-            pivot_y (float): Y-coordinate of the bomber's center.
+            x_root, y_root (float): Root position of the wing relative to the body.
+            wing_span (float): Horizontal span of the wing (extends on both sides).
+            pivot_x, pivot_y (float): Center of rotation (bomber's center).
             heading_angle (float): The rotation angle of the bomber in degrees.
 
         Returns:
             int: Canvas object ID of the wing.
         """
-        p1 = self._rotate_point_relative(x1, y1, pivot_x, pivot_y, heading_angle)
-        p2 = self._rotate_point_relative(x2, y2, pivot_x, pivot_y, heading_angle)
-        return self.canvas.create_line(*p1, *p2, fill="darkgray", width=4)
+        # Define wing points relative to the root
+        points = [
+            (x_root - wing_span / 2, y_root),  # Left tip
+            (x_root + wing_span / 2, y_root),  # Right tip
+            (x_root, y_root + 5)               # Trailing edge (swept back)
+        ]
 
-    def trigger_component_explosion(self, components, pivot_x, pivot_y):
-        """
-        Triggers explosions for all components, scattering them dynamically.
+        # Rotate each point around the pivot point
+        rotated_points = [
+            self._rotate_point_relative(px, py, pivot_x, pivot_y, heading_angle)
+            for px, py in points
+        ]
 
-        Args:
-            components (list): List of canvas object IDs to scatter.
-            pivot_x (float): X-coordinate of the explosion center.
-            pivot_y (float): Y-coordinate of the explosion center.
-        """
-        for component in components:
-            dx = random.uniform(-70, 70)
-            dy = random.uniform(-70, 70)
-            self._animate_debris(component, dx, dy)
+        # Flatten the list of rotated points for the canvas create_polygon method
+        flat_points = [coord for point in rotated_points for coord in point]
+
+        # Draw the wing as a polygon
+        return self.canvas.create_polygon(flat_points, fill="darkgray", outline="black")
 
     def _rotate_point_relative(self, x, y, pivot_x, pivot_y, angle):
         """
@@ -913,7 +913,7 @@ media_rw
 import math
 import random
 from tank import Tank
-from BomberHelper import BomberHelper  # Ensure this helper contains _rotate_point_relative
+from bomberhelper2 import BomberHelper2  # Imported from bomberhelper2.py
 
 class Bomber(Tank):
     def __init__(self, canvas, x=None, y=None, color="gray", ui=None):
@@ -933,19 +933,22 @@ class Bomber(Tank):
         x = x if x is not None else canvas_width / 2
         y = y if y is not None else canvas_height / 2
 
+        # Initialize turrets as a numbered array with constrained firing ranges.
+        # Front turret fires between 0° and 120°, Rear turret fires between 150° and 330°.
+        self.turrets = [
+            {"angle_range": (0, 120), "angle": 0, "id": None},
+            {"angle_range": (150, 330), "angle": 180, "id": None}
+        ]
+
         # Initialize Bomber-specific attributes.
-        self.helper = BomberHelper(canvas, ui)
+        self.helper = BomberHelper2(canvas, ui)
         self.body = None
         self.wings = []
         self.engines = []
-        self.turrets = {}
-        self.soviet_star = None
         self.heading_angle = 0  # Starting heading in degrees
 
-        # Call parent constructor.
+        # Call parent Tank constructor.
         super().__init__(canvas, x, y, color, ui)
-
-        # Store the bomber's deployment coordinates.
         self.x = x
         self.y = y
 
@@ -957,32 +960,55 @@ class Bomber(Tank):
         Draws the bomber's components relative to its center and heading.
         """
         self._clear_previous_drawings()
-        print(f"[DEBUG] Drawing bomber at ({self.x}, {self.y}) with heading {self.heading_angle}°.")
+        if self.ui:
+            self.ui.update_log(f"[DEBUG] Drawing bomber at ({self.x}, {self.y}) with heading {self.heading_angle}°.")
 
-        # Compute fuselage points relative to bomber's center.
+        # Draw fuselage.
         fuselage_points = self._calculate_fuselage_points(120, 10)
         self.body = self.canvas.create_polygon(fuselage_points, fill=self.color, outline="black")
 
-        # Draw wings relative to bomber's center.
+        # Draw wings.
+        # Attach left wing at (0, 13) and right wing at (0, -13) relative to the bomber's center.
         self.wings = [
-            self.helper.draw_wing(self.x - 60, self.y, self.x - 60, self.y + 50,
-                                  self.x, self.y, self.heading_angle),
-            self.helper.draw_wing(self.x + 60, self.y, self.x + 60, self.y + 50,
-                                  self.x, self.y, self.heading_angle)
+            self.helper.draw_wing(0, 13, 50, self.x, self.y, self.heading_angle),  # Left wing.
+            self.helper.draw_wing(0, -13, 50, self.x, self.y, self.heading_angle)  # Right wing.
         ]
 
-        # Draw four separate engines: two per wing.
+        # Draw four engines:
+        # Left wing engines at (0, 7) and (0, 11); right wing engines at (0, -7) and (0, -11).
         self.engines = [
-            # Left wing engines (at relative positions: (0,7) and (0,11) from body center)
-            self.helper.draw_engine(self.x , self.y + 7, self.x, self.y, self.heading_angle),
+            self.helper.draw_engine(self.x, self.y + 7, self.x, self.y, self.heading_angle),
             self.helper.draw_engine(self.x, self.y + 11, self.x, self.y, self.heading_angle),
-            # Right wing engines
             self.helper.draw_engine(self.x, self.y - 7, self.x, self.y, self.heading_angle),
             self.helper.draw_engine(self.x, self.y - 11, self.x, self.y, self.heading_angle)
         ]
 
+        # Draw turrets: update each turret's "id" field.
+        turret_positions = [(self.x + 30, self.y), (self.x - 30, self.y)]
+        for i, turret in enumerate(self.turrets):
+            turret["id"] = self._draw_turret(*turret_positions[i])
+            if self.ui:
+                self.ui.update_log(f"[DEBUG] Turret {i} drawn at {turret_positions[i]} with firing range {turret['angle_range']}")
+
         if self.ui:
             self.ui.update_log(f"[DEBUG] Bomber drawn at ({self.x}, {self.y}) with heading {self.heading_angle}°.")
+
+    def _draw_turret(self, x, y):
+        """
+        Draws a turret at the specified position.
+
+        Args:
+            x (float): X-coordinate for the turret.
+            y (float): Y-coordinate for the turret.
+
+        Returns:
+            int: Canvas object ID of the turret.
+        """
+        turret_id = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5,
+                                             fill="darkred", outline="black")
+        if self.ui:
+            self.ui.update_log(f"[DEBUG] _draw_turret: Created turret id {turret_id} at ({x}, {y})")
+        return turret_id
 
     def _calculate_fuselage_points(self, length, height):
         """
@@ -997,14 +1023,15 @@ class Bomber(Tank):
         """
         taper = length * 0.25
         points = [
-            (self.x - length / 2 + taper, self.y - height / 2),  # Front-left
-            (self.x + length / 2 - taper, self.y - height / 2),  # Front-right
-            (self.x + length / 2, self.y),                       # Nose
-            (self.x + length / 2 - taper, self.y + height / 2),  # Back-right
-            (self.x - length / 2 + taper, self.y + height / 2),  # Back-left
-            (self.x - length / 2, self.y)                        # Tail
+            (self.x - length/2 + taper, self.y - height/2),  # Front-left.
+            (self.x + length/2 - taper, self.y - height/2),  # Front-right.
+            (self.x + length/2, self.y),                       # Nose.
+            (self.x + length/2 - taper, self.y + height/2),  # Back-right.
+            (self.x - length/2 + taper, self.y + height/2),  # Back-left.
+            (self.x - length/2, self.y)                       # Tail.
         ]
-        return [self.helper._rotate_point_relative(x, y, self.x, self.y, self.heading_angle) for x, y in points]
+        return [self.helper._rotate_point_relative(x, y, self.x, self.y, self.heading_angle)
+                for x, y in points]
 
     def rotate_to_heading(self, heading_angle):
         """
@@ -1015,45 +1042,62 @@ class Bomber(Tank):
         """
         self.heading_angle = heading_angle % 360
         if self.ui:
-            self.ui.update_log(f"[DEBUG] Bomber rotated to heading {self.heading_angle:.2f}° at ({self.x}, {self.y}).")
+            self.ui.update_log(f"[DEBUG] Bomber rotated to {self.heading_angle:.2f}° at ({self.x}, {self.y}).")
         self.draw()
 
     def spin_test(self):
         """
         Spins the bomber by 45° increments every second for testing.
+        Turrets fire aggressively at random angles within their constrained ranges.
         """
+        # Ensure turrets are drawn.
+        self.draw()
+
         def rotate_step(angle=0):
             if angle >= 360:
                 return
             self.rotate_to_heading(angle)
             if self.ui:
                 self.ui.update_log(f"[DEBUG] Spin test: Bomber rotated to {angle}° at ({self.x}, {self.y}).")
-            self.fire_turrets()
+                # Log turret data.
+                for i, turret in enumerate(self.turrets):
+                    self.ui.update_log(f"[DEBUG] Turret {i}: Range={turret['angle_range']}, Angle={turret['angle']}, ID={turret['id']}")
+            # Aggressively fire each turret three times.
+            for turret in self.turrets:
+                min_angle, max_angle = turret["angle_range"]
+                for _ in range(3):
+                    turret["angle"] = random.uniform(min_angle, max_angle)
+                    if self.ui:
+                        self.ui.update_log(f"[DEBUG] Turret firing at angle {turret['angle']:.2f}° (Range: {min_angle}-{max_angle}°)")
+                    self.fire_turret(turret)
             self.canvas.after(1000, rotate_step, angle + 45)
         rotate_step(0)
 
-    def fire_turrets(self):
+    def fire_turret(self, turret):
         """
-        Simulates turret firing by creating projectiles from turret locations.
+        Fires a single turret by creating a projectile based on its angle.
+
+        Args:
+            turret (dict): A turret dictionary containing "angle" and "id".
         """
-        if self.ui:
-            self.ui.update_log("[DEBUG] Turrets firing projectiles!")
-        for turret_name, turret_data in self.turrets.items():
-            angle = turret_data["angle"]
-            radians = math.radians(angle)
-            projectile_dx = 15 * math.cos(radians)
-            projectile_dy = 15 * math.sin(radians)
-            coords = self.canvas.coords(turret_data["id"])
-            if coords:
-                x1, y1, x2, y2 = coords
-                turret_x = (x1 + x2) / 2
-                turret_y = (y1 + y2) / 2
-                projectile = self.canvas.create_oval(
-                    turret_x - 2, turret_y - 2,
-                    turret_x + 2, turret_y + 2,
-                    fill="yellow"
-                )
-                self._animate_projectile(projectile, projectile_dx, projectile_dy)
+        angle = turret["angle"]
+        radians = math.radians(angle)
+        projectile_dx = 15 * math.cos(radians)
+        projectile_dy = 15 * math.sin(radians)
+        coords = self.canvas.coords(turret["id"])
+        if coords:
+            x1, y1, x2, y2 = coords
+            turret_center_x = (x1 + x2) / 2
+            turret_center_y = (y1 + y2) / 2
+            projectile = self.canvas.create_oval(
+                turret_center_x - 2, turret_center_y - 2,
+                turret_center_x + 2, turret_center_y + 2,
+                fill="yellow"
+            )
+            print(f"[DEBUG] fire_turret: Projectile created at ({turret_center_x}, {turret_center_y}) with dx={projectile_dx}, dy={projectile_dy}")
+            self._animate_projectile(projectile, projectile_dx, projectile_dy)
+        else:
+            print(f"[ERROR] fire_turret: No coordinates for turret with id {turret['id']}")
 
     def _animate_projectile(self, projectile, dx, dy, steps=20):
         """
@@ -1065,11 +1109,14 @@ class Bomber(Tank):
             dy (float): The y-velocity of the projectile.
             steps (int): Number of animation steps.
         """
+        print(f"[DEBUG] _animate_projectile: Starting animation for projectile id {projectile} with dx={dx}, dy={dy}, steps={steps}")
         def step_animation(step=0):
             if step < steps:
                 self.canvas.move(projectile, dx / steps, dy / steps)
+                print(f"[DEBUG] _animate_projectile: Step {step}, moving by ({dx / steps}, {dy / steps})")
                 self.canvas.after(50, step_animation, step + 1)
             else:
+                print(f"[DEBUG] _animate_projectile: Animation complete for projectile id {projectile}")
                 self.canvas.delete(projectile)
         step_animation()
 
@@ -1080,8 +1127,7 @@ class Bomber(Tank):
         """
         if self.ui:
             self.ui.update_log(f"[DEBUG] Triggering bomber explosion at ({self.x}, {self.y}).")
-
-        components = [self.body] + self.wings + self.engines
+        components = [self.body] + self.wings + self.engines + [turret["id"] for turret in self.turrets if turret.get("id")]
         animated_parts = []
         for component in components:
             if component:
@@ -1093,8 +1139,7 @@ class Bomber(Tank):
             dx = random.uniform(-200, 200)
             dy = random.uniform(-200, 200)
             debris = self.canvas.create_oval(
-                self.x - 5, self.y - 5, self.x + 5, self.y + 5,
-                fill="orange"
+                self.x - 5, self.y - 5, self.x + 5, self.y + 5, fill="orange"
             )
             self.helper._animate_debris(debris, dx, dy, steps=30)
             animated_parts.append(debris)
@@ -1102,11 +1147,11 @@ class Bomber(Tank):
         self.body = None
         self.wings = []
         self.engines = []
-        self.turrets = {}
+        self.turrets = [{"angle": 0, "id": None}, {"angle": 180, "id": None}]
 
     def _clear_previous_drawings(self):
         """
-        Clears all bomber components from the canvas.
+        Clears all bomber components from the canvas, but preserves turret data.
         """
         components = []
         if self.body:
@@ -1116,13 +1161,15 @@ class Bomber(Tank):
         if self.engines:
             components.extend(self.engines)
         if self.turrets:
-            components.extend([turret["id"] for turret in self.turrets.values()])
+            components.extend([turret["id"] for turret in self.turrets if turret.get("id")])
         for comp in components:
             self.canvas.delete(comp)
         self.body = None
         self.wings = []
         self.engines = []
-        self.turrets = {}
+        # Do not reset self.turrets entirely; just reset the IDs.
+        for turret in self.turrets:
+            turret["id"] = None
 media_rw
 import random
 
@@ -1835,6 +1882,111 @@ class UnitManager:
         row_diff = abs(ord(pos1[0]) - ord(pos2[0]))
         col_diff = abs(int(pos1[1]) - int(pos2[1]))
         return max(row_diff, col_diff) == 1
+media_rw
+import math
+
+class BomberHelper2:
+    def __init__(self, canvas, ui=None):
+        """
+        Initializes the BomberHelper2 with the canvas and a UI for logging.
+
+        Args:
+            canvas (tk.Canvas): The canvas to draw on.
+            ui (GameUI, optional): Instance for logging/debugging.
+        """
+        self.canvas = canvas
+        self.ui = ui
+
+    def draw_wing(self, offset_x, offset_y, length, base_x, base_y, angle):
+        """
+        Draws a wing offset from the center of the bomber.
+
+        Args:
+            offset_x (float): X-offset relative to the bomber's center.
+            offset_y (float): Y-offset relative to the bomber's center.
+            length (float): Length of the wing.
+            base_x (float): X-coordinate of the bomber's center.
+            base_y (float): Y-coordinate of the bomber's center.
+            angle (float): Rotation angle of the bomber.
+
+        Returns:
+            int: Canvas object ID of the wing.
+        """
+        wing_start = (base_x + offset_x, base_y + offset_y)
+        wing_end = (wing_start[0] + length, wing_start[1])
+        rotated_start = self._rotate_point_relative(*wing_start, base_x, base_y, angle)
+        rotated_end = self._rotate_point_relative(*wing_end, base_x, base_y, angle)
+        return self.canvas.create_line(rotated_start[0], rotated_start[1],
+                                       rotated_end[0], rotated_end[1], fill="black", width=2)
+
+    def draw_engine(self, engine_x, engine_y, pivot_x, pivot_y, angle):
+        """
+        Draws an engine at the specified position and rotates it relative to the bomber.
+
+        Args:
+            engine_x (float): X-coordinate for the engine's position.
+            engine_y (float): Y-coordinate for the engine's position.
+            pivot_x (float): X-coordinate for rotation's pivot.
+            pivot_y (float): Y-coordinate for rotation's pivot.
+            angle (float): Rotation angle of the bomber.
+
+        Returns:
+            int: Canvas object ID of the engine.
+        """
+        rotated_engine = self._rotate_point_relative(engine_x, engine_y, pivot_x, pivot_y, angle)
+        return self.canvas.create_oval(rotated_engine[0] - 5, rotated_engine[1] - 5,
+                                       rotated_engine[0] + 5, rotated_engine[1] + 5,
+                                       fill="black", outline="gray")
+
+    def _rotate_point_relative(self, x, y, pivot_x, pivot_y, angle):
+        """
+        Rotates point (x, y) around the pivot (pivot_x, pivot_y) by the specified angle in degrees.
+
+        Args:
+            x (float): X-coordinate of the point.
+            y (float): Y-coordinate of the point.
+            pivot_x (float): X-coordinate of the pivot.
+            pivot_y (float): Y-coordinate of the pivot.
+            angle (float): Angle in degrees.
+
+        Returns:
+            tuple: The new (x, y) coordinates after rotation.
+        """
+        radians = math.radians(angle)
+        # Translate the point to the origin.
+        translated_x = x - pivot_x
+        translated_y = y - pivot_y
+        
+        # Rotate the point.
+        rotated_x = translated_x * math.cos(radians) - translated_y * math.sin(radians)
+        rotated_y = translated_x * math.sin(radians) + translated_y * math.cos(radians)
+        
+        # Translate the point back.
+        new_x = rotated_x + pivot_x
+        new_y = rotated_y + pivot_y
+        return new_x, new_y
+
+    def _animate_debris(self, debris_id, dx, dy, steps=20):
+        """
+        Animates a debris object along a trajectory, then deletes it.
+
+        Args:
+            debris_id (int): The canvas object ID of the debris.
+            dx (float): Total x distance to move.
+            dy (float): Total y distance to move.
+            steps (int): Number of animation steps.
+        """
+        def step_animation(step=0):
+            if step < steps:
+                self.canvas.move(debris_id, dx / steps, dy / steps)
+                if self.ui:
+                    self.ui.update_log(f"[DEBUG] _animate_debris: Step {step}, moving by ({dx/steps}, {dy/steps})")
+                self.canvas.after(50, step_animation, step + 1)
+            else:
+                if self.ui:
+                    self.ui.update_log(f"[DEBUG] _animate_debris: Debris animation complete for id {debris_id}")
+                self.canvas.delete(debris_id)
+        step_animation()
 media_rw
 import random
 
