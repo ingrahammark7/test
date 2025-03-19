@@ -226,25 +226,43 @@ class BomberHelper:
         self.canvas = canvas
         self.ui = ui
 
-    def draw_engine(self, x, y, pivot_x, pivot_y, heading_angle):
+    def draw_engine(self, x, y, pivot_x, pivot_y, heading_angle, width=4, length=16):
         """
-        Draws an engine at a specified position, applying rotation around a pivot point.
+        Draws an engine as a beveled rectangle at a specified position, 
+        applying rotation around a pivot point.
 
         Args:
-            x (float): X-coordinate of the engine relative to the body.
-            y (float): Y-coordinate of the engine relative to the body.
+            x (float): X-coordinate of the engine's center relative to the body.
+            y (float): Y-coordinate of the engine's center relative to the body.
             pivot_x (float): X-coordinate of the bomber's center.
             pivot_y (float): Y-coordinate of the bomber's center.
             heading_angle (float): The rotation angle of the bomber in degrees.
+            width (float): The width (diameter) of the engine.
+            length (float): The length of the engine.
 
         Returns:
             int: Canvas object ID of the engine.
         """
-        rotated_x, rotated_y = self._rotate_point_relative(x, y, pivot_x, pivot_y, heading_angle)
-        return self.canvas.create_oval(
-            rotated_x - 5, rotated_y - 5, rotated_x + 5, rotated_y + 5,
-            fill="black"
-        )
+        half_width = width / 2
+        half_length = length / 2
+        points = [
+            (x - half_length, y - half_width),  # Top-left
+            (x + half_length, y - half_width),  # Top-right
+            (x + half_length, y + half_width),  # Bottom-right
+            (x - half_length, y + half_width),  # Bottom-left
+        ]
+
+        # Rotate each point around the pivot point
+        rotated_points = [
+            self._rotate_point_relative(px, py, pivot_x, pivot_y, heading_angle)
+            for px, py in points
+        ]
+
+        # Flatten the list of rotated points for the canvas create_polygon method
+        flat_points = [coord for point in rotated_points for coord in point]
+
+        # Draw the beveled rectangle as a polygon
+        return self.canvas.create_polygon(flat_points, fill="darkgray", outline="black")
 
     def draw_wing(self, x1, y1, x2, y2, pivot_x, pivot_y, heading_angle):
         """
@@ -909,7 +927,7 @@ class Bomber(Tank):
             color (str): Bomber color.
             ui (GameUI, optional): Instance for logging/debugging.
         """
-        # Get canvas dimensions for default coordinates if not provided.
+        # Get canvas dimensions if not provided.
         canvas_width = int(canvas.cget("width"))
         canvas_height = int(canvas.cget("height"))
         x = x if x is not None else canvas_width / 2
@@ -922,7 +940,7 @@ class Bomber(Tank):
         self.engines = []
         self.turrets = {}
         self.soviet_star = None
-        self.heading_angle = 0  # Starting heading
+        self.heading_angle = 0  # Starting heading in degrees
 
         # Call parent constructor.
         super().__init__(canvas, x, y, color, ui)
@@ -941,20 +959,26 @@ class Bomber(Tank):
         self._clear_previous_drawings()
         print(f"[DEBUG] Drawing bomber at ({self.x}, {self.y}) with heading {self.heading_angle}°.")
 
-        # Compute and draw the fuselage.
+        # Compute fuselage points relative to bomber's center.
         fuselage_points = self._calculate_fuselage_points(120, 10)
         self.body = self.canvas.create_polygon(fuselage_points, fill=self.color, outline="black")
 
-        # Draw the wings.
+        # Draw wings relative to bomber's center.
         self.wings = [
-            self.helper.draw_wing(self.x - 60, self.y, self.x - 60, self.y + 50, self.x, self.y, self.heading_angle),
-            self.helper.draw_wing(self.x + 60, self.y, self.x + 60, self.y + 50, self.x, self.y, self.heading_angle)
+            self.helper.draw_wing(self.x - 60, self.y, self.x - 60, self.y + 50,
+                                  self.x, self.y, self.heading_angle),
+            self.helper.draw_wing(self.x + 60, self.y, self.x + 60, self.y + 50,
+                                  self.x, self.y, self.heading_angle)
         ]
 
-        # Draw the engines.
+        # Draw four separate engines: two per wing.
         self.engines = [
-            self.helper.draw_engine(self.x - 40, self.y - 20, self.x, self.y, self.heading_angle),
-            self.helper.draw_engine(self.x + 40, self.y - 20, self.x, self.y, self.heading_angle)
+            # Left wing engines (at relative positions: (0,7) and (0,11) from body center)
+            self.helper.draw_engine(self.x , self.y + 7, self.x, self.y, self.heading_angle),
+            self.helper.draw_engine(self.x, self.y + 11, self.x, self.y, self.heading_angle),
+            # Right wing engines
+            self.helper.draw_engine(self.x, self.y - 7, self.x, self.y, self.heading_angle),
+            self.helper.draw_engine(self.x, self.y - 11, self.x, self.y, self.heading_angle)
         ]
 
         if self.ui:
@@ -962,7 +986,7 @@ class Bomber(Tank):
 
     def _calculate_fuselage_points(self, length, height):
         """
-        Calculates the fuselage polygon points and applies rotation based on heading angle.
+        Calculates the fuselage polygon points and applies rotation based on self.heading_angle.
 
         Args:
             length (float): Fuselage length.
@@ -973,12 +997,12 @@ class Bomber(Tank):
         """
         taper = length * 0.25
         points = [
-            (self.x - length / 2 + taper, self.y - height / 2),
-            (self.x + length / 2 - taper, self.y - height / 2),
-            (self.x + length / 2, self.y),
-            (self.x + length / 2 - taper, self.y + height / 2),
-            (self.x - length / 2 + taper, self.y + height / 2),
-            (self.x - length / 2, self.y)
+            (self.x - length / 2 + taper, self.y - height / 2),  # Front-left
+            (self.x + length / 2 - taper, self.y - height / 2),  # Front-right
+            (self.x + length / 2, self.y),                       # Nose
+            (self.x + length / 2 - taper, self.y + height / 2),  # Back-right
+            (self.x - length / 2 + taper, self.y + height / 2),  # Back-left
+            (self.x - length / 2, self.y)                        # Tail
         ]
         return [self.helper._rotate_point_relative(x, y, self.x, self.y, self.heading_angle) for x, y in points]
 
@@ -1047,33 +1071,34 @@ class Bomber(Tank):
                 self.canvas.after(50, step_animation, step + 1)
             else:
                 self.canvas.delete(projectile)
-
         step_animation()
 
     def trigger_explosion(self):
         """
         Triggers an explosion that scatters bomber components outward dynamically.
+        Bomber components fly apart for a few seconds before cleanup.
         """
         if self.ui:
             self.ui.update_log(f"[DEBUG] Triggering bomber explosion at ({self.x}, {self.y}).")
 
         components = [self.body] + self.wings + self.engines
+        animated_parts = []
         for component in components:
             if component:
                 dx = random.uniform(-150, 150)
                 dy = random.uniform(-150, 150)
                 self.helper._animate_debris(component, dx, dy, steps=30)
-
-        # Add debris for dramatic effect.
+                animated_parts.append(component)
         for _ in range(10):
             dx = random.uniform(-200, 200)
             dy = random.uniform(-200, 200)
             debris = self.canvas.create_oval(
-                self.x - 5, self.y - 5, self.x + 5, self.y + 5, fill="orange"
+                self.x - 5, self.y - 5, self.x + 5, self.y + 5,
+                fill="orange"
             )
             self.helper._animate_debris(debris, dx, dy, steps=30)
-
-        # Clear references after the explosion.
+            animated_parts.append(debris)
+        self.canvas.after(2000, lambda: [self.canvas.delete(part) for part in animated_parts])
         self.body = None
         self.wings = []
         self.engines = []
@@ -1090,11 +1115,14 @@ class Bomber(Tank):
             components.extend(self.wings)
         if self.engines:
             components.extend(self.engines)
-        for component in components:
-            self.canvas.delete(component)
+        if self.turrets:
+            components.extend([turret["id"] for turret in self.turrets.values()])
+        for comp in components:
+            self.canvas.delete(comp)
         self.body = None
         self.wings = []
         self.engines = []
+        self.turrets = {}
 media_rw
 import random
 
