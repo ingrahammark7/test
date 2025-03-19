@@ -2100,7 +2100,7 @@ class BomberHelper3:
         
         Args:
             bomber (Bomber): The bomber instance containing x, y, and heading_angle.
-
+        
         Returns:
             list: A list of (x, y) tuples representing the fuselage polygon.
         """
@@ -2171,14 +2171,16 @@ class BomberHelper3:
             if self.ui:
                 self.ui.update_log(f"[DEBUG] spin_test: Bomber rotated to {angle}° at ({bomber.x}, {bomber.y}).")
                 for i, turret in enumerate(bomber.turrets):
+                    if "angle_range" not in turret:
+                        turret["angle_range"] = (0, 360)
+                        self.ui.update_log(f"[WARNING] spin_test: Turret {i} missing 'angle_range', defaulting to (0,360).")
                     self.ui.update_log(f"[DEBUG] Turret {i}: {turret}")
             for turret in bomber.turrets:
                 min_angle, max_angle = turret["angle_range"]
                 for _ in range(3):
                     turret["angle"] = random.uniform(min_angle, max_angle)
                     if self.ui:
-                        self.ui.update_log(f"[DEBUG] spin_test: Turret firing at angle {turret['angle']:.2f}° (range {min_angle}-{max_angle}).")
-                    # Delegate turret firing to BomberHelper4 (which handles projectile animations)
+                        self.ui.update_log(f"[DEBUG] spin_test: Turret firing at angle {turret['angle']:.2f}° within range {min_angle}-{max_angle}°.")
                     self.fire_turret(bomber, turret)
             self.canvas.after(1000, rotate_step, angle + 45)
         rotate_step(0)
@@ -2231,7 +2233,7 @@ class BomberHelper3:
             self._animate_projectile(bomber, projectile, projectile_dx, projectile_dy)
         else:
             if self.ui:
-                self.ui.update_log(f"[ERROR] fire_turret: No coordinates for turret with id {turret['id']}")
+                self.ui.update_log(f"[ERROR] fire_turret: No coordinates for turret with id {turret.get('id')}")
 
     def _animate_projectile(self, bomber, projectile, dx, dy, steps=20):
         """
@@ -2279,7 +2281,9 @@ class BomberHelper3:
         for _ in range(10):
             dx = random.uniform(-200, 200)
             dy = random.uniform(-200, 200)
-            debris = bomber.canvas.create_oval(bomber.x - 5, bomber.y - 5, bomber.x + 5, bomber.y + 5, fill="orange")
+            debris = bomber.canvas.create_oval(
+                bomber.x - 5, bomber.y - 5, bomber.x + 5, bomber.y + 5, fill="orange"
+            )
             self._animate_debris(bomber, debris, dx, dy, steps=30)
             animated_parts.append(debris)
         bomber.canvas.after(2000, lambda: [bomber.canvas.delete(comp) for comp in animated_parts])
