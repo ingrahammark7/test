@@ -2080,23 +2080,28 @@ class GameApp:
 media_rw
 import math
 import random
+from BomberHelper4 import BomberHelper4
 
 class BomberHelper3:
     def __init__(self, canvas, ui):
         """
-        Helper class for Bomber that handles fuselage calculations, turret actions, 
-        rotation, spin test, firing, and explosion effects.
-
+        Helper class for Bomber that handles fuselage calculations, clearance of drawings, 
+        rotation, and spin test functions.
+        
+        Turret firing and explosion effects are delegated to BomberHelper4.
+        
         Args:
             canvas (tk.Canvas): The canvas to draw on.
             ui (GameUI): Instance for logging and debugging.
         """
         self.canvas = canvas
         self.ui = ui
+        self.helper4 = BomberHelper4(canvas, ui)
 
     def calculate_fuselage_points(self, bomber):
         """
-        Calculates the fuselage polygon points for the bomber and rotates them by the bomber's heading.
+        Calculates the fuselage polygon points for the bomber and rotates them
+        by the bomber's heading.
         
         Args:
             bomber (Bomber): The bomber instance containing x, y, and heading_angle.
@@ -2108,12 +2113,12 @@ class BomberHelper3:
         height = 10
         taper = length * 0.25
         points = [
-            (bomber.x - length / 2 + taper, bomber.y - height / 2),  # Front-left.
-            (bomber.x + length / 2 - taper, bomber.y - height / 2),  # Front-right.
-            (bomber.x + length / 2, bomber.y),                       # Nose.
-            (bomber.x + length / 2 - taper, bomber.y + height / 2),  # Back-right.
-            (bomber.x - length / 2 + taper, bomber.y + height / 2),  # Back-left.
-            (bomber.x - length / 2, bomber.y)                        # Tail.
+            (bomber.x - length/2 + taper, bomber.y - height/2),  # Front-left.
+            (bomber.x + length/2 - taper, bomber.y - height/2),  # Front-right.
+            (bomber.x + length/2, bomber.y),                       # Nose.
+            (bomber.x + length/2 - taper, bomber.y + height/2),  # Back-right.
+            (bomber.x - length/2 + taper, bomber.y + height/2),  # Back-left.
+            (bomber.x - length/2, bomber.y)                        # Tail.
         ]
         rotated = [self._rotate_point_relative(x, y, bomber.x, bomber.y, bomber.heading_angle)
                    for x, y in points]
@@ -2158,8 +2163,10 @@ class BomberHelper3:
 
     def spin_test(self, bomber):
         """
-        Spins the bomber by 45° increments every second and fires turrets
-        aggressively at random angles within their constrained ranges.
+        Spins the bomber by 45° increments every second and fires turrets 
+        at random angles within their constrained ranges.
+        
+        Turret firing is delegated to BomberHelper4.
         
         Args:
             bomber (Bomber): The bomber instance.
@@ -2174,14 +2181,14 @@ class BomberHelper3:
                     if "angle_range" not in turret:
                         turret["angle_range"] = (0, 360)
                         self.ui.update_log(f"[WARNING] spin_test: Turret {i} missing 'angle_range', defaulting to (0,360).")
-                    self.ui.update_log(f"[DEBUG] Turret {i}: {turret}")
+                    self.ui.update_log(f"[DEBUG] turret {i}: {turret}")
             for turret in bomber.turrets:
                 min_angle, max_angle = turret["angle_range"]
                 for _ in range(3):
                     turret["angle"] = random.uniform(min_angle, max_angle)
                     if self.ui:
-                        self.ui.update_log(f"[DEBUG] spin_test: Turret firing at angle {turret['angle']:.2f}° within range {min_angle}-{max_angle}°.")
-                    self.fire_turret(bomber, turret)
+                        self.ui.update_log(f"[DEBUG] spin_test: Turret firing at angle {turret['angle']:.2f}° (range {min_angle}-{max_angle}).")
+                    self.helper4.fire_turret(bomber, turret)
             self.canvas.after(1000, rotate_step, angle + 45)
         rotate_step(0)
 
@@ -2205,10 +2212,26 @@ class BomberHelper3:
         rotated_x = translated_x * math.cos(radians) - translated_y * math.sin(radians)
         rotated_y = translated_x * math.sin(radians) + translated_y * math.cos(radians)
         return rotated_x + pivot_x, rotated_y + pivot_y
+media_rw
+import math
+import random
+
+class BomberHelper4:
+    def __init__(self, canvas, ui):
+        """
+        Helper class for Bomber that handles turret firing, projectile animation,
+        explosion effects, and debris animation.
+
+        Args:
+            canvas (tk.Canvas): The canvas to draw on.
+            ui (GameUI): Instance for logging and debugging.
+        """
+        self.canvas = canvas
+        self.ui = ui
 
     def fire_turret(self, bomber, turret):
         """
-        Fires a single turret by generating a projectile based on its angle.
+        Fires a turret by generating a projectile based on its angle.
         
         Args:
             bomber (Bomber): The bomber instance.
@@ -2229,7 +2252,10 @@ class BomberHelper3:
                 fill="yellow"
             )
             if self.ui:
-                self.ui.update_log(f"[DEBUG] fire_turret: Projectile created at ({turret_center_x}, {turret_center_y}) with dx={projectile_dx}, dy={projectile_dy}")
+                self.ui.update_log(
+                    f"[DEBUG] fire_turret: Projectile created at ({turret_center_x}, {turret_center_y}) "
+                    f"with dx={projectile_dx}, dy={projectile_dy}"
+                )
             self._animate_projectile(bomber, projectile, projectile_dx, projectile_dy)
         else:
             if self.ui:
@@ -2237,7 +2263,7 @@ class BomberHelper3:
 
     def _animate_projectile(self, bomber, projectile, dx, dy, steps=20):
         """
-        Animates a projectile along a trajectory.
+        Animates a projectile along a trajectory and then deletes it.
         
         Args:
             bomber (Bomber): The bomber instance.
@@ -2247,28 +2273,37 @@ class BomberHelper3:
             steps (int): Number of animation steps.
         """
         if self.ui:
-            self.ui.update_log(f"[DEBUG] _animate_projectile: Starting animation for projectile id {projectile} with dx={dx}, dy={dy}, steps={steps}")
+            self.ui.update_log(
+                f"[DEBUG] _animate_projectile: Starting animation for projectile id {projectile} "
+                f"with dx={dx}, dy={dy}, steps={steps}"
+            )
         def step_animation(step=0):
             if step < steps:
-                bomber.canvas.move(projectile, dx / steps, dy / steps)
+                bomber.canvas.move(projectile, dx/steps, dy/steps)
                 if self.ui:
-                    self.ui.update_log(f"[DEBUG] _animate_projectile: Step {step}, moving by ({dx/steps}, {dy/steps})")
+                    self.ui.update_log(
+                        f"[DEBUG] _animate_projectile: Step {step}, moving by ({dx/steps}, {dy/steps})"
+                    )
                 bomber.canvas.after(50, step_animation, step + 1)
             else:
                 if self.ui:
-                    self.ui.update_log(f"[DEBUG] _animate_projectile: Animation complete for projectile id {projectile}")
+                    self.ui.update_log(
+                        f"[DEBUG] _animate_projectile: Animation complete for projectile id {projectile}"
+                    )
                 bomber.canvas.delete(projectile)
         step_animation()
 
     def trigger_explosion(self, bomber):
         """
-        Triggers an explosion that scatters bomber components outward dynamically.
+        Triggers an explosion that scatters bomber components outward.
         
         Args:
             bomber (Bomber): The bomber instance.
         """
         if self.ui:
-            self.ui.update_log(f"[DEBUG] trigger_explosion: Triggering explosion at ({bomber.x}, {bomber.y}).")
+            self.ui.update_log(
+                f"[DEBUG] trigger_explosion: Triggering explosion at ({bomber.x}, {bomber.y})."
+            )
         components = ([bomber.body] + bomber.wings + bomber.engines +
                       [turret["id"] for turret in bomber.turrets if turret.get("id")])
         animated_parts = []
@@ -2290,11 +2325,12 @@ class BomberHelper3:
         bomber.body = None
         bomber.wings = []
         bomber.engines = []
-        bomber.turrets = [{"angle": 0, "id": None, "gun_id": None}, {"angle": 180, "id": None, "gun_id": None}]
+        bomber.turrets = [{"angle": 0, "id": None, "gun_id": None},
+                          {"angle": 180, "id": None, "gun_id": None}]
 
     def _animate_debris(self, bomber, debris, dx, dy, steps=20):
         """
-        Animates debris along a given vector, then deletes it.
+        Animates debris along a specified vector and then deletes it.
         
         Args:
             bomber (Bomber): The bomber instance.
@@ -2305,137 +2341,17 @@ class BomberHelper3:
         """
         def step_animation(step=0):
             if step < steps:
-                bomber.canvas.move(debris, dx / steps, dy / steps)
+                bomber.canvas.move(debris, dx/steps, dy/steps)
                 if self.ui:
-                    self.ui.update_log(f"[DEBUG] _animate_debris: Step {step}, moving debris by ({dx/steps}, {dy/steps})")
+                    self.ui.update_log(
+                        f"[DEBUG] _animate_debris: Step {step}, moving debris by ({dx/steps}, {dy/steps})"
+                    )
                 bomber.canvas.after(50, step_animation, step + 1)
             else:
                 if self.ui:
-                    self.ui.update_log(f"[DEBUG] _animate_debris: Debris animation complete for debris id {debris}")
-                bomber.canvas.delete(debris)
-        step_animation()
-media_rw
-import math
-import random
-
-class BomberHelper4:
-    def __init__(self, canvas, ui):
-        """
-        Helper class for Bomber that handles turret actions, projectile animation,
-        explosion effects, and debris animation.
-
-        Args:
-            canvas (tk.Canvas): The canvas on which to draw.
-            ui (GameUI): Instance for logging and debugging.
-        """
-        self.canvas = canvas
-        self.ui = ui
-
-    def fire_turret(self, bomber, turret):
-        """
-        Fires a turret by generating a projectile based on its angle.
-
-        Args:
-            bomber (Bomber): The bomber instance.
-            turret (dict): A turret dictionary containing "angle" and "id".
-        """
-        angle = turret["angle"]
-        radians = math.radians(angle)
-        projectile_dx = 15 * math.cos(radians)
-        projectile_dy = 15 * math.sin(radians)
-        coords = self.canvas.coords(turret["id"])
-        if coords:
-            x1, y1, x2, y2 = coords
-            turret_center_x = (x1 + x2) / 2
-            turret_center_y = (y1 + y2) / 2
-            projectile = self.canvas.create_oval(
-                turret_center_x - 2, turret_center_y - 2,
-                turret_center_x + 2, turret_center_y + 2,
-                fill="yellow"
-            )
-            if self.ui:
-                self.ui.update_log(f"[DEBUG] fire_turret: Projectile created at ({turret_center_x}, {turret_center_y}) with dx={projectile_dx}, dy={projectile_dy}")
-            self._animate_projectile(bomber, projectile, projectile_dx, projectile_dy)
-        else:
-            if self.ui:
-                self.ui.update_log(f"[ERROR] fire_turret: No coordinates for turret with id {turret['id']}")
-
-    def _animate_projectile(self, bomber, projectile, dx, dy, steps=20):
-        """
-        Animates a projectile along a trajectory.
-
-        Args:
-            bomber (Bomber): The bomber instance.
-            projectile (int): Canvas object ID of the projectile.
-            dx (float): X velocity.
-            dy (float): Y velocity.
-            steps (int): Number of animation steps.
-        """
-        if self.ui:
-            self.ui.update_log(f"[DEBUG] _animate_projectile: Starting animation for projectile id {projectile} with dx={dx}, dy={dy}, steps={steps}")
-        def step_animation(step=0):
-            if step < steps:
-                bomber.canvas.move(projectile, dx / steps, dy / steps)
-                if self.ui:
-                    self.ui.update_log(f"[DEBUG] _animate_projectile: Step {step}, moving by ({dx/steps}, {dy/steps})")
-                bomber.canvas.after(50, step_animation, step + 1)
-            else:
-                if self.ui:
-                    self.ui.update_log(f"[DEBUG] _animate_projectile: Animation complete for projectile id {projectile}")
-                bomber.canvas.delete(projectile)
-        step_animation()
-
-    def trigger_explosion(self, bomber):
-        """
-        Triggers an explosion that scatters bomber components outward dynamically.
-
-        Args:
-            bomber (Bomber): The bomber instance.
-        """
-        if self.ui:
-            self.ui.update_log(f"[DEBUG] trigger_explosion: Triggering explosion at ({bomber.x}, {bomber.y}).")
-        # Collect all components
-        components = ([bomber.body] + bomber.wings + bomber.engines +
-                      [turret["id"] for turret in bomber.turrets if turret.get("id")])
-        animated_parts = []
-        for comp in components:
-            if comp:
-                dx = random.uniform(-150, 150)
-                dy = random.uniform(-150, 150)
-                self._animate_debris(bomber, comp, dx, dy, steps=30)
-                animated_parts.append(comp)
-        for _ in range(10):
-            dx = random.uniform(-200, 200)
-            dy = random.uniform(-200, 200)
-            debris = bomber.canvas.create_oval(bomber.x - 5, bomber.y - 5, bomber.x + 5, bomber.y + 5, fill="orange")
-            self._animate_debris(bomber, debris, dx, dy, steps=30)
-            animated_parts.append(debris)
-        bomber.canvas.after(2000, lambda: [bomber.canvas.delete(comp) for comp in animated_parts])
-        bomber.body = None
-        bomber.wings = []
-        bomber.engines = []
-        bomber.turrets = [{"angle": 0, "id": None, "gun_id": None}, {"angle": 180, "id": None, "gun_id": None}]
-
-    def _animate_debris(self, bomber, debris, dx, dy, steps=20):
-        """
-        Animates debris along a given vector, then deletes it.
-
-        Args:
-            bomber (Bomber): The bomber instance.
-            debris (int): Canvas object ID of the debris.
-            dx (float): Total x displacement.
-            dy (float): Total y displacement.
-            steps (int): Number of animation steps.
-        """
-        def step_animation(step=0):
-            if step < steps:
-                bomber.canvas.move(debris, dx / steps, dy / steps)
-                if self.ui:
-                    self.ui.update_log(f"[DEBUG] _animate_debris: Step {step}, moving debris by ({dx/steps}, {dy/steps})")
-                bomber.canvas.after(50, step_animation, step + 1)
-            else:
-                if self.ui:
-                    self.ui.update_log(f"[DEBUG] _animate_debris: Debris animation complete for debris id {debris}")
+                    self.ui.update_log(
+                        f"[DEBUG] _animate_debris: Debris animation complete for debris id {debris}"
+                    )
                 bomber.canvas.delete(debris)
         step_animation()
 media_rw
