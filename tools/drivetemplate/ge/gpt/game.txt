@@ -913,8 +913,8 @@ media_rw
 import math
 import random
 from tank import Tank
-from bomberhelper2 import BomberHelper2  # Handles drawing of engines, wings, turrets, and guns.
-from bomberhelper3 import BomberHelper3  # Handles fuselage calculations and general actions.
+from bomberhelper2 import BomberHelper2   # Handles drawing of engines, wings, turrets, and guns.
+from bomberhelper3 import BomberHelper3   # Handles fuselage calculations and general actions.
 
 class Bomber(Tank):
     def __init__(self, canvas, x=None, y=None, color="gray", ui=None):
@@ -923,8 +923,8 @@ class Bomber(Tank):
 
         Args:
             canvas (tk.Canvas): The canvas to draw on.
-            x (float): X-coordinate of the bomber's center. Defaults to canvas center.
-            y (float): Y-coordinate of the bomber's center. Defaults to canvas center.
+            x (float): X-coordinate of the bomber's center (defaults to canvas center).
+            y (float): Y-coordinate of the bomber's center (defaults to canvas center).
             color (str): Bomber color.
             ui (GameUI, optional): Instance for logging/debugging.
         """
@@ -933,10 +933,10 @@ class Bomber(Tank):
         x = x if x is not None else canvas_width / 2
         y = y if y is not None else canvas_height / 2
 
-        # Initialize turrets with firing ranges.
+        # Updated turret configuration: only two turrets (front and rear).
         self.turrets = [
-            {"angle_range": (0, 120), "angle": 0, "id": None, "gun_id": None},
-            {"angle_range": (150, 330), "angle": 180, "id": None, "gun_id": None}
+            {"angle_range": (0, 120), "angle": 0, "id": None, "gun_id": None, "offset": (30, 0)},   # Front turret
+            {"angle_range": (150, 330), "angle": 180, "id": None, "gun_id": None, "offset": (-30, 0)}  # Rear turret
         ]
 
         # Instantiate helper classes.
@@ -955,7 +955,7 @@ class Bomber(Tank):
         if ui:
             ui.update_log(f"[DEBUG] Bomber initialized at ({self.x}, {self.y}).")
             for i, turret in enumerate(self.turrets):
-                ui.update_log(f"[DEBUG] Turret {i} init: Range={turret['angle_range']}, Angle={turret['angle']}, ID={turret['id']}")
+                ui.update_log(f"[DEBUG] Turret {i} init: Range={turret['angle_range']}, Angle={turret['angle']}, Offset={turret['offset']}")
 
     def draw(self):
         """
@@ -971,13 +971,13 @@ class Bomber(Tank):
         if self.ui:
             self.ui.update_log(f"[DEBUG] Fuselage drawn with points: {fuselage_points}")
 
-        # Draw wings.
+        # Draw wings using relative offsets.
         self.wings = [
             self.helper.draw_wing(0, 13, 50, self.x, self.y, self.heading_angle),
             self.helper.draw_wing(0, -13, 50, self.x, self.y, self.heading_angle)
         ]
 
-        # Draw engines (16x4).
+        # Draw engines.
         self.engines = [
             self.helper.draw_engine(self.x, self.y + 7, self.x, self.y, self.heading_angle, length=16, width=4),
             self.helper.draw_engine(self.x, self.y + 11, self.x, self.y, self.heading_angle, length=16, width=4),
@@ -985,54 +985,39 @@ class Bomber(Tank):
             self.helper.draw_engine(self.x, self.y - 11, self.x, self.y, self.heading_angle, length=16, width=4)
         ]
 
-        # Draw turrets and their guns.
-        turret_positions = [(self.x + 30, self.y), (self.x - 30, self.y)]
-        for i, turret in enumerate(self.turrets):
-            rotated_pos = self.helper.rotate_point(
-                turret_positions[i][0], turret_positions[i][1],
-                self.x, self.y, self.heading_angle
-            )
+        # Draw turrets and their guns using turret offsets.
+        for turret in self.turrets:
+            off = turret.get("offset", (30, 0))
+            turret_pos = (self.x + off[0], self.y + off[1])
+            rotated_pos = self.helper.rotate_point(turret_pos[0], turret_pos[1], self.x, self.y, self.heading_angle)
             turret["id"] = self.helper.draw_turret(rotated_pos[0], rotated_pos[1])
-            turret["gun_id"] = self.helper.draw_gun(
-                rotated_pos[0], rotated_pos[1],
-                self.heading_angle + turret["angle"]
-            )
+            turret["gun_id"] = self.helper.draw_gun(rotated_pos[0], rotated_pos[1],
+                                                     self.heading_angle + turret["angle"])
             if self.ui:
-                self.ui.update_log(f"[DEBUG] Turret {i} drawn at {rotated_pos} with range {turret['angle_range']}")
-
+                self.ui.update_log(f"[DEBUG] Turret drawn at {rotated_pos} with range {turret['angle_range']}")
         if self.ui:
             self.ui.update_log(f"[DEBUG] Bomber drawn at ({self.x}, {self.y}) with heading {self.heading_angle}°.")
 
     def _calculate_fuselage_points(self, length, height):
-        """
-        Calculates the points of the fuselage polygon, tapering at the front and back.
-
-        Args:
-            length (float): Length of the fuselage.
-            height (float): Height of the fuselage.
-
-        Returns:
-            list: A list of rotated (x, y) tuples for the fuselage.
-        """
         taper = length * 0.25
         points = [
-            (self.x - length / 2 + taper, self.y - height / 2),  # Front-left
-            (self.x + length / 2 - taper, self.y - height / 2),  # Front-right
-            (self.x + length / 2, self.y),                      # Nose
-            (self.x + length / 2 - taper, self.y + height / 2),  # Back-right
-            (self.x - length / 2 + taper, self.y + height / 2),  # Back-left
-            (self.x - length / 2, self.y)                       # Tail
+            (self.x - length / 2 + taper, self.y - height / 2),
+            (self.x + length / 2 - taper, self.y - height / 2),
+            (self.x + length / 2, self.y),
+            (self.x + length / 2 - taper, self.y + height / 2),
+            (self.x - length / 2 + taper, self.y + height / 2),
+            (self.x - length / 2, self.y)
         ]
-        rotated_points = [self.helper._rotate_point_relative(
-            x, y, self.x, self.y, self.heading_angle) for x, y in points]
+        rotated_points = [self.helper._rotate_point_relative(x, y, self.x, self.y, self.heading_angle)
+                          for x, y in points]
         if self.ui:
             self.ui.update_log(f"[DEBUG] Fuselage points: {rotated_points}")
         return rotated_points
 
     def rotate_to_heading(self, heading_angle):
         """
-        Rotates the bomber to the specified heading and redraws it.
-
+        Rotates the bomber to a new heading and redraws it.
+        
         Args:
             heading_angle (float): The new heading angle in degrees.
         """
