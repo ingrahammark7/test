@@ -1,4 +1,4 @@
-#gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=flattened_f.pdf f.pdf
+the#gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=flattened_f.pdf f.pdf
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -50,7 +50,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     attorney_info = [
         "Mark Ingraham",
-        "3553 Atlantic Avenue",
+        "3553 Atlantic Avenue Ste B1241",
         "Long Beach, CA 90807",
         "Telephone: (408) 660-5425",
         "Email: ingrahammark7@gmail.com"
@@ -66,7 +66,7 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -74,7 +74,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "             Petitioner and Plaintiff,",
         "         v.",
-        "Los Angeles Sheriff Department,",
+        "Affirm Holdings Inc.,",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
@@ -124,13 +124,58 @@ def create_pdf(output_filename):
     c.drawString(left_margin, top_margin - 1 * inch, "I. INTRODUCTION")
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. Petitioner, Mark Ingraham, petitions this Court for a writ of mandate to order the Los Angeles Sheriff's",
-        "Department (LASD) to obtain or seize the key to the apartment at 690 S Catalina St Apt 4x, Los Angeles, CA",
-        "from the existing tenant and provide the key to plaintiff.",
-        "2. Be advised the tenant is a murderer and may be dangerous.",
-        "3. Key may be mailed to:",
-        "   Mark Ingraham",
-        "   3553 Atlantic Avenue Ste B1241",
+        "1. Petitioner, Mark Ingraham, found a unrecognized account on his credit report labeled as reported by a",
+        "company named ''Affirm''.",
+        "2. Petitioner has no knowledge of this company and requests credit report entry be removed.",
+    ]
+    y_position = top_margin - 1.5 * inch
+    for line in intro_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # II. FACTUAL BACKGROUND
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
+    c.setFont("Times-Roman", 12)
+    factual_background = [
+        "1. Petitioner is requesting the unrecognized account be removed from his credit report."
+    ]
+    y_position -= 1 * inch
+    for line in factual_background:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # III. REQUEST FOR RELIEF
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "III. REQUEST FOR RELIEF")
+    c.setFont("Times-Roman", 12)
+    relief_text = [
+        "WHEREFORE, Petitioner requests that this Court:",
+        "a. Issue a writ of mandate ordering the supposed creditor to delete the account.",
+        "b. Recommend any appropriate criminal charges against executives claiming to lead defendant corporation."
+    ]
+    y_position -= 1 * inch
+    for line in relief_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # Signature Block
+    c.setFont("Times-Roman", 12)
+    c.drawString(left_margin, y_position - 1 * inch, "DATED: 03/15/2025")
+    c.drawString(left_margin, y_position - 1.5 * inch, "Submitted,")
+    c.drawString(left_margin, y_position - 2 * inch, "Mark Ingraham")
+
+    # Add footer and page number
+    add_footer(2)
+    add_page_number(2)
+
+    # Save the PDF
+    c.save()
+
+if __name__ == "__main__":
+    output_filename = "writ_of_mandate_petition.pdf"
+    create_pdf(output_filename)
+    print(f"PDF created: {output_filename}")
         "   Long Beach, CA 90807",
         "4. Exisitng tenant is named 'Tom', phone (323) 841-0466."
     ]
