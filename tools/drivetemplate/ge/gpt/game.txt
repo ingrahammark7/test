@@ -341,29 +341,6 @@ class BomberHelper:
         step_animation()
 media_rw
 import tkinter as tk
-import math
-
-def pyth(ax,ay,bx,by):
-	 abx = ax-bx
-	 aby =ay-by
-	 ab=math.sqrt((abx*abx)+(aby*aby))
-	 return ab
-
-
-def draw_rounded(p2_base,canvas):
-	 ax=p2_base[0][0]
-	 bx=p2_base[1][0]
-	 cx=p2_base[2][0]
-	 ay=p2_base[0][1]
-	 by=p2_base[1][1]
-	 cy=p2_base[2][1]
-	 ab=pyth(ax,ay,bx,by)
-	 bc=pyth(bx,by,cx,cy)
-	 ca=pyth(cx,cy,ax,ay)
-	 radius=((ab/2)+(bc/2))/4
-	 canvas.create_polygon(p2_base, fill="lightcoral", outline="black")
-	 semicircle_bbox = (50 + 150 - radius, 28 + 150 - radius, 50 + 150, 28 + 150 + radius)
-	 canvas.create_oval(semicircle_bbox, fill="lightcoral", outline="")
 
 def draw_vva_shape():
     # Create the main Tkinter window
@@ -381,6 +358,8 @@ def draw_vva_shape():
 
     # p2 base points (excluding tip rounding)
     p2_base = [(50 + 150, 28 + 150), (40 + 150, 24 + 150), (40 + 150, 32 + 150)]
+    
+    pylon = [(40 +150,24+150),(40+150,32+150),(-49+150,32+150),(-49+150,24+150)]
 
     # Draw the oval using a bounding box
     canvas.create_oval(oval_points[2][0], oval_points[2][1], oval_points[0][0], oval_points[1][1], fill="lightblue", outline="black")
@@ -390,9 +369,11 @@ def draw_vva_shape():
 
     # Draw the additional polygon
     canvas.create_polygon(polygon_points, fill="lightcoral", outline="black")
-
+    
+    canvas.create_polygon(pylon,fill="lightcoral")
+    
     # Draw p2 base
-    draw_rounded(p2_base,canvas)
+    canvas.create_polygon(p2_base, fill="lightcoral", outline="black")
    
 
     # Run the Tkinter event loop
@@ -2609,3 +2590,59 @@ class GameApp:
         Runs the Tkinter main loop.
         """
         self.root.mainloop()
+media_rw
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Constants (example values for 2024)
+annual_tax_revenue = 5000000000000  # Total annual tax revenue in dollars (example: $5 trillion)
+annual_spending = 6000000000000  # Total annual government spending (example: $6 trillion)
+annual_borrowing = 1000000000000  # Annual borrowing (example: $1 trillion)
+starting_cash = 750000000000  # Starting Treasury balance in dollars (example: $100 billion)
+
+# Assumptions:
+tax_day_percentage = 0.5  # 50% of revenue collected on Tax Day
+quarterly_tax_percentage = 0.5  # 50% of revenue is spread out across quarterly payments
+days_in_year = 365
+
+# Calculate daily tax revenue assuming 50% on tax day and 50% across quarterly payments
+daily_tax_revenue = np.zeros(days_in_year)
+
+# Tax Day: Collect 50% of the annual revenue on Tax Day (April 15)
+tax_day_revenue = annual_tax_revenue * tax_day_percentage
+daily_tax_revenue[104] = tax_day_revenue  # April 15 is the 105th day of the year (0-indexed)
+
+# Quarterly Payments: Spread 50% of the revenue across the other quarters
+quarterly_revenue = annual_tax_revenue * quarterly_tax_percentage / 4
+quarter_days = [0, 90, 181, 273]  # Quarter 1 (Jan), Quarter 2 (Apr), Quarter 3 (Jul), Quarter 4 (Oct)
+
+# Spread the quarterly revenue evenly across each day in the quarter
+for quarter_start in quarter_days:
+    for i in range(quarter_start, quarter_start + 90):  # 90 days in a quarter
+        daily_tax_revenue[i] += quarterly_revenue / 90
+
+# Create DataFrame to track daily balances
+df = pd.DataFrame({
+    'day': np.arange(1, days_in_year + 1),
+    'daily_tax_revenue': daily_tax_revenue,
+    'daily_spending': annual_spending / days_in_year,  # Spread the annual spending over 365 days
+    'daily_borrowing': annual_borrowing / days_in_year  # Spread the annual borrowing over 365 days
+})
+
+# Add daily cash flow (Treasury balance)
+df['daily_cash_flow'] = df['daily_tax_revenue'] - df['daily_spending'] + df['daily_borrowing']
+df['daily_treasury_balance'] = starting_cash + df['daily_cash_flow'].cumsum()  # Cumulative sum of daily cash flow
+
+# Plot the results
+plt.figure(figsize=(10, 6))
+plt.plot(df['day'], df['daily_treasury_balance'], label='Treasury Balance', color='b')
+plt.title('Projected Treasury Balance in 2024')
+plt.xlabel('Day of the Year')
+plt.ylabel('Treasury Balance (in dollars)')
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+
+# Show the plot
+plt.show()
