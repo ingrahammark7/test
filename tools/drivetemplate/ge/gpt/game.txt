@@ -990,6 +990,9 @@ class Bomber(Tank):
         self.engines = []
         self.heading_angle = 0
 
+        # Initialize a master components list. Every drawn part should be added here.
+        self.components = []
+
         super().__init__(canvas, x, y, color, ui)
         self.x = x
         self.y = y
@@ -1001,15 +1004,19 @@ class Bomber(Tank):
 
     def draw(self):
         """
-        Draws the bomber's components.
+        Draws the bomber's components and updates the master component list.
         """
+        # Clear the previous drawings, which should also clear self.components.
         self.actions.clear_previous_drawings(self)
+        self.components = []  # Reset the master components list.
+        
         if self.ui:
             self.ui.update_log(f"[DEBUG] Drawing bomber at ({self.x}, {self.y}) with heading {self.heading_angle}°.")
 
         # Draw fuselage.
         fuselage_points = self._calculate_fuselage_points(120, 10)
         self.body = self.canvas.create_polygon(fuselage_points, fill=self.color, outline="black")
+        self.components.append(self.body)
         if self.ui:
             self.ui.update_log(f"[DEBUG] Fuselage drawn with points: {fuselage_points}")
 
@@ -1018,6 +1025,7 @@ class Bomber(Tank):
             self.helper.draw_wing(0, 13, 50, self.x, self.y, self.heading_angle),
             self.helper.draw_wing(0, -13, 50, self.x, self.y, self.heading_angle)
         ]
+        self.components.extend(self.wings)
 
         # Draw engines.
         self.engines = [
@@ -1026,6 +1034,7 @@ class Bomber(Tank):
             self.helper.draw_engine(self.x, self.y - 7, self.x, self.y, self.heading_angle, length=16, width=4),
             self.helper.draw_engine(self.x, self.y - 11, self.x, self.y, self.heading_angle, length=16, width=4)
         ]
+        self.components.extend(self.engines)
 
         # Draw turrets and their guns using turret offsets.
         for turret in self.turrets:
@@ -1035,6 +1044,8 @@ class Bomber(Tank):
             turret["id"] = self.helper.draw_turret(rotated_pos[0], rotated_pos[1])
             turret["gun_id"] = self.helper.draw_gun(rotated_pos[0], rotated_pos[1],
                                                      self.heading_angle + turret["angle"])
+            self.components.append(turret["id"])
+            self.components.append(turret["gun_id"])
             if self.ui:
                 self.ui.update_log(f"[DEBUG] Turret drawn at {rotated_pos} with range {turret['angle_range']}")
         if self.ui:
@@ -1059,7 +1070,7 @@ class Bomber(Tank):
     def rotate_to_heading(self, heading_angle):
         """
         Rotates the bomber to a new heading and redraws it.
-        
+
         Args:
             heading_angle (float): The new heading angle in degrees.
         """
@@ -1070,19 +1081,24 @@ class Bomber(Tank):
 
     def spin_test(self):
         """
-        Performs a spin test of the bomber, rotating it by increments and firing turrets.
+        Performs a spin test of the bomber, rotating it in increments and firing turrets.
+        Each turret is assigned a random firing angle from its defined range.
         """
         self.actions.spin_test(self)
 
     def fire_turret(self, turret):
         """
         Fires the specified turret.
+
+        Args:
+            turret (dict): A turret dictionary from self.turrets.
         """
         self.actions.fire_turret(self, turret)
 
     def trigger_explosion(self):
         """
-        Triggers the bomber's explosion and clears its components.
+        Triggers the bomber's explosion.
+        All components in the master list (self.components) are treated uniformly for explosion effects.
         """
         self.actions.trigger_explosion(self)
 media_rw
@@ -2148,14 +2164,15 @@ class BomberHelper4:
 
     def trigger_explosion(self, bomber):
         """
-        Triggers an explosion that scatters bomber components outward, including turret gun barrels.
+        Triggers an explosion that scatters all bomber components outward.
+        Every part stored in bomber.components (which is updated when drawing)
+        is animated with debris effects, and additional debris is generated.
         
         Args:
             bomber (Bomber): The bomber instance.
         """
-        components = ([bomber.body] + bomber.wings + bomber.engines +
-                      [turret.get("id") for turret in bomber.turrets if turret.get("id")] +
-                      [turret.get("gun_id") for turret in bomber.turrets if turret.get("gun_id")])
+        # Use the master component list to gather all bomber parts.
+        components = bomber.components.copy()
         animated_parts = []
         for comp in components:
             if comp:
@@ -2163,6 +2180,7 @@ class BomberHelper4:
                 dy = random.uniform(-150, 150)
                 self._animate_debris(bomber, comp, dx, dy, steps=30)
                 animated_parts.append(comp)
+        # Generate extra debris pieces.
         for _ in range(10):
             dx = random.uniform(-200, 200)
             dy = random.uniform(-200, 200)
@@ -2171,11 +2189,14 @@ class BomberHelper4:
             self._animate_debris(bomber, debris, dx, dy, steps=30)
             animated_parts.append(debris)
         bomber.canvas.after(2000, lambda: [bomber.canvas.delete(comp) for comp in animated_parts])
+        # Clear bomber parts after explosion.
         bomber.body = None
         bomber.wings = []
         bomber.engines = []
-        bomber.turrets = [{"angle": 0, "id": None, "gun_id": None},
-                          {"angle": 180, "id": None, "gun_id": None}]
+        for turret in bomber.turrets:
+            turret["id"] = None
+            turret["gun_id"] = None
+        bomber.components = []
 
     def _animate_debris(self, bomber, debris, dx, dy, steps=20):
         """
@@ -2245,7 +2266,7 @@ class BomberHelper3:
         Helper class for Bomber that handles fuselage calculations, clearing drawings,
         rotation, and spin tests.
         Turret firing and explosion effects are delegated to BomberHelper4.
-        
+
         Args:
             canvas (tk.Canvas): The canvas to draw on.
             ui (GameUI): Instance for logging/debugging.
@@ -2258,10 +2279,10 @@ class BomberHelper3:
         """
         Calculates the fuselage polygon points for the bomber and rotates them
         by the bomber's heading.
-        
+
         Args:
             bomber (Bomber): The bomber instance with x, y, and heading_angle.
-        
+
         Returns:
             list: A list of rotated (x, y) tuples representing the fuselage polygon.
         """
@@ -2285,29 +2306,33 @@ class BomberHelper3:
     def clear_previous_drawings(self, bomber):
         """
         Clears all bomber components from the canvas, preserving turret structure.
-        
+
         Args:
             bomber (Bomber): The bomber instance.
         """
+        # Gather all known parts.
         components = [bomber.body] + bomber.wings + bomber.engines
         for turret in bomber.turrets:
             if turret.get("id"):
                 components.append(turret["id"])
             if turret.get("gun_id"):
                 components.append(turret["gun_id"])
+        # Delete each component.
         for comp in components:
             self.canvas.delete(comp)
+        # Reset the bomber's drawn parts.
         bomber.body = None
         bomber.wings = []
         bomber.engines = []
         for turret in bomber.turrets:
             turret["id"] = None
             turret["gun_id"] = None
+        # Note: bomber.components (the master list) is managed by Bomber.draw()
 
     def rotate_to_heading(self, bomber, heading_angle):
         """
         Rotates the bomber to a new heading and redraws it.
-        
+
         Args:
             bomber (Bomber): The bomber instance.
             heading_angle (float): The new heading in degrees.
@@ -2321,7 +2346,7 @@ class BomberHelper3:
         """
         Spins the bomber by 45° increments every second and fires each turret once per cycle.
         Turret firing is delegated to BomberHelper4.
-        
+
         Args:
             bomber (Bomber): The bomber instance.
         """
@@ -2357,14 +2382,14 @@ class BomberHelper3:
     def _rotate_point_relative(self, x, y, pivot_x, pivot_y, angle):
         """
         Rotates a point around a pivot by the given angle in degrees.
-        
+
         Args:
             x (float): X-coordinate of the point.
             y (float): Y-coordinate.
             pivot_x (float): Pivot x-coordinate.
             pivot_y (float): Pivot y-coordinate.
             angle (float): Rotation angle in degrees.
-        
+
         Returns:
             tuple: Rotated (x, y) coordinates.
         """
@@ -2590,137 +2615,3 @@ class GameApp:
         Runs the Tkinter main loop.
         """
         self.root.mainloop()
-media_rw
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Constants (example values for 2024)
-annual_tax_revenue = 5000000000000  # Total annual tax revenue in dollars (example: $5 trillion)
-annual_spending = 6000000000000  # Total annual government spending (example: $6 trillion)
-annual_borrowing = 1000000000000  # Annual borrowing (example: $1 trillion)
-starting_cash = 750000000000  # Starting Treasury balance in dollars (example: $100 billion)
-
-# Assumptions:
-tax_day_percentage = 0.5  # 50% of revenue collected on Tax Day
-quarterly_tax_percentage = 0.5  # 50% of revenue is spread out across quarterly payments
-days_in_year = 365
-
-# Calculate daily tax revenue assuming 50% on tax day and 50% across quarterly payments
-daily_tax_revenue = np.zeros(days_in_year)
-
-# Tax Day: Collect 50% of the annual revenue on Tax Day (April 15)
-tax_day_revenue = annual_tax_revenue * tax_day_percentage
-daily_tax_revenue[104] = tax_day_revenue  # April 15 is the 105th day of the year (0-indexed)
-
-# Quarterly Payments: Spread 50% of the revenue across the other quarters
-quarterly_revenue = annual_tax_revenue * quarterly_tax_percentage / 4
-quarter_days = [0, 90, 181, 273]  # Quarter 1 (Jan), Quarter 2 (Apr), Quarter 3 (Jul), Quarter 4 (Oct)
-
-# Spread the quarterly revenue evenly across each day in the quarter
-for quarter_start in quarter_days:
-    for i in range(quarter_start, quarter_start + 90):  # 90 days in a quarter
-        daily_tax_revenue[i] += quarterly_revenue / 90
-
-# Create DataFrame to track daily balances
-df = pd.DataFrame({
-    'day': np.arange(1, days_in_year + 1),
-    'daily_tax_revenue': daily_tax_revenue,
-    'daily_spending': annual_spending / days_in_year,  # Spread the annual spending over 365 days
-    'daily_borrowing': annual_borrowing / days_in_year  # Spread the annual borrowing over 365 days
-})
-
-# Add daily cash flow (Treasury balance)
-df['daily_cash_flow'] = df['daily_tax_revenue'] - df['daily_spending'] + df['daily_borrowing']
-df['daily_treasury_balance'] = starting_cash + df['daily_cash_flow'].cumsum()  # Cumulative sum of daily cash flow
-
-# Plot the results
-plt.figure(figsize=(10, 6))
-plt.plot(df['day'], df['daily_treasury_balance'], label='Treasury Balance', color='b')
-plt.title('Projected Treasury Balance in 2024')
-plt.xlabel('Day of the Year')
-plt.ylabel('Treasury Balance (in dollars)')
-plt.grid(True)
-plt.legend()
-plt.tight_layout()
-
-# Show the plot
-plt.show()
-media_rw
-from reportlab.lib.pagesizes import LETTER
-from reportlab.pdfgen import canvas
-from datetime import date
-
-# File name
-filename = "clerk_request_letter.pdf"
-
-# Create a canvas
-c = canvas.Canvas(filename, pagesize=LETTER)
-width, height = LETTER
-
-# Your details
-plaintiff_name = "Mark Ingraham"
-address = "3553 Atlantic Avenue\nLong Beach, CA 90807"
-phone = "408-660-5425"
-email = "ingrahammark7@gmail.com"
-case_number = "CPF-25-518974"
-today = date.today().strftime("%B %d, %Y")
-
-# Start writing
-y = height - 72
-
-c.setFont("Helvetica", 12)
-
-# Header
-c.drawString(72, y, plaintiff_name)
-y -= 18
-for line in address.split('\n'):
-    c.drawString(72, y, line)
-    y -= 18
-c.drawString(72, y, f"Phone: {phone}")
-y -= 18
-c.drawString(72, y, f"Email: {email}")
-y -= 36
-
-# Date
-c.drawString(72, y, today)
-y -= 36
-
-# Recipient
-c.drawString(72, y, "Clerk of the Court")
-y -= 18
-c.drawString(72, y, "Superior Court of California")
-y -= 18
-c.drawString(72, y, "County of San Francisco")
-y -= 36
-
-# Subject
-c.drawString(72, y, f"Re: Request for Filing Status — Case No. {case_number}")
-y -= 36
-
-# Body
-body = (
-    "Dear Clerk,\n\n"
-    "I am writing to respectfully request an update on a document I submitted to the court \n"
-    "in the above-referenced case. The document was submitted on or around a week ago, and \n"
-    "as of today, I have not received confirmation of whether it has been accepted or rejected.\n\n"
-    "I kindly request that the Clerk’s Office either file the document or return it with any \n"
-    "necessary explanation, so that I may take appropriate next steps. \n Please advise at your earliest convenience.\n\n"
-    "Thank you for your attention to this matter."
-)
-
-for paragraph in body.split("\n\n"):
-    for line in paragraph.split("\n"):
-        c.drawString(72, y, line)
-        y -= 18
-    y -= 12
-
-# Sign-off
-c.drawString(72, y, "Sincerely,")
-y -= 36
-c.drawString(72, y, plaintiff_name)
-
-# Save the PDF
-c.save()
-
-print(f"PDF letter saved as: {filename}")
