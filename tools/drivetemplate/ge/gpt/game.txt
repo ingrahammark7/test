@@ -2646,3 +2646,81 @@ plt.tight_layout()
 
 # Show the plot
 plt.show()
+media_rw
+from reportlab.lib.pagesizes import LETTER
+from reportlab.pdfgen import canvas
+from datetime import date
+
+# File name
+filename = "clerk_request_letter.pdf"
+
+# Create a canvas
+c = canvas.Canvas(filename, pagesize=LETTER)
+width, height = LETTER
+
+# Your details
+plaintiff_name = "Mark Ingraham"
+address = "3553 Atlantic Avenue\nLong Beach, CA 90807"
+phone = "408-660-5425"
+email = "ingrahammark7@gmail.com"
+case_number = "CPF-25-518974"
+today = date.today().strftime("%B %d, %Y")
+
+# Start writing
+y = height - 72
+
+c.setFont("Helvetica", 12)
+
+# Header
+c.drawString(72, y, plaintiff_name)
+y -= 18
+for line in address.split('\n'):
+    c.drawString(72, y, line)
+    y -= 18
+c.drawString(72, y, f"Phone: {phone}")
+y -= 18
+c.drawString(72, y, f"Email: {email}")
+y -= 36
+
+# Date
+c.drawString(72, y, today)
+y -= 36
+
+# Recipient
+c.drawString(72, y, "Clerk of the Court")
+y -= 18
+c.drawString(72, y, "Superior Court of California")
+y -= 18
+c.drawString(72, y, "County of San Francisco")
+y -= 36
+
+# Subject
+c.drawString(72, y, f"Re: Request for Filing Status — Case No. {case_number}")
+y -= 36
+
+# Body
+body = (
+    "Dear Clerk,\n\n"
+    "I am writing to respectfully request an update on a document I submitted to the court "
+    "in the above-referenced case. The document was submitted on or around a week ago, and "
+    "as of today, I have not received confirmation of whether it has been accepted or rejected.\n\n"
+    "I kindly request that the Clerk’s Office either file the document or return it with any "
+    "necessary explanation, so that I may take appropriate next steps. Please advise at your earliest convenience.\n\n"
+    "Thank you for your attention to this matter."
+)
+
+for paragraph in body.split("\n\n"):
+    for line in paragraph.split("\n"):
+        c.drawString(72, y, line)
+        y -= 18
+    y -= 12
+
+# Sign-off
+c.drawString(72, y, "Sincerely,")
+y -= 36
+c.drawString(72, y, plaintiff_name)
+
+# Save the PDF
+c.save()
+
+print(f"PDF letter saved as: {filename}")
