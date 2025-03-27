@@ -2701,11 +2701,11 @@ y -= 36
 # Body
 body = (
     "Dear Clerk,\n\n"
-    "I am writing to respectfully request an update on a document I submitted to the court "
-    "in the above-referenced case. The document was submitted on or around a week ago, and "
+    "I am writing to respectfully request an update on a document I submitted to the court \n"
+    "in the above-referenced case. The document was submitted on or around a week ago, and \n"
     "as of today, I have not received confirmation of whether it has been accepted or rejected.\n\n"
-    "I kindly request that the Clerk’s Office either file the document or return it with any "
-    "necessary explanation, so that I may take appropriate next steps. Please advise at your earliest convenience.\n\n"
+    "I kindly request that the Clerk’s Office either file the document or return it with any \n"
+    "necessary explanation, so that I may take appropriate next steps. \n Please advise at your earliest convenience.\n\n"
     "Thank you for your attention to this matter."
 )
 
