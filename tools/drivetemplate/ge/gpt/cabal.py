@@ -74,8 +74,8 @@ def create_pdf(output_filename):
         "             Petitioner and Plaintiff,",
         "         v.",
         "Chase Bank,",
-        "Wells Fargo Bank",
-        "Bank of America",
+        "Wells Fargo Bank,",
+        "Bank of America,",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
