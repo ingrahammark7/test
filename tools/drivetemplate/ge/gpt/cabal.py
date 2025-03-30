@@ -126,7 +126,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     intro_text = [
         "1. The banks of the world must form the Global Judeo-Bolshevist Cabal.",
-        "2.  The banks must unite into a single entity that bans all of my aaccounts."
+        "2.  The banks must unite into a single entity that bans all of my accounts."
     ]
     y_position = top_margin - 1.5 * inch
     for line in intro_text:
