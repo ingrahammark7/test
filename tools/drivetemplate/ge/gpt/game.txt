@@ -2443,7 +2443,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import Button
 
 # Define the exact corner coordinates (in decimal degrees)
 northwest_corner = (48 + 23.155/60, -124 - 43.604/60)
@@ -2463,8 +2463,6 @@ lons = np.arange(lon_min, lon_max + ddeg, ddeg)
 num_cells_y = len(lats)
 num_cells_x = len(lons)
 
-print(f"Grid dimensions: {num_cells_y} rows x {num_cells_x} columns (each ~10 km cell)")
-
 # Precipitation values at the corners
 precip_northeast = 50
 precip_northwest = 0
@@ -2483,7 +2481,6 @@ def get_precipitation(x_idx, y_idx):
     return (precip_x + precip_y) / 2
 
 # Generate precipitation grid
-print("Generating precipitation grid...")
 precip_grid = np.zeros((num_cells_y, num_cells_x))
 for i in range(num_cells_y):
     for j in range(num_cells_x):
@@ -2517,16 +2514,33 @@ with open(population_file, 'w') as f:
     f.write(f"Longitude: {lons[european_lon_idx]}\n")
     f.write(f"Population: {startpop_grid[european_lat_idx, european_lon_idx]}\n")
 
-print(f"Saved European population data to {population_file}")
+# Create the Tkinter window
+root = tk.Tk()
+root.title("Map Visualization")
 
+# Set the window size to reserve space at the bottom for navigation
+root.geometry("800x600")
 
-# Function to create and display matplotlib figure in Tkinter
+# Create a frame for the matplotlib figure and the navigation button
+frame = tk.Frame(root)
+frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+# Create a frame for the navigation buttons at the bottom
+nav_frame = tk.Frame(root, height=100)
+nav_frame.pack(side=tk.BOTTOM, fill=tk.X)
+
+# Initialize current page variable
+current_page = 0
+
+# Function to create and display matplotlib figure for pagination
 def plot_grid_page(page_num):
+    # Clear the current canvas if it exists
+    for widget in frame.winfo_children():
+        widget.destroy()
+
     fig, axes = plt.subplots(1, 2, figsize=(12, 10))
-    start_idx = page_num * 2
-    end_idx = start_idx + 2
     
-    if start_idx < 2:  # Only two grids on the first page
+    if page_num == 0:
         axes[0].imshow(precip_grid, cmap='viridis', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
         axes[0].set_title("Precipitation Grid (10x10 km cells)")
         axes[0].set_xlabel("Longitude (°)")
@@ -2539,61 +2553,32 @@ def plot_grid_page(page_num):
         axes[1].set_ylabel("Latitude (°)")
         fig.colorbar(axes[1].imshow(startpop_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes[1])
 
-    else:  # Second page will display European population
+    elif page_num == 1:
         axes[0].text(0.5, 0.5, f"European Population Data\nTurn: {turn_number}\nLatitude: {lats[european_lat_idx]}\nLongitude: {lons[european_lon_idx]}\nPopulation: {startpop_grid[european_lat_idx, european_lon_idx]}", 
                      horizontalalignment='center', verticalalignment='center', fontsize=12, transform=axes[0].transAxes)
         axes[0].axis('off')  # Hide the axis for this page
 
     plt.tight_layout()
 
-    # Display figure in Tkinter window
-    canvas = FigureCanvasTkAgg(fig, master=frame)  # A canvas to embed the figure into the Tkinter window
+    # Embed the plot in Tkinter
+    canvas = FigureCanvasTkAgg(fig, master=frame)
+    canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
     canvas.draw()
-    canvas.get_tk_widget().pack()
 
-# Function to handle page navigation
-def next_page():
-    global page_num
-    page_num += 1
-    if page_num > 1:  # We only have two pages for now
-        page_num = 0
-    update_page()
+# Function to handle button click
+def on_next_page():
+    global current_page
+    current_page += 1
+    if current_page > 1:  # Wrap around to the first page
+        current_page = 0
+    plot_grid_page(current_page)
 
-def previous_page():
-    global page_num
-    page_num -= 1
-    if page_num < 0:
-        page_num = 1
-    update_page()
+# Create and display the first page
+plot_grid_page(current_page)
 
-def update_page():
-    for widget in frame.winfo_children():
-        widget.destroy()  # Clear the current canvas
-    plot_grid_page(page_num)
+# Create navigation button
+next_button = Button(nav_frame, text="Next Page", command=on_next_page)
+next_button.pack(side=tk.RIGHT, padx=10, pady=10)
 
-# Set up Tkinter window
-root = tk.Tk()
-root.title("Map and Population Visualization")
-
-# Frame to hold the canvas
-frame = tk.Frame(root)
-frame.pack()
-
-# Initial page number (first page is 0)
-page_num = 0
-
-# Display the initial page
-update_page()
-
-# Add navigation buttons
-button_frame = tk.Frame(root)
-button_frame.pack()
-
-previous_button = tk.Button(button_frame, text="Previous", command=previous_page)
-previous_button.grid(row=0, column=0)
-
-next_button = tk.Button(button_frame, text="Next", command=next_page)
-next_button.grid(row=0, column=1)
-
-# Run the Tkinter event loop
+# Start the Tkinter event loop
 root.mainloop()
