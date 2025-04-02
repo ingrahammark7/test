@@ -1,5 +1,3 @@
-the#gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=flattened_f.pdf f.pdf
-
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
@@ -50,7 +48,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     attorney_info = [
         "Mark Ingraham",
-        "3553 Atlantic Avenue Ste B1241",
+        "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
         "Telephone: (408) 660-5425",
         "Email: ingrahammark7@gmail.com"
@@ -65,8 +63,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF THE DISTRICT OF COLUMBIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CIVIL DIVISION")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -74,14 +72,15 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "             Petitioner and Plaintiff,",
         "         v.",
-        "Affirm Holdings Inc.,",
+        "Office of the Comptroller of the Currency",
+        "of the United States Department of the Treasury",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
     counter=0
     for line in case_title:
         c.setFont("Times-Bold",12)
-        if counter==1 or counter==4:
+        if counter==1 or counter==5:
         	c.setFont("Times-Roman",12)
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
@@ -124,9 +123,9 @@ def create_pdf(output_filename):
     c.drawString(left_margin, top_margin - 1 * inch, "I. INTRODUCTION")
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. Petitioner, Mark Ingraham, found a unrecognized account on his credit report labeled as reported by a",
-        "company named ''Affirm''.",
-        "2. Petitioner has no knowledge of this company and requests credit report entry be removed.",
+        "1. Petitioner, Mark Ingraham, petitions this Court for a copy of the police report attached to a case opened",
+        "by the Office of the Comptroller of the Currency (OCC) Customer Assistance Group OCC Ombudsman.",
+        "2. The case number is CS0366753.",
     ]
     y_position = top_margin - 1.5 * inch
     for line in intro_text:
@@ -138,7 +137,8 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
     c.setFont("Times-Roman", 12)
     factual_background = [
-        "1. Petitioner is requesting the unrecognized account be removed from his credit report."
+        "1. Petitioner was informed by OCC that a police report regarding ''cartel activity'' was attached to the case.",
+        "2. Petitioner called the OCC for further information and did not recieve adequate details.",
     ]
     y_position -= 1 * inch
     for line in factual_background:
@@ -151,60 +151,8 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     relief_text = [
         "WHEREFORE, Petitioner requests that this Court:",
-        "a. Issue a writ of mandate ordering the supposed creditor to delete the account.",
-        "b. Recommend any appropriate criminal charges against executives claiming to lead defendant corporation."
-    ]
-    y_position -= 1 * inch
-    for line in relief_text:
-        c.drawString(left_margin, y_position, line)
-        y_position -= 0.25 * inch
-
-    # Signature Block
-    c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 1 * inch, "DATED: 03/15/2025")
-    c.drawString(left_margin, y_position - 1.5 * inch, "Submitted,")
-    c.drawString(left_margin, y_position - 2 * inch, "Mark Ingraham")
-
-    # Add footer and page number
-    add_footer(2)
-    add_page_number(2)
-
-    # Save the PDF
-    c.save()
-
-if __name__ == "__main__":
-    output_filename = "writ_of_mandate_petition.pdf"
-    create_pdf(output_filename)
-    print(f"PDF created: {output_filename}")
-        "   Long Beach, CA 90807",
-        "4. Exisitng tenant is named 'Tom', phone (323) 841-0466."
-    ]
-    y_position = top_margin - 1.5 * inch
-    for line in intro_text:
-        c.drawString(left_margin, y_position, line)
-        y_position -= 0.25 * inch
-
-    # II. FACTUAL BACKGROUND
-    c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
-    c.setFont("Times-Roman", 12)
-    factual_background = [
-        "1. Petitioner is requesting the key to 690 S Catalina St Apt 4x, Los Angeles, CA.",
-        "2. The LASD is to retrieve the key from tenant."
-    ]
-    y_position -= 1 * inch
-    for line in factual_background:
-        c.drawString(left_margin, y_position, line)
-        y_position -= 0.25 * inch
-
-    # III. REQUEST FOR RELIEF
-    c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.5 * inch, "III. REQUEST FOR RELIEF")
-    c.setFont("Times-Roman", 12)
-    relief_text = [
-        "WHEREFORE, Petitioner requests that this Court:",
-        "a. Issue a writ of mandate ordering the LASD seize the key for the apartment at 690 S Catalina St Apt 4x,",
-        "Los Angeles, CA from tenant and provide the key to plaintiff."
+        "a. Issue a writ of mandate ordering the OCC to provide the police reports attached to case CS0366753",
+        " and any related cases.",
     ]
     y_position -= 1 * inch
     for line in relief_text:
@@ -214,8 +162,10 @@ if __name__ == "__main__":
     # Signature Block
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 1 * inch, "DATED: 02/15/2025")
-    c.drawString(left_margin, y_position - 1.5 * inch, "Submitted,")
+    c.drawString(left_margin, y_position - 1.5 * inch, "Respectfully submitted,")
     c.drawString(left_margin, y_position - 2 * inch, "Mark Ingraham")
+    c.drawString(left_margin, y_position - 2.5 * inch, "3553 Atlantic Avenue")
+    c.drawString(left_margin, y_position - 3 * inch, "Long Beach, CA 90807")
 
     # Add footer and page number
     add_footer(2)
