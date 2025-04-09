@@ -2217,6 +2217,187 @@ class BomberHelper4:
                 bomber.canvas.delete(debris)
         step_animation()
 media_rw
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, Frame
+
+def create_pdf(output_filename):
+    # Create a PDF document
+    c = canvas.Canvas(output_filename, pagesize=letter)
+    width, height = letter
+
+    # Set margins
+    left_margin = 1 * inch
+    right_margin = width - 1 * inch
+    top_margin = height - 1 * inch
+    bottom_margin = 0 * inch
+
+    # Set font and size (Times New Roman, 12-point)
+    c.setFont("Times-Roman", 12)
+
+    # Add page numbers (starting from page 2)
+    def add_page_number(page_num):
+        if page_num > 1:  # Suppress page number on the first page
+            c.setFont("Times-Roman", 10)
+            c.drawCentredString(width / 2, 0.5 * inch, f"{page_num}")
+
+    # Add footer
+    def add_footer(page_num):
+        footer_y = 0.4 * inch  # Position for footer
+        footer_text = "Petition for Writ of Mandate"  # Title of the paper
+        c.setFont("Times-Roman", 10)  # Font size for footer
+        c.drawCentredString(width / 2, footer_y, footer_text)
+        # Draw a line above the footer
+        c.line(left_margin, footer_y + 0.1 * inch, right_margin, footer_y + 0.1 * inch)
+
+    # Add line numbers
+    def add_line_numbers(start_y, end_y, line_height):
+        line_number_x = left_margin - 0.5 * inch  # Position for line numbers
+        line_number = 1
+        current_y = start_y
+        while current_y >= end_y:
+            c.drawString(line_number_x, current_y, str(line_number))
+            line_number += 1
+            current_y -= line_height
+
+    # First Page Format (Rule 2.111)
+    # (1) Attorney Information
+    c.setFont("Times-Roman", 12)
+    attorney_info = [
+        "Mark Ingraham",
+        "3553 Atlantic Avenue",
+        "Long Beach, CA 90807",
+        "Telephone: (408) 660-5425",
+        "Email: ingrahammark7@gmail.com"
+    ]
+    y_position = top_margin - 0.5 * inch
+    for line in attorney_info:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # (2) Clerk's Space (blank space to the right of center)
+    c.rect(width / 2 + 0.5 * inch, top_margin - 2 * inch, 2 * inch, 1.5 * inch, stroke=1, fill=0)
+
+    # (3) Court Title
+    c.setFont("Times-Bold", 14)
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF THE DISTRICT OF COLUMBIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CIVIL DIVISION")
+
+    # (4) Case Title
+    c.setFont("Times-Bold", 12)
+    case_title = [
+        "Mark Ingraham,",
+        "             Petitioner and Plaintiff,",
+        "         v.",
+        "Office of the Comptroller of the Currency",
+        "of the United States Department of the Treasury",
+        "             Respondent and Defendant."
+    ]
+    y_position = top_margin - 4.75* inch
+    counter=0
+    for line in case_title:
+        c.setFont("Times-Bold",12)
+        if counter==1 or counter==5:
+        	c.setFont("Times-Roman",12)
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+        counter+=1
+
+    # (5) Case Number
+    c.setFont("Times-Roman", 12)
+    space=width / 2 + 1 * inch
+    c.drawString(space, top_margin - 4 * inch, "Case Number:")
+    # (6) Nature of the Paper (moved slightly lower)
+    c.setFont("Times-Bold", 12)
+    c.drawString(space, top_margin - 5.5 * inch, "Petition for Writ of Mandate")
+    c.setFont("Times-Bold", 12)
+    c.drawString(space, top_margin - 6.00 * inch, "Administrative Mandamus, Civil Unlimited")
+
+    # (7) Judge and Department
+    c.setFont("Times-Roman", 12)
+    c.drawString(space, top_margin - 6.5 * inch, "Judge: ")
+    c.drawString(space, top_margin - 6.75 * inch, "Department: ")
+
+    # Add line numbers to the first page
+    line_height = 0.25 * inch  # Adjusted to match text spacing
+    add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
+
+    # Add footer (suppressed on the first page)
+    add_footer(1)
+
+    # Save the first page
+    c.showPage()
+
+    # Second Page: Petition Text
+    c.setFont("Times-Bold", 14)
+    c.drawString(left_margin, top_margin - 0.5 * inch, "PETITION FOR WRIT OF MANDATE")
+
+    # Add line numbers to the second page
+    add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
+
+    # I. INTRODUCTION
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, top_margin - 1 * inch, "I. INTRODUCTION")
+    c.setFont("Times-Roman", 12)
+    intro_text = [
+        "1. Petitioner, Mark Ingraham, petitions this Court for a copy of the police report attached to a case opened",
+        "by the Office of the Comptroller of the Currency (OCC) Customer Assistance Group OCC Ombudsman.",
+        "2. The case number is CS0366753.",
+    ]
+    y_position = top_margin - 1.5 * inch
+    for line in intro_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # II. FACTUAL BACKGROUND
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
+    c.setFont("Times-Roman", 12)
+    factual_background = [
+        "1. Petitioner was informed by OCC that a police report regarding ''cartel activity'' was attached to the case.",
+        "2. Petitioner called the OCC for further information and did not recieve adequate details.",
+    ]
+    y_position -= 1 * inch
+    for line in factual_background:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # III. REQUEST FOR RELIEF
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "III. REQUEST FOR RELIEF")
+    c.setFont("Times-Roman", 12)
+    relief_text = [
+        "WHEREFORE, Petitioner requests that this Court:",
+        "a. Issue a writ of mandate ordering the OCC to provide the police reports attached to case CS0366753",
+        " and any related cases.",
+    ]
+    y_position -= 1 * inch
+    for line in relief_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # Signature Block
+    c.setFont("Times-Roman", 12)
+    c.drawString(left_margin, y_position - 1 * inch, "DATED: 02/15/2025")
+    c.drawString(left_margin, y_position - 1.5 * inch, "Respectfully submitted,")
+    c.drawString(left_margin, y_position - 2 * inch, "Mark Ingraham")
+    c.drawString(left_margin, y_position - 2.5 * inch, "3553 Atlantic Avenue")
+    c.drawString(left_margin, y_position - 3 * inch, "Long Beach, CA 90807")
+
+    # Add footer and page number
+    add_footer(2)
+    add_page_number(2)
+
+    # Save the PDF
+    c.save()
+
+if __name__ == "__main__":
+    output_filename = "writ_of_mandate_petition.pdf"
+    create_pdf(output_filename)
+    print(f"PDF created: {output_filename}")
+media_rw
 import tkinter as tk
 
 class GameApp:
@@ -2445,7 +2626,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
 from tkinter import Button
 
-# Define the exact corner coordinates (in decimal degrees)
 northwest_corner = (48 + 23.155/60, -124 - 43.604/60)
 northeast_corner = (47 + 20.615/60, -68 - 13.885/60)
 southwest_corner = (32 + 32/60 + 4/3600, -117 - 7/60 - 19/3600)
@@ -2456,14 +2636,14 @@ lat_max = max(northwest_corner[0], northeast_corner[0])
 lon_min = min(northwest_corner[1], southwest_corner[1])
 lon_max = max(northeast_corner[1], southeast_corner[1])
 
-ddeg = 0.1  # 10 km resolution approximation
+ddeg = 0.1
 lats = np.arange(lat_min, lat_max + ddeg, ddeg)
 lons = np.arange(lon_min, lon_max + ddeg, ddeg)
 
 num_cells_y = len(lats)
 num_cells_x = len(lons)
+print(f"Grid dimensions: {num_cells_y} rows x {num_cells_x} columns (each ~10 km cell)")
 
-# Precipitation values at the corners
 precip_northeast = 50
 precip_northwest = 0
 precip_southeast = 100
@@ -2474,111 +2654,170 @@ def get_precipitation(x_idx, y_idx):
     precip_east = (precip_northeast + precip_southeast) / 2
     precip_west = (precip_northwest + precip_southwest) / 2
     precip_x = precip_east * (1 - weight_x) + precip_west * weight_x
-
     weight_y = (lats[y_idx] - lat_min) / (lat_max - lat_min)
-    precip_y = (precip_southeast * (1 - weight_y) + precip_northeast * weight_y )
-    
+    precip_y = precip_southeast * (1 - weight_y) + precip_northeast * weight_y
     return (precip_x + precip_y) / 2
 
-# Generate precipitation grid
 precip_grid = np.zeros((num_cells_y, num_cells_x))
 for i in range(num_cells_y):
     for j in range(num_cells_x):
         precip_grid[i, j] = get_precipitation(j, i)
+np.savetxt("percip.txt", precip_grid)
 
-# Compute and save starting population grid
 max_population_per_cell_at_100cm = 385.0
 startpop_grid = (precip_grid / 100.0) * max_population_per_cell_at_100cm
+np.savetxt("startpop.txt", startpop_grid)
 
-# Add European population at latitude 35 on the eastern edge (last column)
-european_lat_idx = np.argmin(np.abs(lats - 35))  # Find the index for latitude 35
-european_lon_idx = num_cells_x - 1  # The eastern edge (last column)
+european_lat_idx = np.argmin(np.abs(lats - 35))
+european_lon_idx = num_cells_x - 1
+eu_capacity = startpop_grid[european_lat_idx, european_lon_idx]
+eu_pop = 100.0
+startpop_grid[european_lat_idx, european_lon_idx] = eu_pop
 
-# Set European population in that cell to a specific value (e.g., 100 people)
-startpop_grid[european_lat_idx, european_lon_idx] = 100
-
-# Save European population with turn number (turn 1 for now)
 turn_number = 1
-european_population_data = {
-    'turn': turn_number,
-    'latitude': lats[european_lat_idx],
-    'longitude': lons[european_lon_idx],
-    'population': startpop_grid[european_lat_idx, european_lon_idx]
-}
-
-# Save to a text file
-population_file = f"european_population_turn_{turn_number}.txt"
-with open(population_file, 'w') as f:
+european_population_data = {'turn': turn_number, 'latitude': lats[european_lat_idx], 'longitude': lons[european_lon_idx], 'population': eu_pop}
+with open(f"european_population_turn_{turn_number}.txt", 'w') as f:
     f.write(f"Turn: {turn_number}\n")
     f.write(f"Latitude: {lats[european_lat_idx]}\n")
     f.write(f"Longitude: {lons[european_lon_idx]}\n")
-    f.write(f"Population: {startpop_grid[european_lat_idx, european_lon_idx]}\n")
+    f.write(f"Population: {eu_pop}\n")
 
-# Create the Tkinter window
-root = tk.Tk()
-root.title("Map Visualization")
-
-# Set the window size to reserve space at the bottom for navigation
-root.geometry("800x600")
-
-# Create a frame for the matplotlib figure and the navigation button
-frame = tk.Frame(root)
-frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-# Create a frame for the navigation buttons at the bottom
-nav_frame = tk.Frame(root, height=100)
-nav_frame.pack(side=tk.BOTTOM, fill=tk.X)
-
-# Initialize current page variable
-current_page = 0
-
-# Function to create and display matplotlib figure for pagination
+scaling_factor = 10.0
+range_radius = 10
+max_egg_population = scaling_factor ** 2
+egg_pop_grid = (precip_grid / 100.0) * max_egg_population
+def decrement_eggpop_in_range(x_idx, y_idx, eggpop_grid, range_radius):
+    lat_start = max(0, int(y_idx - range_radius))
+    lat_end = min(num_cells_y - 1, int(y_idx + range_radius))
+    lon_start = max(0, int(x_idx - range_radius))
+    lon_end = min(num_cells_x - 1, int(x_idx + range_radius))
+    for i in range(lat_start, lat_end + 1):
+        for j in range(lon_start, lon_end + 1):
+            if eggpop_grid[i, j] > 0:
+                eggpop_grid[i, j] -= 1
+    return eggpop_grid
+egg_pop_grid = decrement_eggpop_in_range(european_lon_idx, european_lat_idx, egg_pop_grid, range_radius)
+np.savetxt("eggpop_initial.txt", egg_pop_grid)
+def calculate_vitamin_constrained_population(eggpop):
+    return (eggpop / max_egg_population) * 4 * 100
+native_population_grid = startpop_grid.copy()
+for i in range(num_cells_y):
+    for j in range(num_cells_x):
+        vit_pop = calculate_vitamin_constrained_population(egg_pop_grid[i, j])
+        if native_population_grid[i, j] > vit_pop:
+            native_population_grid[i, j] = vit_pop
+np.savetxt("vitamin_constrained_pop.txt", native_population_grid)
+def spread_eu_population(eu_pop_grid, capacity_grid):
+    changed = True
+    while changed:
+        changed = False
+        new_grid = eu_pop_grid.copy()
+        for i in range(num_cells_y):
+            for j in range(num_cells_x):
+                cap = capacity_grid[i, j]
+                if eu_pop_grid[i, j] > cap:
+                    overflow = eu_pop_grid[i, j] - cap
+                    new_grid[i, j] = cap
+                    neighbors = []
+                    for di in [-1,0,1]:
+                        for dj in [-1,0,1]:
+                            if di == 0 and dj == 0:
+                                continue
+                            ni = i + di
+                            nj = j + dj
+                            if 0 <= ni < num_cells_y and 0 <= nj < num_cells_x:
+                                avail = capacity_grid[ni, nj] - eu_pop_grid[ni, nj]
+                                if avail > 0:
+                                    neighbors.append((ni, nj, avail))
+                    if neighbors:
+                        total_avail = sum(n[2] for n in neighbors)
+                        for (ni, nj, avail) in neighbors:
+                            share = overflow * (avail / total_avail)
+                            new_grid[ni, nj] += share
+                        changed = True
+        eu_pop_grid = new_grid.copy()
+    return eu_pop_grid
+def simulate_turn():
+    global turn_number, eu_pop_grid, eu_pop
+    new_eu_pop_grid = eu_pop_grid.copy()
+    for i in range(num_cells_y):
+        for j in range(num_cells_x):
+            if eu_pop_grid[i, j] > 0:
+                new_val = 2 * eu_pop_grid[i, j]
+                cap = startpop_grid[i, j]
+                if new_val > cap:
+                    new_val = new_val
+                new_eu_pop_grid[i, j] = new_val
+    eu_pop_grid = spread_eu_population(new_eu_pop_grid, startpop_grid)
+    turn_number += 1
+    with open(f"european_population_turn_{turn_number}.txt", 'w') as f:
+        f.write(f"Turn: {turn_number}\n")
+        f.write("European Population Grid Snapshot\n")
+        np.savetxt(f, eu_pop_grid)
+    for i in range(num_cells_y):
+        for j in range(num_cells_x):
+            vit_pop = calculate_vitamin_constrained_population(egg_pop_grid[i, j])
+            if native_population_grid[i, j] > vit_pop:
+                native_population_grid[i, j] = vit_pop
+    eu_pop = np.sum(eu_pop_grid)
+    return
+TOTAL_TURNS = 10
+def simulate_game_turn():
+    if turn_number < TOTAL_TURNS:
+        simulate_turn()
+        plot_grid_page(current_page)
+        root.after(1000, simulate_game_turn)
 def plot_grid_page(page_num):
-    # Clear the current canvas if it exists
     for widget in frame.winfo_children():
         widget.destroy()
-
-    fig, axes = plt.subplots(1, 2, figsize=(12, 10))
-    
     if page_num == 0:
+        fig, axes = plt.subplots(1, 2, figsize=(12, 10))
         axes[0].imshow(precip_grid, cmap='viridis', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
         axes[0].set_title("Precipitation Grid (10x10 km cells)")
         axes[0].set_xlabel("Longitude (°)")
         axes[0].set_ylabel("Latitude (°)")
         fig.colorbar(axes[0].imshow(precip_grid, cmap='viridis', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes[0])
-
-        axes[1].imshow(startpop_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
-        axes[1].set_title("Starting Population Grid")
+        axes[1].imshow(native_population_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
+        axes[1].set_title("Vitamin-Constrained Population Grid")
         axes[1].set_xlabel("Longitude (°)")
         axes[1].set_ylabel("Latitude (°)")
-        fig.colorbar(axes[1].imshow(startpop_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes[1])
-
+        fig.colorbar(axes[1].imshow(native_population_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes[1])
     elif page_num == 1:
-        axes[0].text(0.5, 0.5, f"European Population Data\nTurn: {turn_number}\nLatitude: {lats[european_lat_idx]}\nLongitude: {lons[european_lon_idx]}\nPopulation: {startpop_grid[european_lat_idx, european_lon_idx]}", 
-                     horizontalalignment='center', verticalalignment='center', fontsize=12, transform=axes[0].transAxes)
-        axes[0].axis('off')  # Hide the axis for this page
-
+        fig, axes = plt.subplots(1, 1, figsize=(12, 10))
+        axes.imshow(egg_pop_grid, cmap='coolwarm', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
+        axes.set_title("Egg Population Grid")
+        axes.set_xlabel("Longitude (°)")
+        axes.set_ylabel("Latitude (°)")
+        fig.colorbar(axes.imshow(egg_pop_grid, cmap='coolwarm', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes)
+    elif page_num == 2:
+        fig, axes = plt.subplots(1, 1, figsize=(12, 10))
+        total_eu_population = np.sum(eu_pop_grid)
+        axes.imshow(eu_pop_grid, cmap='inferno', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
+        axes.set_title("European Population Grid")
+        axes.set_xlabel("Longitude (°)")
+        axes.set_ylabel("Latitude (°)")
+        fig.colorbar(axes.imshow(eu_pop_grid, cmap='inferno', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes)
+        axes.text(0.5, 0.05, f"Total European Population: {total_eu_population:.0f}", horizontalalignment='center', verticalalignment='center', fontsize=14, transform=axes.transAxes)
     plt.tight_layout()
-
-    # Embed the plot in Tkinter
     canvas = FigureCanvasTkAgg(fig, master=frame)
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
     canvas.draw()
-
-# Function to handle button click
 def on_next_page():
     global current_page
     current_page += 1
-    if current_page > 1:  # Wrap around to the first page
+    if current_page > 2:
         current_page = 0
     plot_grid_page(current_page)
-
-# Create and display the first page
+def on_prev_page():
+    global current_page
+    current_page -= 1
+    if current_page < 0:
+        current_page = 2
+    plot_grid_page(current_page)
 plot_grid_page(current_page)
-
-# Create navigation button
+prev_button = Button(nav_frame, text="Previous", command=on_prev_page)
+prev_button.pack(side=tk.LEFT, padx=10, pady=10)
 next_button = Button(nav_frame, text="Next Page", command=on_next_page)
 next_button.pack(side=tk.RIGHT, padx=10, pady=10)
-
-# Start the Tkinter event loop
+root.after(1000, simulate_game_turn)
 root.mainloop()
