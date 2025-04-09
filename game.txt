@@ -2642,6 +2642,7 @@ lons = np.arange(lon_min, lon_max + ddeg, ddeg)
 
 num_cells_y = len(lats)
 num_cells_x = len(lons)
+print(f"Grid dimensions: {num_cells_y} rows x {num_cells_x} columns (each ~10 km cell)")
 
 precip_northeast = 50
 precip_northwest = 0
@@ -2653,118 +2654,170 @@ def get_precipitation(x_idx, y_idx):
     precip_east = (precip_northeast + precip_southeast) / 2
     precip_west = (precip_northwest + precip_southwest) / 2
     precip_x = precip_east * (1 - weight_x) + precip_west * weight_x
-
     weight_y = (lats[y_idx] - lat_min) / (lat_max - lat_min)
-    precip_y = (precip_southeast * (1 - weight_y) + precip_northeast * weight_y)
-    
+    precip_y = precip_southeast * (1 - weight_y) + precip_northeast * weight_y
     return (precip_x + precip_y) / 2
 
 precip_grid = np.zeros((num_cells_y, num_cells_x))
 for i in range(num_cells_y):
     for j in range(num_cells_x):
         precip_grid[i, j] = get_precipitation(j, i)
+np.savetxt("percip.txt", precip_grid)
 
 max_population_per_cell_at_100cm = 385.0
 startpop_grid = (precip_grid / 100.0) * max_population_per_cell_at_100cm
+np.savetxt("startpop.txt", startpop_grid)
 
 european_lat_idx = np.argmin(np.abs(lats - 35))
 european_lon_idx = num_cells_x - 1
-
-startpop_grid[european_lat_idx, european_lon_idx] = 100
+eu_capacity = startpop_grid[european_lat_idx, european_lon_idx]
+eu_pop = 100.0
+startpop_grid[european_lat_idx, european_lon_idx] = eu_pop
 
 turn_number = 1
-european_population_data = {
-    'turn': turn_number,
-    'latitude': lats[european_lat_idx],
-    'longitude': lons[european_lon_idx],
-    'population': startpop_grid[european_lat_idx, european_lon_idx]
-}
-
-population_file = f"european_population_turn_{turn_number}.txt"
-with open(population_file, 'w') as f:
+european_population_data = {'turn': turn_number, 'latitude': lats[european_lat_idx], 'longitude': lons[european_lon_idx], 'population': eu_pop}
+with open(f"european_population_turn_{turn_number}.txt", 'w') as f:
     f.write(f"Turn: {turn_number}\n")
     f.write(f"Latitude: {lats[european_lat_idx]}\n")
     f.write(f"Longitude: {lons[european_lon_idx]}\n")
-    f.write(f"Population: {startpop_grid[european_lat_idx, european_lon_idx]}\n")
+    f.write(f"Population: {eu_pop}\n")
 
-scaling_factor = 10
+scaling_factor = 10.0
 range_radius = 10
-
-eggpop_grid = np.ones((num_cells_y, num_cells_x)) * (scaling_factor ** 2)
-
+max_egg_population = scaling_factor ** 2
+egg_pop_grid = (precip_grid / 100.0) * max_egg_population
 def decrement_eggpop_in_range(x_idx, y_idx, eggpop_grid, range_radius):
     lat_start = max(0, int(y_idx - range_radius))
     lat_end = min(num_cells_y - 1, int(y_idx + range_radius))
     lon_start = max(0, int(x_idx - range_radius))
     lon_end = min(num_cells_x - 1, int(x_idx + range_radius))
-    
     for i in range(lat_start, lat_end + 1):
         for j in range(lon_start, lon_end + 1):
             if eggpop_grid[i, j] > 0:
                 eggpop_grid[i, j] -= 1
     return eggpop_grid
-
-eggpop_grid = decrement_eggpop_in_range(european_lon_idx, european_lat_idx, eggpop_grid, range_radius)
-
-root = tk.Tk()
-root.title("Map Visualization")
-root.geometry("800x600")
-
-frame = tk.Frame(root)
-frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-nav_frame = tk.Frame(root, height=100)
-nav_frame.pack(side=tk.BOTTOM, fill=tk.X)
-
-current_page = 0
-
+egg_pop_grid = decrement_eggpop_in_range(european_lon_idx, european_lat_idx, egg_pop_grid, range_radius)
+np.savetxt("eggpop_initial.txt", egg_pop_grid)
+def calculate_vitamin_constrained_population(eggpop):
+    return (eggpop / max_egg_population) * 4 * 100
+native_population_grid = startpop_grid.copy()
+for i in range(num_cells_y):
+    for j in range(num_cells_x):
+        vit_pop = calculate_vitamin_constrained_population(egg_pop_grid[i, j])
+        if native_population_grid[i, j] > vit_pop:
+            native_population_grid[i, j] = vit_pop
+np.savetxt("vitamin_constrained_pop.txt", native_population_grid)
+def spread_eu_population(eu_pop_grid, capacity_grid):
+    changed = True
+    while changed:
+        changed = False
+        new_grid = eu_pop_grid.copy()
+        for i in range(num_cells_y):
+            for j in range(num_cells_x):
+                cap = capacity_grid[i, j]
+                if eu_pop_grid[i, j] > cap:
+                    overflow = eu_pop_grid[i, j] - cap
+                    new_grid[i, j] = cap
+                    neighbors = []
+                    for di in [-1,0,1]:
+                        for dj in [-1,0,1]:
+                            if di == 0 and dj == 0:
+                                continue
+                            ni = i + di
+                            nj = j + dj
+                            if 0 <= ni < num_cells_y and 0 <= nj < num_cells_x:
+                                avail = capacity_grid[ni, nj] - eu_pop_grid[ni, nj]
+                                if avail > 0:
+                                    neighbors.append((ni, nj, avail))
+                    if neighbors:
+                        total_avail = sum(n[2] for n in neighbors)
+                        for (ni, nj, avail) in neighbors:
+                            share = overflow * (avail / total_avail)
+                            new_grid[ni, nj] += share
+                        changed = True
+        eu_pop_grid = new_grid.copy()
+    return eu_pop_grid
+def simulate_turn():
+    global turn_number, eu_pop_grid, eu_pop
+    new_eu_pop_grid = eu_pop_grid.copy()
+    for i in range(num_cells_y):
+        for j in range(num_cells_x):
+            if eu_pop_grid[i, j] > 0:
+                new_val = 2 * eu_pop_grid[i, j]
+                cap = startpop_grid[i, j]
+                if new_val > cap:
+                    new_val = new_val
+                new_eu_pop_grid[i, j] = new_val
+    eu_pop_grid = spread_eu_population(new_eu_pop_grid, startpop_grid)
+    turn_number += 1
+    with open(f"european_population_turn_{turn_number}.txt", 'w') as f:
+        f.write(f"Turn: {turn_number}\n")
+        f.write("European Population Grid Snapshot\n")
+        np.savetxt(f, eu_pop_grid)
+    for i in range(num_cells_y):
+        for j in range(num_cells_x):
+            vit_pop = calculate_vitamin_constrained_population(egg_pop_grid[i, j])
+            if native_population_grid[i, j] > vit_pop:
+                native_population_grid[i, j] = vit_pop
+    eu_pop = np.sum(eu_pop_grid)
+    return
+TOTAL_TURNS = 10
+def simulate_game_turn():
+    if turn_number < TOTAL_TURNS:
+        simulate_turn()
+        plot_grid_page(current_page)
+        root.after(1000, simulate_game_turn)
 def plot_grid_page(page_num):
     for widget in frame.winfo_children():
         widget.destroy()
-
-    fig, axes = plt.subplots(1, 1, figsize=(15, 10))
-
     if page_num == 0:
-        axes.imshow(precip_grid, cmap='viridis', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
-        axes.set_title("Precipitation Grid (10x10 km cells)")
-        axes.set_xlabel("Longitude (°)")
-        axes.set_ylabel("Latitude (°)")
-        fig.colorbar(axes.imshow(precip_grid, cmap='viridis', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes)
-
-        fig.tight_layout()
-
+        fig, axes = plt.subplots(1, 2, figsize=(12, 10))
+        axes[0].imshow(precip_grid, cmap='viridis', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
+        axes[0].set_title("Precipitation Grid (10x10 km cells)")
+        axes[0].set_xlabel("Longitude (°)")
+        axes[0].set_ylabel("Latitude (°)")
+        fig.colorbar(axes[0].imshow(precip_grid, cmap='viridis', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes[0])
+        axes[1].imshow(native_population_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
+        axes[1].set_title("Vitamin-Constrained Population Grid")
+        axes[1].set_xlabel("Longitude (°)")
+        axes[1].set_ylabel("Latitude (°)")
+        fig.colorbar(axes[1].imshow(native_population_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes[1])
     elif page_num == 1:
-        axes.imshow(startpop_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
-        axes.set_title("Starting Population Grid")
-        axes.set_xlabel("Longitude (°)")
-        axes.set_ylabel("Latitude (°)")
-        fig.colorbar(axes.imshow(startpop_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes)
-
-        fig.tight_layout()
-
-    elif page_num == 2:
-        axes.imshow(eggpop_grid, cmap='coolwarm', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
+        fig, axes = plt.subplots(1, 1, figsize=(12, 10))
+        axes.imshow(egg_pop_grid, cmap='coolwarm', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
         axes.set_title("Egg Population Grid")
         axes.set_xlabel("Longitude (°)")
         axes.set_ylabel("Latitude (°)")
-        fig.colorbar(axes.imshow(eggpop_grid, cmap='coolwarm', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes)
-
-        fig.tight_layout()
-
+        fig.colorbar(axes.imshow(egg_pop_grid, cmap='coolwarm', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes)
+    elif page_num == 2:
+        fig, axes = plt.subplots(1, 1, figsize=(12, 10))
+        total_eu_population = np.sum(eu_pop_grid)
+        axes.imshow(eu_pop_grid, cmap='inferno', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
+        axes.set_title("European Population Grid")
+        axes.set_xlabel("Longitude (°)")
+        axes.set_ylabel("Latitude (°)")
+        fig.colorbar(axes.imshow(eu_pop_grid, cmap='inferno', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes)
+        axes.text(0.5, 0.05, f"Total European Population: {total_eu_population:.0f}", horizontalalignment='center', verticalalignment='center', fontsize=14, transform=axes.transAxes)
+    plt.tight_layout()
     canvas = FigureCanvasTkAgg(fig, master=frame)
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
     canvas.draw()
-
 def on_next_page():
     global current_page
     current_page += 1
     if current_page > 2:
         current_page = 0
     plot_grid_page(current_page)
-
+def on_prev_page():
+    global current_page
+    current_page -= 1
+    if current_page < 0:
+        current_page = 2
+    plot_grid_page(current_page)
 plot_grid_page(current_page)
-
+prev_button = Button(nav_frame, text="Previous", command=on_prev_page)
+prev_button.pack(side=tk.LEFT, padx=10, pady=10)
 next_button = Button(nav_frame, text="Next Page", command=on_next_page)
 next_button.pack(side=tk.RIGHT, padx=10, pady=10)
-
+root.after(1000, simulate_game_turn)
 root.mainloop()
