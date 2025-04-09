@@ -2626,6 +2626,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
 from tkinter import Button
 
+# Define map corners and grid parameters
 northwest_corner = (48 + 23.155/60, -124 - 43.604/60)
 northeast_corner = (47 + 20.615/60, -68 - 13.885/60)
 southwest_corner = (32 + 32/60 + 4/3600, -117 - 7/60 - 19/3600)
@@ -2639,11 +2640,11 @@ lon_max = max(northeast_corner[1], southeast_corner[1])
 ddeg = 0.1
 lats = np.arange(lat_min, lat_max + ddeg, ddeg)
 lons = np.arange(lon_min, lon_max + ddeg, ddeg)
-
 num_cells_y = len(lats)
 num_cells_x = len(lons)
 print(f"Grid dimensions: {num_cells_y} rows x {num_cells_x} columns (each ~10 km cell)")
 
+# Precipitation data
 precip_northeast = 50
 precip_northwest = 0
 precip_southeast = 100
@@ -2658,34 +2659,42 @@ def get_precipitation(x_idx, y_idx):
     precip_y = precip_southeast * (1 - weight_y) + precip_northeast * weight_y
     return (precip_x + precip_y) / 2
 
+# Create the precipitation grid
 precip_grid = np.zeros((num_cells_y, num_cells_x))
 for i in range(num_cells_y):
     for j in range(num_cells_x):
         precip_grid[i, j] = get_precipitation(j, i)
 np.savetxt("percip.txt", precip_grid)
 
+# Initialize population grid based on precipitation
 max_population_per_cell_at_100cm = 385.0
 startpop_grid = (precip_grid / 100.0) * max_population_per_cell_at_100cm
 np.savetxt("startpop.txt", startpop_grid)
 
+# Define initial population for the European area
 european_lat_idx = np.argmin(np.abs(lats - 35))
 european_lon_idx = num_cells_x - 1
 eu_capacity = startpop_grid[european_lat_idx, european_lon_idx]
 eu_pop = 100.0
 startpop_grid[european_lat_idx, european_lon_idx] = eu_pop
 
+# Initialize population data for the European region
 turn_number = 1
-european_population_data = {'turn': turn_number, 'latitude': lats[european_lat_idx], 'longitude': lons[european_lon_idx], 'population': eu_pop}
+european_population_data = {
+    'turn': turn_number,
+    'latitude': lats[european_lat_idx],
+    'longitude': lons[european_lon_idx],
+    'population': eu_pop
+}
 with open(f"european_population_turn_{turn_number}.txt", 'w') as f:
-    f.write(f"Turn: {turn_number}\n")
-    f.write(f"Latitude: {lats[european_lat_idx]}\n")
-    f.write(f"Longitude: {lons[european_lon_idx]}\n")
-    f.write(f"Population: {eu_pop}\n")
+    f.write(f"Turn: {turn_number}\nLatitude: {lats[european_lat_idx]}\nLongitude: {lons[european_lon_idx]}\nPopulation: {eu_pop}\n")
 
+# Initialize other variables for simulation
 scaling_factor = 10.0
 range_radius = 10
 max_egg_population = scaling_factor ** 2
 egg_pop_grid = (precip_grid / 100.0) * max_egg_population
+
 def decrement_eggpop_in_range(x_idx, y_idx, eggpop_grid, range_radius):
     lat_start = max(0, int(y_idx - range_radius))
     lat_end = min(num_cells_y - 1, int(y_idx + range_radius))
@@ -2696,10 +2705,13 @@ def decrement_eggpop_in_range(x_idx, y_idx, eggpop_grid, range_radius):
             if eggpop_grid[i, j] > 0:
                 eggpop_grid[i, j] -= 1
     return eggpop_grid
+
 egg_pop_grid = decrement_eggpop_in_range(european_lon_idx, european_lat_idx, egg_pop_grid, range_radius)
 np.savetxt("eggpop_initial.txt", egg_pop_grid)
+
 def calculate_vitamin_constrained_population(eggpop):
     return (eggpop / max_egg_population) * 4 * 100
+
 native_population_grid = startpop_grid.copy()
 for i in range(num_cells_y):
     for j in range(num_cells_x):
@@ -2707,6 +2719,8 @@ for i in range(num_cells_y):
         if native_population_grid[i, j] > vit_pop:
             native_population_grid[i, j] = vit_pop
 np.savetxt("vitamin_constrained_pop.txt", native_population_grid)
+
+# Define the simulation logic
 def spread_eu_population(eu_pop_grid, capacity_grid):
     changed = True
     while changed:
@@ -2719,8 +2733,8 @@ def spread_eu_population(eu_pop_grid, capacity_grid):
                     overflow = eu_pop_grid[i, j] - cap
                     new_grid[i, j] = cap
                     neighbors = []
-                    for di in [-1,0,1]:
-                        for dj in [-1,0,1]:
+                    for di in [-1, 0, 1]:
+                        for dj in [-1, 0, 1]:
                             if di == 0 and dj == 0:
                                 continue
                             ni = i + di
@@ -2737,6 +2751,7 @@ def spread_eu_population(eu_pop_grid, capacity_grid):
                         changed = True
         eu_pop_grid = new_grid.copy()
     return eu_pop_grid
+
 def simulate_turn():
     global turn_number, eu_pop_grid, eu_pop
     new_eu_pop_grid = eu_pop_grid.copy()
@@ -2748,11 +2763,11 @@ def simulate_turn():
                 if new_val > cap:
                     new_val = new_val
                 new_eu_pop_grid[i, j] = new_val
-    eu_pop_grid = spread_eu_population(new_eu_pop_grid, startpop_grid)
+    eu_pop_grid = new_eu_pop_grid.copy()
+    eu_pop_grid = spread_eu_population(eu_pop_grid, startpop_grid)
     turn_number += 1
     with open(f"european_population_turn_{turn_number}.txt", 'w') as f:
-        f.write(f"Turn: {turn_number}\n")
-        f.write("European Population Grid Snapshot\n")
+        f.write(f"Turn: {turn_number}\nEuropean Population Grid Snapshot\n")
         np.savetxt(f, eu_pop_grid)
     for i in range(num_cells_y):
         for j in range(num_cells_x):
@@ -2761,12 +2776,28 @@ def simulate_turn():
                 native_population_grid[i, j] = vit_pop
     eu_pop = np.sum(eu_pop_grid)
     return
+
+# Initialize the EU population grid
+eu_pop_grid = startpop_grid.copy()
+
 TOTAL_TURNS = 10
+
+# Set up tkinter for the visualization
 def simulate_game_turn():
     if turn_number < TOTAL_TURNS:
         simulate_turn()
         plot_grid_page(current_page)
         root.after(1000, simulate_game_turn)
+
+root = tk.Tk()
+root.title("Map Visualization")
+root.geometry("800x600")
+frame = tk.Frame(root)
+frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+nav_frame = tk.Frame(root, height=100)
+nav_frame.pack(side=tk.BOTTOM, fill=tk.X)
+current_page = 0
+
 def plot_grid_page(page_num):
     for widget in frame.winfo_children():
         widget.destroy()
@@ -2802,18 +2833,21 @@ def plot_grid_page(page_num):
     canvas = FigureCanvasTkAgg(fig, master=frame)
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
     canvas.draw()
+
 def on_next_page():
     global current_page
     current_page += 1
     if current_page > 2:
         current_page = 0
     plot_grid_page(current_page)
+
 def on_prev_page():
     global current_page
     current_page -= 1
     if current_page < 0:
         current_page = 2
     plot_grid_page(current_page)
+
 plot_grid_page(current_page)
 prev_button = Button(nav_frame, text="Previous", command=on_prev_page)
 prev_button.pack(side=tk.LEFT, padx=10, pady=10)
