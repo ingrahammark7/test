@@ -2709,7 +2709,8 @@ for i in range(num_cells_y):
             native_population_grid[i, j] = vit_pop
 np.savetxt("vitamin_constrained_pop.txt", native_population_grid)
 
-eu_pop_grid = (precip_grid / 100.0)
+eu_pop_grid = np.zeros((num_cells_y, num_cells_x))
+eu_pop_grid[european_lat_idx, european_lon_idx] = 100.0
 
 def spread_eu_population(eu_pop_grid, capacity_grid):
     changed = True
