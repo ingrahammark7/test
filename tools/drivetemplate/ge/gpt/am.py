@@ -37,6 +37,18 @@ airvolpersr27=(airpersecr27kg/airdenskgpercm3)
 airpersam=(airpersecamkg/airdenskgpercm3)
 r27ms=airvolpersr27
 amms=airpersam
+enmaxr27=r27ms*r27ms*r27massg/1000
+enmaxam=amms*amms*ammassg/1000
+enmaxr27=r27en/enmaxr27
+enmaxam=amen/enmaxam
+grav=10
+secondsgravr27=r27ms/grav/grav
+secondsgravam=amms/grav/grav
+r27time=secondsgravr27*enmaxr27
+amtime=secondsgravam*enmaxam
+r27dist=r27ms*r27time
+amdist=amtime*amms
 
-print(f"r27 ", r27ms)
-print("amraam max speed ", amms)
+
+print(f"r27 ", r27ms, " time ", r27time, " disfance ", r27dist)
+print(f"amraam max speed ", amms, " time ", amtime, " disrance ", amdist)
