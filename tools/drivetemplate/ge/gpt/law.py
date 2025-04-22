@@ -63,7 +63,7 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF THE DISTRICT OF COLUMBIA")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT FOR THE DISTRICT OF COLUMBIA")
     c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CIVIL DIVISION")
 
     # (4) Case Title
@@ -94,7 +94,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 5.5 * inch, "Petition for Writ of Mandate")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 6.00 * inch, "Administrative Mandamus, Civil Unlimited")
+    c.drawString(space, top_margin - 6.00 * inch, "Administrative Mandamus")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -158,15 +158,25 @@ def create_pdf(output_filename):
     for line in relief_text:
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
+        
+        # III. REQUEST FOR RELIEF
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "IV. PROCEDURAL NOTE")
+    c.setFont("Times-Roman", 12)
+    relief_text = [
+        "1. The defendant has an aggressive security guard who has interfered with service of a previous case. ",
+        "2. Court should issue an order to the process server company and the guard to compel service.",
+    ]
+    y_position -= 1 * inch
+    for line in relief_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
 
     # Signature Block
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 1 * inch, "DATED: 02/15/2025")
-    c.drawString(left_margin, y_position - 1.5 * inch, "Respectfully submitted,")
-    c.drawString(left_margin, y_position - 2 * inch, "Mark Ingraham")
-    c.drawString(left_margin, y_position - 2.5 * inch, "3553 Atlantic Avenue")
-    c.drawString(left_margin, y_position - 3 * inch, "Long Beach, CA 90807")
-
+    c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
+    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham")
+    
     # Add footer and page number
     add_footer(2)
     add_page_number(2)
