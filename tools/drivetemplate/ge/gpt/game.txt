@@ -340,6 +340,151 @@ class BomberHelper:
                 self.canvas.delete(debris)
         step_animation()
 media_rw
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, Frame
+
+def create_pdf(output_filename):
+    # Create a PDF document
+    c = canvas.Canvas(output_filename, pagesize=letter)
+    width, height = letter
+
+    # Set margins
+    left_margin = 1 * inch
+    right_margin = width - 1 * inch
+    top_margin = height - 1 * inch
+    bottom_margin = 0 * inch
+
+    # Set font and size (Times New Roman, 12-point)
+    c.setFont("Times-Roman", 12)
+
+    # Add page numbers (starting from page 2)
+    def add_page_number(page_num):
+        if page_num > 1:  # Suppress page number on the first page
+            c.setFont("Times-Roman", 10)
+            c.drawCentredString(width / 2, 0.5 * inch, f"{page_num}")
+
+    # Add footer
+    def add_footer(page_num):
+        footer_y = 0.4 * inch  # Position for footer
+        footer_text = "Motion for CM/ECF user name and password"  # Title of the paper
+        c.setFont("Times-Roman", 10)  # Font size for footer
+        c.drawCentredString(width / 2, footer_y, footer_text)
+        # Draw a line above the footer
+        c.line(left_margin, footer_y + 0.1 * inch, right_margin, footer_y + 0.1 * inch)
+
+    # Add line numbers
+    def add_line_numbers(start_y, end_y, line_height):
+        line_number_x = left_margin - 0.5 * inch  # Position for line numbers
+        line_number = 1
+        current_y = start_y
+        while current_y >= end_y:
+            c.drawString(line_number_x, current_y, str(line_number))
+            line_number += 1
+            current_y -= line_height
+
+    # First Page Format (Rule 2.111)
+    # (1) Attorney Information
+    c.setFont("Times-Roman", 12)
+    attorney_info = [
+        "Mark Ingraham",
+        "3553 Atlantic Avenue",
+        "Long Beach, CA 90807",
+        "Telephone: (408) 660-5425",
+        "Email: ingrahammark7@gmail.com"
+    ]
+    y_position = top_margin - 0.5 * inch
+    for line in attorney_info:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # (2) Clerk's Space (blank space to the right of center)
+    c.rect(width / 2 + 0.5 * inch, top_margin - 2 * inch, 2 * inch, 1.5 * inch, stroke=1, fill=0)
+
+    # (3) Court Title
+    c.setFont("Times-Bold", 14)
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT FOR THE DISTRICT OF COLUMBIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CIVIL DIVISION")
+
+    # (4) Case Title
+    c.setFont("Times-Bold", 12)
+    case_title = [
+        "Mark Ingraham,",
+        "             Petitioner and Plaintiff,",
+        "         v.",
+        "Office of the Comptroller of the Currency",
+        "of the United States Department of the Treasury",
+        "             Respondent and Defendant."
+    ]
+    y_position = top_margin - 4.75* inch
+    counter=0
+    for line in case_title:
+        c.setFont("Times-Bold",12)
+        if counter==1 or counter==5:
+        	c.setFont("Times-Roman",12)
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+        counter+=1
+
+    # (5) Case Number
+    c.setFont("Times-Roman", 12)
+    space=width / 2 + 1 * inch
+    c.drawString(space, top_margin - 4* inch, "Case Number:")
+    # (6) Nature of the Paper (moved slightly lower)
+    c.setFont("Times-Bold", 12)
+    c.drawString(space, top_margin - 4.25* inch, "")
+    c.setFont("Times-Bold", 12)
+    c.drawString(space, top_margin - 4.5* inch, "Motion for CM/ECF username and password")
+
+    # (7) Judge and Department
+    c.setFont("Times-Roman", 12)
+    c.drawString(space, top_margin - 4.75 * inch, "Judge: ")
+    c.drawString(space, top_margin - 5* inch, "Department: ")
+
+   
+
+
+    # I. INTRODUCTION
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "I. Motion for CM/ECF user name and password")
+    c.setFont("Times-Roman", 12)
+    c.setFont("Times-Roman", 12)
+    intro_text = [
+        "1. Petitioner, Mark Ingraham, petitions this Court for a CM/ECF user name and passsword.",
+        "2. Account will be used to file documents on PACER.",
+              "3. Petitioner has regular access to the internet, has the capacity to regularly file and recieve documents", "electronically, and has completed the Clerk's Office tutorial.",
+        ]
+    y_position -= 1*inch
+    for line in intro_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+
+
+    # Signature Block
+    c.setFont("Times-Roman", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
+    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham")
+
+ # Add line numbers to the first page
+    line_height = 0.25 * inch  # Adjusted to match text spacing
+    add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
+
+    # Add footer (suppressed on the first page)
+    add_footer(1)
+
+    # Save the first page
+    c.showPage()
+    # Save the PDF
+    c.save()
+
+if __name__ == "__main__":
+    output_filename = "writ_of_mandate_petition.pdf"
+    create_pdf(output_filename)
+    print(f"PDF created: {output_filename}")
+media_rw
 import tkinter as tk
 
 def draw_vva_shape():
@@ -1815,6 +1960,36 @@ class UnitManager:
         return max(row_diff, col_diff) == 1
 media_rw
 import math
+
+cmround=5
+melting=700
+hvlcm=1
+airm3g=1000
+aircm3g=airm3g/1000000
+steelaircoefcm2=5/10000
+roundld=2
+roundfront=cmround*cmround
+airperhit=roundfront*aircm3g
+roundside=cmround*roundld*4
+roundarea=roundfront+roundside
+roundpower=steelaircoefcm2*roundarea
+roundheat=steelaircoefcm2*melting*roundarea
+airperhitpercm2=airperhit/roundfront
+massperhitperms=roundheat/airperhitpercm2/roundfront
+vper=math.sqrt(massperhitperms*1000)*2
+print("fel ", vper)
+tungdensgcm3=10
+mass=cmround*cmround*roundld*tungdensgcm3/1000
+ke=mass*vper*vper*.5
+steeldensgcm3=7
+steeltens=2000000000
+steeltenscm3=steeltens/1000*steeldensgcm3
+penarea=steeltenscm3*roundfront
+numpens=ke/penarea
+lenn=numpens*10
+print("mm rha ",lenn)
+media_rw
+import math
 import random
 
 class BomberHelper2:
@@ -2282,8 +2457,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF THE DISTRICT OF COLUMBIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CIVIL DIVISION")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -2291,15 +2466,14 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "             Petitioner and Plaintiff,",
         "         v.",
-        "Office of the Comptroller of the Currency",
-        "of the United States Department of the Treasury",
+        "Equifax Inc.",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
     counter=0
     for line in case_title:
         c.setFont("Times-Bold",12)
-        if counter==1 or counter==5:
+        if counter==1 or counter==4:
         	c.setFont("Times-Roman",12)
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
@@ -2313,7 +2487,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 5.5 * inch, "Petition for Writ of Mandate")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 6.00 * inch, "Administrative Mandamus, Civil Unlimited")
+    c.drawString(space, top_margin - 6.00 * inch, "Administrative Mandamus")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -2342,10 +2516,12 @@ def create_pdf(output_filename):
     c.drawString(left_margin, top_margin - 1 * inch, "I. INTRODUCTION")
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. Petitioner, Mark Ingraham, petitions this Court for a copy of the police report attached to a case opened",
-        "by the Office of the Comptroller of the Currency (OCC) Customer Assistance Group OCC Ombudsman.",
-        "2. The case number is CS0366753.",
-    ]
+        "1. Petitioner, Mark Ingraham, petitions this Court for a order to ban petitioner from the financial system.",
+        "2. Ban me from all banks and any other financial institutions.",
+        "3. Consider all charges reported on any of my accounts to be unauthorized.",
+        "4. Issue criminal charges, including executives.",
+        ]
+        
     y_position = top_margin - 1.5 * inch
     for line in intro_text:
         c.drawString(left_margin, y_position, line)
@@ -2356,8 +2532,7 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
     c.setFont("Times-Roman", 12)
     factual_background = [
-        "1. Petitioner was informed by OCC that a police report regarding ''cartel activity'' was attached to the case.",
-        "2. Petitioner called the OCC for further information and did not recieve adequate details.",
+        "1. Ban me from all financial institutions.",
     ]
     y_position -= 1 * inch
     for line in factual_background:
@@ -2370,8 +2545,21 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     relief_text = [
         "WHEREFORE, Petitioner requests that this Court:",
-        "a. Issue a writ of mandate ordering the OCC to provide the police reports attached to case CS0366753",
-        " and any related cases.",
+        "a. Issue a writ of mandate ordering that I be banned from all financial institutions.",
+        "b. Assemble an NKVD-like team to order mass arrest of executives.",
+    ]
+    y_position -= 1 * inch
+    for line in relief_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+        
+        # III. REQUEST FOR RELIEF
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "IV. PROCEDURAL NOTE")
+    c.setFont("Times-Roman", 12)
+    relief_text = [
+        "1. Court should issue an order to the process server company to compel service so I don't have to pay.",
+        "2. If this is not possible I am fine with paying ABC Legal the $75 they demand for service.",
     ]
     y_position -= 1 * inch
     for line in relief_text:
@@ -2380,12 +2568,9 @@ def create_pdf(output_filename):
 
     # Signature Block
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 1 * inch, "DATED: 02/15/2025")
-    c.drawString(left_margin, y_position - 1.5 * inch, "Respectfully submitted,")
-    c.drawString(left_margin, y_position - 2 * inch, "Mark Ingraham")
-    c.drawString(left_margin, y_position - 2.5 * inch, "3553 Atlantic Avenue")
-    c.drawString(left_margin, y_position - 3 * inch, "Long Beach, CA 90807")
-
+    c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
+    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham")
+    
     # Add footer and page number
     add_footer(2)
     add_page_number(2)
@@ -2620,225 +2805,105 @@ class GameApp:
         """
         self.root.mainloop()
 media_rw
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import math
+
+glassairheattransferpercm2perk=0.0005
+plasticairheattransferpercm2perk=0.0005
+r27width=20
+amraamwidth=17
+r27front=r27width**2
+amfront=amraamwidth**2
+airdensgperm3= 1000
+hvlcm=1
+r27frontvol=r27front*hvlcm
+amfrontvol=hvlcm*amfront
+r27massg=175000
+ammassg=150000
+fuelpercent=.9
+r27fuel=fuelpercent*r27massg
+amfuel=ammassg*fuelpercent
+enerdensjperg=35000
+oxpercent=.8
+resper=1-oxpercent
+r27fuel=r27fuel*resper
+amfuel=amfuel*resper
+r27en=r27fuel*enerdensjperg
+amen=amfuel*enerdensjperg
+glassmeltc=1500
+plasticmeltc=300
+glassspecheatjpergperk=1
+plasticspecheatjpergperk=1
+r27maxenpercm2=glassspecheatjpergperk*glassmeltc*hvlcm
+ammaxenpercm2=plasticspecheatjpergperk*plasticmeltc*hvlcm
+heatpersecpercm2r27=glassairheattransferpercm2perk*glassmeltc*hvlcm
+heatpersecpercm2am=plasticairheattransferpercm2perk*plasticmeltc*hvlcm
+airpersecr27kg=math.sqrt(heatpersecpercm2r27*2)
+airpersecamkg=math.sqrt(heatpersecpercm2am*2)
+airdenskgpercm3=airdensgperm3/1000000
+airvolpersr27=(airpersecr27kg/airdenskgpercm3)
+airpersam=(airpersecamkg/airdenskgpercm3)
+r27ms=airvolpersr27
+amms=airpersam
+enmaxr27=r27ms*r27ms*r27massg/1000
+enmaxam=amms*amms*ammassg/1000
+enmaxr27=r27en/enmaxr27
+enmaxam=amen/enmaxam
+grav=10
+secondsgravr27=r27ms/grav/grav
+secondsgravam=amms/grav/grav
+r27time=secondsgravr27*enmaxr27
+amtime=secondsgravam*enmaxam
+r27dist=r27ms*r27time
+amdist=amtime*amms
+
+
+print(f"r27 ", r27ms, " time ", r27time, " disfance ", r27dist)
+print(f"amraam max speed ", amms, " time ", amtime, " disrance ", amdist)
+media_rw
 import tkinter as tk
-from tkinter import Button
 
-northwest_corner = (48 + 23.155/60, -124 - 43.604/60)
-northeast_corner = (47 + 20.615/60, -68 - 13.885/60)
-southwest_corner = (32 + 32/60 + 4/3600, -117 - 7/60 - 19/3600)
-southeast_corner = (24 + 30/60, -79 - 48/60)
+def draw_wireframe():
+    width = 512
+    height = 298
+    root = tk.Tk()
+    root.title('Generated Wireframe')
+    canvas = tk.Canvas(root, width=width, height=height, bg='white')
+    canvas.pack()
 
-lat_min = min(southeast_corner[0], southwest_corner[0])
-lat_max = max(northwest_corner[0], northeast_corner[0])
-lon_min = min(northwest_corner[1], southwest_corner[1])
-lon_max = max(northeast_corner[1], southeast_corner[1])
+    # Draw detected lines
+    canvas.create_line(213, 218, 362, 220, fill='black', width=1)
+    canvas.create_line(275, 221, 388, 222, fill='black', width=1)
+    canvas.create_line(30, 121, 164, 107, fill='black', width=1)
+    canvas.create_line(125, 290, 132, 80, fill='black', width=1)
+    canvas.create_line(293, 80, 449, 80, fill='black', width=1)
+    canvas.create_line(33, 122, 200, 122, fill='black', width=1)
+    canvas.create_line(121, 289, 121, 135, fill='black', width=1)
+    canvas.create_line(118, 163, 118, 8, fill='black', width=1)
+    canvas.create_line(315, 92, 436, 92, fill='black', width=1)
+    canvas.create_line(120, 163, 120, 7, fill='black', width=1)
+    canvas.create_line(318, 90, 446, 49, fill='black', width=1)
+    canvas.create_line(82, 188, 220, 188, fill='black', width=1)
+    canvas.create_line(247, 69, 371, 69, fill='black', width=1)
+    canvas.create_line(302, 73, 458, 75, fill='black', width=1)
+    canvas.create_line(27, 188, 136, 151, fill='black', width=1)
+    canvas.create_line(45, 190, 214, 190, fill='black', width=1)
+    canvas.create_line(122, 6, 129, 136, fill='black', width=1)
+    canvas.create_line(119, 288, 119, 135, fill='black', width=1)
+    canvas.create_line(263, 45, 401, 50, fill='black', width=1)
+    canvas.create_line(222, 222, 326, 227, fill='black', width=1)
+    canvas.create_line(22, 186, 129, 151, fill='black', width=1)
+    canvas.create_line(66, 168, 171, 136, fill='black', width=1)
+    canvas.create_line(68, 135, 181, 135, fill='black', width=1)
+    canvas.create_line(310, 90, 412, 90, fill='black', width=1)
+    canvas.create_line(303, 86, 403, 86, fill='black', width=1)
+    canvas.create_line(22, 114, 153, 156, fill='black', width=1)
+    canvas.create_line(37, 188, 139, 151, fill='black', width=1)
+    canvas.create_line(145, 153, 253, 156, fill='black', width=1)
+    canvas.create_line(289, 227, 404, 248, fill='black', width=1)
+    canvas.create_line(135, 161, 241, 160, fill='black', width=1)
+    canvas.create_line(96, 124, 107, 256, fill='black', width=1)
 
-ddeg = 0.1
-lats = np.arange(lat_min, lat_max + ddeg, ddeg)
-lons = np.arange(lon_min, lon_max + ddeg, ddeg)
-lat_grid, lon_grid = np.meshgrid(lats, lons, indexing='ij')
-num_cells_y = len(lats)
-num_cells_x = len(lons)
-print(f"Grid dimensions: {num_cells_y} rows x {num_cells_x} columns (each ~10 km cell)")
+    root.mainloop()
 
-precip_northeast = 50
-precip_northwest = 0
-precip_southeast = 100
-precip_southwest = 0
-
-def get_precipitation(x_idx, y_idx):
-    weight_x = x_idx / (num_cells_x - 1)
-    precip_east = (precip_northeast + precip_southeast) / 2
-    precip_west = (precip_northwest + precip_southwest) / 2
-    precip_x = precip_east * (1 - weight_x) + precip_west * weight_x
-    weight_y = (lats[y_idx] - lat_min) / (lat_max - lat_min)
-    precip_y = precip_southeast * (1 - weight_y) + precip_northeast * weight_y
-    return (precip_x + precip_y) / 2
-
-precip_grid = np.zeros((num_cells_y, num_cells_x))
-for i in range(num_cells_y):
-    for j in range(num_cells_x):
-        precip_grid[i, j] = get_precipitation(j, i)
-np.savetxt("percip.txt", precip_grid)
-
-max_population_per_cell_at_100cm = 385.0
-startpop_grid = (precip_grid / 100.0) * max_population_per_cell_at_100cm
-np.savetxt("startpop.txt", startpop_grid)
-
-european_lat_idx = np.argmin(np.abs(lats - 35))
-european_lon_idx = num_cells_x - 1
-eu_capacity = startpop_grid[european_lat_idx, european_lon_idx]
-eu_pop = 100.0
-startpop_grid[european_lat_idx, european_lon_idx] = eu_pop
-
-turn_number = 1
-european_population_data = {'turn': turn_number, 'latitude': lats[european_lat_idx], 'longitude': lons[european_lon_idx], 'population': eu_pop}
-with open(f"european_population_turn_{turn_number}.txt", 'w') as f:
-    f.write(f"Turn: {turn_number}\nLatitude: {lats[european_lat_idx]}\nLongitude: {lons[european_lon_idx]}\nPopulation: {eu_pop}\n")
-
-scaling_factor = 10.0
-range_radius = 10
-max_egg_population = scaling_factor ** 2
-egg_pop_grid = (precip_grid / 100.0) * max_egg_population
-
-def decrement_eggpop_in_range(x_idx, y_idx, eggpop_grid, range_radius):
-    lat_start = max(0, int(y_idx - range_radius))
-    lat_end = min(num_cells_y - 1, int(y_idx + range_radius))
-    lon_start = max(0, int(x_idx - range_radius))
-    lon_end = min(num_cells_x - 1, int(x_idx + range_radius))
-    for i in range(lat_start, lat_end + 1):
-        for j in range(lon_start, lon_end + 1):
-            if eggpop_grid[i, j] > 0:
-                eggpop_grid[i, j] -= 1
-    return eggpop_grid
-
-egg_pop_grid = decrement_eggpop_in_range(european_lon_idx, european_lat_idx, egg_pop_grid, range_radius)
-np.savetxt("eggpop_initial.txt", egg_pop_grid)
-
-def calculate_vitamin_constrained_population(eggpop):
-    return (eggpop / max_egg_population) * 4 * 100
-
-native_population_grid = startpop_grid.copy()
-for i in range(num_cells_y):
-    for j in range(num_cells_x):
-        vit_pop = calculate_vitamin_constrained_population(egg_pop_grid[i, j])
-        if native_population_grid[i, j] > vit_pop:
-            native_population_grid[i, j] = vit_pop
-np.savetxt("vitamin_constrained_pop.txt", native_population_grid)
-
-eu_pop_grid = np.zeros((num_cells_y, num_cells_x))
-eu_pop_grid[european_lat_idx, european_lon_idx] = 100.0
-
-def spread_eu_population(eu_pop_grid, capacity_grid):
-    changed = True
-    while changed:
-        changed = False
-        new_grid = eu_pop_grid.copy()
-        for i in range(num_cells_y):
-            for j in range(num_cells_x):
-                cap = capacity_grid[i, j]
-                if eu_pop_grid[i, j] > cap:
-                    overflow = eu_pop_grid[i, j] - cap
-                    new_grid[i, j] = cap
-                    neighbors = []
-                    for di in [-1, 0, 1]:
-                        for dj in [-1, 0, 1]:
-                            if di == 0 and dj == 0:
-                                continue
-                            ni = i + di
-                            nj = j + dj
-                            if 0 <= ni < num_cells_y and 0 <= nj < num_cells_x:
-                                avail = capacity_grid[ni, nj] - eu_pop_grid[ni, nj]
-                                if avail > 0:
-                                    neighbors.append((ni, nj, avail))
-                    if neighbors:
-                        total_avail = sum(n[2] for n in neighbors)
-                        for (ni, nj, avail) in neighbors:
-                            share = overflow * (avail / total_avail)
-                            new_grid[ni, nj] += share
-                        changed = True
-        eu_pop_grid = new_grid.copy()
-    return eu_pop_grid
-
-def simulate_turn():
-    global turn_number, eu_pop_grid, eu_pop
-    new_eu_pop_grid = eu_pop_grid.copy()
-    for i in range(num_cells_y):
-        for j in range(num_cells_x):
-            if eu_pop_grid[i, j] > 0:
-                new_val = 2 * eu_pop_grid[i, j]
-                cap = startpop_grid[i, j]
-                if new_val > cap:
-                    new_val = new_val
-                new_eu_pop_grid[i, j] = new_val
-    eu_pop_grid = new_eu_pop_grid.copy()
-    eu_pop_grid = spread_eu_population(eu_pop_grid, startpop_grid)
-    turn_number += 1
-    with open(f"european_population_turn_{turn_number}.txt", 'w') as f:
-        f.write(f"Turn: {turn_number}\nEuropean Population Grid Snapshot\n")
-        np.savetxt(f, eu_pop_grid)
-    for i in range(num_cells_y):
-        for j in range(num_cells_x):
-            vit_pop = calculate_vitamin_constrained_population(egg_pop_grid[i, j])
-            if native_population_grid[i, j] > vit_pop:
-                native_population_grid[i, j] = vit_pop
-    eu_pop = np.sum(eu_pop_grid)
-    return
-
-TOTAL_TURNS = 10000000000
-
-def simulate_game_turn():
-    if turn_number < TOTAL_TURNS:
-        simulate_turn()
-        plot_grid_page(current_page)
-        root.after(1, simulate_game_turn)
-
-root = tk.Tk()
-root.title("Map Visualization")
-root.geometry("800x600")
-frame = tk.Frame(root)
-frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-nav_frame = tk.Frame(root, height=100)
-nav_frame.pack(side=tk.BOTTOM, fill=tk.X)
-current_page = 0
-
-def plot_grid_page(page_num):
-    for widget in frame.winfo_children():
-        widget.destroy()
-    if page_num == 0:
-        fig, axes = plt.subplots(1, 2, figsize=(12, 10))
-        axes[0].imshow(precip_grid, cmap='viridis', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
-        axes[0].set_title("Precipitation Grid (10x10 km cells)")
-        axes[0].set_xlabel("Longitude (°)")
-        axes[0].set_ylabel("Latitude (°)")
-        fig.colorbar(axes[0].imshow(precip_grid, cmap='viridis', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes[0])
-        axes[1].imshow(native_population_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
-        axes[1].set_title("Vitamin-Constrained Population Grid")
-        axes[1].set_xlabel("Longitude (°)")
-        axes[1].set_ylabel("Latitude (°)")
-        fig.colorbar(axes[1].imshow(native_population_grid, cmap='plasma', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes[1])
-    elif page_num == 1:
-        fig, axes = plt.subplots(1, 1, figsize=(12, 10))
-        axes.imshow(egg_pop_grid, cmap='coolwarm', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
-        axes.set_title("Egg Population Grid")
-        axes.set_xlabel("Longitude (°)")
-        axes.set_ylabel("Latitude (°)")
-        fig.colorbar(axes.imshow(egg_pop_grid, cmap='coolwarm', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes)
-    elif page_num == 2:
-        fig, axes = plt.subplots(1, 1, figsize=(12, 10))
-        total_eu_population = np.sum(eu_pop_grid)
-        axes.imshow(eu_pop_grid, cmap='inferno', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max])
-        axes.set_title("European Population Grid")
-        axes.set_xlabel("Longitude (°)")
-        axes.set_ylabel("Latitude (°)")
-        fig.colorbar(axes.imshow(eu_pop_grid, cmap='inferno', origin='lower', extent=[lon_min, lon_max, lat_min, lat_max]), ax=axes)
-        axes.text(0.5, 0.05, f"Total European Population: {total_eu_population:.0f}", horizontalalignment='center', verticalalignment='center', fontsize=14, transform=axes.transAxes)
-    plt.tight_layout()
-    canvas = FigureCanvasTkAgg(fig, master=frame)
-    canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-    canvas.draw()
-
-def on_next_page():
-    global current_page
-    current_page += 1
-    if current_page > 2:
-        current_page = 0
-    plot_grid_page(current_page)
-
-def on_prev_page():
-    global current_page
-    current_page -= 1
-    if current_page < 0:
-        current_page = 2
-    plot_grid_page(current_page)
-
-plot_grid_page(current_page)
-prev_button = Button(nav_frame, text="Previous", command=on_prev_page)
-prev_button.pack(side=tk.LEFT, padx=10, pady=10)
-next_button = Button(nav_frame, text="Next Page", command=on_next_page)
-next_button.pack(side=tk.RIGHT, padx=10, pady=10)
-root.after(1, simulate_game_turn)
-root.mainloop()
+if __name__ == '__main__':
+    draw_wireframe()
