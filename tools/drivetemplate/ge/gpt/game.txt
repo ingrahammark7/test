@@ -2569,7 +2569,7 @@ def create_pdf(output_filename):
     # Signature Block
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
-    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham")
+    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham, 2/15/2025")
     
     # Add footer and page number
     add_footer(2)
