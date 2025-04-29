@@ -466,7 +466,7 @@ def create_pdf(output_filename):
     # Signature Block
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
-    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham")
+    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham, 2/15/2025")
 
  # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
@@ -481,7 +481,7 @@ def create_pdf(output_filename):
     c.save()
 
 if __name__ == "__main__":
-    output_filename = "writ_of_mandate_petition.pdf"
+    output_filename = "ecf.pdf"
     create_pdf(output_filename)
     print(f"PDF created: {output_filename}")
 media_rw
@@ -1961,13 +1961,13 @@ class UnitManager:
 media_rw
 import math
 
-cmround=5
+cmround=100
 melting=700
 hvlcm=1
 airm3g=1000
 aircm3g=airm3g/1000000
 steelaircoefcm2=5/10000
-roundld=2
+roundld=10
 roundfront=cmround*cmround
 airperhit=roundfront*aircm3g
 roundside=cmround*roundld*4
@@ -1988,6 +1988,12 @@ penarea=steeltenscm3*roundfront
 numpens=ke/penarea
 lenn=numpens*10
 print("mm rha ",lenn)
+fac=cmround/hvlcm
+fac=fac**2**1.618
+lenn=lenn*fac
+print("toa ", lenn)
+basevol=hvlcm*roundfront*tungdensgcm3/1000*steeltens
+print("kci ", basevol, "ke ", ke, " rst ",basevol/ke)
 media_rw
 import math
 import random
@@ -2458,7 +2464,7 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -2466,14 +2472,14 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "             Petitioner and Plaintiff,",
         "         v.",
-        "Equifax Inc.",
+        "700 E Slauson ExtraSpace Storage",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
     counter=0
     for line in case_title:
         c.setFont("Times-Bold",12)
-        if counter==1 or counter==4:
+        if counter==1 or counter==5:
         	c.setFont("Times-Roman",12)
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
@@ -2487,7 +2493,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 5.5 * inch, "Petition for Writ of Mandate")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 6.00 * inch, "Administrative Mandamus")
+    c.drawString(space, top_margin - 6.00 * inch, "Mandamus")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -2516,12 +2522,10 @@ def create_pdf(output_filename):
     c.drawString(left_margin, top_margin - 1 * inch, "I. INTRODUCTION")
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. Petitioner, Mark Ingraham, petitions this Court for a order to ban petitioner from the financial system.",
-        "2. Ban me from all banks and any other financial institutions.",
-        "3. Consider all charges reported on any of my accounts to be unauthorized.",
-        "4. Issue criminal charges, including executives.",
-        ]
-        
+        "1. I own storage unit 2367 at 700 E Slauson Extraspace.",
+        "2. Corporate demands $50 a month and government is embezzling my welfare so I can't pay.",
+        "3. Give me the unit for free and keep my access code active.",
+    ]
     y_position = top_margin - 1.5 * inch
     for line in intro_text:
         c.drawString(left_margin, y_position, line)
@@ -2532,7 +2536,7 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
     c.setFont("Times-Roman", 12)
     factual_background = [
-        "1. Ban me from all financial institutions.",
+        "1. Defendant is a meth operation and is a waste of everyone's time."
     ]
     y_position -= 1 * inch
     for line in factual_background:
@@ -2545,26 +2549,13 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     relief_text = [
         "WHEREFORE, Petitioner requests that this Court:",
-        "a. Issue a writ of mandate ordering that I be banned from all financial institutions.",
-        "b. Assemble an NKVD-like team to order mass arrest of executives.",
+        "a. Keep my access code active so I can access the unit."
     ]
     y_position -= 1 * inch
     for line in relief_text:
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
         
-        # III. REQUEST FOR RELIEF
-    c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.5 * inch, "IV. PROCEDURAL NOTE")
-    c.setFont("Times-Roman", 12)
-    relief_text = [
-        "1. Court should issue an order to the process server company to compel service so I don't have to pay.",
-        "2. If this is not possible I am fine with paying ABC Legal the $75 they demand for service.",
-    ]
-    y_position -= 1 * inch
-    for line in relief_text:
-        c.drawString(left_margin, y_position, line)
-        y_position -= 0.25 * inch
 
     # Signature Block
     c.setFont("Times-Roman", 12)
