@@ -481,7 +481,7 @@ def create_pdf(output_filename):
     c.save()
 
 if __name__ == "__main__":
-    output_filename = "ecf.pdf"
+    output_filename = "ecf1.pdf"
     create_pdf(output_filename)
     print(f"PDF created: {output_filename}")
 media_rw
@@ -1960,42 +1960,6 @@ class UnitManager:
         return max(row_diff, col_diff) == 1
 media_rw
 import math
-
-cmround=100
-melting=700
-hvlcm=1
-airm3g=1000
-aircm3g=airm3g/1000000
-steelaircoefcm2=5/10000
-roundld=10
-roundfront=cmround*cmround
-airperhit=roundfront*aircm3g
-roundside=cmround*roundld*4
-roundarea=roundfront+roundside
-roundpower=steelaircoefcm2*roundarea
-roundheat=steelaircoefcm2*melting*roundarea
-airperhitpercm2=airperhit/roundfront
-massperhitperms=roundheat/airperhitpercm2/roundfront
-vper=math.sqrt(massperhitperms*1000)*2
-print("fel ", vper)
-tungdensgcm3=10
-mass=cmround*cmround*roundld*tungdensgcm3/1000
-ke=mass*vper*vper*.5
-steeldensgcm3=7
-steeltens=2000000000
-steeltenscm3=steeltens/1000*steeldensgcm3
-penarea=steeltenscm3*roundfront
-numpens=ke/penarea
-lenn=numpens*10
-print("mm rha ",lenn)
-fac=cmround/hvlcm
-fac=fac**2**1.618
-lenn=lenn*fac
-print("toa ", lenn)
-basevol=hvlcm*roundfront*tungdensgcm3/1000*steeltens
-print("kci ", basevol, "ke ", ke, " rst ",basevol/ke)
-media_rw
-import math
 import random
 
 class BomberHelper2:
@@ -2463,8 +2427,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT FOR THE DISTRICT OF COLUMBIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CIVIL DIVISION")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -2472,7 +2436,8 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "             Petitioner and Plaintiff,",
         "         v.",
-        "700 E Slauson ExtraSpace Storage",
+        "Office of the Comptroller of the Currency",
+        "of the United States Department of the Treasury",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
@@ -2493,7 +2458,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 5.5 * inch, "Petition for Writ of Mandate")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 6.00 * inch, "Mandamus")
+    c.drawString(space, top_margin - 6.00 * inch, "Administrative Mandamus")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -2522,9 +2487,9 @@ def create_pdf(output_filename):
     c.drawString(left_margin, top_margin - 1 * inch, "I. INTRODUCTION")
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. I own storage unit 2367 at 700 E Slauson Extraspace.",
-        "2. Corporate demands $50 a month and government is embezzling my welfare so I can't pay.",
-        "3. Give me the unit for free and keep my access code active.",
+        "1. Petitioner, Mark Ingraham, petitions this Court for a copy of the police report attached to a case opened",
+        "by the Office of the Comptroller of the Currency (OCC) Customer Assistance Group OCC Ombudsman.",
+        "2. The case number is CS0366753.",
     ]
     y_position = top_margin - 1.5 * inch
     for line in intro_text:
@@ -2536,7 +2501,8 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
     c.setFont("Times-Roman", 12)
     factual_background = [
-        "1. Defendant is a meth operation and is a waste of everyone's time."
+        "1. Petitioner was informed by OCC that a police report regarding ''cartel activity'' was attached to the case.",
+        "2. Petitioner called the OCC for further information and did not recieve adequate details.",
     ]
     y_position -= 1 * inch
     for line in factual_background:
@@ -2549,13 +2515,26 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     relief_text = [
         "WHEREFORE, Petitioner requests that this Court:",
-        "a. Keep my access code active so I can access the unit."
+        "a. Issue a writ of mandate ordering the OCC to provide the police reports attached to case CS0366753",
+        " and any related cases.",
     ]
     y_position -= 1 * inch
     for line in relief_text:
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
         
+        # III. REQUEST FOR RELIEF
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "IV. PROCEDURAL NOTE")
+    c.setFont("Times-Roman", 12)
+    relief_text = [
+        "1. The defendant has an aggressive security guard who has interfered with service of a previous case. ",
+        "2. Court should issue an order to the process server company and the guard to compel service.",
+    ]
+    y_position -= 1 * inch
+    for line in relief_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
 
     # Signature Block
     c.setFont("Times-Roman", 12)
@@ -2570,7 +2549,7 @@ def create_pdf(output_filename):
     c.save()
 
 if __name__ == "__main__":
-    output_filename = "writ_of_mandate_petition.pdf"
+    output_filename = "fe1d.pdf"
     create_pdf(output_filename)
     print(f"PDF created: {output_filename}")
 media_rw
@@ -2795,61 +2774,6 @@ class GameApp:
         Runs the Tkinter main loop.
         """
         self.root.mainloop()
-media_rw
-import math
-
-glassairheattransferpercm2perk=0.0005
-plasticairheattransferpercm2perk=0.0005
-r27width=20
-amraamwidth=17
-r27front=r27width**2
-amfront=amraamwidth**2
-airdensgperm3= 1000
-hvlcm=1
-r27frontvol=r27front*hvlcm
-amfrontvol=hvlcm*amfront
-r27massg=175000
-ammassg=150000
-fuelpercent=.9
-r27fuel=fuelpercent*r27massg
-amfuel=ammassg*fuelpercent
-enerdensjperg=35000
-oxpercent=.8
-resper=1-oxpercent
-r27fuel=r27fuel*resper
-amfuel=amfuel*resper
-r27en=r27fuel*enerdensjperg
-amen=amfuel*enerdensjperg
-glassmeltc=1500
-plasticmeltc=300
-glassspecheatjpergperk=1
-plasticspecheatjpergperk=1
-r27maxenpercm2=glassspecheatjpergperk*glassmeltc*hvlcm
-ammaxenpercm2=plasticspecheatjpergperk*plasticmeltc*hvlcm
-heatpersecpercm2r27=glassairheattransferpercm2perk*glassmeltc*hvlcm
-heatpersecpercm2am=plasticairheattransferpercm2perk*plasticmeltc*hvlcm
-airpersecr27kg=math.sqrt(heatpersecpercm2r27*2)
-airpersecamkg=math.sqrt(heatpersecpercm2am*2)
-airdenskgpercm3=airdensgperm3/1000000
-airvolpersr27=(airpersecr27kg/airdenskgpercm3)
-airpersam=(airpersecamkg/airdenskgpercm3)
-r27ms=airvolpersr27
-amms=airpersam
-enmaxr27=r27ms*r27ms*r27massg/1000
-enmaxam=amms*amms*ammassg/1000
-enmaxr27=r27en/enmaxr27
-enmaxam=amen/enmaxam
-grav=10
-secondsgravr27=r27ms/grav/grav
-secondsgravam=amms/grav/grav
-r27time=secondsgravr27*enmaxr27
-amtime=secondsgravam*enmaxam
-r27dist=r27ms*r27time
-amdist=amtime*amms
-
-
-print(f"r27 ", r27ms, " time ", r27time, " disfance ", r27dist)
-print(f"amraam max speed ", amms, " time ", amtime, " disrance ", amdist)
 media_rw
 import tkinter as tk
 
