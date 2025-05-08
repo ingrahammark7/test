@@ -92,8 +92,8 @@ def create_pdf(output_filename):
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
-    c.setFont("Times-Roman", 8)
-    c.drawString(space, top_margin - 4.5* inch, "MOTION FOR JUDGMENT ON PLEADINGS")
+    c.setFont("Times-Roman", 12)
+    c.drawString(space, top_margin - 4.5* inch, "Motion for judgment on pleadings")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -111,9 +111,9 @@ def create_pdf(output_filename):
     intro_text = [
         "1. Deputy sheriff called me and has observed Tom's prostitutes are occupying the apartment, and "
         ," related crimes are being investigated.",
-              "2.  In light of defendant incompetence in retreiving the key, judgment should be issued." ,
-              "3. Judgment should order sheriff to reveal Tom's real name and order Tom to provide key and "
-              ,"remove the fake keypad on the door. ",
+        "2. The unit has a fake keypad which confused the sheriff.",
+              "3.  In light of defendant incompetence in retrieving the key, judgment should be issued." ,
+              "4. Judgment should order sheriff to not take adverse action against me."
         ]
     y_position -= 1*inch
     for line in intro_text:
