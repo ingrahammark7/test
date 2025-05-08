@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Motion for Judgement" # Title of the paper
+        footer_text = "Notice of Non-Opposition" # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
     c.setFont("Times-Roman", 12)
-    c.drawString(space, top_margin - 4.5* inch, "Motion for judgment on pleadings")
+    c.drawString(space, top_margin - 4.5* inch, "Notice of Non-Opposition")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -105,15 +105,18 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.5 * inch, "NOTICE OF MOTION AND MOTION FOR JUDGMENT ON THE PLEADINGS")
+    c.drawString(left_margin, y_position - 0.5 * inch, "NOTICE OF NON-OPPOSITION")
     c.setFont("Times-Roman", 12)
     c.setFont("Times-Roman", 12)
     intro_text = [
         "1. Deputy sheriff called me and has observed Tom's prostitutes are occupying the apartment, and "
         ," related crimes are being investigated.",
         "2. The unit has a fake keypad which confused the sheriff.",
-              "3.  In light of defendant incompetence in retrieving the key, judgment should be issued." ,
-              "4. Judgment should order sheriff to not take adverse action against me."
+              "3.  In light of defendant incompetence in retrieving the key, judgment should be issued as soon as possible.",
+              "4. Defendant answer does not contradict anything in petition, despite the hostile wording.",
+              "5. Court has no cause for sanctions defendant requests but may impose them and dismiss case due to",
+              " defendant incompetence.",
+              "6. Court may also compel Sheriff to reveal Tom's real name and compel Tom to answer my calls."
         ]
     y_position -= 1*inch
     for line in intro_text:
