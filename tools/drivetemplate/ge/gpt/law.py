@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Notice of Attempt to Schedule Hearing" # Title of the paper
+        footer_text = "Witness List" # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
     c.setFont("Times-Roman", 12)
-    c.drawString(space, top_margin - 4.5* inch, "Notice of Attempt to Schedule Hearing")
+    c.drawString(space, top_margin - 4.5* inch, "Witness List")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -105,16 +105,22 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.5 * inch, "NOTICE ATTEMPT TO SCHEDULE HEARING")
+    c.drawString(left_margin, y_position - 0.5 * inch, "WITNESS LIST")
     c.setFont("Times-Roman", 12)
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. Case is futile because defendant seems unable to answer and will not compel Tom to answer my phone calls.",
-        "2. Only the sheriff can enforce judgment against the sheriff, and sheriff incompetence renders case futile.",
-        "3. I called the court and attempted to schedule a hearing to decide the case.",
-        "4. Defendant should at least make minimal effort to provide Tom's real name or order case dismissed due to"," inability to do anything at all.",
-        "5. If defendant is completely uninterested in the murder case or any factual matter the case should ",
-        "be dismissed.",
+        "1. Defendant has objected to mention of murder on petition",
+        "2. Witnesses are provided below in the event defendant requests.",
+        "Witnesses:" 
+        "1. Tom H. (unknown name, illegal immigrant)",
+        "Contact: 690 S Catalina Apt 4x,  (323) 841-0466",
+        "Relation: Has confessed to crime. Police insist testimony ''does not fit fact pattern.''",
+        "2. Olympic Station LAPD detective",
+        "Relation: I reported the crime to detective.",
+        "3. Yunhee",
+        "Contact: Confidential",
+        "Relation: Witness",
+        "4. Other confidential witnesses.",
         ]
     y_position -= 1*inch
     for line in intro_text:
@@ -125,9 +131,7 @@ def create_pdf(output_filename):
 
     # Signature Block
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted,")
-    c.drawString(left_margin, y_position - 
-  .5  * inch, "Mark Ingraham 5/6/2025")
+    c.drawString(space, y_position + 0.25* inch, "Submitted, Mark Ingraham 5/6/2025")
 
  # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
