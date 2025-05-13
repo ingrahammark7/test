@@ -505,6 +505,8 @@ def draw_vva_shape():
     p2_base = [(50 + 150, 28 + 150), (40 + 150, 24 + 150), (40 + 150, 32 + 150)]
     
     pylon = [(40 +150,24+150),(40+150,32+150),(-49+150,32+150),(-49+150,24+150)]
+    
+    p3=[(-69+150,24+150),(-89+150,48+150),(-49+150,48+150),(-49+150,24+150)]
 
     # Draw the oval using a bounding box
     canvas.create_oval(oval_points[2][0], oval_points[2][1], oval_points[0][0], oval_points[1][1], fill="lightblue", outline="black")
@@ -519,6 +521,8 @@ def draw_vva_shape():
     
     # Draw p2 base
     canvas.create_polygon(p2_base, fill="lightcoral", outline="black")
+    
+    canvas.create_polygon(p3,fill="lightcoral", outline="black")
    
 
     # Run the Tkinter event loop
@@ -681,6 +685,59 @@ class Tank:
                 self.canvas.delete(debris)  # Remove debris when animation completes
 
         step_animation()
+media_rw
+import math
+
+dof=6
+eff=2
+recf=dof*eff
+recyc=recf*recf
+humpower=10000
+airpower=recyc*humpower
+mil=1000000
+print("humans provide energy to planes ",airpower/mil)
+englength=10
+hvl=0.1
+hvls=englength/hvl
+hvls=math.pow(hvls,.33)
+print("total ",hvls*airpower/mil)
+fuelenperkg=36000000
+missileweightkg=200
+misfuel=fuelenperkg*missileweightkg/10
+speed=100
+airdenskgm3=1
+misfrontm2=0.05
+airfrontm2=10
+airpersecair=airfrontm2*airdenskgm3*speed
+mispersecair=misfrontm2*airdenskgm3*speed
+print("aircraft moves ", airpersecair)
+print("mis moges ",mispersecair)
+airmass=10000
+airpercentair=airpersecair/airmass
+mispercentair=mispersecair/missileweightkg
+print("relative air ",airpercentair)
+print("relatigr mis ",mispercentair)
+speedf=speed*speed*.5
+airke=speedf*airmass
+miske=speedf*missileweightkg
+airloss=airpercentair*airke
+misloss=miske*mispercentair
+print("air power ",airloss/mil)
+print("mis power ",misloss/mil)
+airtemp=1000
+g=10
+buoyantacceleration=airtemp*airmass*g
+mistemp=misfuel/1000/missileweightkg
+print("mistemp ",mistemp)
+alt=10000
+gain=alt*g
+misgain=missileweightkg*gain*2
+climbtime=alt/speed*2
+print("per clomb ",misgain)
+numc=misfuel/misgain
+print("msif ", misfuel)
+print("num climbs ",numc)
+print("time ",climbtime*numc)
 media_rw
 import tkinter as tk
 import random
@@ -1960,6 +2017,51 @@ class UnitManager:
         return max(row_diff, col_diff) == 1
 media_rw
 import math
+
+def turbine_design(power_watts, runtime_sec, tensile_strength_j_per_kg, material_density, air_density, exhaust_velocity):
+    # Estimate energy required
+    total_energy = power_watts * runtime_sec  # Joules
+
+    # Assume max tip speed from tensile stress (centrifugal force constraint)
+    # Using: stress = 0.5 * density * tip_speed^2
+    tip_speed = math.sqrt(2 * tensile_strength_j_per_kg)  # m/s
+
+    # Estimate radius from tip speed and assumed RPM
+    rpm = 500  # Can be adjusted or parameterized
+    omega = 2 * math.pi * rpm / 60  # rad/s
+    radius = tip_speed / omega
+
+    # Estimate mass per blade from material constraints
+    allowable_energy_per_blade = tensile_strength_j_per_kg * material_density  # J/m³
+    volume_per_blade = total_energy / (allowable_energy_per_blade)  # m³
+
+    # Assume chord x span gives area, so span is:
+    chord = 0.1  # Assumed starting point, can be parameterized
+    span = volume_per_blade / chord  # m
+
+    # Estimate number of blades based on rotor circumference and spacing
+    solidity = 0.05  # Ratio of blade chord to blade pitch
+    circumference = 2 * math.pi * radius
+    blade_pitch = chord / solidity
+    blade_count = int(circumference / blade_pitch)
+
+    print(f"Tip Speed: {tip_speed:.2f} m/s")
+    print(f"Radius: {radius:.2f} m")
+    print(f"Span: {span:.2f} m")
+    print(f"Chord: {chord:.2f} m")
+    print(f"Blade Count: {blade_count}")
+
+# Example call
+turbine_design(
+    power_watts=5e6,
+    runtime_sec=3600,
+    tensile_strength_j_per_kg=1e6,
+    material_density=8000,
+    air_density=1.225,
+    exhaust_velocity=600
+)
+media_rw
+import math
 import random
 
 class BomberHelper2:
@@ -2391,7 +2493,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Petition for Writ of Mandate"  # Title of the paper
+        footer_text = "Witness List" # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -2427,8 +2529,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT FOR THE DISTRICT OF COLUMBIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CIVIL DIVISION")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -2436,15 +2538,14 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "             Petitioner and Plaintiff,",
         "         v.",
-        "Office of the Comptroller of the Currency",
-        "of the United States Department of the Treasury",
+        "Los Angeles Sheriff Department",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
     counter=0
     for line in case_title:
         c.setFont("Times-Bold",12)
-        if counter==1 or counter==5:
+        if counter==1 or counter==4:
         	c.setFont("Times-Roman",12)
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
@@ -2453,19 +2554,52 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4 * inch, "Case Number:")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP01004")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 5.5 * inch, "Petition for Writ of Mandate")
-    c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 6.00 * inch, "Administrative Mandamus")
+    c.drawString(space, top_margin - 4.25* inch, "")
+    c.setFont("Times-Roman", 12)
+    c.drawString(space, top_margin - 4.5* inch, "Witness List")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
-    c.drawString(space, top_margin - 6.5 * inch, "Judge: ")
-    c.drawString(space, top_margin - 6.75 * inch, "Department: ")
+    c.drawString(space, top_margin - 4.75 * inch, "Judge: ")
+    c.drawString(space, top_margin - 5* inch, "Department: ")
 
-    # Add line numbers to the first page
+   
+
+
+    # I. INTRODUCTION
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "WITNESS LIST")
+    c.setFont("Times-Roman", 12)
+    c.setFont("Times-Roman", 12)
+    intro_text = [
+        "1. Defendant has objected to mention of murder on petition",
+        "2. Witnesses are provided below in the event defendant requests.",
+        "Witnesses:" 
+        "1. Tom H. (unknown name, illegal immigrant)",
+        "Contact: 690 S Catalina Apt 4x,  (323) 841-0466",
+        "Relation: Has confessed to crime. Police insist testimony ''does not fit fact pattern.''",
+        "2. Olympic Station LAPD detective",
+        "Relation: I reported the crime to detective.",
+        "3. Yunhee",
+        "Contact: Confidential",
+        "Relation: Witness",
+        "4. Other confidential witnesses.",
+        ]
+    y_position -= 1*inch
+    for line in intro_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+
+
+    # Signature Block
+    c.setFont("Times-Roman", 12)
+    c.drawString(space, y_position + 0.25* inch, "Submitted, Mark Ingraham 5/6/2025")
+
+ # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
     add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
 
@@ -2474,82 +2608,11 @@ def create_pdf(output_filename):
 
     # Save the first page
     c.showPage()
-
-    # Second Page: Petition Text
-    c.setFont("Times-Bold", 14)
-    c.drawString(left_margin, top_margin - 0.5 * inch, "PETITION FOR WRIT OF MANDATE")
-
-    # Add line numbers to the second page
-    add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
-
-    # I. INTRODUCTION
-    c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, top_margin - 1 * inch, "I. INTRODUCTION")
-    c.setFont("Times-Roman", 12)
-    intro_text = [
-        "1. Petitioner, Mark Ingraham, petitions this Court for a copy of the police report attached to a case opened",
-        "by the Office of the Comptroller of the Currency (OCC) Customer Assistance Group OCC Ombudsman.",
-        "2. The case number is CS0366753.",
-    ]
-    y_position = top_margin - 1.5 * inch
-    for line in intro_text:
-        c.drawString(left_margin, y_position, line)
-        y_position -= 0.25 * inch
-
-    # II. FACTUAL BACKGROUND
-    c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
-    c.setFont("Times-Roman", 12)
-    factual_background = [
-        "1. Petitioner was informed by OCC that a police report regarding ''cartel activity'' was attached to the case.",
-        "2. Petitioner called the OCC for further information and did not recieve adequate details.",
-    ]
-    y_position -= 1 * inch
-    for line in factual_background:
-        c.drawString(left_margin, y_position, line)
-        y_position -= 0.25 * inch
-
-    # III. REQUEST FOR RELIEF
-    c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.5 * inch, "III. REQUEST FOR RELIEF")
-    c.setFont("Times-Roman", 12)
-    relief_text = [
-        "WHEREFORE, Petitioner requests that this Court:",
-        "a. Issue a writ of mandate ordering the OCC to provide the police reports attached to case CS0366753",
-        " and any related cases.",
-    ]
-    y_position -= 1 * inch
-    for line in relief_text:
-        c.drawString(left_margin, y_position, line)
-        y_position -= 0.25 * inch
-        
-        # III. REQUEST FOR RELIEF
-    c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.5 * inch, "IV. PROCEDURAL NOTE")
-    c.setFont("Times-Roman", 12)
-    relief_text = [
-        "1. The defendant has an aggressive security guard who has interfered with service of a previous case. ",
-        "2. Court should issue an order to the process server company and the guard to compel service.",
-    ]
-    y_position -= 1 * inch
-    for line in relief_text:
-        c.drawString(left_margin, y_position, line)
-        y_position -= 0.25 * inch
-
-    # Signature Block
-    c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
-    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham, 2/15/2025")
-    
-    # Add footer and page number
-    add_footer(2)
-    add_page_number(2)
-
     # Save the PDF
     c.save()
 
 if __name__ == "__main__":
-    output_filename = "fe1d.pdf"
+    output_filename = "writ_of_mandate_petition.pdf"
     create_pdf(output_filename)
     print(f"PDF created: {output_filename}")
 media_rw
@@ -2774,6 +2837,45 @@ class GameApp:
         Runs the Tkinter main loop.
         """
         self.root.mainloop()
+media_rw
+import math
+
+forcec=1
+daidus=1
+mass=1
+c=300000000
+tenb=math.pow(10,-10)
+#r=2gm/c2
+c2=c*c
+charge=1
+v=1
+b=1
+elecc=1.6*math.pow(10,-19)
+#f=qvbsint
+vel=500
+crad=70*math.pow(10,-12)
+pmass=1.7*math.pow(10,-27)
+pwl=6.6*math.pow(10,-34)
+rpl=pwl/6
+ub=elecc*rpl/(2*pmass)
+mu=4*math.pi*math.pow(10,-7)
+tp=2*math.pi
+num=1*pow(10,11)
+ub2=num*ub
+ub2=ub2*ub2
+r=math.sqrt(num)*crad
+r3=math.pow(r,3)
+lt=mu/tp
+rt=ub2/r3
+lt=lt*rt
+mass=num*pmass
+print('en ', lt, ' ma ', mass)
+ltd=math.pow(3*math.pow(math.pi,2),2/3)/5
+h2=rpl*rpl/pmass
+n53=math.pow(num,5/3)
+ltd=ltd*h2*n53
+print('drgen ', ltd)
+print('rat ', ltd/lt)
 media_rw
 import tkinter as tk
 
