@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Witness List" # Title of the paper
+        footer_text = "Petition for Writ of Mandate"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -64,7 +64,7 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -72,7 +72,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "             Petitioner and Plaintiff,",
         "         v.",
-        "Los Angeles Sheriff Department",
+        "Chase  Bank",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
@@ -88,52 +88,19 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP01004")
+    c.drawString(space, top_margin - 4 * inch, "Case Number:")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "")
-    c.setFont("Times-Roman", 12)
-    c.drawString(space, top_margin - 4.5* inch, "Witness List")
+    c.drawString(space, top_margin - 5.5 * inch, "Petition for Writ of Mandate")
+    c.setFont("Times-Bold", 12)
+    c.drawString(space, top_margin - 6.00 * inch, "Mandamus")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
-    c.drawString(space, top_margin - 4.75 * inch, "Judge: ")
-    c.drawString(space, top_margin - 5* inch, "Department: ")
+    c.drawString(space, top_margin - 6.5 * inch, "Judge: ")
+    c.drawString(space, top_margin - 6.75 * inch, "Department: ")
 
-   
-
-
-    # I. INTRODUCTION
-    c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.5 * inch, "WITNESS LIST")
-    c.setFont("Times-Roman", 12)
-    c.setFont("Times-Roman", 12)
-    intro_text = [
-        "1. Defendant has objected to mention of murder on petition",
-        "2. Witnesses are provided below in the event defendant requests.",
-        "Witnesses:" 
-        "1. Tom H. (unknown name, illegal immigrant)",
-        "Contact: 690 S Catalina Apt 4x,  (323) 841-0466",
-        "Relation: Has confessed to crime. Police insist testimony ''does not fit fact pattern.''",
-        "2. Olympic Station LAPD detective",
-        "Relation: I reported the crime to detective.",
-        "3. Yunhee",
-        "Contact: Confidential",
-        "Relation: Witness",
-        "4. Other confidential witnesses.",
-        ]
-    y_position -= 1*inch
-    for line in intro_text:
-        c.drawString(left_margin, y_position, line)
-        y_position -= 0.25 * inch
-
-
-
-    # Signature Block
-    c.setFont("Times-Roman", 12)
-    c.drawString(space, y_position + 0.25* inch, "Submitted, Mark Ingraham 5/6/2025")
-
- # Add line numbers to the first page
+    # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
     add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
 
@@ -142,6 +109,63 @@ def create_pdf(output_filename):
 
     # Save the first page
     c.showPage()
+
+    # Second Page: Petition Text
+    c.setFont("Times-Bold", 14)
+    c.drawString(left_margin, top_margin - 0.5 * inch, "PETITION FOR WRIT OF MANDATE")
+
+    # Add line numbers to the second page
+    add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
+
+    # I. INTRODUCTION
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, top_margin - 1 * inch, "I. INTRODUCTION")
+    c.setFont("Times-Roman", 12)
+    intro_text = [
+        "1. I am banned from Chase.",
+        "2. I still get marketing emails telling me to open a Chase account.",
+    ]
+    y_position = top_margin - 1.5 * inch
+    for line in intro_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # II. FACTUAL BACKGROUND
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
+    c.setFont("Times-Roman", 12)
+    factual_background = [
+        "1. ",
+    ]
+    y_position -= 1 * inch
+    for line in factual_background:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+
+    # III. REQUEST FOR RELIEF
+    c.setFont("Times-Bold", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "III. REQUEST FOR RELIEF")
+    c.setFont("Times-Roman", 12)
+    relief_text = [
+        "WHEREFORE, Petitioner requests that this Court:",
+        "a. Ban me from Chase.",
+    ]
+    y_position -= 1 * inch
+    for line in relief_text:
+        c.drawString(left_margin, y_position, line)
+        y_position -= 0.25 * inch
+        
+    
+
+    # Signature Block
+    c.setFont("Times-Roman", 12)
+    c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
+    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham 2/15/2025")
+    
+    # Add footer and page number
+    add_footer(2)
+    add_page_number(2)
+
     # Save the PDF
     c.save()
 
