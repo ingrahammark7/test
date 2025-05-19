@@ -110,9 +110,9 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. Petitioner, Mark Ingraham, petitions this Court for a CM/ECF user name and passsword.",
+        "1. Petitioner, Mark Ingraham, petitions this Court for a CM/ECF user name and password.",
         "2. Account will be used to file documents on PACER.",
-              "3. Petitioner has regular access to the internet, has the capacity to regularly file and recieve documents", "electronically, and has completed the Clerk's Office tutorial.",
+              "3. Petitioner has regular access to the internet, has the capacity to regularly file and view documents", "electronically, and has completed the Clerk's Office tutorial.",
         ]
     y_position -= 1*inch
     for line in intro_text:
@@ -124,7 +124,7 @@ def create_pdf(output_filename):
     # Signature Block
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
-    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham")
+    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham, 2/15/2025")
 
  # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
@@ -139,6 +139,6 @@ def create_pdf(output_filename):
     c.save()
 
 if __name__ == "__main__":
-    output_filename = "writ_of_mandate_petition.pdf"
+    output_filename = "ecf1.pdf"
     create_pdf(output_filename)
     print(f"PDF created: {output_filename}")
