@@ -1,4 +1,5 @@
-fighter_stats = {
+{
+   'fighter_stats': { 
     "F-5": {
         "Vietnam": {"Kills": 0, "Loss": 0, "Ground": 1},
         "Viet-Cambodia": {"Kills": 0, "Loss": 0, "Ground": 0},
@@ -226,4 +227,5 @@ fighter_stats = {
         "Russia Ukraine": {"Kills": 0, "Loss": 0, "Ground": 0},
         "Total": {"Kills": 0, "Loss": 0, "Ground": 0}
     }
+   }
 }
