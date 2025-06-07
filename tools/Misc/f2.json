@@ -1,0 +1,78 @@
+{
+  "F-5": {
+    "gun": "20 mm M39",
+    "nation": "USA"
+  },
+  "F-4": {
+    "gun": "20 mm M61",
+    "nation": "USA"
+  },
+  "F-14": {
+    "gun": "20 mm M61",
+    "nation": "USA"
+  },
+  "F-15": {
+    "gun": "20 mm M61",
+    "nation": "USA"
+  },
+  "F-15E": {
+    "gun": "20 mm M61",
+    "nation": "USA"
+  },
+  "F-16": {
+    "gun": "20 mm M61",
+    "nation": "USA"
+  },
+  "F-18": {
+    "gun": "20 mm M61",
+    "nation": "USA"
+  },
+  "Rafale": {
+    "gun": "30 mm GIAT30",
+    "nation": "France"
+  },
+  "Mirage F1": {
+    "gun": "30 mm DEFA",
+    "nation": "France"
+  },
+  "Mirage 2000": {
+    "gun": "30 mm DEFA553",
+    "nation": "France"
+  },
+  "Sea Harrier": {
+    "gun": "30 mm ADEN",
+    "nation": "UK"
+  },
+  "Tornado IDS": {
+    "gun": "27 mm MauserBK27",
+    "nation": "UK"
+  },
+  "J-7": {
+    "gun": "30 mm Type30",
+    "nation": "China"
+  },
+  "MiG-15/17": {
+    "gun": "23 mm NR23",
+    "nation": "USSR"
+  },
+  "MiG-21": {
+    "gun": "23 mm GSh23",
+    "nation": "USSR"
+  },
+  "MiG-23": {
+    "gun": "23 mm GSh23",
+    "nation": "USSR"
+  },
+  "MiG-25": {
+    "gun": "23 mm GSh23",
+    "nation": "USSR"
+  },
+  "MiG-29": {
+    "gun": "30 mm GSh30",
+    "nation": "USSR"
+  },
+  "Su-27": {
+    "gun": "30 mm GSh30",
+    "nation": "USSR"
+  }
+}
