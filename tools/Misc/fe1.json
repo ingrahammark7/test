@@ -1,0 +1,202 @@
+[
+  {
+    "country": "Bangladesh",
+    "fertility_rate": 2.0,
+    "female_education_years": 6.2,
+    "rainfall_per_capita_mm": 6500,
+    "arable_land_per_capita_ha": 0.049,
+    "urban_population_percent": 39.4,
+    "population_density": 1350,
+    "un_geoscheme": "Asia"
+  },
+  {
+    "country": "Ethiopia",
+    "fertility_rate": 4.1,
+    "female_education_years": 2.5,
+    "rainfall_per_capita_mm": 16000,
+    "arable_land_per_capita_ha": 0.160,
+    "urban_population_percent": 21.3,
+    "population_density": 115,
+    "un_geoscheme": "Africa"
+  },
+  {
+    "country": "South Korea",
+    "fertility_rate": 0.72,
+    "female_education_years": 13.6,
+    "rainfall_per_capita_mm": 3500,
+    "arable_land_per_capita_ha": 0.030,
+    "urban_population_percent": 81.4,
+    "population_density": 527,
+    "un_geoscheme": "Asia"
+  },
+  {
+    "country": "Nigeria",
+    "fertility_rate": 5.3,
+    "female_education_years": 5.0,
+    "rainfall_per_capita_mm": 12000,
+    "arable_land_per_capita_ha": 0.197,
+    "urban_population_percent": 52.0,
+    "population_density": 223,
+    "un_geoscheme": "Africa"
+  },
+  {
+    "country": "Brazil",
+    "fertility_rate": 1.7,
+    "female_education_years": 7.8,
+    "rainfall_per_capita_mm": 18000,
+    "arable_land_per_capita_ha": 0.372,
+    "urban_population_percent": 87.0,
+    "population_density": 25,
+    "un_geoscheme": "Americas"
+  },
+  {
+    "country": "France",
+    "fertility_rate": 1.8,
+    "female_education_years": 11.5,
+    "rainfall_per_capita_mm": 9000,
+    "arable_land_per_capita_ha": 0.277,
+    "urban_population_percent": 80.0,
+    "population_density": 119,
+    "un_geoscheme": "Europe"
+  },
+  {
+    "country": "India",
+    "fertility_rate": 2.1,
+    "female_education_years": 5.5,
+    "rainfall_per_capita_mm": 8000,
+    "arable_land_per_capita_ha": 0.123,
+    "urban_population_percent": 35.0,
+    "population_density": 450,
+    "un_geoscheme": "Asia"
+  },
+  {
+    "country": "Netherlands",
+    "fertility_rate": 1.6,
+    "female_education_years": 12.0,
+    "rainfall_per_capita_mm": 2200,
+    "arable_land_per_capita_ha": 0.062,
+    "urban_population_percent": 92.0,
+    "population_density": 508,
+    "un_geoscheme": "Europe"
+  },
+  {
+    "country": "Kenya",
+    "fertility_rate": 3.4,
+    "female_education_years": 6.0,
+    "rainfall_per_capita_mm": 10000,
+    "arable_land_per_capita_ha": 0.133,
+    "urban_population_percent": 28.0,
+    "population_density": 94,
+    "un_geoscheme": "Africa"
+  },
+  {
+    "country": "Egypt",
+    "fertility_rate": 3.3,
+    "female_education_years": 7.0,
+    "rainfall_per_capita_mm": 500,
+    "arable_land_per_capita_ha": 0.031,
+    "urban_population_percent": 43.0,
+    "population_density": 104,
+    "un_geoscheme": "Africa"
+  },
+  {
+    "country": "Vietnam",
+    "fertility_rate": 1.91,
+    "female_education_years": 8.2,
+    "rainfall_per_capita_mm": 9800,
+    "arable_land_per_capita_ha": 0.071,
+    "urban_population_percent": 38.8,
+    "population_density": 338,
+    "un_geoscheme": "Asia"
+  },
+  {
+    "country": "United Kingdom",
+    "fertility_rate": 1.4,
+    "female_education_years": 12.5,
+    "rainfall_per_capita_mm": 3100,
+    "arable_land_per_capita_ha": 0.098,
+    "urban_population_percent": 83.4,
+    "population_density": 281.6,
+    "un_geoscheme": "Europe"
+  },
+  {
+    "country": "Australia",
+    "fertility_rate": 1.5,
+    "female_education_years": 12.0,
+    "rainfall_per_capita_mm": 4600,
+    "arable_land_per_capita_ha": 1.999,
+    "urban_population_percent": 86.2,
+    "population_density": 4,
+    "un_geoscheme": "Oceania"
+  },
+  {
+    "country": "Canada",
+    "fertility_rate": 1.4,
+    "female_education_years": 13.0,
+    "rainfall_per_capita_mm": 5400,
+    "arable_land_per_capita_ha": 1.306,
+    "urban_population_percent": 81.3,
+    "population_density": 4,
+    "un_geoscheme": "Americas"
+  },
+  {
+    "country": "Japan",
+    "fertility_rate": 1.3,
+    "female_education_years": 12.8,
+    "rainfall_per_capita_mm": 6500,
+    "arable_land_per_capita_ha": 0.033,
+    "urban_population_percent": 91.8,
+    "population_density": 339.4,
+    "un_geoscheme": "Asia"
+  },
+  {
+    "country": "Germany",
+    "fertility_rate": 1.5,
+    "female_education_years": 13.1,
+    "rainfall_per_capita_mm": 7000,
+    "arable_land_per_capita_ha": 0.145,
+    "urban_population_percent": 77.5,
+    "population_density": 241.5,
+    "un_geoscheme": "Europe"
+  },
+  {
+    "country": "South Africa",
+    "fertility_rate": 2.4,
+    "female_education_years": 9.8,
+    "rainfall_per_capita_mm": 5000,
+    "arable_land_per_capita_ha": 0.235,
+    "urban_population_percent": 66.7,
+    "population_density": 47.8,
+    "un_geoscheme": "Africa"
+  },
+  {
+    "country": "Mexico",
+    "fertility_rate": 2.1,
+    "female_education_years": 8.6,
+    "rainfall_per_capita_mm": 6000,
+    "arable_land_per_capita_ha": 0.186,
+    "urban_population_percent": 80.2,
+    "population_density": 66.8,
+    "un_geoscheme": "Americas"
+  },
+  {
+    "country": "Russia",
+    "fertility_rate": 1.6,
+    "female_education_years": 12.0,
+    "rainfall_per_capita_mm": 4600,
+    "arable_land_per_capita_ha": 0.852,
+    "urban_population_percent": 74.4,
+    "population_density": 8.7,
+    "un_geoscheme": "Europe"
+  },
+  {
+    "country": "Indonesia",
+    "fertility_rate": 2.3,
+    "female_education_years": 7.9,
+    "rainfall_per_capita_mm": 2700,
+    "arable_land_per_capita_ha": 0.094,
+    "urban_population_percent": 56.4,
+    "population_density": 154.3,
+    "un_geoscheme": "Asia"
+  }
+]

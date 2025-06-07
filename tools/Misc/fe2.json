@@ -1,0 +1,62 @@
+[
+  {
+    "country": "Poland",
+    "fertility_rate": 1.4,
+    "female_education_years": 11.0,
+    "rainfall_per_capita_mm": 5800,
+    "arable_land_per_capita_ha": 0.150,
+    "urban_population_percent": 60.3,
+    "population_density": 124,
+    "un_geoscheme": "Europe"
+  },
+  {
+    "country": "Sweden",
+    "fertility_rate": 1.7,
+    "female_education_years": 12.5,
+    "rainfall_per_capita_mm": 6000,
+    "arable_land_per_capita_ha": 0.095,
+    "urban_population_percent": 87.0,
+    "population_density": 25,
+    "un_geoscheme": "Europe"
+  },
+  {
+    "country": "Thailand",
+    "fertility_rate": 1.5,
+    "female_education_years": 8.0,
+    "rainfall_per_capita_mm": 17000,
+    "arable_land_per_capita_ha": 0.120,
+    "urban_population_percent": 50.7,
+    "population_density": 137,
+    "un_geoscheme": "Asia"
+  },
+  {
+    "country": "Philippines",
+    "fertility_rate": 2.7,
+    "female_education_years": 7.5,
+    "rainfall_per_capita_mm": 21000,
+    "arable_land_per_capita_ha": 0.060,
+    "urban_population_percent": 47.3,
+    "population_density": 368,
+    "un_geoscheme": "Asia"
+  },
+  {
+    "country": "Czech Republic",
+    "fertility_rate": 1.5,
+    "female_education_years": 11.2,
+    "rainfall_per_capita_mm": 6200,
+    "arable_land_per_capita_ha": 0.190,
+    "urban_population_percent": 74.5,
+    "population_density": 137,
+    "un_geoscheme": "Europe"
+  },
+  {
+    "country": "Malaysia",
+    "fertility_rate": 1.8,
+    "female_education_years": 9.1,
+    "rainfall_per_capita_mm": 25000,
+    "arable_land_per_capita_ha": 0.090,
+    "urban_population_percent": 77.0,
+    "population_density": 97,
+    "un_geoscheme": "Asia"
+  }
+]
