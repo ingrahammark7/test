@@ -5,6 +5,78 @@ from valf1 import (
     print_summary, conflict_year_map
 )
 
+import valf3
+
+# Assuming you have these loaded somewhere, or replace with your actual variable names:
+fighter_stats = {}        # From your F1 JSON
+aircraft_metadata = {}    # From your F2 JSON
+conflict_years = {}       # From your F3 JSON
+opponent_mix_weights = {} # Your precomputed weights per year for opponent aircraft
+
+# -- Helper functions --
+
+def get_conflict_start_year(conflict_name):
+    entry = conflict_years.get(conflict_name)
+    if entry and 'start' in entry:
+        return entry['start']
+    return None
+
+def get_aircraft_side(aircraft):
+    meta = aircraft_metadata.get(aircraft, {})
+    nation = meta.get('nation', 'Unknown')
+    if nation == 'USA':
+        return 'USA'
+    elif nation in ('USSR', 'France'):
+        return 'USSR+France'
+    else:
+        return 'Other'
+
+# -- New function: residual kill table per aircraft --
+
+def print_aircraft_residual_kill_tables(filter_years=None):
+    print("\nResidual Kill Ratio Tables by Aircraft (kills normalized by difficulty factor):\n")
+    for aircraft, conflicts in fighter_stats.items():
+        # Aggregate kills by conflict start year
+        kills_by_year = {}
+        for conflict_name, stats in conflicts.items():
+            start_year = get_conflict_start_year(conflict_name)
+            if start_year is None:
+                continue
+            if filter_years is not None and start_year not in filter_years:
+                continue
+            kills = stats.get('Kills', 0)
+            kills_by_year[start_year] = kills_by_year.get(start_year, 0) + kills
+
+        if not kills_by_year:
+            continue
+
+        side = get_aircraft_side(aircraft)
+
+        print(f"Aircraft: {aircraft}")
+        print(f"{'Year':<6} {'Kills':<6} {'Difficulty':<10} {'Residual':<10} Opponent Mix")
+        print("-" * 80)
+
+        for year in sorted(kills_by_year.keys()):
+            kills = kills_by_year[year]
+            difficulty = difficulty_by_year.get(year, {}).get(side, None)
+            if difficulty is None or difficulty == 0:
+                difficulty = 1  # fallback if missing or zero
+
+            residual = kills / difficulty
+
+            # Opponent mix weights: dict aircraft -> fraction for this year
+            opp_mix = opponent_mix_weights.get(year, {})
+            if opp_mix:
+                opp_mix_str = ", ".join(f"{ac}: {w*100:.0f}%" for ac, w in opp_mix.items())
+            else:
+                opp_mix_str = "N/A"
+
+            print(f"{year:<6} {kills:<6} {difficulty:<10.2f} {residual:<10.2f} {opp_mix_str}")
+
+        print()
+
+# -- Existing functions --
+
 def print_table(filter_ages=None):
     for nation, age_data in nation_age_ratios.items():
         print(f"Nation: {nation} Age-to-Average Kill Ratio Buckets:")
@@ -103,20 +175,25 @@ def print_difficulty_analysis():
     regress(diffs, ussr_ratios, "USSR+France vs Diff")
     regress(ratios, ussr_ratios, "USSR+France vs Ratio")
 
-# Initial state
+# -- Initial state --
+
 all_ages = set(age for nation in nation_age_ratios for age in nation_age_ratios[nation])
 current_ages = set(all_ages)
 
 all_difficulty_years = set(year_nation_kills.keys())
 current_difficulty_years = set(all_difficulty_years)
 
-# Run initial output
+# -- Run initial output --
+
 print_summary()
 print_table(filter_ages=current_ages)
 compute_difficulty_factor(filter_years=current_difficulty_years)
 print_difficulty_analysis()
 
-# Command loop
+print_aircraft_residual_kill_tables(filter_years=current_difficulty_years)
+
+# -- Command loop --
+
 while True:
     removed_ages = all_ages - current_ages
     removed_difficulty_years = all_difficulty_years - current_difficulty_years
@@ -125,7 +202,7 @@ while True:
     print("Removed age buckets:", sorted(removed_ages) or "(none)")
     print("Currently shown difficulty years:", sorted(current_difficulty_years) or "(none)")
     print("Removed difficulty years:", sorted(removed_difficulty_years) or "(none)")
-
+    valf3.print_residual_kill_tables()
     user_input = input(
         "\nEnter command:\n"
         "  'add <ages>' or 'remove <ages>' (e.g., 'add 4,7')\n"
@@ -162,3 +239,4 @@ while True:
     print_table(filter_ages=current_ages)
     compute_difficulty_factor(filter_years=current_difficulty_years)
     print_difficulty_analysis()
+    print_aircraft_residual_kill_tables(filter_years=current_difficulty_years)
