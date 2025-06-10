@@ -65,7 +65,41 @@ for ac, info in aircraft_info.items():
     if nation in nation_to_side:
         ac_to_side[ac] = nation_to_side[nation]
 
-# === Main function to compute and display residual kill ratios ===
+# === Collect kills per aircraft per year (needed for opponent mix) ===
+year_ac_kills = defaultdict(lambda: defaultdict(int))  # year -> ac -> kills
+
+for ac, conflicts in fighter_stats.items():
+    for conflict, stats in conflicts.items():
+        year = conflict_years.get(conflict, {}).get('start')
+        if not year:
+            continue
+        kills = stats.get('Kills', 0)
+        year_ac_kills[year][ac] += kills
+
+# === Compute opponent mix helper function ===
+def compute_opponent_mix(ac, year):
+    ac_side = ac_to_side.get(ac)
+    if not ac_side:
+        return {}
+
+    # Opponent sides = all sides except ac_side
+    opponent_sides = [side for side in side_nations if side != ac_side]
+
+    # All opponent aircraft for this year
+    opponent_acs = [a for a, s in ac_to_side.items() if s in opponent_sides]
+
+    total_opponent_kills = sum(year_ac_kills[year].get(a, 0) for a in opponent_acs)
+    if total_opponent_kills == 0:
+        return {}
+
+    mix = {}
+    for opp_ac in opponent_acs:
+        kills = year_ac_kills[year].get(opp_ac, 0)
+        if kills > 0:
+            mix[opp_ac] = kills / total_opponent_kills
+    return mix
+
+# === Main function to compute and display residual kill ratios with opponent mix ===
 def print_residual_kill_tables():
     print("Residual Kill Ratio Tables Per Aircraft\n")
 
@@ -78,8 +112,9 @@ def print_residual_kill_tables():
             continue
 
         print(f"Aircraft: {ac} (Nation: {nation}, In-Service Year: {in_service})")
-        print(f"{'Year':>6} | {'Kills':>5} | {'Losses':>7} | {'Kill Ratio':>10} | {'Difficulty':>10} | {'Residual':>10}")
-        print("-" * 80)
+        header = f"{'Year':>6} | {'Kills':>5} | {'Losses':>7} | {'Kill Ratio':>10} | {'Difficulty':>10} | {'Residual':>10} | Opponent Mix (AC: %)"
+        print(header)
+        print("-" * len(header))
 
         any_data = False
         for conflict, stats in fighter_stats[ac].items():
@@ -88,7 +123,7 @@ def print_residual_kill_tables():
                 continue
 
             kills = stats.get('Kills', 0)
-            losses = stats.get('Losses', 0)
+            losses = stats.get('Loss', 0)
 
             if kills == 0 and losses == 0:
                 continue
@@ -103,7 +138,14 @@ def print_residual_kill_tables():
             else:
                 residual = kill_ratio / difficulty
 
-            print(f"{year:6} | {kills:5} | {losses:7} | {kill_ratio:10.3f} | {difficulty:10.3f} | {residual:10.3f}")
+            # Format difficulty and residual to avoid TypeError if None
+            diff_str = f"{difficulty:10.3f}" if difficulty is not None else " " * 10
+            resid_str = f"{residual:10.3f}" if residual is not None else " " * 10
+
+            mix = compute_opponent_mix(ac, year)
+            mix_str = ', '.join(f"{opp_ac}:{pct*100:.1f}%" for opp_ac, pct in sorted(mix.items(), key=lambda x: x[1], reverse=True))
+
+            print(f"{year:6} | {kills:5} | {losses:7} | {kill_ratio:10.3f} | {diff_str} | {resid_str} | {mix_str}")
             any_data = True
 
         if not any_data:
