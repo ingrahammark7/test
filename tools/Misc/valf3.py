@@ -1,5 +1,7 @@
 import json
 from collections import defaultdict
+from sklearn.linear_model import LinearRegression
+import numpy as np
 
 # === Load JSON data ===
 with open('F1.json') as f:
@@ -82,10 +84,7 @@ def compute_opponent_mix(ac, year):
     if not ac_side:
         return {}
 
-    # Opponent sides = all sides except ac_side
     opponent_sides = [side for side in side_nations if side != ac_side]
-
-    # All opponent aircraft for this year
     opponent_acs = [a for a, s in ac_to_side.items() if s in opponent_sides]
 
     total_opponent_kills = sum(year_ac_kills[year].get(a, 0) for a in opponent_acs)
@@ -99,9 +98,41 @@ def compute_opponent_mix(ac, year):
             mix[opp_ac] = kills / total_opponent_kills
     return mix
 
+# === Build regression model for kill ratio vs difficulty ===
+def build_regression_model():
+    X = []
+    y = []
+    for ac, conflicts in fighter_stats.items():
+        side = ac_to_side.get(ac)
+        if not side:
+            continue
+        for conflict, stats in conflicts.items():
+            year = conflict_years.get(conflict, {}).get('start')
+            if not year:
+                continue
+            difficulty = difficulty_by_year.get(year, {}).get(side)
+            if difficulty is None:
+                continue
+            kills = stats.get('Kills', 0)
+            losses = stats.get('Loss', 0)
+            if kills == 0 and losses == 0:
+                continue
+            if losses == 0:
+                kill_ratio = kills
+            else:
+                kill_ratio = kills / losses
+            X.append([difficulty])
+            y.append(kill_ratio)
+    if not X:
+        return None
+    model = LinearRegression()
+    model.fit(X, y)
+    return model
+
 # === Main function to compute and display residual kill ratios with opponent mix ===
 def print_residual_kill_tables():
     print("Residual Kill Ratio Tables Per Aircraft\n")
+    model = build_regression_model()
 
     for ac in sorted(fighter_stats.keys()):
         ac_info = aircraft_info.get(ac, {})
@@ -124,21 +155,17 @@ def print_residual_kill_tables():
 
             kills = stats.get('Kills', 0)
             losses = stats.get('Loss', 0)
-
             if kills == 0 and losses == 0:
                 continue
             if losses == 0:
-                kill_ratio = kills  # treat as infinite
+                kill_ratio = kills
             else:
                 kill_ratio = kills / losses
 
-            difficulty = difficulty_by_year.get(year, {}).get(side, None)
-            if difficulty is None or difficulty == 0:
-                residual = kill_ratio
-            else:
-                residual = kill_ratio / difficulty
+            difficulty = difficulty_by_year.get(year, {}).get(side)
+            expected = model.predict([[difficulty]])[0] if model and difficulty is not None else None
+            residual = kill_ratio - expected if expected is not None else None
 
-            # Format difficulty and residual to avoid TypeError if None
             diff_str = f"{difficulty:10.3f}" if difficulty is not None else " " * 10
             resid_str = f"{residual:10.3f}" if residual is not None else " " * 10
 
@@ -150,7 +177,6 @@ def print_residual_kill_tables():
 
         if not any_data:
             print("No valid combat data for this aircraft.")
-
         print("\n")
 
 # === Run the print function ===
