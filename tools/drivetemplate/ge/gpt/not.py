@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Notice of Proposed Settlement"  # Title of the paper
+        footer_text = "Notice to Court"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -64,7 +64,7 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -72,7 +72,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "             Petitioner and Plaintiff,",
         "         v.",
-        "Los Angeles Police Department",
+        "Chase Bank",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
@@ -88,12 +88,12 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
+    c.drawString(space, top_margin - 4* inch, "Case Number: CGC-25-625577")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.5* inch, "Notice of Proposed Settlement")
+    c.drawString(space, top_margin - 4.5* inch, "Notice to Court")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -109,12 +109,10 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. It was defendant's idea to wait for the CMC.",
-        "2. Over the phone, I offered to settle.",
-              "3. Defendant should agree to accept a court order to never arrest Mark Ingraham ",
-              "4. Defendant should file a notice agreeing and order case dismissed.",
-              "5. Such an order would conclusively resolve any possible litigation between me and defendant.",
-        ]
+        "1. Court is taking a long time to approve proof of service by mail.",
+"2. Court ignores emails.",
+"3. Court should explain if they require personal service or otherwise explain delay.",
+"4. If Court ignores all communication and doesn't care then case should be dismissed." ,   ]
     y_position -= 1*inch
     for line in intro_text:
         c.drawString(left_margin, y_position, line)
@@ -125,7 +123,7 @@ def create_pdf(output_filename):
     # Signature Block
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
-    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham, 5/15/2025")
+    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham, 6/11/2025")
 
  # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
