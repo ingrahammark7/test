@@ -37,22 +37,19 @@ def load_json(filename):
 
 # Filenames and their default content
 files_and_defaults = {
-    'F1.json': {},  # fighter stats keyed by aircraft and conflict
-    'F2.json': {},  # aircraft metadata keyed by aircraft
-    'F3.json': {},  # conflict year mappings
-    'opponent_mix_weights.json': {}  # opponent aircraft mix weights by year
+    'F1.json': {},
+    'F2.json': {},
+    'F3.json': {},
+    'opponent_mix_weights.json': {}
 }
 
 for filename, default in files_and_defaults.items():
     ensure_json_file(filename, default)
 
-# Load all JSON data
 fighter_stats = load_json('F1.json')
 aircraft_metadata = load_json('F2.json')
 conflict_years = load_json('F3.json')
 opponent_mix_weights = load_json('opponent_mix_weights.json')
-
-# --- Helper functions ---
 
 def get_conflict_start_year(conflict_name):
     entry = conflict_years.get(conflict_name)
@@ -70,9 +67,7 @@ def get_aircraft_side(aircraft):
     else:
         return 'Other'
 
-# --- Difficulty factor calculations and tables ---
-
-difficulty_by_year = {}  # global dict updated each computation
+difficulty_by_year = {}
 
 def compute_difficulty_factor(filter_years=None):
     print("Difficulty factors by year and side (weighted average aircraft age):")
@@ -172,12 +167,9 @@ def print_difficulty_analysis():
     regress(diffs, ussr_ratios, "USSR+France vs Diff")
     regress(ratios, ussr_ratios, "USSR+France vs Ratio")
 
-# --- Aircraft residual kill ratio tables ---
-
 def print_aircraft_residual_kill_tables(filter_years=None):
     print("\nResidual Kill Ratio Tables by Aircraft (kills normalized by difficulty factor):\n")
     for aircraft, conflicts in fighter_stats.items():
-        # Aggregate kills by conflict start year
         kills_by_year = {}
         for conflict_name, stats in conflicts.items():
             start_year = get_conflict_start_year(conflict_name)
@@ -201,19 +193,26 @@ def print_aircraft_residual_kill_tables(filter_years=None):
             kills = kills_by_year[year]
             difficulty = difficulty_by_year.get(year, {}).get(side, None)
             if difficulty is None or difficulty == 0:
-                difficulty = 1  # fallback if missing or zero
+                difficulty = 1
 
             residual = kills / difficulty
 
-            opp_mix = opponent_mix_weights.get(str(year), {})  # keys may be strings
-            if opp_mix:
-                opp_mix_str = ", ".join(f"{ac}: {w*100:.0f}%" for ac, w in opp_mix.items())
-            else:
-                opp_mix_str = "N/A"
+            opp_mix = opponent_mix_weights.get(str(year), {})
+            opp_mix_str = ", ".join(f"{ac}: {w*100:.0f}%" for ac, w in opp_mix.items()) if opp_mix else "N/A"
 
             print(f"{year:<6} {kills:<6} {difficulty:<10.2f} {residual:<10.2f} {opp_mix_str}")
 
         print()
+
+# --- Write current difficulty years to temp.txt ---
+
+def write_temp_file():
+    try:
+        with open('temp.txt', 'w') as f:
+            for year in sorted(current_difficulty_years):
+                f.write(f"{year}\n")
+    except Exception as e:
+        print(f"Failed to write temp.txt: {e}")
 
 # --- Initial data state sets ---
 
@@ -230,6 +229,7 @@ print_table(filter_ages=current_ages)
 compute_difficulty_factor(filter_years=current_difficulty_years)
 print_difficulty_analysis()
 print_aircraft_residual_kill_tables(filter_years=current_difficulty_years)
+write_temp_file()
 
 # --- Interactive command loop ---
 
@@ -242,7 +242,6 @@ while True:
     print("Currently shown difficulty years:", sorted(current_difficulty_years) or "(none)")
     print("Removed difficulty years:", sorted(removed_difficulty_years) or "(none)")
 
-    # Call the function from valf3 to print any residual tables or other data you keep there
     valf3.print_residual_kill_tables()
 
     user_input = input(
@@ -276,9 +275,10 @@ while True:
     elif parts[0] == 'removedif':
         current_difficulty_years.difference_update(values)
 
-    # Refresh output with updated filters
+    # Refresh outputs and temp.txt
     print_summary()
     print_table(filter_ages=current_ages)
     compute_difficulty_factor(filter_years=current_difficulty_years)
     print_difficulty_analysis()
     print_aircraft_residual_kill_tables(filter_years=current_difficulty_years)
+    write_temp_file()
