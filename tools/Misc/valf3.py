@@ -161,7 +161,6 @@ def print_residual_kill_tables():
         print(header)
         print("-" * len(header))
 
-        # Store residuals and opponent mix weights by year for correlation calc
         residuals_by_year = {}
         opponent_mix_by_year = {}
 
@@ -200,12 +199,9 @@ def print_residual_kill_tables():
                 opponent_mix_by_year[year] = mix
 
         if not any_data:
-            print("No valid combat data for this aircraft.")
-            print("\n")
+            print("No valid combat data for this aircraft.\n")
             continue
 
-        # === Compute correlation tables per enemy aircraft ===
-        # Gather all enemy aircraft encountered across all years for this ac
         all_enemy_acs = set()
         for mix in opponent_mix_by_year.values():
             all_enemy_acs.update(mix.keys())
@@ -213,28 +209,43 @@ def print_residual_kill_tables():
         if all_enemy_acs:
             print("\nCorrelation Between Residual Kill Ratio and Opponent Aircraft Mix:")
             print("-" * 80)
-
-            # For each enemy aircraft, compute correlation between residual and that enemy's weight over years
             for enemy_ac in sorted(all_enemy_acs):
                 residual_vals = []
                 mix_weights = []
-                # Collect data points only for years where both residual and enemy mix exist
                 for year in residuals_by_year:
                     if year in opponent_mix_by_year and enemy_ac in opponent_mix_by_year[year]:
                         residual_vals.append(residuals_by_year[year])
                         mix_weights.append(opponent_mix_by_year[year][enemy_ac])
                 if len(residual_vals) < 2:
-                    # Not enough data points for correlation
                     print(f"Enemy Aircraft: {enemy_ac} - Insufficient data for correlation (need >=2 points).")
                     continue
-
-                # Calculate Pearson correlation coefficient and p-value
                 corr_coef, p_value = pearsonr(residual_vals, mix_weights)
                 print(f"Enemy Aircraft: {enemy_ac}")
                 print(f"  Correlation coefficient: {corr_coef:.4f}")
                 print(f"  P-value: {p_value:.4f}")
                 print(f"  Data points: {len(residual_vals)}")
                 print("-" * 40)
+
+        # === Simulated residual if 100% of mix is each enemy aircraft ===
+        if model:
+            print("\nSimulated Residual if 100% Opponent Aircraft:")
+            print("-" * 80)
+            for enemy_ac in sorted(all_enemy_acs):
+                sim_residuals = []
+                for year in residuals_by_year:
+                    difficulty = difficulty_by_year.get(year, {}).get(side)
+                    if difficulty is None:
+                        continue
+                    expected = model.predict([[difficulty]])[0]
+                    if year in opponent_mix_by_year and enemy_ac in opponent_mix_by_year[year]:
+                        actual = residuals_by_year[year] + expected
+                        sim_kill_ratio = 1.0 * actual + (1.0 - 1.0) * expected
+                        sim_residual = sim_kill_ratio - expected
+                        sim_residuals.append(sim_residual)
+                if sim_residuals:
+                    avg_resid = sum(sim_residuals) / len(sim_residuals)
+                    print(f"Enemy Aircraft: {enemy_ac:20s} | Simulated Residual: {avg_resid:8.3f} over {len(sim_residuals)} years")
+
         print("\n")
 
 # === Run the print function ===
