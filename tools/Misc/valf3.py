@@ -2,6 +2,7 @@ import json
 from collections import defaultdict
 from sklearn.linear_model import LinearRegression
 import numpy as np
+from scipy.stats import pearsonr
 
 # === Load JSON data ===
 with open('F1.json') as f:
@@ -129,10 +130,23 @@ def build_regression_model():
     model.fit(X, y)
     return model
 
-# === Main function to compute and display residual kill ratios with opponent mix ===
+# === Load year filter from temp.txt ===
+def load_year_filter_from_temp():
+    try:
+        with open('temp.txt', 'r') as f:
+            lines = f.readlines()
+            years = set(int(line.strip()) for line in lines if line.strip().isdigit())
+            if years:
+                return years
+    except Exception as e:
+        print(f"WARNING: Could not read year filter from temp.txt: {e}")
+    return None  # No filter means include all
+
+# === Main function to compute and display residual kill ratios with opponent mix and correlations ===
 def print_residual_kill_tables():
     print("Residual Kill Ratio Tables Per Aircraft\n")
     model = build_regression_model()
+    year_filter = load_year_filter_from_temp()
 
     for ac in sorted(fighter_stats.keys()):
         ac_info = aircraft_info.get(ac, {})
@@ -147,10 +161,16 @@ def print_residual_kill_tables():
         print(header)
         print("-" * len(header))
 
+        # Store residuals and opponent mix weights by year for correlation calc
+        residuals_by_year = {}
+        opponent_mix_by_year = {}
+
         any_data = False
         for conflict, stats in fighter_stats[ac].items():
             year = conflict_years.get(conflict, {}).get('start')
             if not year:
+                continue
+            if year_filter is not None and year not in year_filter:
                 continue
 
             kills = stats.get('Kills', 0)
@@ -175,8 +195,46 @@ def print_residual_kill_tables():
             print(f"{year:6} | {kills:5} | {losses:7} | {kill_ratio:10.3f} | {diff_str} | {resid_str} | {mix_str}")
             any_data = True
 
+            if residual is not None:
+                residuals_by_year[year] = residual
+                opponent_mix_by_year[year] = mix
+
         if not any_data:
             print("No valid combat data for this aircraft.")
+            print("\n")
+            continue
+
+        # === Compute correlation tables per enemy aircraft ===
+        # Gather all enemy aircraft encountered across all years for this ac
+        all_enemy_acs = set()
+        for mix in opponent_mix_by_year.values():
+            all_enemy_acs.update(mix.keys())
+
+        if all_enemy_acs:
+            print("\nCorrelation Between Residual Kill Ratio and Opponent Aircraft Mix:")
+            print("-" * 80)
+
+            # For each enemy aircraft, compute correlation between residual and that enemy's weight over years
+            for enemy_ac in sorted(all_enemy_acs):
+                residual_vals = []
+                mix_weights = []
+                # Collect data points only for years where both residual and enemy mix exist
+                for year in residuals_by_year:
+                    if year in opponent_mix_by_year and enemy_ac in opponent_mix_by_year[year]:
+                        residual_vals.append(residuals_by_year[year])
+                        mix_weights.append(opponent_mix_by_year[year][enemy_ac])
+                if len(residual_vals) < 2:
+                    # Not enough data points for correlation
+                    print(f"Enemy Aircraft: {enemy_ac} - Insufficient data for correlation (need >=2 points).")
+                    continue
+
+                # Calculate Pearson correlation coefficient and p-value
+                corr_coef, p_value = pearsonr(residual_vals, mix_weights)
+                print(f"Enemy Aircraft: {enemy_ac}")
+                print(f"  Correlation coefficient: {corr_coef:.4f}")
+                print(f"  P-value: {p_value:.4f}")
+                print(f"  Data points: {len(residual_vals)}")
+                print("-" * 40)
         print("\n")
 
 # === Run the print function ===
