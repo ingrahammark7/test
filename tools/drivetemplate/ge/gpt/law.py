@@ -64,7 +64,7 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -72,7 +72,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "             Petitioner and Plaintiff,",
         "         v.",
-        "Chase  Bank",
+        "Air Voice Wireless LLC",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
@@ -122,8 +122,16 @@ def create_pdf(output_filename):
     c.drawString(left_margin, top_margin - 1 * inch, "I. INTRODUCTION")
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. I am banned from Chase.",
-        "2. I still get marketing emails telling me to open a Chase account.",
+        "1. My phones were stolen four separate times.",
+        "2. LAPD report 241015900229 and 250617900263. SMPD 24-104225.",
+        "3. Night of June 16 LG Thinq phone stolen at 2400 Ocean Walk.",
+        "4. In view of Bicknell St. bathroom camera.",
+        "5. June 17 6pm I traced phone to 617 W 7th St near building entrance.",
+        "6. Location is Iris Computer Services, a fake company representing theft gang.",
+        "7. Fake security guard became hostile on questioning.",
+        "8. Police sided with gang and told me to leave.",
+        "9. Defendant was chosen because they are easy to serve.",
+        "10. Real defendant is police.",
     ]
     y_position = top_margin - 1.5 * inch
     for line in intro_text:
@@ -135,7 +143,8 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.5 * inch, "II. FACTUAL BACKGROUND")
     c.setFont("Times-Roman", 12)
     factual_background = [
-        "1. ",
+        "1. I made 911 call at Iris location and police hung up no response.  ",
+        "2. Compel police to release Bicknell footage.",
     ]
     y_position -= 1 * inch
     for line in factual_background:
@@ -148,7 +157,9 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     relief_text = [
         "WHEREFORE, Petitioner requests that this Court:",
-        "a. Ban me from Chase.",
+        "a. Defendant should provide information on stolen phones.",
+        "b. Compel SMPD to release footage mentioned in case.",
+        "c. Anyone associated with gang should be apprehened.",
     ]
     y_position -= 1 * inch
     for line in relief_text:
@@ -160,7 +171,7 @@ def create_pdf(output_filename):
     # Signature Block
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
-    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham 2/15/2025")
+    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham 6/17/2025")
     
     # Add footer and page number
     add_footer(2)
