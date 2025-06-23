@@ -19,8 +19,6 @@ def get_avg_age_by_side(year, side_nations):
 
 # Load year filter from temp.txt
 def load_year_filter():
-    if(os.path.exists('temp.txt')):
-    	os.remove('temp.txt')
     try:
         with open('temp.txt', 'r') as f:
             lines = f.readlines()
@@ -169,6 +167,8 @@ def build_combined_regression_model():
 
 # --- New function to write difficulty factors to temp1.txt ---
 def write_difficulty_to_temp1():
+    if(os.path.exists('temp1.txt')):
+    	os.remove('temp1.txt')
     try:
         with open('temp1.txt', 'w') as f:
             for year, sides in difficulty_by_year.items():
@@ -449,6 +449,8 @@ def print_aircraft_residual_kill_tables(filter_years=None):
         print()
 
 def write_temp_file():
+    if(os.path.exists('temp.txt')):
+    	os.remove('temp.txt')
     try:
         with open('temp.txt', 'w') as f:
             for year in sorted(difficulty_by_year.keys()):

@@ -1,14 +1,17 @@
 import json
 from collections import defaultdict
 from scipy.stats import pearsonr
+import os
 
 # Load your JSON files (assumes they are in the same directory)
 with open('f1.json') as f1_file:
     data_f1 = json.load(f1_file)
 with open('f2.json') as f2_file:
     data_f2 = json.load(f2_file)
-with open('f3.json') as f3_file:
+with open('f3.json', encoding='utf-8') as f3_file:
     data_f3 = json.load(f3_file)
+if(os.path.exists('temp.txt')):
+	os.remove('temp.txt')
 
 fighter_stats = data_f1['fighter_stats']
 conflicts = data_f3
@@ -52,6 +55,7 @@ for fighter, conflicts_data in fighter_stats.items():
             continue  # Skip totals
         start_year = conflict_year_map.get(conflict_name)
         if start_year is None:
+            print(conflict_name)
             skipped_no_conflict_year += 1
             continue
         kills = stats.get('Kills', 0)
