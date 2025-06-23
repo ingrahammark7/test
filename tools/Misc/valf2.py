@@ -8,7 +8,15 @@ import valf3  # assumed present
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit
 
-
+def load_year_filter():
+    try:
+        with open('temp.txt', 'r') as f:
+            lines = f.readlines()
+        return set(int(line.strip()) for line in lines if line.strip().isdigit())
+    except Exception as e:
+        print(f"Could not load year filter from temp.txt: {e}")
+        return None
+        
 # Define a Weibull-like model function
 def weibull_func(x, a, b, c):
     # a = scale, b = shape, c = vertical scale (amplitude)
@@ -50,10 +58,18 @@ from valf1 import (
 def build_combined_regression_model():
     age_vals = []
     avg_ratios = []
+
     for nation, age_data in nation_age_ratios.items():
         for age, ratios in age_data.items():
-            if len(ratios) == 0:
+            # Filter by conflict years
+            relevant_conflicts = nation_age_conflicts[nation].get(age, [])
+            conflict_years = {conflict_year_map.get(conf, -1) for conf in relevant_conflicts}
+            if not conflict_years.intersection(current_difficulty_years):
                 continue
+
+            if not ratios:
+                continue
+
             avg = sum(ratios) / len(ratios)
             age_vals.append(age)
             avg_ratios.append(avg)
@@ -248,6 +264,10 @@ def print_table(filter_ages=None):
         avg_ratios = []
         age_vals = []
         for age in ages:
+            conflicts = nation_age_conflicts[nation].get(age, [])
+            conflict_years = {conflict_year_map.get(conf, -1) for conf in conflicts}
+            if not conflict_years.intersection(current_difficulty_years):
+                  continue
             if filter_ages is not None and age not in filter_ages:
                 continue
             ratios = age_data[age]
@@ -440,7 +460,11 @@ all_ages = set(age for nation in nation_age_ratios for age in nation_age_ratios[
 current_ages = set(all_ages)
 
 all_difficulty_years = set(year_nation_kills.keys())
-current_difficulty_years = set(all_difficulty_years)
+loaded_years = load_year_filter()
+if loaded_years is not None:
+    current_difficulty_years = loaded_years
+else:
+    current_difficulty_years = set(all_difficulty_years)
 
 # --- Initial output ---
 
