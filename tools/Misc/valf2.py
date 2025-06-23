@@ -19,6 +19,8 @@ def get_avg_age_by_side(year, side_nations):
 
 # Load year filter from temp.txt
 def load_year_filter():
+    if(os.path.exists('temp.txt')):
+    	os.remove('temp.txt')
     try:
         with open('temp.txt', 'r') as f:
             lines = f.readlines()
