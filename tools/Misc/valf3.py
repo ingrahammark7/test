@@ -3,6 +3,7 @@ from collections import defaultdict
 from sklearn.linear_model import LinearRegression
 import numpy as np
 from scipy.stats import pearsonr
+import os
 
 # === Load JSON data ===
 with open('F1.json') as f:
@@ -48,19 +49,6 @@ for side, nations in side_nations.items():
     for n in nations:
         nation_to_side[n] = side
 
-# === Compute difficulty factors per year and side ===
-difficulty_by_year = {}
-for year in sorted(year_nation_kills.keys()):
-    total_kills = sum(year_nation_kills[year].values())
-    if total_kills == 0:
-        continue
-    side_ages = {}
-    for side, nations in side_nations.items():
-        kills = sum(year_nation_kills[year].get(n, 0) for n in nations)
-        weighted_age = sum(year_nation_weighted_age[year].get(n, 0) for n in nations)
-        side_ages[side] = weighted_age / kills if kills > 0 else 0
-    difficulty_by_year[year] = side_ages
-
 # === Build aircraft to side map ===
 ac_to_side = {}
 for ac, info in aircraft_info.items():
@@ -78,6 +66,33 @@ for ac, conflicts in fighter_stats.items():
             continue
         kills = stats.get('Kills', 0)
         year_ac_kills[year][ac] += kills
+
+# === Load difficulty_by_year from temp1.txt ===
+difficulty_by_year = defaultdict(dict)
+
+def load_difficulty_from_temp1():
+    temp_file = 'temp1.txt'
+    if not os.path.exists(temp_file):
+        print(f"WARNING: temp1.txt not found. No difficulty values loaded.")
+        return
+    try:
+        with open(temp_file, 'r') as f:
+            for line in f:
+                parts = line.strip().split(',')
+                if len(parts) != 3:
+                    continue
+                year, side, diff_val = parts
+                year = int(year)
+                diff_val = float(diff_val)
+                difficulty_by_year[year][side] = diff_val
+    except Exception as e:
+        print(f"ERROR reading temp1.txt: {e}")
+
+    try:
+        os.remove(temp_file)
+        print(f"Deleted old temp1.txt")
+    except Exception as e:
+        print(f"Warning: could not delete temp1.txt: {e}")
 
 # === Compute opponent mix helper function ===
 def compute_opponent_mix(ac, year):
@@ -140,11 +155,13 @@ def load_year_filter_from_temp():
                 return years
     except Exception as e:
         print(f"WARNING: Could not read year filter from temp.txt: {e}")
-    return None  # No filter means include all
+    return None
 
 # === Main function to compute and display residual kill ratios with opponent mix and correlations ===
 def print_residual_kill_tables():
     print("Residual Kill Ratio Tables Per Aircraft\n")
+
+    load_difficulty_from_temp1()
     model = build_regression_model()
     year_filter = load_year_filter_from_temp()
 
@@ -226,7 +243,6 @@ def print_residual_kill_tables():
                 print(f"  Data points: {len(residual_vals)}")
                 print("-" * 40)
 
-        # === Simulated residual if 100% of mix is each enemy aircraft ===
         if model:
             print("\nSimulated Residual if 100% Opponent Aircraft:")
             print("-" * 80)
@@ -239,13 +255,11 @@ def print_residual_kill_tables():
                     expected = model.predict([[difficulty]])[0]
                     if year in opponent_mix_by_year and enemy_ac in opponent_mix_by_year[year]:
                         actual = residuals_by_year[year] + expected
-                        sim_kill_ratio = 1.0 * actual + (1.0 - 1.0) * expected
-                        sim_residual = sim_kill_ratio - expected
+                        sim_residual = actual - expected
                         sim_residuals.append(sim_residual)
                 if sim_residuals:
                     avg_resid = sum(sim_residuals) / len(sim_residuals)
                     print(f"Enemy Aircraft: {enemy_ac:20s} | Simulated Residual: {avg_resid:8.3f} over {len(sim_residuals)} years")
-
         print("\n")
 
 # === Run the print function ===

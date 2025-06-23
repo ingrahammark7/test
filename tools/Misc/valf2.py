@@ -164,7 +164,17 @@ def build_combined_regression_model():
         return w + r
 
     return combined_predict
-    
+
+# --- New function to write difficulty factors to temp1.txt ---
+def write_difficulty_to_temp1():
+    try:
+        with open('temp1.txt', 'w') as f:
+            for year, sides in difficulty_by_year.items():
+                for side, diff_val in sides.items():
+                    f.write(f"{year},{side},{diff_val}\n")
+    except Exception as e:
+        print(f"Failed to write difficulty to temp1.txt: {e}")
+
 # Ensure JSON files exist with defaults
 def ensure_json_file(filename, default_data):
     if not os.path.exists(filename):
@@ -273,7 +283,10 @@ def compute_difficulty_factor(filter_years=None):
         for side in side_groups:
             print(f"  {side} Difficulty Factor (Model-Expected Kill Ratio): {side_outputs[side]:.2f}")
     print()
-    
+
+    # Write difficulty factors for valf3 to read
+    write_difficulty_to_temp1()
+
 # Manual Gaussian kernel smoother (optional)
 def gaussian_kernel_smooth(x, y, bandwidth=1.0):
     smoothed_y = []
@@ -312,7 +325,7 @@ def print_table(filter_ages=None):
         if len(age_vals) > 1:
             print("\nCorrelations and Curve Fits:")
             r, p = pearsonr(age_vals, avg_ratios)
-            print(f"  Pearson r: {r:.4f}, p = {p:.4f}")
+            print(f"  Pearson r: {r:.4f}, p= {p:.4f}")
             weibull_fit_and_correlation(np.array(ages), np.array(avg_ratios))
             rho, sp_p = spearmanr(age_vals, avg_ratios)
             print(f"  Spearman ρ: {rho:.4f}, p = {sp_p:.4f}")
