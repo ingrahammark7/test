@@ -93,5 +93,25 @@
         "gun": "30 mm GSh30",
         "nation": "USSR",
         "in_service": 1985
-    }
+    },
+  "F-4B": {
+    "nation": "USA",
+    "in_service": 1961
+  },
+  "F-4E": {
+    "nation": "USA",
+    "in_service": 1967
+  },
+  "F-4J": {
+    "nation": "USA",
+    "in_service": 1966
+  },
+  "MiG-21C": {
+    "nation": "Vietnam",
+    "in_service": 1961
+  },
+  "MiG-21bis": {
+    "nation": "USSR",
+    "in_service": 1972
+  }
 }
