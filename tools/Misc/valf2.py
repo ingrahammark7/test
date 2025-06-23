@@ -121,9 +121,7 @@ def gaussian_kernel_smooth(x, y, bandwidth=1.0):
     return np.array(smoothed_y)
 
 def print_table(filter_ages=None):
-    def nonlinear_model(x, a, b, c, d):
-        # Cubic polynomial: a*x^3 + b*x^2 + c*x + d
-        return a*x**3 + b*x**2 + c*x + d
+    from sklearn.linear_model import LinearRegression
 
     for nation, age_data in nation_age_ratios.items():
         print(f"Nation: {nation} Age-to-Average Kill Ratio Buckets:")
@@ -142,59 +140,91 @@ def print_table(filter_ages=None):
 
         if len(age_vals) > 1:
             print("\nCorrelations and Curve Fits:")
-            try:
-                r, p = pearsonr(age_vals, avg_ratios)
-                print(f"  Pearson r: {r:.4f}, p = {p:.4f}")
-            except Exception as e:
-                print(f"  Pearson correlation failed: {e}")
+            # Pearson linear correlation
+            r, p = pearsonr(age_vals, avg_ratios)
+            print(f"  Pearson r: {r:.4f}, p = {p:.4f}")
 
-            try:
-                rho, sp_p = spearmanr(age_vals, avg_ratios)
-                print(f"  Spearman ρ: {rho:.4f}, p = {sp_p:.4f}")
-            except Exception as e:
-                print(f"  Spearman correlation failed: {e}")
+            # Spearman rank correlation
+            rho, sp_p = spearmanr(age_vals, avg_ratios)
+            print(f"  Spearman ρ: {rho:.4f}, p = {sp_p:.4f}")
 
-            try:
-                coeffs = np.polyfit(age_vals, avg_ratios, deg=2)
-                poly_model = np.poly1d(coeffs)
-                r2 = r2_score(avg_ratios, poly_model(age_vals))
-                print(f"  Quadratic fit R²: {r2:.4f}")
-            except Exception as e:
-                print(f"  Quadratic fit failed: {e}")
+            # Quadratic fit
+            coeffs = np.polyfit(age_vals, avg_ratios, deg=2)
+            poly_model = np.poly1d(coeffs)
+            quad_pred = poly_model(np.array(age_vals))
+            r2_quad = r2_score(avg_ratios, quad_pred)
+            print(f"  Quadratic fit R²: {r2_quad:.4f}")
 
+            # Nonlinear cubic fit
+            from scipy.optimize import curve_fit
+            def nonlinear_model(x, a, b, c, d):
+                return a*x**3 + b*x**2 + c*x + d
             try:
-                smoothed = gaussian_kernel_smooth(np.array(age_vals), np.array(avg_ratios), bandwidth=1.0)
-                print("  Kernel smoothing (Gaussian): Computed successfully.")
+                popt, _ = curve_fit(nonlinear_model, age_vals, avg_ratios)
+                cubic_pred = nonlinear_model(np.array(age_vals), *popt)
+                r2_cubic = r2_score(avg_ratios, cubic_pred)
+                print(f"  Nonlinear cubic fit R²: {r2_cubic:.4f}")
             except Exception as e:
+                cubic_pred = None
+                r2_cubic = float('-inf')
+                print(f"  Nonlinear cubic fit failed: {e}")
+
+            # Kernel smoothing (simple moving average)
+            try:
+                window = 3
+                padded = np.pad(avg_ratios, (window//2, window//2), mode='edge')
+                kernel_pred = np.convolve(padded, np.ones(window)/window, mode='valid')
+                r2_kernel = r2_score(avg_ratios, kernel_pred)
+                print("  Kernel smoothing: Computed successfully.")
+                print(f"  Kernel smoothing R²: {r2_kernel:.4f}")
+            except Exception as e:
+                kernel_pred = None
+                r2_kernel = float('-inf')
                 print(f"  Kernel smoothing failed: {e}")
 
+            # Mutual Information
             try:
                 mi = mutual_info_score(np.digitize(age_vals, bins=10), np.digitize(avg_ratios, bins=10))
                 print(f"  Mutual Information Score: {mi:.4f}")
             except Exception as e:
                 print(f"  Mutual Information failed: {e}")
 
+            # Weibull fit (shape only)
             try:
                 shape, loc, scale = weibull_min.fit(avg_ratios, floc=0)
                 print(f"  Weibull shape: {shape:.4f}, scale: {scale:.4f}")
             except Exception as e:
                 print(f"  Weibull fit failed: {e}")
 
-            # --- Nonlinear cubic fit ---
+            # --- Combined multivariate regression using all model predictions ---
             try:
-                popt, pcov = curve_fit(nonlinear_model, age_vals, avg_ratios, maxfev=10000)
-                residuals = np.array(avg_ratios) - nonlinear_model(np.array(age_vals), *popt)
-                ss_res = np.sum(residuals**2)
-                ss_tot = np.sum((np.array(avg_ratios) - np.mean(avg_ratios))**2)
-                r2_nonlinear = 1 - (ss_res / ss_tot)
-                print(f"  Nonlinear cubic fit R²: {r2_nonlinear:.4f}")
+                features = []
+                if quad_pred is not None:
+                    features.append(quad_pred)
+                if cubic_pred is not None:
+                    features.append(cubic_pred)
+                if kernel_pred is not None:
+                    features.append(kernel_pred)
+
+                if len(features) < 2:
+                    print("  Not enough regression models for combined multivariate regression.")
+                else:
+                    X = np.column_stack(features)  # shape (n_samples, n_models)
+                    y_true = np.array(avg_ratios)
+
+                    combined_model = LinearRegression()
+                    combined_model.fit(X, y_true)
+                    y_pred_combined = combined_model.predict(X)
+                    combined_r2 = r2_score(y_true, y_pred_combined)
+
+                    print(f"  Combined multivariate regression R²: {combined_r2:.4f}")
             except Exception as e:
-                print(f"  Nonlinear cubic fit failed: {e}")
+                print(f"  Combined regression failed: {e}")
 
-            print()
         else:
-            print("Not enough data for correlation.\n")
-
+            print("Not enough data for correlation.")
+        print()
+        
 def print_difficulty_analysis():
     print("Comparative Difficulty Analysis:")
     print("Year | Diff (USSR+France - USA) | Ratio (USSR+France / USA) | USA Kill Ratio | USSR+France Kill Ratio")
