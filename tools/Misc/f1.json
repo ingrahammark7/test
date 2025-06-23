@@ -701,12 +701,12 @@
         "MiG-21": {
             "Vietnam War": {
                 "Kills": 51,
-                "Loss": 1,
+                "Loss": 25,
                 "Ground": 0
             },
             "Linebacker": {
                  "Kills": 27,
-                 "Loss": 59,
+                 "Loss": 35,
                  "Ground": 0
             }, 
             "Vietnam War DPRK": {
