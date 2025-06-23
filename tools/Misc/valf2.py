@@ -4,10 +4,15 @@ import numpy as np
 from scipy.stats import pearsonr, spearmanr, weibull_min
 from sklearn.metrics import r2_score, mutual_info_score
 from scipy.optimize import curve_fit
-import valf3  # assumed present
 from sklearn.linear_model import LinearRegression
-from scipy.optimize import curve_fit
+import valf3  # assumed present
+from valf1 import (
+    nation_age_ratios, nation_age_conflicts,
+    year_nation_kills, year_nation_weighted_age,
+    print_summary, conflict_year_map
+)
 
+# Load year filter from temp.txt
 def load_year_filter():
     try:
         with open('temp.txt', 'r') as f:
@@ -16,12 +21,13 @@ def load_year_filter():
     except Exception as e:
         print(f"Could not load year filter from temp.txt: {e}")
         return None
-        
-# Define a Weibull-like model function
+
+# Weibull function definition
 def weibull_func(x, a, b, c):
-    # a = scale, b = shape, c = vertical scale (amplitude)
+    # a = scale, b = shape, c = amplitude
     return c * (b / a) * (x / a)**(b - 1) * np.exp(-(x / a)**b)
 
+# Weibull fit and correlation (for diagnostics, optional)
 def weibull_fit_and_correlation(age_vals, avg_ratios):
     age_vals = np.array(age_vals)
     avg_ratios = np.array(avg_ratios)
@@ -30,7 +36,6 @@ def weibull_fit_and_correlation(age_vals, avg_ratios):
         print("Not enough data points for Weibull fit.")
         return None
 
-    # Initial guesses: scale ~ mean age, shape ~ 2, amplitude ~ max(avg_ratios)
     try:
         popt, _ = curve_fit(weibull_func, age_vals, avg_ratios, p0=[np.mean(age_vals), 2, max(avg_ratios)])
         a, b, c = popt
@@ -47,100 +52,117 @@ def weibull_fit_and_correlation(age_vals, avg_ratios):
     except Exception as e:
         print(f"Weibull curve fit failed: {e}")
         return None
-        
 
-from valf1 import (
-    nation_age_ratios, nation_age_conflicts,
-    year_nation_kills, year_nation_weighted_age,
-    print_summary, conflict_year_map
-)
-
+# Build combined regression model with Weibull first and residual modeling
 def build_combined_regression_model():
     age_vals = []
     avg_ratios = []
 
     for nation, age_data in nation_age_ratios.items():
         for age, ratios in age_data.items():
-            # Filter by conflict years
             relevant_conflicts = nation_age_conflicts[nation].get(age, [])
             conflict_years = {conflict_year_map.get(conf, -1) for conf in relevant_conflicts}
             if not conflict_years.intersection(current_difficulty_years):
                 continue
-
             if not ratios:
                 continue
-
             avg = sum(ratios) / len(ratios)
             age_vals.append(age)
             avg_ratios.append(avg)
 
-    if len(age_vals) < 2:
+    if len(age_vals) < 3:
+        print("Not enough data points for combined model.")
         return None
 
     age_vals = np.array(age_vals)
     avg_ratios = np.array(avg_ratios)
 
-    features = []
+    # Step 1: Weibull fit on original data
+    try:
+        popt, _ = curve_fit(weibull_func, age_vals, avg_ratios,
+                            p0=[np.mean(age_vals), 2, max(avg_ratios)])
+        a, b, c = popt
+        weibull_pred = weibull_func(age_vals, a, b, c)
+        print(f"Weibull fit parameters: scale={a:.4f}, shape={b:.4f}, amplitude={c:.4f}")
+    except Exception as e:
+        print(f"Weibull fit failed: {e}")
+        return None
 
-    # Quadratic
-    quad_coeffs = np.polyfit(age_vals, avg_ratios, deg=2)
+    # Step 2: Compute residuals after Weibull fit
+    residuals = avg_ratios - weibull_pred
+    print(f"Residuals mean: {residuals.mean():.6f}, std: {residuals.std():.6f}")
+
+    # Step 3: Fit other models on residuals
+
+    # Quadratic fit on residuals
+    quad_coeffs = np.polyfit(age_vals, residuals, deg=2)
     quad_model = np.poly1d(quad_coeffs)
     quad_pred = quad_model(age_vals)
-    features.append(quad_pred)
 
-    # Cubic
+    # Cubic fit on residuals
     try:
         def cubic_func(x, a, b, c, d):
             return a*x**3 + b*x**2 + c*x + d
-        cubic_params, _ = curve_fit(cubic_func, age_vals, avg_ratios)
-        cubic_pred = cubic_func(age_vals, *cubic_params)
-        features.append(cubic_pred)
+        cubic_params, _ = curve_fit(cubic_func, age_vals, residuals)
     except Exception:
         cubic_params = None
 
-    # Moving average smoothing (window = 3)
+    cubic_pred = cubic_func(age_vals, *cubic_params) if cubic_params is not None else None
+
+    # Kernel smoothing on residuals (moving average)
     try:
         window = 3
-        padded = np.pad(avg_ratios, (window//2, window//2), mode='edge')
+        padded = np.pad(residuals, (window//2, window//2), mode='edge')
         kernel_pred = np.convolve(padded, np.ones(window)/window, mode='valid')
-        features.append(kernel_pred)
     except Exception:
         kernel_pred = None
 
-    if len(features) < 2:
+    # Prepare feature matrix from models fitted on residuals
+    features = [quad_pred]
+    if cubic_pred is not None:
+        features.append(cubic_pred)
+    if kernel_pred is not None:
+        features.append(kernel_pred)
+
+    if len(features) == 0:
+        print("No residual models could be fitted.")
         return None
 
     X = np.column_stack(features)
-    y = avg_ratios
+    y = residuals
 
-    model = LinearRegression()
-    model.fit(X, y)
+    # Linear regression to combine residual models
+    combined_model = LinearRegression()
+    combined_model.fit(X, y)
 
+    # Final prediction function: Weibull + residual model combined
     def combined_predict(age_input):
         age_input = np.array(age_input)
+        weibull_part = weibull_func(age_input, a, b, c)
+
         feat_stack = []
 
-        # Quadratic prediction
+        # Quadratic residual
         feat_stack.append(quad_model(age_input))
 
-        # Cubic prediction
+        # Cubic residual
         if cubic_params is not None:
             feat_stack.append(cubic_func(age_input, *cubic_params))
 
-        # Kernel smoothing (approximate fallback using quad model)
+        # Kernel residual (approximate smoothing of quad_model output)
         if kernel_pred is not None:
             smoothed_input = np.pad(quad_model(age_input), (window//2, window//2), mode='edge')
             smoothed = np.convolve(smoothed_input, np.ones(window)/window, mode='valid')[:len(age_input)]
             feat_stack.append(smoothed)
 
         feat_stack = np.column_stack(feat_stack)
-        return model.predict(feat_stack)
+        residual_pred = combined_model.predict(feat_stack)
+
+        return weibull_part + residual_pred
 
     return combined_predict
 
-
-# --- Ensure JSON files exist with defaults ---
-
+# Ensure JSON files exist with defaults
 def ensure_json_file(filename, default_data):
     if not os.path.exists(filename):
         print(f"File '{filename}' not found. Creating with default content.")
@@ -166,7 +188,7 @@ def load_json(filename):
         print(f"ERROR: Unexpected error loading '{filename}': {e}")
         exit(1)
 
-# Filenames and their default content
+# Files and defaults
 files_and_defaults = {
     'F1.json': {},
     'F2.json': {},
@@ -240,7 +262,7 @@ def compute_difficulty_factor(filter_years=None):
             print(f"  {side} Difficulty Factor (Model-Expected Kill Ratio): {side_ages[side]:.2f}")
     print()
 
-# --- Manual Gaussian kernel smoother ---
+# Manual Gaussian kernel smoother (optional)
 def gaussian_kernel_smooth(x, y, bandwidth=1.0):
     smoothed_y = []
     n = len(x)
@@ -256,8 +278,6 @@ def gaussian_kernel_smooth(x, y, bandwidth=1.0):
     return np.array(smoothed_y)
 
 def print_table(filter_ages=None):
-    from sklearn.linear_model import LinearRegression
-
     for nation, age_data in nation_age_ratios.items():
         print(f"Nation: {nation} Age-to-Average Kill Ratio Buckets:")
         ages = sorted(age_data.keys())
@@ -267,7 +287,7 @@ def print_table(filter_ages=None):
             conflicts = nation_age_conflicts[nation].get(age, [])
             conflict_years = {conflict_year_map.get(conf, -1) for conf in conflicts}
             if not conflict_years.intersection(current_difficulty_years):
-                  continue
+                continue
             if filter_ages is not None and age not in filter_ages:
                 continue
             ratios = age_data[age]
@@ -276,31 +296,25 @@ def print_table(filter_ages=None):
             avg_ratios.append(avg_ratio)
             conflicts_sample = ', '.join(sorted(nation_age_conflicts[nation][age]))
             print(f"  Age {age}: Avg Ratio {avg_ratio:.2f} (Conflicts: {conflicts_sample})")
-            
-           
 
         if len(age_vals) > 1:
             print("\nCorrelations and Curve Fits:")
-            # Pearson linear correlation
             r, p = pearsonr(age_vals, avg_ratios)
             print(f"  Pearson r: {r:.4f}, p = {p:.4f}")
             weibull_fit_and_correlation(np.array(ages), np.array(avg_ratios))
-            # Spearman rank correlation
             rho, sp_p = spearmanr(age_vals, avg_ratios)
             print(f"  Spearman ρ: {rho:.4f}, p = {sp_p:.4f}")
 
-            # Quadratic fit
             coeffs = np.polyfit(age_vals, avg_ratios, deg=2)
             poly_model = np.poly1d(coeffs)
             quad_pred = poly_model(np.array(age_vals))
             r2_quad = r2_score(avg_ratios, quad_pred)
             print(f"  Quadratic fit R²: {r2_quad:.4f}")
 
-            # Nonlinear cubic fit
-            from scipy.optimize import curve_fit
-            def nonlinear_model(x, a, b, c, d):
-                return a*x**3 + b*x**2 + c*x + d
             try:
+                def nonlinear_model(x, a, b, c, d):
+                    return a*x**3 + b*x**2 + c*x + d
+
                 popt, _ = curve_fit(nonlinear_model, age_vals, avg_ratios)
                 cubic_pred = nonlinear_model(np.array(age_vals), *popt)
                 r2_cubic = r2_score(avg_ratios, cubic_pred)
@@ -310,7 +324,6 @@ def print_table(filter_ages=None):
                 r2_cubic = float('-inf')
                 print(f"  Nonlinear cubic fit failed: {e}")
 
-            # Kernel smoothing (simple moving average)
             try:
                 window = 3
                 padded = np.pad(avg_ratios, (window//2, window//2), mode='edge')
@@ -323,91 +336,53 @@ def print_table(filter_ages=None):
                 r2_kernel = float('-inf')
                 print(f"  Kernel smoothing failed: {e}")
 
-            # Mutual Information
             try:
                 mi = mutual_info_score(np.digitize(age_vals, bins=10), np.digitize(avg_ratios, bins=10))
                 print(f"  Mutual Information Score: {mi:.4f}")
             except Exception as e:
                 print(f"  Mutual Information failed: {e}")
 
-            # Weibull fit (shape only)
             try:
                 shape, loc, scale = weibull_min.fit(avg_ratios, floc=0)
                 print(f"  Weibull shape: {shape:.4f}, scale: {scale:.4f}")
             except Exception as e:
                 print(f"  Weibull fit failed: {e}")
 
-            # --- Combined multivariate regression using all model predictions ---
             try:
-                features = []
+                features_raw = []
                 if quad_pred is not None:
-                    features.append(quad_pred)
+                    features_raw.append(quad_pred)
                 if cubic_pred is not None:
-                    features.append(cubic_pred)
+                    features_raw.append(cubic_pred)
                 if kernel_pred is not None:
-                    features.append(kernel_pred)
+                    features_raw.append(kernel_pred)
 
-                if len(features) < 2:
+                if len(features_raw) < 2:
                     print("  Not enough regression models for combined multivariate regression.")
                 else:
-                    X = np.column_stack(features)  # shape (n_samples, n_models)
-                    y_true = np.array(avg_ratios)
+                    # Model WITHOUT Weibull (direct)
+                    X_raw = np.column_stack(features_raw)
+                    y_raw = np.array(avg_ratios)
 
-                    combined_model = LinearRegression()
-                    combined_model.fit(X, y_true)
-                    y_pred_combined = combined_model.predict(X)
-                    combined_r2 = r2_score(y_true, y_pred_combined)
+                    direct_model = LinearRegression()
+                    direct_model.fit(X_raw, y_raw)
+                    y_direct_pred = direct_model.predict(X_raw)
+                    direct_r2 = r2_score(y_raw, y_direct_pred)
+                    print(f"  Combined Regression R² (No Weibull): {direct_r2:.4f}")
 
-                    print(f"  Combined multivariate regression R²: {combined_r2:.4f}")
+                    # Model WITH Weibull (residual modeling)
+                    combined_model = build_combined_regression_model()
+                    if combined_model:
+                        combined_pred = combined_model(np.array(age_vals))
+                        combined_r2 = r2_score(avg_ratios, combined_pred)
+                        print(f"  Combined Regression R² (Weibull + Residual): {combined_r2:.4f}")
+                    else:
+                        print("  Combined model (Weibull + residuals) failed.")
             except Exception as e:
-                print(f"  Combined regression failed: {e}")
-
+                print(f"  Combined regression evaluation failed: {e}")
         else:
             print("Not enough data for correlation.")
         print()
-        
-def print_difficulty_analysis():
-    print("Comparative Difficulty Analysis:")
-    print("Year | Diff (USSR+France - USA) | Ratio (USSR+France / USA) | USA Kill Ratio | USSR+France Kill Ratio")
-    print("-" * 85)
-    valid_years = [y for y in difficulty_by_year if all(s in difficulty_by_year[y] and difficulty_by_year[y][s] > 0 for s in ['USA', 'USSR+France'])]
-
-    usa_ratios = []
-    ussr_ratios = []
-    diffs = []
-    ratios = []
-
-    for year in sorted(valid_years):
-        d_usa = difficulty_by_year[year]['USA']
-        d_comm = difficulty_by_year[year]['USSR+France']
-        diff = d_comm - d_usa
-        ratio = d_comm / d_usa if d_usa > 0 else 0
-
-        usa_kills = year_nation_kills[year].get('USA', 0)
-        comm_kills = sum(year_nation_kills[year].get(n, 0) for n in ['USSR', 'France'])
-        total_kills = usa_kills + comm_kills
-        usa_ratio = usa_kills / total_kills if total_kills else 0
-        comm_ratio = comm_kills / total_kills if total_kills else 0
-
-        print(f"{year} | {diff:24.2f} | {ratio:25.2f} | {usa_ratio:.3f}         | {comm_ratio:.3f}")
-
-        diffs.append(diff)
-        ratios.append(ratio)
-        usa_ratios.append(usa_ratio)
-        ussr_ratios.append(comm_ratio)
-
-    def regress(x, y, label):
-        if len(x) > 1:
-            r, p = pearsonr(x, y)
-            print(f"{label} Pearson r: {r:.4f}, p = {p:.4f}")
-        else:
-            print(f"{label}: Not enough data for regression.")
-
-    print()
-    regress(diffs, usa_ratios, "USA vs Diff")
-    regress(ratios, usa_ratios, "USA vs Ratio")
-    regress(diffs, ussr_ratios, "USSR+France vs Diff")
-    regress(ratios, ussr_ratios, "USSR+France vs Ratio")
 
 def print_aircraft_residual_kill_tables(filter_years=None):
     print("\nResidual Kill Ratio Tables by Aircraft (kills normalized by difficulty factor):\n")
@@ -471,7 +446,6 @@ else:
 print_summary()
 print_table(filter_ages=current_ages)
 compute_difficulty_factor(filter_years=current_difficulty_years)
-print_difficulty_analysis()
 print_aircraft_residual_kill_tables(filter_years=current_difficulty_years)
 write_temp_file()
 
