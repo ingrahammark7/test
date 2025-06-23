@@ -6,12 +6,12 @@
                 "Loss": 0,
                 "Ground": 1
             },
-            "Viet-Cambodia 🪖": {
+            "Viet-Cambodia": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Ogaden 🪖": {
+            "Ogaden": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 2
@@ -26,7 +26,7 @@
                 "Loss": 23,
                 "Ground": 12
             },
-            "Western Sahara 🪖": {
+            "Western Sahara": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 14
@@ -53,7 +53,7 @@
                 "Loss": 7,
                 "Ground": 58
             },
-            "Vietnam Marines 🪖": {
+            "Vietnam Marines": {
                 "Kills": 3,
                 "Loss": 1,
                 "Ground": 74
@@ -83,17 +83,17 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Soviet Iran 1976 🪖": {
+            "Soviet Iran 1976": {
                 "Kills": 1,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Dhofar War 🪖": {
+            "Dhofar War": {
                 "Kills": 1,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Kurds 🪖": {
+            "Kurds": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
@@ -108,7 +108,7 @@
                 "Loss": 1,
                 "Ground": 0
             },
-            "Kurdish Civil War 🪖": {
+            "Kurdish Civil War": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
@@ -128,7 +128,7 @@
                 "Loss": 3,
                 "Ground": 1
             },
-            "Lebanon 🪖": {
+            "Lebanon": {
                 "Kills": 1,
                 "Loss": 1,
                 "Ground": 1
@@ -155,7 +155,7 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Lebanon 🪖": {
+            "Lebanon": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -175,22 +175,22 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Bosnia 🪖": {
+            "Bosnia": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Kosovo 🪖": {
+            "Kosovo": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Afghanistan 🪖": {
+            "Afghanistan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "OIF 🪖": {
+            "OIF": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -222,27 +222,27 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Northern/Southern Watch, Desert Fox": {
+            "Northern/Southern Watch Desert Fox": {
                 "Kills": 4,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Bosnia 🪖": {
+            "Bosnia": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Kosovo 🪖": {
+            "Kosovo": {
                 "Kills": 4,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Afghanistan 🪖": {
+            "Afghanistan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "OIF 🪖": {
+            "OIF": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -257,7 +257,7 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Lebanon 1982 🪖": {
+            "Lebanon 1982": {
                 "Kills": 21,
                 "Loss": 3,
                 "Ground": 0
@@ -267,7 +267,7 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Lebanon War 🪖": {
+            "Lebanon War": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -294,42 +294,42 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Bosnia 🪖": {
+            "Bosnia": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Kosovo 🪖": {
+            "Kosovo": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Afghanistan 🪖": {
+            "Afghanistan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "OIF 🪖": {
+            "OIF": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
             },
-            "Lebanon War 🪖": {
+            "Lebanon War": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Yemen 🪖": {
+            "Yemen": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
             },
-            "Libya 🪖": {
+            "Libya": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
             },
-            "Syria 🪖": {
+            "Syria": {
                 "Kills": 1,
                 "Loss": 0,
                 "Ground": 0
@@ -351,22 +351,22 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Bosnia 🪖": {
+            "Bosnia": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
             },
-            "Kosovo 🪖": {
+            "Kosovo": {
                 "Kills": 2,
                 "Loss": 0,
                 "Ground": 1
             },
-            "Afghanistan 🪖": {
+            "Afghanistan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
             },
-            "OIF 🪖": {
+            "OIF": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -381,22 +381,22 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Lebanon 1982 🪖": {
+            "Lebanon 1982": {
                 "Kills": 21,
                 "Loss": 1,
                 "Ground": 0
             },
-            "Lebanon 2006 🪖": {
+            "Lebanon 2006": {
                 "Kills": 3,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Palestine 🪖": {
+            "Palestine": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Soviet Afghan War 🪖": {
+            "Soviet Afghan War": {
                 "Kills": 1,
                 "Loss": 0,
                 "Ground": 0
@@ -416,12 +416,12 @@
                 "Loss": 1,
                 "Ground": 0
             },
-            "Venezeula 🪖": {
+            "Venezeula": {
                 "Kills": 3,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Syria 🪖": {
+            "Syria": {
                 "Kills": 2,
                 "Loss": 0,
                 "Ground": 0
@@ -443,22 +443,22 @@
                 "Loss": 2,
                 "Ground": 2
             },
-            "Kosovo 🪖": {
+            "Kosovo": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Afghanistan 🪖": {
+            "Afghanistan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "OIF 🪖": {
+            "OIF": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Syria 🪖": {
+            "Syria": {
                 "Kills": 1,
                 "Loss": 0,
                 "Ground": 0
@@ -470,7 +470,7 @@
             }
         },
         "Rafale": {
-            "Libya 🪖": {
+            "Libya": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -482,12 +482,12 @@
             }
         },
         "Mirage F1": {
-            "Chad 🪖": {
+            "Chad": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Afghanistan 🪖": {
+            "Afghanistan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -512,12 +512,12 @@
                 "Loss": 6,
                 "Ground": 9
             },
-            "Western Sahara 🪖": {
+            "Western Sahara": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 7
             },
-            "Angola 🪖": {
+            "Angola": {
                 "Kills": 4,
                 "Loss": 0,
                 "Ground": 2
@@ -534,22 +534,22 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Bosnia 🪖": {
+            "Bosnia": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
             },
-            "Kosovo 🪖": {
+            "Kosovo": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Sierra Leone 🪖": {
+            "Sierra Leone": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "OIF 🪖": {
+            "OIF": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -576,22 +576,22 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Bosnia 🪖": {
+            "Bosnia": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
             },
-            "Kosovo 🪖": {
+            "Kosovo": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Sierra Leone 🪖": {
+            "Sierra Leone": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "OIF 🪖": {
+            "OIF": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -613,12 +613,12 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Kosovo 🪖": {
+            "Kosovo": {
                 "Kills": 0,
                 "Loss": 1,
                 "Ground": 0
             },
-            "Italy 🪖": {
+            "Italy": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -630,17 +630,17 @@
             }
         },
         "J-7": {
-            "Sudan 🪖": {
+            "Sudan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Uganda 🪖": {
+            "Uganda": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Sri Lanka 🪖": {
+            "Sri Lanka": {
                 "Kills": 1,
                 "Loss": 0,
                 "Ground": 0
@@ -662,7 +662,7 @@
                 "Loss": 58,
                 "Ground": 0
             },
-            "Taiwan 🪖": {
+            "Taiwan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -789,7 +789,7 @@
                 "Loss": 1,
                 "Ground": 0
             },
-            "Soviets Iran 🪖": {
+            "Soviets Iran": {
                 "Kills": 1,
                 "Loss": 0,
                 "Ground": 0
@@ -799,7 +799,7 @@
                 "Loss": 26,
                 "Ground": 0
             },
-            "Lebanon 1982 🪖": {
+            "Lebanon 1982": {
                 "Kills": 3,
                 "Loss": 38,
                 "Ground": 0
@@ -809,22 +809,22 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Ogaden 🪖": {
+            "Ogaden": {
                 "Kills": 1,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Angola 🪖": {
+            "Angola": {
                 "Kills": 1,
                 "Loss": 3,
                 "Ground": 0
             },
-            "Congo Zaire 🪖": {
+            "Congo Zaire": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Congo Angola 🪖": {
+            "Congo Angola": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
@@ -834,32 +834,32 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Tanzania Uganda 🪖": {
+            "Tanzania Uganda": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
             },
-            "Tanzania 🪖": {
+            "Tanzania": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
             },
-            "Mozambique 🪖": {
+            "Mozambique": {
                 "Kills": 1,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Sudan 🪖": {
+            "Sudan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 3
             },
-            "Somalia 🪖": {
+            "Somalia": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Eritrea 🪖": {
+            "Eritrea": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -869,22 +869,22 @@
                 "Loss": 89,
                 "Ground": 27
             },
-            "Afghanistan 🪖": {
+            "Afghanistan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Yemen Civil War 🪖": {
+            "Yemen Civil War": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Libya 🪖": {
+            "Libya": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Angola Civil War 🪖": {
+            "Angola Civil War": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -901,17 +901,17 @@
                 "Loss": 40,
                 "Ground": 15
             },
-            "Libya Chad 🪖": {
+            "Libya Chad": {
                 "Kills": 0,
                 "Loss": 1,
                 "Ground": 0
             },
-            "Syria Lebanon 🪖": {
+            "Syria Lebanon": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Afghanistan 🪖": {
+            "Afghanistan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -928,12 +928,12 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Syria Lebanon 🪖": {
+            "Syria Lebanon": {
                 "Kills": 0,
                 "Loss": 1,
                 "Ground": 0
             },
-            "Afghanistan 🪖": {
+            "Afghanistan": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -950,17 +950,17 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Chechnya 🪖": {
+            "Chechnya": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Georgia 🪖": {
+            "Georgia": {
                 "Kills": 1,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Serbia Kosovo 🪖": {
+            "Serbia Kosovo": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -972,12 +972,12 @@
             }
         },
         "Su-27": {
-            "Russia Georgia 🪖": {
+            "Russia Georgia": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
             },
-            "Russia Chechnya 🪖": {
+            "Russia Chechnya": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
