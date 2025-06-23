@@ -34,22 +34,22 @@
     "end": 1996,
     "emoji": "🌊⚔"
   },
-  "Afghanistan 🪖": {
+  "Afghanistan": {
     "start": 1979,
     "end": 1989,
     "emoji": "🇦🇫🔥"
   },
-  "Angola 🪖": {
+  "Angola": {
     "start": 1975,
     "end": 2002,
     "emoji": "🇦🇴🔥"
   },
-  "Angola Civil War 🪖": {
+  "Angola Civil War": {
     "start": 1975,
     "end": 2002,
     "emoji": "🇦🇴🔥"
   },
-  "Bosnia 🪖": {
+  "Bosnia": {
     "start": 1992,
     "end": 1995,
     "emoji": "🇧🇦🔥"
@@ -59,22 +59,22 @@
     "end": 1995,
     "emoji": "⚔🌳"
   },
-  "Chad 🪖": {
+  "Chad": {
     "start": 1980,
     "end": 1985,
     "emoji": "🇹🇩🔥"
   },
-  "Chechnya 🪖": {
+  "Chechnya": {
     "start": 1994,
     "end": 2009,
     "emoji": "🇷🇺🔥"
   },
-  "Congo Angola 🪖": {
+  "Congo Angola": {
     "start": 1980,
     "end": 1990,
     "emoji": "🇨🇩🇦🇴🔥"
   },
-  "Congo Zaire 🪖": {
+  "Congo Zaire": {
     "start": 1975,
     "end": 1994,
     "emoji": "🇨🇩🔥"
@@ -94,7 +94,7 @@
     "end": 1991,
     "emoji": "🇸🇦🏜🚀"
   },
-  "Dhofar War 🪖": {
+  "Dhofar War": {
     "start": 1963,
     "end": 1976,
     "emoji": "🇴🇲🔥"
@@ -109,7 +109,7 @@
     "end": 1977,
     "emoji": "🇪🇬🇱🇾⚔"
   },
-  "Eritrea 🪖": {
+  "Eritrea": {
     "start": 1961,
     "end": 1991,
     "emoji": "🇪🇷🔥"
@@ -119,7 +119,7 @@
     "end": 1982,
     "emoji": "🇫🇰⚔"
   },
-  "Georgia 🪖": {
+  "Georgia": {
     "start": 1991,
     "end": 1993,
     "emoji": "🇬🇪🔥"
@@ -169,7 +169,7 @@
     "end": 1988,
     "emoji": "🇮🇷🇮🇶🔥"
   },
-  "Italy 🪖": {
+  "Italy": {
     "start": 1991,
     "end": 1991,
     "emoji": "🇮🇹"
@@ -184,17 +184,17 @@
     "end": 1953,
     "emoji": "🇰🇷🇰🇵⚔"
   },
-  "Kosovo 🪖": {
+  "Kosovo": {
     "start": 1998,
     "end": 1999,
     "emoji": "🇽🇰🔥"
   },
-  "Kurdish Civil War 🪖": {
+  "Kurdish Civil War": {
     "start": 1975,
     "end": 1975,
     "emoji": "🔥"
   },
-  "Kurds 🪖": {
+  "Kurds": {
     "start": 1975,
     "end": 1975,
     "emoji": "🔥"
@@ -204,22 +204,22 @@
     "end": 1991,
     "emoji": "🏜🚀🔥"
   },
-  "Lebanon 🪖": {
+  "Lebanon": {
     "start": 1975,
     "end": 1990,
     "emoji": "🇱🇧🔥"
   },
-  "Lebanon 1982 🪖": {
+  "Lebanon 1982": {
     "start": 1982,
     "end": 1982,
     "emoji": "🇱🇧🔥"
   },
-  "Lebanon 2006 🪖": {
+  "Lebanon 2006": {
     "start": 2006,
     "end": 2006,
     "emoji": "🇱🇧🔥"
   },
-  "Lebanon War 🪖": {
+  "Lebanon War": {
     "start": 1975,
     "end": 1990,
     "emoji": "🇱🇧🔥"
@@ -234,12 +234,12 @@
     "end": 2000,
     "emoji": "🇱🇧🕊🇵🇸"
   },
-  "Libya 🪖": {
+  "Libya": {
     "start": 2011,
     "end": 2011,
     "emoji": "🇱🇾🔥"
   },
-  "Libya Chad 🪖": {
+  "Libya Chad": {
     "start": 1980,
     "end": 1987,
     "emoji": "🇱🇾🇹🇩🔥"
@@ -249,7 +249,7 @@
     "end": 1980,
     "emoji": "🌍⚔"
   },
-  "Mozambique 🪖": {
+  "Mozambique": {
     "start": 1977,
     "end": 1992,
     "emoji": "🇲🇿🔥"
@@ -269,7 +269,7 @@
     "end": 2003,
     "emoji": "🏜🚀🔥"
   },
-  "OIF 🪖": {
+  "OIF": {
     "start": 2003,
     "end": 2011,
     "emoji": "🇺🇸🔥"
@@ -304,7 +304,7 @@
     "end": 1973,
     "emoji": "🇸🇾⚔"
   },
-  "Ogaden 🪖": {
+  "Ogaden": {
     "start": 1977,
     "end": 1978,
     "emoji": "⚔"
@@ -314,7 +314,7 @@
     "end": 1981,
     "emoji": "⚔✈"
   },
-  "Palestine 🪖": {
+  "Palestine": {
     "start": 2001,
     "end": 2025,
     "emoji": "🇵🇸🔥"
@@ -324,12 +324,12 @@
     "end": 1981,
     "emoji": "⚔"
   },
-  "Russia Chechnya 🪖": {
+  "Russia Chechnya": {
     "start": 1994,
     "end": 2009,
     "emoji": "🇷🇺🔥"
   },
-  "Russia Georgia 🪖": {
+  "Russia Georgia": {
     "start": 2008,
     "end": 2008,
     "emoji": "🇷🇺🇬🇪🔥"
@@ -339,7 +339,7 @@
     "end": 2025,
     "emoji": "🇷🇺🇺🇦🔥"
   },
-  "Serbia Kosovo 🪖": {
+  "Serbia Kosovo": {
     "start": 1998,
     "end": 1999,
     "emoji": "🇷🇸🇽🇰🔥"
@@ -349,42 +349,42 @@
     "end": 1981,
     "emoji": "⚔"
   },
-  "Sierra Leone 🪖": {
+  "Sierra Leone": {
     "start": 1991,
     "end": 2002,
     "emoji": "🇸🇱🔥"
   },
-  "Somalia 🪖": {
+  "Somalia": {
     "start": 1991,
     "end": 1995,
     "emoji": "🇸🇴🔥"
   },
-  "Soviet Afghan War 🪖": {
+  "Soviet Afghan War": {
     "start": 1979,
     "end": 1989,
     "emoji": "🇷🇺🇦🇫🔥"
   },
-  "Soviet Iran 1976 🪖": {
+  "Soviet Iran 1976": {
     "start": 1976,
     "end": 1979,
     "emoji": "🇮🇷"
   },
-  "Soviets Iran 🪖": {
+  "Soviets Iran": {
     "start": 1976,
     "end": 1979,
     "emoji": "🇮🇷"
   },
-  "Sri Lanka 🪖": {
+  "Sri Lanka": {
     "start": 1983,
     "end": 2009,
     "emoji": "🇱🇰🔥"
   },
-  "Sudan 🪖": {
+  "Sudan": {
     "start": 1980,
     "end": 2000,
     "emoji": "🇸🇩🔥"
   },
-  "Syria 🪖": {
+  "Syria": {
     "start": 2011,
     "end": 2015,
     "emoji": "🇸🇾🔥"
@@ -394,7 +394,7 @@
     "end": 1973,
     "emoji": "🇸🇾⚔"
   },
-  "Syria Lebanon 🪖": {
+  "Syria Lebanon": {
     "start": 1982,
     "end": 2000,
     "emoji": "🇸🇾🇱🇧🔥"
@@ -419,17 +419,17 @@
     "end": 1967,
     "emoji": "🇸🇾🕰"
   },
-  "Taiwan 🪖": {
+  "Taiwan": {
     "start": 1949,
     "end": 2000,
     "emoji": "🇹🇼"
   },
-  "Tanzania 🪖": {
+  "Tanzania": {
     "start": 1975,
     "end": 1975,
     "emoji": "🇹🇿🔥"
   },
-  "Tanzania Uganda 🪖": {
+  "Tanzania Uganda": {
     "start": 1975,
     "end": 1975,
     "emoji": "🇹🇿🇺🇬🔥"
@@ -444,17 +444,17 @@
     "end": 1986,
     "emoji": "🇹🇷⚔"
   },
-  "Uganda 🪖": {
+  "Uganda": {
     "start": 1975,
     "end": 1975,
     "emoji": "🇺🇬🔥"
   },
-  "Venezeula 🪖": {
+  "Venezeula": {
     "start": 1975,
     "end": 1975,
     "emoji": "🇻🇪🔥"
   },
-  "Viet-Cambodia 🪖": {
+  "Viet-Cambodia": {
     "start": 1978,
     "end": 1989,
     "emoji": "🇻🇳🇰🇭🔥"
@@ -479,7 +479,7 @@
     "end": 1972,
     "emoji": "✈⚔"
   },
-  "Vietnam Marines 🪖": {
+  "Vietnam Marines": {
     "start": 1965,
     "end": 1968,
     "emoji": "🇻🇳"
@@ -514,12 +514,12 @@
     "end": 1970,
     "emoji": "⚔🔥"
   },
-  "Western Sahara 🪖": {
+  "Western Sahara": {
     "start": 1975,
     "end": 2000,
     "emoji": "🇪🇭🔥"
   },
-  "Yemen 🪖": {
+  "Yemen": {
     "start": 1962,
     "end": 2000,
     "emoji": "🇾🇪🔥"
@@ -529,7 +529,7 @@
     "end": 1979,
     "emoji": "🇹🇼⚔"
   },
-  "Yemen Civil War 🪖": {
+  "Yemen Civil War": {
     "start": 2015,
     "end": 2025,
     "emoji": "🇾🇪🔥"
