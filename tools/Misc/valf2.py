@@ -5,12 +5,90 @@ from scipy.stats import pearsonr, spearmanr, weibull_min
 from sklearn.metrics import r2_score, mutual_info_score
 from scipy.optimize import curve_fit
 import valf3  # assumed present
+from sklearn.linear_model import LinearRegression
+from scipy.optimize import curve_fit
 
 from valf1 import (
     nation_age_ratios, nation_age_conflicts,
     year_nation_kills, year_nation_weighted_age,
     print_summary, conflict_year_map
 )
+
+def build_combined_regression_model():
+    age_vals = []
+    avg_ratios = []
+    for nation, age_data in nation_age_ratios.items():
+        for age, ratios in age_data.items():
+            if len(ratios) == 0:
+                continue
+            avg = sum(ratios) / len(ratios)
+            age_vals.append(age)
+            avg_ratios.append(avg)
+
+    if len(age_vals) < 2:
+        return None
+
+    age_vals = np.array(age_vals)
+    avg_ratios = np.array(avg_ratios)
+
+    features = []
+
+    # Quadratic
+    quad_coeffs = np.polyfit(age_vals, avg_ratios, deg=2)
+    quad_model = np.poly1d(quad_coeffs)
+    quad_pred = quad_model(age_vals)
+    features.append(quad_pred)
+
+    # Cubic
+    try:
+        def cubic_func(x, a, b, c, d):
+            return a*x**3 + b*x**2 + c*x + d
+        cubic_params, _ = curve_fit(cubic_func, age_vals, avg_ratios)
+        cubic_pred = cubic_func(age_vals, *cubic_params)
+        features.append(cubic_pred)
+    except Exception:
+        cubic_params = None
+
+    # Moving average smoothing (window = 3)
+    try:
+        window = 3
+        padded = np.pad(avg_ratios, (window//2, window//2), mode='edge')
+        kernel_pred = np.convolve(padded, np.ones(window)/window, mode='valid')
+        features.append(kernel_pred)
+    except Exception:
+        kernel_pred = None
+
+    if len(features) < 2:
+        return None
+
+    X = np.column_stack(features)
+    y = avg_ratios
+
+    model = LinearRegression()
+    model.fit(X, y)
+
+    def combined_predict(age_input):
+        age_input = np.array(age_input)
+        feat_stack = []
+
+        # Quadratic prediction
+        feat_stack.append(quad_model(age_input))
+
+        # Cubic prediction
+        if cubic_params is not None:
+            feat_stack.append(cubic_func(age_input, *cubic_params))
+
+        # Kernel smoothing (approximate fallback using quad model)
+        if kernel_pred is not None:
+            smoothed_input = np.pad(quad_model(age_input), (window//2, window//2), mode='edge')
+            smoothed = np.convolve(smoothed_input, np.ones(window)/window, mode='valid')[:len(age_input)]
+            feat_stack.append(smoothed)
+
+        feat_stack = np.column_stack(feat_stack)
+        return model.predict(feat_stack)
+
+    return combined_predict
+
 
 # --- Ensure JSON files exist with defaults ---
 
@@ -74,7 +152,14 @@ def get_aircraft_side(aircraft):
 difficulty_by_year = {}
 
 def compute_difficulty_factor(filter_years=None):
-    print("Difficulty factors by year and side (weighted average aircraft age):")
+    global difficulty_by_year
+    print("Difficulty factors by year and side (model-based expected kill ratio):")
+
+    model = build_combined_regression_model()
+    if model is None:
+        print("Failed to build combined regression model.")
+        return
+
     side_nations = {
         'USA': ['USA'],
         'USSR+France': ['USSR', 'France']
@@ -84,7 +169,6 @@ def compute_difficulty_factor(filter_years=None):
     if filter_years is not None:
         years = [y for y in years if y in filter_years]
 
-    global difficulty_by_year
     difficulty_by_year = {}
 
     for year in years:
@@ -96,13 +180,15 @@ def compute_difficulty_factor(filter_years=None):
         for side, nations in side_nations.items():
             kills = sum(year_nation_kills[year].get(n, 0) for n in nations)
             weighted_age = sum(year_nation_weighted_age[year].get(n, 0) for n in nations)
-            side_ages[side] = weighted_age / kills if kills > 0 else 0
+            avg_age = weighted_age / kills if kills > 0 else 0
+            expected_ratio = model([avg_age])[0] if kills > 0 else 0
+            side_ages[side] = expected_ratio
 
         difficulty_by_year[year] = side_ages
 
         print(f"Year {year}:")
         for side in side_nations:
-            print(f"  {side} Difficulty Factor (Avg Aircraft Age): {side_ages[side]:.2f}")
+            print(f"  {side} Difficulty Factor (Model-Expected Kill Ratio): {side_ages[side]:.2f}")
     print()
 
 # --- Manual Gaussian kernel smoother ---
