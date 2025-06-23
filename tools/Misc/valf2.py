@@ -1,7 +1,11 @@
 import os
 import json
-from scipy.stats import pearsonr
-import valf3  # your helper module (assumed present)
+import numpy as np
+from scipy.stats import pearsonr, spearmanr, weibull_min
+from sklearn.metrics import r2_score, mutual_info_score
+from scipy.optimize import curve_fit
+import valf3  # assumed present
+
 from valf1 import (
     nation_age_ratios, nation_age_conflicts,
     year_nation_kills, year_nation_weighted_age,
@@ -101,7 +105,26 @@ def compute_difficulty_factor(filter_years=None):
             print(f"  {side} Difficulty Factor (Avg Aircraft Age): {side_ages[side]:.2f}")
     print()
 
+# --- Manual Gaussian kernel smoother ---
+def gaussian_kernel_smooth(x, y, bandwidth=1.0):
+    smoothed_y = []
+    n = len(x)
+    for i in range(n):
+        weights = []
+        weighted_vals = []
+        for j in range(n):
+            dist = x[i] - x[j]
+            w = np.exp(-(dist**2) / (2 * bandwidth**2))
+            weights.append(w)
+            weighted_vals.append(w * y[j])
+        smoothed_y.append(sum(weighted_vals) / sum(weights))
+    return np.array(smoothed_y)
+
 def print_table(filter_ages=None):
+    def nonlinear_model(x, a, b, c, d):
+        # Cubic polynomial: a*x^3 + b*x^2 + c*x + d
+        return a*x**3 + b*x**2 + c*x + d
+
     for nation, age_data in nation_age_ratios.items():
         print(f"Nation: {nation} Age-to-Average Kill Ratio Buckets:")
         ages = sorted(age_data.keys())
@@ -116,13 +139,61 @@ def print_table(filter_ages=None):
             avg_ratios.append(avg_ratio)
             conflicts_sample = ', '.join(sorted(nation_age_conflicts[nation][age]))
             print(f"  Age {age}: Avg Ratio {avg_ratio:.2f} (Conflicts: {conflicts_sample})")
+
         if len(age_vals) > 1:
-            r, p = pearsonr(age_vals, avg_ratios)
-            print(f"Pearson r: {r:.4f}")
-            print(f"P-value: {p:.4f}")
+            print("\nCorrelations and Curve Fits:")
+            try:
+                r, p = pearsonr(age_vals, avg_ratios)
+                print(f"  Pearson r: {r:.4f}, p = {p:.4f}")
+            except Exception as e:
+                print(f"  Pearson correlation failed: {e}")
+
+            try:
+                rho, sp_p = spearmanr(age_vals, avg_ratios)
+                print(f"  Spearman ρ: {rho:.4f}, p = {sp_p:.4f}")
+            except Exception as e:
+                print(f"  Spearman correlation failed: {e}")
+
+            try:
+                coeffs = np.polyfit(age_vals, avg_ratios, deg=2)
+                poly_model = np.poly1d(coeffs)
+                r2 = r2_score(avg_ratios, poly_model(age_vals))
+                print(f"  Quadratic fit R²: {r2:.4f}")
+            except Exception as e:
+                print(f"  Quadratic fit failed: {e}")
+
+            try:
+                smoothed = gaussian_kernel_smooth(np.array(age_vals), np.array(avg_ratios), bandwidth=1.0)
+                print("  Kernel smoothing (Gaussian): Computed successfully.")
+            except Exception as e:
+                print(f"  Kernel smoothing failed: {e}")
+
+            try:
+                mi = mutual_info_score(np.digitize(age_vals, bins=10), np.digitize(avg_ratios, bins=10))
+                print(f"  Mutual Information Score: {mi:.4f}")
+            except Exception as e:
+                print(f"  Mutual Information failed: {e}")
+
+            try:
+                shape, loc, scale = weibull_min.fit(avg_ratios, floc=0)
+                print(f"  Weibull shape: {shape:.4f}, scale: {scale:.4f}")
+            except Exception as e:
+                print(f"  Weibull fit failed: {e}")
+
+            # --- Nonlinear cubic fit ---
+            try:
+                popt, pcov = curve_fit(nonlinear_model, age_vals, avg_ratios, maxfev=10000)
+                residuals = np.array(avg_ratios) - nonlinear_model(np.array(age_vals), *popt)
+                ss_res = np.sum(residuals**2)
+                ss_tot = np.sum((np.array(avg_ratios) - np.mean(avg_ratios))**2)
+                r2_nonlinear = 1 - (ss_res / ss_tot)
+                print(f"  Nonlinear cubic fit R²: {r2_nonlinear:.4f}")
+            except Exception as e:
+                print(f"  Nonlinear cubic fit failed: {e}")
+
+            print()
         else:
-            print("Not enough data for correlation.")
-        print()
+            print("Not enough data for correlation.\n")
 
 def print_difficulty_analysis():
     print("Comparative Difficulty Analysis:")
@@ -204,12 +275,10 @@ def print_aircraft_residual_kill_tables(filter_years=None):
 
         print()
 
-# --- Write current difficulty years to temp.txt ---
-
 def write_temp_file():
     try:
         with open('temp.txt', 'w') as f:
-            for year in sorted(current_difficulty_years):
+            for year in sorted(difficulty_by_year.keys()):
                 f.write(f"{year}\n")
     except Exception as e:
         print(f"Failed to write temp.txt: {e}")
