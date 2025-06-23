@@ -8,6 +8,39 @@ import valf3  # assumed present
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit
 
+
+# Define a Weibull-like model function
+def weibull_func(x, a, b, c):
+    # a = scale, b = shape, c = vertical scale (amplitude)
+    return c * (b / a) * (x / a)**(b - 1) * np.exp(-(x / a)**b)
+
+def weibull_fit_and_correlation(age_vals, avg_ratios):
+    age_vals = np.array(age_vals)
+    avg_ratios = np.array(avg_ratios)
+
+    if len(age_vals) < 3:
+        print("Not enough data points for Weibull fit.")
+        return None
+
+    # Initial guesses: scale ~ mean age, shape ~ 2, amplitude ~ max(avg_ratios)
+    try:
+        popt, _ = curve_fit(weibull_func, age_vals, avg_ratios, p0=[np.mean(age_vals), 2, max(avg_ratios)])
+        a, b, c = popt
+        predicted_vals = weibull_func(age_vals, a, b, c)
+
+        r2 = r2_score(avg_ratios, predicted_vals)
+        r, p = pearsonr(avg_ratios, predicted_vals)
+
+        print(f"Weibull fit parameters: scale={a:.4f}, shape={b:.4f}, amplitude={c:.4f}")
+        print(f"Pearson r: {r:.4f}, p-value: {p:.4f}")
+        print(f"R² score: {r2:.4f}")
+
+        return predicted_vals, (r, p, r2)
+    except Exception as e:
+        print(f"Weibull curve fit failed: {e}")
+        return None
+        
+
 from valf1 import (
     nation_age_ratios, nation_age_conflicts,
     year_nation_kills, year_nation_weighted_age,
@@ -223,13 +256,15 @@ def print_table(filter_ages=None):
             avg_ratios.append(avg_ratio)
             conflicts_sample = ', '.join(sorted(nation_age_conflicts[nation][age]))
             print(f"  Age {age}: Avg Ratio {avg_ratio:.2f} (Conflicts: {conflicts_sample})")
+            
+           
 
         if len(age_vals) > 1:
             print("\nCorrelations and Curve Fits:")
             # Pearson linear correlation
             r, p = pearsonr(age_vals, avg_ratios)
             print(f"  Pearson r: {r:.4f}, p = {p:.4f}")
-
+            weibull_fit_and_correlation(np.array(ages), np.array(avg_ratios))
             # Spearman rank correlation
             rho, sp_p = spearmanr(age_vals, avg_ratios)
             print(f"  Spearman ρ: {rho:.4f}, p = {sp_p:.4f}")
