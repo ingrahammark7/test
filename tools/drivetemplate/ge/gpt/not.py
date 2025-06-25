@@ -63,8 +63,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "DISTRICT OF COLUMBIA")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -72,7 +72,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "             Petitioner and Plaintiff,",
         "         v.",
-        "Chase Bank",
+        "Office of the Comptroller of the Currency of the United States Department of the Treasury",
         "             Respondent and Defendant."
     ]
     y_position = top_margin - 4.75* inch
@@ -88,7 +88,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: CGC-25-625577")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 1:2025cv01620")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -109,10 +109,9 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. Court is taking a long time to approve proof of service by mail.",
-"2. Court ignores emails.",
-"3. Court should explain if they require personal service or otherwise explain delay.",
-"4. If Court ignores all communication and doesn't care then case should be dismissed." ,   ]
+        "1. I, Mark Ingraham Sr., over 18 years of age and not a party to the case, attest:",  
+        "2. I have served the summons and complaint of this case by mail to:",
+        "3. The United States attorney for DC, the United States Attorney General and the defendant.",]
     y_position -= 1*inch
     for line in intro_text:
         c.drawString(left_margin, y_position, line)
@@ -123,7 +122,7 @@ def create_pdf(output_filename):
     # Signature Block
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.5 * inch, "Submitted,")
-    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham, 6/11/2025")
+    c.drawString(left_margin, y_position - 1 * inch, "Mark Ingraham, 6/25/2025")
 
  # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
