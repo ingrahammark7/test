@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Notice to Court"  # Title of the paper
+        footer_text = "Notice of Intent to Schedule Hearing"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -63,17 +63,13 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "DISTRICT OF COLUMBIA")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
     case_title = [
-        "Mark Ingraham,",
-        "             Petitioner and Plaintiff,",
-        "         v.",
-        "Office of the Comptroller of the Currency of the United States Department of the Treasury",
-        "             Respondent and Defendant."
+        "IN THE MATTER OF MARK INGRAHAM"
     ]
     y_position = top_margin - 4.75* inch
     counter=0
@@ -88,12 +84,12 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 1:2025cv01620")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP02262")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.5* inch, "Notice to Court")
+    c.drawString(space, top_margin - 4.5* inch, "Notice of Intent to Schedule Hearing")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -109,9 +105,10 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "1. I, Mark Ingraham Sr., over 18 years of age and not a party to the case, attest:",  
-        "2. I have served the summons and complaint of this case by mail to:",
-        "3. The United States attorney for DC, the United States Attorney General and the defendant.",]
+        "1. Because the police reports mentioned in complaint contain redacted and otherwise censored information, ","a court order should be issued to obtain them. ",
+        "2. Additionally, the relief requested in case 25STCP01552 should be granted.",
+        "3. Additionally, as requested in 25STCP01004, the fake keypad on 690 S Catalina St Apartment 4x should"," be removed.",
+        "4. Should these orders be resisted for any reason, I have grounds under federal immigration laws, drug laws, ","and other laws to file a mandamus in federal court to dispose of defendants. ",]
     y_position -= 1*inch
     for line in intro_text:
         c.drawString(left_margin, y_position, line)
