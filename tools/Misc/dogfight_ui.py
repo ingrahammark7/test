@@ -3,54 +3,48 @@ from tkinter import ttk
 import threading
 import matplotlib.pyplot as plt
 
-from fight import DogfightSimulator, fighters  # Import from your existing file
+from fight import DogfightSimulator, fighters
 
 class DogfightApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Dogfight Simulator")
 
-        # Fighter selection
-        self.fighters_list = list(fighters.keys())
+        self.fighters_list = sorted(fighters.keys())
 
-        ttk.Label(root, text="Select Fighter 1:").grid(row=0, column=0, padx=5, pady=5)
+        ttk.Label(root, text="Select Fighter 1:").grid(row=0, column=0, padx=10, pady=10)
         self.fighter1_var = tk.StringVar(value=self.fighters_list[0])
-        self.fighter1_combo = ttk.Combobox(root, textvariable=self.fighter1_var, values=self.fighters_list, state="readonly")
-        self.fighter1_combo.grid(row=0, column=1, padx=5, pady=5)
+        self.fighter1_combo = ttk.Combobox(root, values=self.fighters_list, textvariable=self.fighter1_var, state="readonly")
+        self.fighter1_combo.grid(row=0, column=1, padx=10, pady=10)
 
-        ttk.Label(root, text="Select Fighter 2:").grid(row=1, column=0, padx=5, pady=5)
+        ttk.Label(root, text="Select Fighter 2:").grid(row=1, column=0, padx=10, pady=10)
         self.fighter2_var = tk.StringVar(value=self.fighters_list[1])
-        self.fighter2_combo = ttk.Combobox(root, textvariable=self.fighter2_var, values=self.fighters_list, state="readonly")
-        self.fighter2_combo.grid(row=1, column=1, padx=5, pady=5)
+        self.fighter2_combo = ttk.Combobox(root, values=self.fighters_list, textvariable=self.fighter2_var, state="readonly")
+        self.fighter2_combo.grid(row=1, column=1, padx=10, pady=10)
 
-        # Start Button
         self.start_button = ttk.Button(root, text="Start Simulation", command=self.start_simulation)
-        self.start_button.grid(row=2, column=0, columnspan=2, pady=10)
+        self.start_button.grid(row=2, column=0, columnspan=2, pady=15)
 
-        # Flag to track if sim is running
         self.sim_running = False
 
     def start_simulation(self):
         if self.sim_running:
-            return  # Already running
-        self.sim_running = True
+            return
 
-        # Disable controls during simulation
+        self.sim_running = True
         self.start_button.config(state=tk.DISABLED)
         self.fighter1_combo.config(state=tk.DISABLED)
         self.fighter2_combo.config(state=tk.DISABLED)
 
-        # Run simulation in separate thread to keep UI responsive
-        threading.Thread(target=self.run_simulation).start()
+        threading.Thread(target=self.run_simulation, daemon=True).start()
 
     def run_simulation(self):
         ac1 = self.fighter1_var.get()
         ac2 = self.fighter2_var.get()
-
         sim = DogfightSimulator(ac1, ac2)
         plt.show()
 
-        # When plt window closes, re-enable controls
+        # Once simulation window closes:
         self.root.after(0, self.reset_ui)
 
     def reset_ui(self):
