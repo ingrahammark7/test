@@ -1,4 +1,4 @@
-# Ultimate Dogfight Spectacle (No Sound Version)
+# Ultimate Dogfight Spectacle (High Visual Fidelity)
 
 import pygame
 import math
@@ -28,7 +28,7 @@ MAX_TOTAL_MISSILES = 60
 EXPLOSION_DURATION = 20
 TEAM_COUNT = 4
 CAMERA_FOCUS = True
-CLOUD_COUNT = 30
+CLOUD_COUNT = 40  # more clouds for better atmosphere
 
 # Colors
 BLACK = (0, 0, 0)
@@ -38,7 +38,7 @@ RED_BAR = (255, 0, 0)
 YELLOW = (255, 255, 0)
 TEAM_COLORS = [(0,150,255), (255,50,50), (255,255,0), (0,255,100)]
 
-font = pygame.font.SysFont(None, 22)
+font = pygame.font.SysFont("arial", 24)
 
 def draw_text(text, x, y, color=WHITE):
     img = font.render(text, True, color)
@@ -66,7 +66,7 @@ class Explosion:
         r = 40 - 2 * (EXPLOSION_DURATION - self.timer)
         if r > 0:
             pygame.draw.circle(screen, (255, 100, 0), (int(self.x), int(self.y)), r)
-            pygame.draw.circle(screen, (255, 255, 100), (int(self.x), int(self.y)), max(0, r - 5))
+            pygame.draw.circle(screen, (255, 255, 100), (int(self.x), int(self.y)), max(0, r - 6), 3)
 
 class Missile:
     def __init__(self, x, y, angle, target):
@@ -99,8 +99,8 @@ class Missile:
 
     def draw(self):
         for i, (tx, ty) in enumerate(self.trail):
-            pygame.draw.circle(screen, YELLOW, (int(tx), int(ty)), max(1, 4 - i // 3))
-        pygame.draw.circle(screen, YELLOW, (int(self.x), int(self.y)), 3)
+            pygame.draw.circle(screen, (255, 220, 0), (int(tx), int(ty)), max(1, 5 - i // 2))
+        pygame.draw.circle(screen, YELLOW, (int(self.x), int(self.y)), 4)
 
 class Aircraft:
     def __init__(self, x, y, color, model_name, team):
@@ -134,7 +134,7 @@ class Aircraft:
                 self.respawn()
             return
 
-        margin = 40
+        margin = 50
         if self.x < margin and 90 < self.angle < 270:
             self.angle += TURN_SPEED
         elif self.x > WIDTH - margin and (self.angle < 90 or self.angle > 270):
@@ -186,9 +186,9 @@ class Aircraft:
             if not points or part_name == "colors":
                 continue
             rotated = [rotate_point(self.x, self.y, self.angle, self.x + p[0], self.y + p[1]) for p in points]
-            pygame.draw.polygon(screen, self.color, rotated)
-        pygame.draw.rect(screen, RED_BAR, (self.x - 20, self.y + 20, 40, 5))
-        pygame.draw.rect(screen, GREEN, (self.x - 20, self.y + 20, 40 * self.health / MAX_HEALTH, 5))
+            pygame.draw.polygon(screen, self.color, rotated, 0)
+        pygame.draw.rect(screen, RED_BAR, (self.x - 22, self.y + 24, 44, 6))
+        pygame.draw.rect(screen, GREEN, (self.x - 22, self.y + 24, 44 * self.health / MAX_HEALTH, 6))
         for m in self.missiles:
             m.draw()
 
@@ -196,9 +196,9 @@ class Cloud:
     def __init__(self):
         self.x = random.randint(0, WIDTH)
         self.y = random.randint(0, HEIGHT)
-        self.size = random.randint(60, 150)
-        self.color = (200, 200, 200)
-        self.speed = random.uniform(0.2, 0.4)
+        self.size = random.randint(60, 180)
+        self.color = (220, 220, 220)
+        self.speed = random.uniform(0.15, 0.35)
 
     def update(self):
         self.x -= self.speed
@@ -223,7 +223,7 @@ aircrafts = [
 explosions = []
 running = True
 while running:
-    screen.fill(BLACK)
+    screen.fill((10, 10, 20))
     for cloud in clouds:
         cloud.update()
         cloud.draw()
@@ -242,12 +242,11 @@ while running:
     explosions = [e for e in explosions if e.timer > 0]
 
     draw_text(f"Alive: {sum(1 for a in aircrafts if a.alive)} / {N}", 10, 10)
-    draw_text(f"Missiles: {sum(len(a.missiles) for a in aircrafts)}", 10, 30)
+    draw_text(f"Missiles: {sum(len(a.missiles) for a in aircrafts)}", 10, 34)
 
     pygame.display.flip()
     clock.tick(FPS)
 
 pygame.quit()
-
 
 
