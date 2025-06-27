@@ -1,11 +1,10 @@
-# Top of the file
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d.art3d import Line3D
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import json
 
-# Constants
+# Constants (same as your original)
 SPEED = 1.0
 TURN_RATE = np.radians(2.5)
 ENERGY_LOSS_PER_TURN = 0.01
@@ -64,14 +63,16 @@ class Missile:
             self.alive = False
 
 class Aircraft:
-    def __init__(self, position, velocity, color, name, aircraft_type):
+    def __init__(self, position, velocity, color, name, aircraft_type, model):
         self.init_pos = position
         self.init_vel = velocity
         self.color = color
         self.name = name
         self.type = aircraft_type  # "fast" or "heavy"
+        self.model = model  # Loaded polygon model
         self.score = 0
         self.reset()
+        self.artists = []  # To keep track of Poly3DCollections
 
     def reset(self):
         self.position = np.array(self.init_pos, dtype=float)
@@ -90,6 +91,7 @@ class Aircraft:
             self.evasion_chance = 0.1
 
     def update(self, enemy):
+        global p1,p2,missile_lines
         if not self.alive:
             self.respawn_timer += 1
             if self.respawn_timer > RESPAWN_DELAY:
@@ -140,6 +142,55 @@ class Aircraft:
         self.alive = False
         self.respawn_timer = 0
 
+def transform_points(points, position, direction):
+    forward = normalize(direction)
+    # To avoid singularity if forward is close to Z-axis
+    if abs(np.dot(forward, np.array([0, 0, 1]))) > 0.99:
+        up = np.array([0, 1, 0])
+    else:
+        up = np.array([0, 0, 1])
+    right = np.cross(up, forward)
+    right = normalize(right)
+    up = np.cross(forward, right)
+    rot_matrix = np.column_stack((forward, right, up))
+    transformed = [position + rot_matrix @ np.array(p) for p in points]
+    return transformed
+
+def plot_aircraft(ax, aircraft):
+    # Remove old polygons
+    for poly in aircraft.artists:
+        poly.remove()
+    aircraft.artists.clear()
+
+    # Draw polygons for each part
+    for part_name in ['body', 'wing', 'tail', 'engine']:
+        if part_name in aircraft.model:
+            pts = transform_points(aircraft.model[part_name], aircraft.position, aircraft.velocity)
+            poly_pts = [list(pt) for pt in pts] + [list(pts[0])]  # Close polygon
+            poly = Poly3DCollection([poly_pts], alpha=0.7, facecolor=aircraft.color)
+            ax.add_collection3d(poly)
+            aircraft.artists.append(poly)
+
+# Load fighter models JSON (place this file in the same directory)
+fighter_models_json = """
+{
+  "F-16": {
+    "body": [[0, 0, 0], [1, 0, 0.1], [3, 0, 0], [1, 0, -0.1]],
+    "wing": [[1, -1.5, 0], [2, 0, 0], [1, 1.5, 0]],
+    "tail": [[2.8, 0, 0], [3, 0.2, 0.5], [3, -0.2, 0.5]],
+    "engine": [[0, -0.2, -0.1], [0, 0.2, -0.1], [-0.5, 0.2, -0.1], [-0.5, -0.2, -0.1]]
+  },
+  "MiG-21": {
+    "body": [[0, 0, 0], [0.5, 0, 0.05], [3, 0, 0], [0.5, 0, -0.05]],
+    "wing": [[1.2, -1.2, 0], [2.2, 0, 0], [1.2, 1.2, 0]],
+    "tail": [[2.9, 0, 0], [3.1, 0.2, 0.3], [3.1, -0.2, 0.3]],
+    "engine": [[-0.4, -0.15, -0.05], [-0.4, 0.15, -0.05], [-0.8, 0.15, -0.05], [-0.8, -0.15, -0.05]]
+  }
+}
+"""
+
+fighter_models = json.loads(fighter_models_json)
+
 # Setup scene
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
@@ -147,11 +198,12 @@ ax.set_xlim(-WORLD_LIMIT, WORLD_LIMIT)
 ax.set_ylim(-WORLD_LIMIT, WORLD_LIMIT)
 ax.set_zlim(-WORLD_LIMIT, WORLD_LIMIT)
 
-ac1 = Aircraft(position=[-10, -10, 0], velocity=[1, 0.5, 0.2], color='blue', name='Blue', aircraft_type='fast')
-ac2 = Aircraft(position=[10, 10, 0], velocity=[-1, -0.5, 0.2], color='red', name='Red', aircraft_type='heavy')
+# Create aircraft with models
+ac1 = Aircraft(position=[-10, -10, 0], velocity=[1, 0.5, 0.2], color='blue', name='Blue', aircraft_type='fast', model=fighter_models['F-16'])
+ac2 = Aircraft(position=[10, 10, 0], velocity=[-1, -0.5, 0.2], color='red', name='Red', aircraft_type='heavy', model=fighter_models['MiG-21'])
 
-p1 = Line3D([], [], [], color='blue', marker='o', linestyle='', markersize=8)
-p2 = Line3D([], [], [], color='red', marker='o', linestyle='', markersize=8)
+p1 = plt.Line2D([], [], color='blue', marker='o', linestyle='', markersize=8)
+p2 = plt.Line2D([], [], color='red', marker='o', linestyle='', markersize=8)
 ax.add_line(p1)
 ax.add_line(p2)
 
@@ -161,7 +213,7 @@ missile_lines = []
 status_text = ax.text2D(0.05, 0.95, "", transform=ax.transAxes)
 
 def update(frame):
-    global missile_lines
+    global missile_lines,p1,p2
 
     ac1.update(ac2)
     ac2.update(ac1)
@@ -176,6 +228,10 @@ def update(frame):
                 l, = ax.plot(path[:, 0], path[:, 1], path[:, 2], color=m.color, linestyle='--', linewidth=1)
                 missile_lines.append(l)
 
+    # Update aircraft models
+    plot_aircraft(ax, ac1)
+    plot_aircraft(ax, ac2)
+
     # Scoring
     if not ac1.alive and ac1.respawn_timer == 0:
         ac2.score += 1
@@ -188,23 +244,16 @@ def update(frame):
     t2.set_data([p[0] for p in ac2.trail], [p[1] for p in ac2.trail])
     t2.set_3d_properties([p[2] for p in ac2.trail])
 
-
-# With this corrected version:
+    # Points for aircraft centers
     if ac1.alive:
-	    p1.set_data([ac1.position[0]], [ac1.position[1]])
-	    p1.set_3d_properties([ac1.position[2]])
-    else:
-	    p1.set_data([], [])
-	    p1.set_3d_properties([])
+        p1.set_data([ac1.position[0]], [ac1.position[1]])
+        from mpl_toolkits.mplot3d.art3d import Line3D
+        p1 = Line3D([], [], [], color='blue', marker='o', linestyle='', markersize=8)
+        p2 = Line3D([], [], [], color='red', marker='o', linestyle='', markersize=8)
+        ax.add_line(p1)
+        ax.add_line(p2)
 
-    if ac2.alive:
-    	p2.set_data([ac2.position[0]], [ac2.position[1]])
-    	p2.set_3d_properties([ac2.position[2]])
-    else:
-    	p2.set_data([], [])
-    	p2.set_3d_properties([])
-
-    # Camera motion
+    # Camera rotation
     cam_angle = frame * CAMERA_SPEED
     ax.view_init(elev=20, azim=np.degrees(cam_angle))
 
@@ -218,7 +267,7 @@ def update(frame):
         status += "\nRed Wins!"
     status_text.set_text(status)
 
-    return [p1, p2, t1, t2, status_text] + missile_lines
+    return [p1, p2, t1, t2, status_text] + missile_lines + ac1.artists + ac2.artists
 
 ani = FuncAnimation(fig, update, frames=2000, interval=50, blit=False)
 plt.show()
