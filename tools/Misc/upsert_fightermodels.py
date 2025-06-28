@@ -1,48 +1,46 @@
 import json
-import os
 
-INPUT_FILE = "in.json"
-MODELS_FILE = "fightermodels.json"
-METADATA_FILE = "fighters.json"
-
-# Load existing
 def load_json(path):
-    return json.load(open(path)) if os.path.exists(path) else {}
+    try:
+        with open(path, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
-fighter_models = load_json(MODELS_FILE)
-fighter_metadata = load_json(METADATA_FILE)
+def save_json(path, data):
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
 
-# Load new combined input
-try:
-    with open(INPUT_FILE, "r") as f:
-        incoming = json.load(f)
-except json.JSONDecodeError as e:
-    print(f"❌ JSON parsing error in {INPUT_FILE}: {e}")
-    exit(1)
+def upsert_models_and_meta(fm_path, fmeta_path, in_path):
+    fightermodels = load_json(fm_path)
+    fighters_meta = load_json(fmeta_path)
+    in_data = load_json(in_path)
 
-# Process
-for name, data in incoming.items():
-    # Fallbacks
-    model = data.get("model", {
-        "body": [[0, 0, 0], [1, 0, 0.1], [3, 0, 0], [1, 0, -0.1]],
-        "wing": [[1, -1, 0], [2, 0, 0], [1, 1, 0]],
-        "tail": [[2.5, 0, 0], [2.8, 0.2, 0.5], [2.8, -0.2, 0.5]],
-        "engine": [[0, -0.2, -0.1], [0, 0.2, -0.1], [-0.5, 0.2, -0.1], [-0.5, -0.2, -0.1]]
-    })
-    meta = data.get("meta", {
-        "gun": "unknown",
-        "nation": "unknown",
-        "in_service": 1900
-    })
+    # Upsert fightermodels
+    for model_name, model_data in in_data.items():
+        if model_name == "meta":
+            continue  # skip meta key in models
+        if model_name in fightermodels:
+            # Merge dictionaries; deep merge armor and subsystems if present
+            for key, value in model_data.items():
+                if isinstance(value, dict) and key in fightermodels[model_name]:
+                    fightermodels[model_name][key].update(value)
+                else:
+                    fightermodels[model_name][key] = value
+        else:
+            fightermodels[model_name] = model_data
 
-    fighter_models[name] = model
-    fighter_metadata[name] = meta
-    print(f"✔️ {name} added (model {'✓' if 'model' in data else 'stub'}, meta {'✓' if 'meta' in data else 'stub'})")
+    # Upsert fighters meta if present
+    if "meta" in in_data:
+        for model_name, meta_data in in_data["meta"].items():
+            if model_name in fighters_meta:
+                fighters_meta[model_name].update(meta_data)
+            else:
+                fighters_meta[model_name] = meta_data
 
-# Save output
-with open(MODELS_FILE, "w") as f:
-    json.dump(fighter_models, f, indent=2)
-with open(METADATA_FILE, "w") as f:
-    json.dump(fighter_metadata, f, indent=2)
+    save_json(fm_path, fightermodels)
+    save_json(fmeta_path, fighters_meta)
+    print(f"Upsert complete: {fm_path} and {fmeta_path}")
 
-print("\n✅ All upserts completed successfully.")
+if __name__ == "__main__":
+    upsert_models_and_meta('fightermodels.json', 'fighters.json', 'in.json')

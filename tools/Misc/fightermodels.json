@@ -77,7 +77,35 @@
         -0.2,
         -0.1
       ]
-    ]
+    ],
+    "armor": {
+      "body": 15,
+      "wing": 5,
+      "tail": 8,
+      "engine": 20
+    },
+    "subsystems": {
+      "engine": {
+        "hp": 60,
+        "effects": [
+          "thrust_loss",
+          "smoke"
+        ]
+      },
+      "fuel_tank": {
+        "hp": 40,
+        "effects": [
+          "fire",
+          "leak"
+        ]
+      },
+      "pilot": {
+        "hp": 20,
+        "effects": [
+          "kill"
+        ]
+      }
+    }
   },
   "MiG-21": {
     "body": [
@@ -157,7 +185,35 @@
         -0.15,
         -0.05
       ]
-    ]
+    ],
+    "armor": {
+      "body": 18,
+      "wing": 6,
+      "tail": 10,
+      "engine": 25
+    },
+    "subsystems": {
+      "engine": {
+        "hp": 70,
+        "effects": [
+          "thrust_loss",
+          "smoke"
+        ]
+      },
+      "fuel_tank": {
+        "hp": 45,
+        "effects": [
+          "fire",
+          "leak"
+        ]
+      },
+      "pilot": {
+        "hp": 25,
+        "effects": [
+          "kill"
+        ]
+      }
+    }
   },
   "Mirage 2000": {
     "body": [
