@@ -1,11 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3D
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import json
 import gc
-import matplotlib
-matplotlib.use("TkAgg")
 
 # Constants
 SPEED = 1.0
@@ -14,10 +12,14 @@ ENERGY_LOSS_PER_TURN = 0.01
 WORLD_LIMIT = 30
 AVOID_EDGE_DIST = 10
 COLLISION_DIST = 2.5
-MISSILE_SPEED = 2.0
+MISSILE_SPEED = 400.0
 MISSILE_TURN = np.radians(5)
 MISSILE_HIT_DIST = 2.0
 MISSILE_DAMAGE = 40
+MISSILE_MASS = 200.0
+MISSILE_TOTAL_TURN_ENERGY = 300e6
+MISSILE_MAX_RANGE = 2000
+MISSILE_BURN_FRAMES = 90
 RESPAWN_DELAY = 60
 CAMERA_ORBIT_RADIUS = 50
 CAMERA_SPEED = 0.02
@@ -26,6 +28,13 @@ VICTORY_SCORE = 5
 MAX_HEALTH = 100
 MAX_TRAIL = 200
 MAX_PATH = 100
+
+# Gun parameters
+GUN_FIRE_PROB = 0.2
+GUN_RANGE = 400.0
+GUN_ARC_COS = 0.98
+GUN_DAMAGE = 4
+GUN_FLASH_DURATION = 3  # frames
 
 # Utility functions
 def normalize(v):
@@ -50,20 +59,36 @@ class Missile:
         self.alive = True
         self.path = [self.position.copy()]
         self.color = color
+        self.fuel = MISSILE_TOTAL_TURN_ENERGY
+        self.burn_frames = MISSILE_BURN_FRAMES
+        self.range_left = MISSILE_MAX_RANGE
 
     def update(self):
         if not self.alive or not self.target.alive:
             self.alive = False
             return
-        to_target = normalize(self.target.position - self.position)
-        axis = normalize(np.cross(self.velocity, to_target))
-        angle = np.arccos(np.clip(np.dot(self.velocity, to_target), -1.0, 1.0))
-        angle = min(angle, MISSILE_TURN)
-        if np.linalg.norm(axis) > 1e-6:
-            self.velocity = normalize(np.dot(rotation_matrix(axis, angle), self.velocity))
-        self.position += self.velocity
+
+        if self.burn_frames > 0:
+            to_target = normalize(self.target.position - self.position)
+            dot = np.clip(np.dot(self.velocity, to_target), -1.0, 1.0)
+            angle = np.arccos(dot)
+            if angle > 1e-3:
+                axis = normalize(np.cross(self.velocity, to_target))
+                turn_angle = min(angle, MISSILE_TURN)
+                self.velocity = normalize(rotation_matrix(axis, turn_angle) @ self.velocity)
+                turn_work = 0.5 * MISSILE_MASS * (MISSILE_SPEED ** 2) * (turn_angle / (2 * np.pi))
+                self.fuel -= turn_work
+                self.burn_frames -= 1
+                if self.fuel <= 0:
+                    self.burn_frames = 0
+
+        self.position += self.velocity / 20.0
         self.path.append(self.position.copy())
         self.path = self.path[-MAX_PATH:]
+        self.range_left -= np.linalg.norm(self.velocity) / 20.0
+
+        if self.range_left <= 0:
+            self.alive = False
 
         if np.linalg.norm(self.position - self.target.position) < MISSILE_HIT_DIST:
             self.target.take_damage(MISSILE_DAMAGE)
@@ -90,6 +115,7 @@ class Aircraft:
         self.alive = True
         self.respawn_timer = 0
         self.missiles = []
+        self.gun_flash_timer = 0  # For simple gun flash animation
         if self.type == "fast":
             self.max_missiles = 2
             self.evasion_chance = 0.5
@@ -98,6 +124,7 @@ class Aircraft:
             self.evasion_chance = 0.1
 
     def update(self, enemy):
+        global kill_message, kill_message_timer
         if not self.alive:
             self.respawn_timer += 1
             if self.respawn_timer > RESPAWN_DELAY:
@@ -108,6 +135,12 @@ class Aircraft:
         dist = np.linalg.norm(to_enemy)
         if dist < 12 and len(self.missiles) < self.max_missiles and np.random.rand() < 0.05:
             self.fire(enemy)
+
+        # Gun fire: simple flash + damage
+        alignment = np.dot(normalize(self.velocity), normalize(to_enemy))
+        if alignment > GUN_ARC_COS and dist < GUN_RANGE and np.random.rand() < GUN_FIRE_PROB:
+            enemy.take_damage(GUN_DAMAGE)
+            self.gun_flash_timer = GUN_FLASH_DURATION
 
         if dist < 5 and np.random.rand() < self.evasion_chance:
             offset = np.random.normal(scale=2.0, size=3)
@@ -140,9 +173,12 @@ class Aircraft:
         self.missiles.append(Missile(self.position.copy(), self.velocity.copy(), target, self.color))
 
     def take_damage(self, amount):
+        global kill_message, kill_message_timer
         self.health -= amount
         if self.health <= 0:
             self.explode()
+            kill_message = f"{self.name} KILLED!"
+            kill_message_timer = 50  # show for ~2.5 seconds
 
     def explode(self):
         self.alive = False
@@ -196,16 +232,35 @@ ac2 = Aircraft([10, 10, 0], [-1, -0.5, 0.2], 'red', 'Red', 'heavy', fighter_mode
 t1, = ax.plot([], [], [], 'b-', linewidth=1)
 t2, = ax.plot([], [], [], 'r-', linewidth=1)
 missile_lines = []
+gun_flash_dots = []
 status_text = ax.text2D(0.05, 0.95, "", transform=ax.transAxes)
 
-def update(frame):
-    global missile_lines
-    ac1.update(ac2)
-    ac2.update(ac1)
+kill_message = ""
+kill_message_timer = 0
 
+def update(frame):
+    global missile_lines, gun_flash_dots, kill_message, kill_message_timer
+
+    # Remove old missile lines
     for line in missile_lines:
         line.remove()
     missile_lines.clear()
+
+    # Remove old gun flashes
+    for dot in gun_flash_dots:
+        dot.remove()
+    gun_flash_dots.clear()
+
+    ac1.update(ac2)
+    ac2.update(ac1)
+
+    gun_flashes = []
+    for ac in [ac1, ac2]:
+        if ac.gun_flash_timer > 0:
+            flash_pos = ac.position + normalize(ac.velocity) * 1.5
+            dot, = ax.plot([flash_pos[0]], [flash_pos[1]], [flash_pos[2]], 'yo', markersize=8)
+            gun_flash_dots.append(dot)
+            ac.gun_flash_timer -= 1
 
     for ac in [ac1, ac2]:
         for m in ac.missiles:
@@ -234,17 +289,14 @@ def update(frame):
         f"{ac1.name} ({ac1.type}) | HP: {ac1.health} | Score: {ac1.score} | Missiles: {len(ac1.missiles)}\n"
         f"{ac2.name} ({ac2.type}) | HP: {ac2.health} | Score: {ac2.score} | Missiles: {len(ac2.missiles)}"
     )
-    if ac1.score >= VICTORY_SCORE:
-        status += "\nBlue Wins!"
-    elif ac2.score >= VICTORY_SCORE:
-        status += "\nRed Wins!"
-    status_text.set_text(status)
 
-    if frame % 100 == 0:
-        gc.collect()
+    if kill_message_timer > 0:
+        status_text.set_text(status + "\n\n" + kill_message)
+        kill_message_timer -= 1
+    else:
+        status_text.set_text(status)
 
-    return [t1, t2, status_text] + missile_lines + ac1.poly_artists + ac2.poly_artists
+    return [t1, t2, status_text] + missile_lines + gun_flash_dots + ac1.poly_artists + ac2.poly_artists
 
 ani = FuncAnimation(fig, update, frames=2000, interval=50, blit=False)
 plt.show()
-
