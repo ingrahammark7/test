@@ -2,26 +2,46 @@ import json
 import os
 
 INPUT_FILE = "in.json"
-TARGET_FILE = "fightermodels.json"
+MODELS_FILE = "fightermodels.json"
+METADATA_FILE = "fighters.json"
 
-# Load existing fighter models (if file exists)
-if os.path.exists(TARGET_FILE):
-    with open(TARGET_FILE, "r") as f:
-        existing_models = json.load(f)
+# Load existing fighter models
+if os.path.exists(MODELS_FILE):
+    with open(MODELS_FILE, "r") as f:
+        fighter_models = json.load(f)
 else:
-    existing_models = {}
+    fighter_models = {}
 
-# Load new input data
+# Load existing metadata
+if os.path.exists(METADATA_FILE):
+    with open(METADATA_FILE, "r") as f:
+        fighter_metadata = json.load(f)
+else:
+    fighter_metadata = {}
+
+# Load input file
 with open(INPUT_FILE, "r") as f:
-    new_models = json.load(f)
+    incoming = json.load(f)
 
-# Upsert new models into existing ones
-for key, value in new_models.items():
-    existing_models[key] = value
-    print(f"Upserted model: {key}")
+# Process and upsert
+for name, entry in incoming.items():
+    if "model" in entry:
+        fighter_models[name] = entry["model"]
+        print(f"✅ Upserted model: {name}")
+    else:
+        print(f"⚠️ No 'model' found for {name}, skipping model upsert.")
 
-# Save updated models
-with open(TARGET_FILE, "w") as f:
-    json.dump(existing_models, f, indent=2)
+    if "meta" in entry:
+        fighter_metadata[name] = entry["meta"]
+        print(f"📝 Upserted metadata: {name}")
+    else:
+        print(f"⚠️ No 'meta' found for {name}, skipping metadata upsert.")
 
-print("fightermodels.json updated.")
+# Save both updated files
+with open(MODELS_FILE, "w") as f:
+    json.dump(fighter_models, f, indent=2)
+print(f"\nSaved: {MODELS_FILE}")
+
+with open(METADATA_FILE, "w") as f:
+    json.dump(fighter_metadata, f, indent=2)
+print(f"Saved: {METADATA_FILE}")
