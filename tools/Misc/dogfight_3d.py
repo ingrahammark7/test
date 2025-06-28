@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import json
-import time
 import gc
-from CameraFocusManager import CameraFocusManager  # Make sure this file is in same dir
+import random
 
 # Constants
 SPEED = 1.0
@@ -20,13 +19,20 @@ MISSILE_TURN = np.radians(5)
 MISSILE_HIT_DIST = 2.0
 MISSILE_DAMAGE = 40
 RESPAWN_DELAY = 60
-CAMERA_ORBIT_RADIUS = 50
-CAMERA_SPEED = 0.02
+CAMERA_DISTANCE = 40
+CAMERA_ELEVATION = 20
+CAMERA_SWITCH_INTERVAL = 100  # frames between switching target
 SLOWMO_FRAMES = 30
 VICTORY_SCORE = 5
 MAX_HEALTH = 100
 
-# Helper functions
+# Globals for camera
+camera_target = None
+camera_target_timer = 0
+
+def lerp(a, b, t):
+    return a + (b - a) * t
+
 def normalize(v):
     norm = np.linalg.norm(v)
     return v if norm == 0 else v / norm
@@ -41,7 +47,6 @@ def rotation_matrix(axis, angle):
     I = np.identity(3)
     return I + np.sin(angle) * K + (1 - np.cos(angle)) * (K @ K)
 
-# Classes for Missile, Aircraft, GunParticle as before
 class Missile:
     def __init__(self, position, velocity, target, color):
         self.position = np.array(position)
@@ -50,7 +55,6 @@ class Missile:
         self.alive = True
         self.path = [self.position.copy()]
         self.color = color
-        self.fuel = 18  # realistic fuel time for missile in frames (~18 frames)
 
     def update(self):
         if not self.alive or not self.target.alive:
@@ -65,39 +69,21 @@ class Missile:
         self.position += self.velocity
         self.path.append(self.position.copy())
 
-        self.fuel -= 1
-        if self.fuel <= 0:
-            self.alive = False
-            return
-
         if np.linalg.norm(self.position - self.target.position) < MISSILE_HIT_DIST:
             self.target.take_damage(MISSILE_DAMAGE)
             self.alive = False
 
-class GunParticle:
-    def __init__(self, position, velocity, lifespan=10):
-        self.position = np.array(position)
-        self.velocity = np.array(velocity)
-        self.lifespan = lifespan
-        self.age = 0
-
-    def update(self):
-        self.position += self.velocity
-        self.age += 1
-        return self.age < self.lifespan
-
 class Aircraft:
-    def __init__(self, position, velocity, color, name, aircraft_type, model, gun_params):
+    def __init__(self, position, velocity, color, name, aircraft_type, model):
         self.init_pos = position
         self.init_vel = velocity
         self.color = color
         self.name = name
         self.type = aircraft_type  # "fast" or "heavy"
-        self.model = model
-        self.gun_params = gun_params  # dict, e.g. {'rate': 0.1, 'range': 5, 'damage': 10, 'particles': 5}
+        self.model = model  # Loaded polygon model
         self.score = 0
         self.reset()
-        self.artists = []
+        self.artists = []  # To keep track of Poly3DCollections
 
     def reset(self):
         self.position = np.array(self.init_pos, dtype=float)
@@ -108,8 +94,6 @@ class Aircraft:
         self.alive = True
         self.respawn_timer = 0
         self.missiles = []
-        self.gun_cooldown = 0
-        self.gun_particles = []
         if self.type == "fast":
             self.max_missiles = 2
             self.evasion_chance = 0.5
@@ -126,22 +110,9 @@ class Aircraft:
 
         to_enemy = enemy.position - self.position
         dist = np.linalg.norm(to_enemy)
-        # Missile fire logic
         if dist < 12 and len(self.missiles) < self.max_missiles and np.random.rand() < 0.05:
-            self.fire_missile(enemy)
+            self.fire(enemy)
 
-        # Gun fire if lined up (simple dot product check)
-        if dist < self.gun_params['range'] and self.gun_cooldown <= 0:
-            direction_to_enemy = normalize(to_enemy)
-            alignment = np.dot(normalize(self.velocity), direction_to_enemy)
-            if alignment > 0.95:  # roughly facing the enemy
-                self.fire_gun(direction_to_enemy)
-                self.gun_cooldown = int(1 / self.gun_params['rate'])  # cooldown in frames
-
-        if self.gun_cooldown > 0:
-            self.gun_cooldown -= 1
-
-        # Evasion or normal target following
         if dist < 5 and np.random.rand() < self.evasion_chance:
             offset = np.random.normal(scale=2.0, size=3)
             target_pos = self.position - to_enemy + offset
@@ -160,37 +131,17 @@ class Aircraft:
         self.position += self.velocity * self.energy
         self.trail.append(self.position.copy())
 
-        # Avoid edges
         for i in range(3):
             if abs(self.position[i]) > WORLD_LIMIT - AVOID_EDGE_DIST:
                 self.velocity[i] -= 0.1 * np.sign(self.position[i])
 
-        # Update missiles
         for m in self.missiles:
             m.update()
         self.missiles = [m for m in self.missiles if m.alive]
 
-        # Update gun particles
-        self.gun_particles = [p for p in self.gun_particles if p.update()]
-
-    def fire_missile(self, target):
+    def fire(self, target):
         missile = Missile(self.position.copy(), self.velocity.copy(), target, self.color)
         self.missiles.append(missile)
-
-    def fire_gun(self, direction):
-        # Spawn particles in a cone in front
-        count = self.gun_params.get('particles', 5)
-        speed = 5
-        spread = 0.1
-        base_pos = self.position + normalize(self.velocity) * 1.5
-        for _ in range(count):
-            # random spread direction
-            offset = np.random.normal(scale=spread, size=3)
-            vel = normalize(direction + offset) * speed
-            self.gun_particles.append(GunParticle(base_pos.copy(), vel))
-
-        # Chance to damage enemy if close and aligned
-        # This will be handled in main update loop or optionally here
 
     def take_damage(self, amount):
         self.health -= amount
@@ -227,7 +178,7 @@ def plot_aircraft(ax, aircraft):
             ax.add_collection3d(poly)
             aircraft.artists.append(poly)
 
-# Sample fighter models JSON (or load from file)
+# Load fighter models JSON
 fighter_models_json = """
 {
   "F-16": {
@@ -246,12 +197,6 @@ fighter_models_json = """
 """
 fighter_models = json.loads(fighter_models_json)
 
-# Sample gun parameters by aircraft type (tweak as needed)
-gun_parameters = {
-    'fast': {'rate': 10, 'range': 5, 'damage': 10, 'particles': 10},  # rate = shots per second (approx)
-    'heavy': {'rate': 5, 'range': 7, 'damage': 12, 'particles': 15}
-}
-
 # Setup scene
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
@@ -260,41 +205,29 @@ ax.set_ylim(-WORLD_LIMIT, WORLD_LIMIT)
 ax.set_zlim(-WORLD_LIMIT, WORLD_LIMIT)
 
 # Create aircraft
-ac1 = Aircraft(position=[-10, -10, 0], velocity=[1, 0.5, 0.2], color='blue', name='Blue', aircraft_type='fast', model=fighter_models['F-16'], gun_params=gun_parameters['fast'])
-ac2 = Aircraft(position=[10, 10, 0], velocity=[-1, -0.5, 0.2], color='red', name='Red', aircraft_type='heavy', model=fighter_models['MiG-21'], gun_params=gun_parameters['heavy'])
+ac1 = Aircraft(position=[-10, -10, 0], velocity=[1, 0.5, 0.2], color='blue', name='Blue', aircraft_type='fast', model=fighter_models['F-16'])
+ac2 = Aircraft(position=[10, 10, 0], velocity=[-1, -0.5, 0.2], color='red', name='Red', aircraft_type='heavy', model=fighter_models['MiG-21'])
 
-# Plotting helpers
-p1 = plt.Line2D([], [], color='blue', marker='o', linestyle='', markersize=8)
-p2 = plt.Line2D([], [], color='red', marker='o', linestyle='', markersize=8)
-ax.add_line(p1)
-ax.add_line(p2)
+# Points for aircraft centers
+p1, = ax.plot([], [], [], 'bo', markersize=8)
+p2, = ax.plot([], [], [], 'ro', markersize=8)
 
+# Trails
 t1, = ax.plot([], [], [], 'b-', linewidth=1)
 t2, = ax.plot([], [], [], 'r-', linewidth=1)
+
 missile_lines = []
-gun_particle_lines = []
 status_text = ax.text2D(0.05, 0.95, "", transform=ax.transAxes)
 
-# Create camera focus manager with both aircraft
-camera_manager = CameraFocusManager(ax, [ac1, ac2], missile_lines)
-
 def update(frame):
-    global missile_lines, gun_particle_lines, p1, p2
+    global missile_lines, p1, p2, camera_target, camera_target_timer
 
     ac1.update(ac2)
     ac2.update(ac1)
 
-    # Remove old missile lines
     for line in missile_lines:
         line.remove()
-    missile_lines.clear()
-
-    # Remove old gun particle lines
-    for line in gun_particle_lines:
-        line.remove()
-    gun_particle_lines.clear()
-
-    # Draw missiles
+    missile_lines = []
     for ac in [ac1, ac2]:
         for m in ac.missiles:
             if len(m.path) >= 2:
@@ -302,42 +235,40 @@ def update(frame):
                 l, = ax.plot(path[:, 0], path[:, 1], path[:, 2], color=m.color, linestyle='--', linewidth=1)
                 missile_lines.append(l)
 
-    # Draw gun particles
-    for ac in [ac1, ac2]:
-        for p in ac.gun_particles:
-            l, = ax.plot([p.position[0]], [p.position[1]], [p.position[2]], 'o', color=ac.color, markersize=3, alpha=0.7)
-            gun_particle_lines.append(l)
-
-    # Update aircraft models
     plot_aircraft(ax, ac1)
     plot_aircraft(ax, ac2)
 
-    # Scoring
-    if not ac1.alive and ac1.respawn_timer == 0:
-        ac2.score += 1
-    if not ac2.alive and ac2.respawn_timer == 0:
-        ac1.score += 1
+    # Update aircraft center points
+    if ac1.alive:
+        p1.set_data([ac1.position[0]], [ac1.position[1]])
+        p1.set_3d_properties([ac1.position[2]])
+    else:
+        p1.set_data([], [])
+        p1.set_3d_properties([])
 
-    # Trails
+    if ac2.alive:
+        p2.set_data([ac2.position[0]], [ac2.position[1]])
+        p2.set_3d_properties([ac2.position[2]])
+    else:
+        p2.set_data([], [])
+        p2.set_3d_properties([])
+
+    # Update trails
     t1.set_data([p[0] for p in ac1.trail], [p[1] for p in ac1.trail])
     t1.set_3d_properties([p[2] for p in ac1.trail])
     t2.set_data([p[0] for p in ac2.trail], [p[1] for p in ac2.trail])
     t2.set_3d_properties([p[2] for p in ac2.trail])
 
-    # Points for aircraft centers
-    if ac1.alive:
-        p1.set_data([ac1.position[0]], [ac1.position[1]])
-    if ac2.alive:
-        p2.set_data([ac2.position[0]], [ac2.position[1]])
+    # Update scores when aircraft respawn
+    if not ac1.alive and ac1.respawn_timer == 0:
+        ac2.score += 1
+    if not ac2.alive and ac2.respawn_timer == 0:
+        ac1.score += 1
 
-    # Update camera focus and transform
-    camera_manager.update(frame)
-
-    gc.collect()
-
+    # Status
     status = (
-        f"{ac1.name} ({ac1.type}) | HP: {ac1.health} | Score: {ac1.score} | Missiles: {len(ac1.missiles)} | Guns: {len(ac1.gun_particles)}\n"
-        f"{ac2.name} ({ac2.type}) | HP: {ac2.health} | Score: {ac2.score} | Missiles: {len(ac2.missiles)} | Guns: {len(ac2.gun_particles)}"
+        f"{ac1.name} ({ac1.type}) | HP: {ac1.health} | Score: {ac1.score} | Missiles: {len(ac1.missiles)}\n"
+        f"{ac2.name} ({ac2.type}) | HP: {ac2.health} | Score: {ac2.score} | Missiles: {len(ac2.missiles)}"
     )
     if ac1.score >= VICTORY_SCORE:
         status += "\nBlue Wins!"
@@ -345,10 +276,34 @@ def update(frame):
         status += "\nRed Wins!"
     status_text.set_text(status)
 
-    # Return all artists for blitting if needed (set blit=True)
-    return [p1, p2, t1, t2, status_text] + missile_lines + gun_particle_lines + ac1.artists + ac2.artists
+    # Camera focus logic
+    camera_target_timer += 1
+    alive_planes = [ac for ac in [ac1, ac2] if ac.alive]
+    if camera_target is None or camera_target_timer > CAMERA_SWITCH_INTERVAL or camera_target not in alive_planes:
+        if alive_planes:
+            camera_target = random.choice(alive_planes)
+        camera_target_timer = 0
+
+    if camera_target is not None:
+        target_pos = camera_target.position
+        target_dir = camera_target.velocity if np.linalg.norm(camera_target.velocity) > 0 else np.array([1, 0, 0])
+        target_dir = normalize(target_dir)
+        desired_cam_pos = target_pos - target_dir * CAMERA_DISTANCE + np.array([0, 0, CAMERA_ELEVATION])
+        azim = np.degrees(np.arctan2(desired_cam_pos[1] - target_pos[1], desired_cam_pos[0] - target_pos[0]))
+
+        if not hasattr(update, "last_azim"):
+            update.last_azim = azim
+        azim = lerp(update.last_azim, azim, 0.05)
+        update.last_azim = azim
+
+        ax.view_init(elev=CAMERA_ELEVATION, azim=azim)
+    else:
+        ax.view_init(elev=CAMERA_ELEVATION, azim=frame * 0.2)
+
+    gc.collect()
+
+    return [p1, p2, t1, t2, status_text] + missile_lines + ac1.artists + ac2.artists
 
 ani = FuncAnimation(fig, update, frames=2000, interval=50, blit=False)
 plt.show()
-
 
