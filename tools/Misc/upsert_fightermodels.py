@@ -5,43 +5,44 @@ INPUT_FILE = "in.json"
 MODELS_FILE = "fightermodels.json"
 METADATA_FILE = "fighters.json"
 
-# Load existing fighter models
-if os.path.exists(MODELS_FILE):
-    with open(MODELS_FILE, "r") as f:
-        fighter_models = json.load(f)
-else:
-    fighter_models = {}
+# Load existing
+def load_json(path):
+    return json.load(open(path)) if os.path.exists(path) else {}
 
-# Load existing metadata
-if os.path.exists(METADATA_FILE):
-    with open(METADATA_FILE, "r") as f:
-        fighter_metadata = json.load(f)
-else:
-    fighter_metadata = {}
+fighter_models = load_json(MODELS_FILE)
+fighter_metadata = load_json(METADATA_FILE)
 
-# Load input file
-with open(INPUT_FILE, "r") as f:
-    incoming = json.load(f)
+# Load new combined input
+try:
+    with open(INPUT_FILE, "r") as f:
+        incoming = json.load(f)
+except json.JSONDecodeError as e:
+    print(f"❌ JSON parsing error in {INPUT_FILE}: {e}")
+    exit(1)
 
-# Process and upsert
-for name, entry in incoming.items():
-    if "model" in entry:
-        fighter_models[name] = entry["model"]
-        print(f"✅ Upserted model: {name}")
-    else:
-        print(f"⚠️ No 'model' found for {name}, skipping model upsert.")
+# Process
+for name, data in incoming.items():
+    # Fallbacks
+    model = data.get("model", {
+        "body": [[0, 0, 0], [1, 0, 0.1], [3, 0, 0], [1, 0, -0.1]],
+        "wing": [[1, -1, 0], [2, 0, 0], [1, 1, 0]],
+        "tail": [[2.5, 0, 0], [2.8, 0.2, 0.5], [2.8, -0.2, 0.5]],
+        "engine": [[0, -0.2, -0.1], [0, 0.2, -0.1], [-0.5, 0.2, -0.1], [-0.5, -0.2, -0.1]]
+    })
+    meta = data.get("meta", {
+        "gun": "unknown",
+        "nation": "unknown",
+        "in_service": 1900
+    })
 
-    if "meta" in entry:
-        fighter_metadata[name] = entry["meta"]
-        print(f"📝 Upserted metadata: {name}")
-    else:
-        print(f"⚠️ No 'meta' found for {name}, skipping metadata upsert.")
+    fighter_models[name] = model
+    fighter_metadata[name] = meta
+    print(f"✔️ {name} added (model {'✓' if 'model' in data else 'stub'}, meta {'✓' if 'meta' in data else 'stub'})")
 
-# Save both updated files
+# Save output
 with open(MODELS_FILE, "w") as f:
     json.dump(fighter_models, f, indent=2)
-print(f"\nSaved: {MODELS_FILE}")
-
 with open(METADATA_FILE, "w") as f:
     json.dump(fighter_metadata, f, indent=2)
-print(f"Saved: {METADATA_FILE}")
+
+print("\n✅ All upserts completed successfully.")
