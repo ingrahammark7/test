@@ -17,7 +17,9 @@
   "F-15": {
     "gun": "20 mm M61",
     "nation": "USA",
-    "in_service": 1976
+    "in_service": 1976,
+    "engine": "F100-PW-229",
+    "engine_count": 2
   },
   "F-15E": {
     "gun": "20 mm M61",
@@ -27,7 +29,9 @@
   "F-16": {
     "gun": "20 mm M61",
     "nation": "USA",
-    "in_service": 1978
+    "in_service": 1978,
+    "engine": "F110-GE-129",
+    "engine_count": 1
   },
   "F-18": {
     "gun": "20 mm M61",
@@ -72,7 +76,9 @@
   "MiG-21": {
     "gun": "23 mm GSh23",
     "nation": "USSR",
-    "in_service": 1959
+    "in_service": 1959,
+    "engine": "R-25-300",
+    "engine_count": 1
   },
   "MiG-23": {
     "gun": "23 mm GSh23",
@@ -117,6 +123,8 @@
   "Su-35": {
     "gun": "30 mm GSh30",
     "nation": "Russia",
-    "in_service": 2008
+    "in_service": 2008,
+    "engine": "AL-41F1S",
+    "engine_count": 2
   }
 }

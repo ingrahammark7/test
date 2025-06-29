@@ -16,12 +16,11 @@ def upsert_models_and_meta(fm_path, fmeta_path, in_path):
     fighters_meta = load_json(fmeta_path)
     in_data = load_json(in_path)
 
-    # Upsert fightermodels
+    # Upsert fightermodels (model data)
     for model_name, model_data in in_data.items():
         if model_name == "meta":
-            continue  # skip meta key in models
+            continue  # skip meta key here
         if model_name in fightermodels:
-            # Merge dictionaries; deep merge armor and subsystems if present
             for key, value in model_data.items():
                 if isinstance(value, dict) and key in fightermodels[model_name]:
                     fightermodels[model_name][key].update(value)
@@ -30,7 +29,7 @@ def upsert_models_and_meta(fm_path, fmeta_path, in_path):
         else:
             fightermodels[model_name] = model_data
 
-    # Upsert fighters meta if present
+    # Upsert fighters meta (including engine info)
     if "meta" in in_data:
         for model_name, meta_data in in_data["meta"].items():
             if model_name in fighters_meta:
