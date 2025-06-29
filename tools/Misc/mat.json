@@ -86,5 +86,38 @@
     "hvl": {
       "0.5MeV": 15.0
     }
+  },
+  {
+    "name": "nickel_superalloy",
+    "density": 8400,
+    "energy_density": 0,
+    "tensile": 1100e6,
+    "melting_point": 1455,
+    "specific_heat": 435,
+    "hvl": {
+      "0.5MeV": 1.3
+    }
+  },
+  {
+    "name": "hardened_steel",
+    "density": 8000,
+    "energy_density": 0,
+    "tensile": 600e6,
+    "melting_point": 1400,
+    "specific_heat": 500,
+    "hvl": {
+      "0.5MeV": 1.6
+    }
+  },
+  {
+    "name": "titanium_alloy",
+    "density": 4500,
+    "energy_density": 0,
+    "tensile": 900e6,
+    "melting_point": 1668,
+    "specific_heat": 520,
+    "hvl": {
+      "0.5MeV": 1.4
+    }
   }
 ]
