@@ -1,56 +1,37 @@
 import json
 
-# Load materials and fighters data
-with open('mat.json', 'r') as f:
-    materials = json.load(f)
+def load_json(filename):
+    with open(filename, 'r') as f:
+        return json.load(f)
 
-with open('fightermodels.json', 'r') as f:
-    fighters = json.load(f)
+def estimate_mass(fighter, density_map):
+    length_m = fighter["length_cm"] / 100
+    width_m = fighter["frontal_width_cm"] / 100
+    height_m = fighter["frontal_height_cm"] / 100
+    skin_thickness_m = fighter.get("skin_thickness_cm", 0.1) / 100
+    center_plate_thickness_m = fighter.get("center_plate_thickness_cm", 0) / 100
 
+    # Wetted area = 2 * (length * height) + 2 * (length * width)
+    skin_area = 2 * (length_m * height_m) + 2 * (length_m * width_m)
 
-def get_material_property(name, prop):
-    for mat in materials:
-        if mat.get("name", "").lower() == name.lower():
-            return mat.get(prop)
-    return None
+    skin_volume = skin_area * skin_thickness_m
+    center_plate_volume = width_m * height_m * center_plate_thickness_m
 
+    mass_skin = skin_volume * density_map.get("aluminum", 2700)
+    mass_center = center_plate_volume * density_map.get("titanium", 4500)
 
-def estimate_aircraft_mass_simple(fighter_data, thickness_scale=1.0):
-    L = fighter_data.get("length_cm", 0)
-    W = fighter_data.get("frontal_width_cm", 0)
-    H = fighter_data.get("frontal_height_cm", 0)
-    skin_thickness = fighter_data.get("skin_thickness_cm", 0.1) * thickness_scale
-    center_thickness = fighter_data.get("center_plate_thickness_cm", 0.0)
+    return mass_skin + mass_center
 
-    density_aluminum = get_material_property("Aluminum", "density") or 2700
-    density_titanium = get_material_property("Titanium", "density") or 4500
+def main():
+    fightermodels = load_json("fightermodels.json")
+    materials = load_json("mat.json")
 
-    # Wetted area approximation (cm^2)
-    wetted_area = 2 * L * (W + H)
+    # Create a dict mapping lowercase material names to densities
+    density_map = {mat["name"].lower(): mat.get("density", 0) for mat in materials}
 
-    skin_volume = wetted_area * skin_thickness       # in cm^3
-    center_volume = W * H * center_thickness if center_thickness > 0 else 0  # in cm^3
-
-    # Convert cm^3 to m^3 by dividing by 1,000,000 for mass in kg
-    mass_aluminum = skin_volume * density_aluminum / 1_000_000
-    mass_titanium = center_volume * density_titanium / 1_000_000
-
-    print(f"Aircraft dimensions (LxWxH): {L} x {W} x {H} cm")
-    print(f"Scaled skin thickness: {skin_thickness} cm (scale factor {thickness_scale})")
-    print(f"Wetted area: {wetted_area:.2f} cm^2")
-    print(f"Skin volume: {skin_volume:.2f} cm^3, Center plate volume: {center_volume:.2f} cm^3")
-    print(f"Density Aluminum: {density_aluminum} kg/m^3, Density Titanium: {density_titanium} kg/m^3")
-    print(f"Mass Aluminum: {mass_aluminum:.2f} kg, Mass Titanium: {mass_titanium:.2f} kg\n")
-
-    return mass_aluminum + mass_titanium
-
+    for name, fighter in fightermodels.items():
+        total_mass = estimate_mass(fighter, density_map)
+        print(f"{name} estimated mass: {total_mass:.2f} kg")
 
 if __name__ == "__main__":
-    # Use thickness_scale < 1 to better approximate real skin thickness
-    thickness_scale = 0.1  # Example: 10% of given skin thickness (e.g. 0.1 cm * 0.1 = 0.01 cm)
-
-    for name, data in fighters.items():
-        print(f"Estimating mass for {name}:")
-        mass = estimate_aircraft_mass_simple(data, thickness_scale=thickness_scale)
-        print(f"Estimated total mass: {mass:.2f} kg")
-        print('-' * 40)
+    main()
