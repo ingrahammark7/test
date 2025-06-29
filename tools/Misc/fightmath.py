@@ -1,98 +1,195 @@
 import json
 import math
-import re
 
-# Load data
-with open("mat.json") as f:
-    materials = json.load(f)
-with open("fightermodels.json") as f:
+# Load materials data from mat.json
+with open('mat.json') as f:
+    materials_list = json.load(f)
+materials = {m['name'].lower(): m for m in materials_list}
+
+# Load fighter models data from fightermodels.json
+with open('fightermodels.json') as f:
     fighter_models = json.load(f)
-with open("fighters.json") as f:
-    fighters_info = json.load(f)
 
-# Get material properties
-def get_mat(name, prop):
-    mat = next((m for m in materials if m["name"].lower() == name.lower()), None)
-    return mat.get(prop) if mat else None
+# Load fighters data from fighters.json
+with open('fighters.json') as f:
+    fighters = json.load(f)
 
-# Material constants
-rho_steel = get_mat("Steel", "density")
-T_melt_steel = get_mat("Steel", "melting_point") + 273.15
-cp_steel = get_mat("Steel", "specific_heat")
-sigma_steel = get_mat("Steel", "tensile")
-rho_air = 1.225
-T_air = 300
-h = 100  # W/m^2K
+STEEL_NAME = 'steel'
+AL_NAME = 'aluminum'
+TI_NAME = 'titanium'
 
-rho_al = get_mat("Aluminum", "density") or 2700
-rho_ti = get_mat("Titanium", "density") or 4500
+# Constants
+AIR_DENSITY = 1.225  # kg/m3 (sea level)
+HEAT_TRANSFER_COEFF = 50  # W/(m2·K) typical forced convection steel-air approx
+STEFAN_BOLTZMANN = 5.670374419e-8  # W/m2K4, not used now but good to keep
 
-# Regex to extract caliber
-caliber_re = re.compile(r"(\d+(\.\d+)?)\s*mm")
+def estimate_aircraft_mass(name, scale=1.0):
+    fm = fighter_models.get(name)
+    if not fm:
+        print(f"No fighter model for {name}")
+        return 0.0
 
-def extract_caliber(gun_name):
-    m = caliber_re.search(gun_name or "")
-    return (float(m.group(1)) / 1000) if m else None
+    length = fm.get("length_cm", 0) * scale
+    width = fm.get("frontal_width_cm", 0) * scale
+    height = fm.get("frontal_height_cm", 0) * scale
+    skin_thickness = fm.get("skin_thickness_cm", 0.01) * scale
+    center_plate_thickness = fm.get("center_plate_thickness_cm", 0) * scale
 
-# Gun physics
+    # Wetted area approx: sum of side rectangles (no wings detailed)
+    wetted_area = 2 * (length * height + length * width + width * height)  # cm2
 
-def v_eq():
-    return ((2 * h * (T_melt_steel - T_air)) / rho_air) ** (1/3)
+    # Volumes in cm3
+    skin_volume = wetted_area * skin_thickness
+    center_plate_volume = length * width * center_plate_thickness
 
-def time_to_half(caliber):
-    d = caliber
-    L = 10 * d
-    mass = math.pi * (d/2)**2 * L * rho_steel
-    surface = math.pi * d * L
-    T_target = (T_melt_steel + T_air) / 2
-    Q = mass * cp_steel * (T_target - T_air)
-    Qdot = h * surface * (T_melt_steel - T_air)
-    return Q / Qdot
+    density_al = materials.get(AL_NAME, {}).get("density", 2700)  # kg/m3
+    density_ti = materials.get(TI_NAME, {}).get("density", 4500)
 
-def v_firing_limit():
-    return math.sqrt(2 * sigma_steel / rho_steel)
+    # Convert volumes cm3 to m3
+    skin_volume_m3 = skin_volume / 1e6
+    center_plate_volume_m3 = center_plate_volume / 1e6
 
-results = {}
-for name, model in fighter_models.items():
-    gun = fighters_info.get(name, {}).get("gun")
-    calib = extract_caliber(gun)
+    mass_al = skin_volume_m3 * density_al
+    mass_ti = center_plate_volume_m3 * density_ti
 
-    length = model.get("length_cm", 0)
-    width = model.get("frontal_width_cm", 0)
-    height = model.get("frontal_height_cm", 0)
-    skin_thickness = model.get("skin_thickness_cm", 0)
-    center_plate = model.get("center_plate_thickness_cm", 0)
+    total_mass = mass_al + mass_ti
 
-    area = width * height
-    skin_volume = area * skin_thickness
-    center_volume = (width * height) * center_plate
+    print(f"Estimating mass for {name}:")
+    print(f"Aircraft dimensions (LxWxH): {length} x {width} x {height} cm")
+    print(f"Skin thickness: {skin_thickness:.4f} cm, Center plate thickness: {center_plate_thickness:.4f} cm")
+    print(f"Wetted area: {wetted_area:.2f} cm^2")
+    print(f"Skin volume: {skin_volume:.2f} cm^3, Center plate volume: {center_plate_volume:.2f} cm^3")
+    print(f"Density Aluminum: {density_al} kg/m^3, Density Titanium: {density_ti} kg/m^3")
+    print(f"Mass Aluminum: {mass_al:.2f} kg, Mass Titanium: {mass_ti:.2f} kg")
+    print(f"Estimated total mass: {total_mass:.2f} kg")
+    print("----------------------------------------")
 
-    mass_al = (skin_volume / 1e6) * rho_al
-    mass_ti = (center_volume / 1e6) * rho_ti
+    return total_mass
 
-    # Internal structure mass estimation (not shown but preserved in structure)
+def parse_gun_caliber(gun_name):
+    # Extract caliber in mm or cm from gun name by splitting and searching for a number + unit
+    parts = gun_name.replace(',', '').split()
+    for p in parts:
+        # Examples: '20', '30mm', '30', '27mm', 'M61'
+        if p.lower().endswith("mm"):
+            try:
+                return float(p[:-2])
+            except:
+                continue
+        else:
+            # Try convert to float if just a number
+            try:
+                val = float(p)
+                if 5 <= val <= 50:  # plausible caliber mm
+                    return val
+            except:
+                pass
+    return None
 
-    if calib:
-        d = calib
-        L = 10 * d
-        proj_vol = math.pi * (d/2)**2 * L
-        proj_mass = proj_vol * rho_steel
-        teq = time_to_half(calib)
-        vthermal = v_eq()
-        vfail = v_firing_limit()
-    else:
-        proj_mass = teq = vthermal = vfail = None
+def calculate_round_mass(caliber_mm, length_over_d=10):
+    # Cylinder volume: π * (r^2) * length, diameter = caliber_mm
+    radius_m = (caliber_mm / 1000) / 2
+    length_m = radius_m * 2 * length_over_d
+    volume_m3 = math.pi * radius_m ** 2 * length_m
+    density_steel = materials.get(STEEL_NAME, {}).get("density", 7850)  # kg/m3
+    mass = volume_m3 * density_steel
+    return mass
 
-    results[name] = {
-        "gun": gun,
-        "skin_mass_kg": mass_al,
-        "center_plate_mass_kg": mass_ti,
-        "projectile_mass_kg": proj_mass,
-        "steady_state_v_eq_m_s": vthermal,
-        "time_to_50pc_melt_s": teq,
-        "firing_speed_limit_m_s": vfail
-    }
+def calculate_equilibrium_velocity(round_mass, caliber_mm, max_temp=1510):
+    # Simple forced convection equilibrium temperature, ignoring radiation:
+    # q_conv = h*A*(T_surface - T_air)
+    # Power input = kinetic energy dissipation rate ~ 0.5*m*v^3 / length
+    # For simplicity, let's assume equilibrium speed when heat generated by drag equals cooling:
+    # Use frontal area for A and h = HEAT_TRANSFER_COEFF
+    
+    area_m2 = math.pi * (caliber_mm / 1000 / 2) ** 2
+    h = HEAT_TRANSFER_COEFF
+    rho_air = AIR_DENSITY
+    cp_steel = materials.get(STEEL_NAME, {}).get("specific_heat", 500)
+    T_air = 300  # K room temp approx
+    T_max = max_temp + 273.15  # K
 
-print(json.dumps(results, indent=2))
+    # Rearranged equilibrium speed v_eq:
+    # heat generation = heat loss
+    # 0.5 * rho_air * v^3 * Cd * A = h * A * (T_max - T_air)
+    # Assume Cd ~1 for blunt round nose:
+    Cd = 1.0
+    v_eq = ((2 * h * (T_max - T_air)) / (rho_air * Cd)) ** (1 / 3)
+    return v_eq
 
+def time_to_half_equilibrium(round_mass, caliber_mm, max_temp=1510):
+    # Thermal capacity and convective cooling approximate transient time scale
+    cp = materials.get(STEEL_NAME, {}).get("specific_heat", 500)  # J/kg-K
+    density = materials.get(STEEL_NAME, {}).get("density", 7850)  # kg/m3
+    volume = calculate_round_mass(caliber_mm) / density  # m3
+    surface_area = 2 * math.pi * (caliber_mm / 1000 / 2) * (caliber_mm / 1000 * 10)  # cylindrical approx
 
+    h = HEAT_TRANSFER_COEFF
+    m = round_mass
+    # Time constant approx m*cp/(h*A)
+    tau = m * cp / (h * surface_area)
+    # time to half eq temp (exponential decay half-life)
+    t_half = tau * math.log(2)
+    return t_half
+
+def calculate_rha_penetration_finite_block(round_mass, velocity, tensile_j_per_kg, hvl_cm, density_steel):
+    KE = 0.5 * round_mass * velocity ** 2  # Joules
+
+    # Energy per HVL (in joules)
+    hvl_m = hvl_cm / 100  # convert cm to m
+    energy_per_hvl = tensile_j_per_kg * density_steel * hvl_m * 1  # cross-section = 1 m^2
+
+    if energy_per_hvl == 0:
+        return 0.0
+
+    penetration_m = KE / energy_per_hvl
+    penetration_cm = penetration_m * 100
+    return penetration_cm
+
+def main():
+    for name in fighter_models.keys():
+        # Aircraft mass
+        mass = estimate_aircraft_mass(name)
+
+        # Gun info
+        gun = fighters.get(name, {}).get('gun')
+        if not gun:
+            print(f"No gun info for {name}")
+            continue
+
+        caliber_mm = parse_gun_caliber(gun)
+        if caliber_mm is None:
+            print(f"Could not parse caliber from gun '{gun}' for {name}")
+            continue
+
+        round_mass = calculate_round_mass(caliber_mm)
+
+        # Thermal calculations
+        eq_velocity = calculate_equilibrium_velocity(round_mass, caliber_mm)
+        t_half = time_to_half_equilibrium(round_mass, caliber_mm)
+
+        # Firing speed limit based on tensile strength & HVL
+        tensile = materials.get(STEEL_NAME, {}).get("tensile", 400e6)  # Pa or J/kg (approx)
+        # Use tensile as J/kg by dividing by density (Pa / kg/m3 = J/kg)
+        tensile_j_per_kg = tensile / materials.get(STEEL_NAME, {}).get("density", 7850)
+
+        hvl_cm = materials.get(STEEL_NAME, {}).get("hvl", {}).get("0.5MeV", 1.8)
+        density_steel = materials.get(STEEL_NAME, {}).get("density", 7850)
+
+        # Calculate firing speed limit based on tensile strength (simplified)
+        firing_speed_limit = math.sqrt(2 * tensile_j_per_kg)
+
+        # Calculate RHA penetration with finite block assumption
+        rha_penetration = calculate_rha_penetration_finite_block(round_mass, firing_speed_limit, tensile_j_per_kg, hvl_cm, density_steel)
+
+        print(f"Aircraft: {name}")
+        print(f"Gun: {gun}, Caliber: {caliber_mm} mm")
+        print(f"Round mass: {round_mass:.4f} kg")
+        print(f"Thermal equilibrium velocity (m/s): {eq_velocity:.2f}")
+        print(f"Time to half equilibrium (s): {t_half:.2f}")
+        print(f"Firing speed limit (m/s): {firing_speed_limit:.2f}")
+        print(f"RHA penetration at firing speed limit (cm): {rha_penetration:.4f}")
+        print("========================================")
+
+if __name__ == "__main__":
+    main()
