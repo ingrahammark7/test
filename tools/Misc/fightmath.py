@@ -100,22 +100,25 @@ def calculate_round_mass(caliber_mm, length_over_d=10):
     mass = volume_m3 * density_steel
     return mass
 
-# Removed thermal equilibrium velocity function call from main usage
-# Keeping function here commented for reference or possible future use
+def calculate_equilibrium_velocity(round_mass, caliber_mm, max_temp=1510):
+    radius_m = caliber_mm / 2000  # caliber_mm/2 converted to meters
+    area_m2 = math.pi * radius_m ** 2  # frontal cross-sectional area
 
-# def calculate_equilibrium_velocity(round_mass, caliber_mm, max_temp=1510):
-#     area_m2 = math.pi * (caliber_mm / 1000 / 2) ** 2
-#     h = HEAT_TRANSFER_COEFF
-#     rho_air = AIR_DENSITY
-#     T_air = 300  # K approx
-#     T_max = max_temp + 273.15  # K
-#     Cd = 1.0
-#     v_eq = ((2 * h * (T_max - T_air)) / (rho_air * Cd)) ** (1 / 3)
-#     return v_eq
+    h = HEAT_TRANSFER_COEFF
+    rho_air = AIR_DENSITY
+    Cd = 1.0
+    T_air = 300  # K approx ambient temperature
+    T_max = max_temp + 273.15  # K max allowed temperature
+    roundar=radius_m*10*radius_m*4
+
+    numerator = 2 * h * (T_max - T_air) * roundar
+    denominator = rho_air * area_m2
+
+    v_eq = (numerator / denominator) ** (1 / 2)
+    return v_eq
 
 def time_to_half_equilibrium(round_mass, caliber_mm, max_temp=1510):
     cp = materials.get(STEEL_NAME, {}).get("specific_heat", 500)
-    density = materials.get(STEEL_NAME, {}).get("density", 7850)
     surface_area = 2 * math.pi * (caliber_mm / 1000 / 2) * (caliber_mm / 1000 * 10)
     h = HEAT_TRANSFER_COEFF
     m = round_mass
@@ -135,12 +138,9 @@ def calculate_rha_penetration_finite_block(round_mass, velocity, tensile_j_per_k
 
     # Mass of target impacted volume
     mass_target = volume_m3 * target_density  # kg
-   
 
     # Energy required to fail impacted volume:
-    # tensile_j_per_kg = J/kg energy to fail
     energy_required = tensile_j_per_kg * mass_target  # Joules
-   
 
     # Calculate penetration ratio (energy ratio)
     penetration_ratio = KE / energy_required if energy_required > 0 else 0.0
@@ -164,10 +164,8 @@ def main():
     tensile_ti = materials.get(TI_NAME, {}).get("tensile", 900e6)
     density_ti = materials.get(TI_NAME, {}).get("density", 4500)
 
-    # Convert tensile strength Pa to J/kg = tensile / density
-    tensile_j_per_kg_steel = tensile_steel
-    tensile_j_per_kg_al = tensile_al
-    tensile_j_per_kg_ti = tensile_ti
+    # Note: tensile strength used as energy per mass, but you wanted no conversion nonsense,
+    # so using raw tensile Pa as J/kg for simplicity in penetration calc.
 
     hvl_steel = materials.get(STEEL_NAME, {}).get("hvl", {}).get("0.5MeV", 1.8)  # cm
 
@@ -187,12 +185,10 @@ def main():
 
         round_mass = calculate_round_mass(caliber_mm)
 
-        # Thermal equilibrium velocity removed from here
-        # eq_velocity = calculate_equilibrium_velocity(round_mass, caliber_mm)
+        eq_velocity = calculate_equilibrium_velocity(round_mass, caliber_mm)
         t_half = time_to_half_equilibrium(round_mass, caliber_mm)
 
-        # Firing speed limit based on steel tensile strength (simplified)
-        firing_speed_limit = math.sqrt(2 * tensile_j_per_kg_steel)
+        firing_speed_limit = eq_velocity  # Use thermal equilibrium velocity as speed limit
 
         # SU-35 target parameters
         su35 = fighter_models.get("Su-35")
@@ -205,7 +201,7 @@ def main():
 
         # Penetrate Su-35 skin (Aluminum)
         pen_skin_cm, energy_req_skin, KE_after_skin, mass_skin = calculate_rha_penetration_finite_block(
-            round_mass, firing_speed_limit, tensile_j_per_kg_al, hvl_steel, density_al, skin_thickness_cm)
+            round_mass, firing_speed_limit, tensile_al, hvl_steel, density_al, skin_thickness_cm)
 
         # Penetrate Su-35 center plate (Titanium) if any KE left and plate exists
         pen_center_cm = 0.0
@@ -213,15 +209,14 @@ def main():
         KE_after_center = KE_after_skin
         mass_center = 0.0
         if center_plate_thickness_cm > 0 and KE_after_skin > 0:
-            # velocity after skin penetration
             v_after_skin = math.sqrt(2 * KE_after_skin / round_mass)
             pen_center_cm, energy_req_center, KE_after_center, mass_center = calculate_rha_penetration_finite_block(
-                round_mass, v_after_skin, tensile_j_per_kg_ti, hvl_steel, density_ti, center_plate_thickness_cm)
+                round_mass, v_after_skin, tensile_ti, hvl_steel, density_ti, center_plate_thickness_cm)
 
         print(f"Attacker: {attacker}")
         print(f"Gun: {gun}, Caliber: {caliber_mm} mm")
         print(f"Round mass: {round_mass:.4f} kg")
-        # print(f"Thermal equilibrium velocity (m/s): {eq_velocity:.2f}")  # Removed
+        print(f"Thermal equilibrium velocity (m/s): {eq_velocity:.2f}")
         print(f"Time to half equilibrium (s): {t_half:.2f}")
         print(f"Firing speed limit (m/s): {firing_speed_limit:.2f}")
         print(f"Su-35 skin penetration (cm): {pen_skin_cm:.4f}")
