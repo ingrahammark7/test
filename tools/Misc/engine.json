@@ -1,0 +1,127 @@
+{
+  "Pratt & Whitney F100-PW-200": {
+    "power_thrust_kN": 105.0,
+    "diameter_m": 0.97,
+    "length_m": 4.6,
+    "mass_kg": 1600,
+    "bypass_ratio": 0.3,
+    "compression_ratio": 25,
+    "max_temperature_C": 1700,
+    "stages": {
+      "fan": 1,
+      "compressor": 9,
+      "turbine": 2
+    },
+    "injection_rate_kg_per_s": 1.5,
+    "materials": {
+      "fan_blades": "titanium_alloy",
+      "compressor_disks": "titanium_alloy",
+      "combustor": "nickel_superalloy",
+      "turbine_blades": "nickel_superalloy",
+      "turbine_disks": "nickel_superalloy",
+      "shafts": "hardened_steel",
+      "casings": "titanium_alloy",
+      "nozzle": "nickel_superalloy"
+    }
+  },
+  "Saturn AL-41F1S": {
+    "power_thrust_kN": 142.0,
+    "diameter_m": 1.08,
+    "length_m": 4.9,
+    "mass_kg": 1800,
+    "bypass_ratio": 0.18,
+    "compression_ratio": 26,
+    "max_temperature_C": 1750,
+    "stages": {
+      "fan": 1,
+      "compressor": 14,
+      "turbine": 2
+    },
+    "injection_rate_kg_per_s": 1.8,
+    "materials": {
+      "fan_blades": "titanium_alloy",
+      "compressor_disks": "titanium_alloy",
+      "combustor": "nickel_superalloy",
+      "turbine_blades": "nickel_superalloy",
+      "turbine_disks": "nickel_superalloy",
+      "shafts": "hardened_steel",
+      "casings": "titanium_alloy",
+      "nozzle": "nickel_superalloy"
+    }
+  },
+  "General Electric F404": {
+    "power_thrust_kN": 79.0,
+    "diameter_m": 0.78,
+    "length_m": 3.5,
+    "mass_kg": 1300,
+    "bypass_ratio": 0.34,
+    "compression_ratio": 26,
+    "max_temperature_C": 1600,
+    "stages": {
+      "fan": 1,
+      "compressor": 10,
+      "turbine": 2
+    },
+    "injection_rate_kg_per_s": 1.3,
+    "materials": {
+      "fan_blades": "titanium_alloy",
+      "compressor_disks": "titanium_alloy",
+      "combustor": "nickel_superalloy",
+      "turbine_blades": "nickel_superalloy",
+      "turbine_disks": "nickel_superalloy",
+      "shafts": "hardened_steel",
+      "casings": "titanium_alloy",
+      "nozzle": "nickel_superalloy"
+    }
+  },
+  "Rolls-Royce Turbomeca Adour": {
+    "power_thrust_kN": 50.0,
+    "diameter_m": 0.75,
+    "length_m": 3.3,
+    "mass_kg": 1100,
+    "bypass_ratio": 0.45,
+    "compression_ratio": 20,
+    "max_temperature_C": 1500,
+    "stages": {
+      "fan": 1,
+      "compressor": 7,
+      "turbine": 2
+    },
+    "injection_rate_kg_per_s": 1.1,
+    "materials": {
+      "fan_blades": "titanium_alloy",
+      "compressor_disks": "titanium_alloy",
+      "combustor": "nickel_superalloy",
+      "turbine_blades": "nickel_superalloy",
+      "turbine_disks": "nickel_superalloy",
+      "shafts": "hardened_steel",
+      "casings": "titanium_alloy",
+      "nozzle": "nickel_superalloy"
+    }
+  },
+  "Tumansky R-13": {
+    "power_thrust_kN": 62.0,
+    "diameter_m": 0.86,
+    "length_m": 4.0,
+    "mass_kg": 1500,
+    "bypass_ratio": 0.0,
+    "compression_ratio": 18,
+    "max_temperature_C": 1400,
+    "stages": {
+      "fan": 0,
+      "compressor": 8,
+      "turbine": 1
+    },
+    "injection_rate_kg_per_s": 1.2,
+    "materials": {
+      "fan_blades": "titanium_alloy",
+      "compressor_disks": "titanium_alloy",
+      "combustor": "nickel_superalloy",
+      "turbine_blades": "nickel_superalloy",
+      "turbine_disks": "nickel_superalloy",
+      "shafts": "hardened_steel",
+      "casings": "steel",
+      "nozzle": "nickel_superalloy"
+    }
+  }
+}
