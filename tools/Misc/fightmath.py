@@ -18,6 +18,8 @@ STEEL_NAME = 'steel'
 AL_NAME = 'aluminum'
 TI_NAME = 'titanium'
 
+hvl_steel = materials.get(STEEL_NAME, {}).get("hvl", {}).get("0.5MeV", 1.8)  # cm
+
 # Constants
 AIR_DENSITY = 1.225  # kg/m3 (sea level)
 HEAT_TRANSFER_COEFF = 50  # W/(m2·K) typical forced convection steel-air approx
@@ -103,6 +105,7 @@ def calculate_round_mass(caliber_mm, length_over_d=10):
 def calculate_equilibrium_velocity(round_mass, caliber_mm, max_temp=1510):
     radius_m = caliber_mm / 2000  # caliber_mm/2 converted to meters
     area_m2 = math.pi * radius_m ** 2  # frontal cross-sectional area
+    roundl=radius_m*2*10
 
     h = HEAT_TRANSFER_COEFF
     rho_air = AIR_DENSITY
@@ -115,6 +118,10 @@ def calculate_equilibrium_velocity(round_mass, caliber_mm, max_temp=1510):
     denominator = rho_air * area_m2
 
     v_eq = (numerator / denominator) ** (1 / 2)
+    roundhvl=hvl_steel/100
+    hvlr=roundhvl/roundl
+    hvlr=math.pow(hvlr,1/12)
+    v_eq=hvlr*v_eq
     return v_eq
 
 def time_to_half_equilibrium(round_mass, caliber_mm, max_temp=1510):
@@ -167,7 +174,7 @@ def main():
     # Note: tensile strength used as energy per mass, but you wanted no conversion nonsense,
     # so using raw tensile Pa as J/kg for simplicity in penetration calc.
 
-    hvl_steel = materials.get(STEEL_NAME, {}).get("hvl", {}).get("0.5MeV", 1.8)  # cm
+    
 
     for attacker in fighter_models.keys():
         # Mass estimate (not used in pen calc but useful)
