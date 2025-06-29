@@ -1,0 +1,90 @@
+[
+  {
+    "name": "Steel",
+    "density": 7850,
+    "energy_density": 0,
+    "tensile": 400e6,
+    "melting_point": 1510,
+    "specific_heat": 500,
+    "hvl": {
+      "0.5MeV": 1.8
+    }
+  },
+  {
+    "name": "Fiberglass",
+    "density": 1850,
+    "energy_density": 0,
+    "tensile": 345e6,
+    "melting_point": 1200,
+    "specific_heat": 840,
+    "hvl": {
+      "0.5MeV": 2.4
+    }
+  },
+  {
+    "name": "Carbon Fiber",
+    "density": 1750,
+    "energy_density": 0,
+    "tensile": 600e6,
+    "melting_point": 3650,
+    "specific_heat": 710,
+    "hvl": {
+      "0.5MeV": 2.1
+    }
+  },
+  {
+    "name": "Titanium",
+    "density": 4500,
+    "energy_density": 0,
+    "tensile": 900e6,
+    "melting_point": 1668,
+    "specific_heat": 520,
+    "hvl": {
+      "0.5MeV": 1.4
+    }
+  },
+  {
+    "name": "Aluminum",
+    "density": 2700,
+    "energy_density": 0,
+    "tensile": 310e6,
+    "melting_point": 660,
+    "specific_heat": 900,
+    "hvl": {
+      "0.5MeV": 2.3
+    }
+  },
+  {
+    "name": "JP8",
+    "density": 800,
+    "energy_density": 43e6,
+    "tensile": 0,
+    "melting_point": -47,
+    "specific_heat": 2000,
+    "hvl": {
+      "0.5MeV": 20.0
+    }
+  },
+  {
+    "name": "RDX",
+    "density": 1820,
+    "energy_density": 5.3e6,
+    "tensile": 0,
+    "melting_point": 204,
+    "specific_heat": 1120,
+    "hvl": {
+      "0.5MeV": 2.5
+    }
+  },
+  {
+    "name": "Rocket Fuel (RFNA)",
+    "density": 1500,
+    "energy_density": 4.9e6,
+    "tensile": 0,
+    "melting_point": -42,
+    "specific_heat": 1250,
+    "hvl": {
+      "0.5MeV": 15.0
+    }
+  }
+]
