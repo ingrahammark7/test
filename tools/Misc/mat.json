@@ -3,7 +3,7 @@
     "name": "Steel",
     "density": 7850,
     "energy_density": 0,
-    "tensile": 400e6,
+    "tensile": 400000000.0,
     "melting_point": 1510,
     "specific_heat": 500,
     "hvl": {
@@ -14,7 +14,7 @@
     "name": "Fiberglass",
     "density": 1850,
     "energy_density": 0,
-    "tensile": 345e6,
+    "tensile": 345000000.0,
     "melting_point": 1200,
     "specific_heat": 840,
     "hvl": {
@@ -25,7 +25,7 @@
     "name": "Carbon Fiber",
     "density": 1750,
     "energy_density": 0,
-    "tensile": 600e6,
+    "tensile": 600000000.0,
     "melting_point": 3650,
     "specific_heat": 710,
     "hvl": {
@@ -36,7 +36,7 @@
     "name": "Titanium",
     "density": 4500,
     "energy_density": 0,
-    "tensile": 900e6,
+    "tensile": 900000000.0,
     "melting_point": 1668,
     "specific_heat": 520,
     "hvl": {
@@ -47,7 +47,7 @@
     "name": "Aluminum",
     "density": 2700,
     "energy_density": 0,
-    "tensile": 310e6,
+    "tensile": 310000000.0,
     "melting_point": 660,
     "specific_heat": 900,
     "hvl": {
@@ -57,7 +57,7 @@
   {
     "name": "JP8",
     "density": 800,
-    "energy_density": 43e6,
+    "energy_density": 43000000.0,
     "tensile": 0,
     "melting_point": -47,
     "specific_heat": 2000,
@@ -68,7 +68,7 @@
   {
     "name": "RDX",
     "density": 1820,
-    "energy_density": 5.3e6,
+    "energy_density": 5300000.0,
     "tensile": 0,
     "melting_point": 204,
     "specific_heat": 1120,
@@ -79,7 +79,7 @@
   {
     "name": "Rocket Fuel (RFNA)",
     "density": 1500,
-    "energy_density": 4.9e6,
+    "energy_density": 4900000.0,
     "tensile": 0,
     "melting_point": -42,
     "specific_heat": 1250,
@@ -91,7 +91,7 @@
     "name": "nickel_superalloy",
     "density": 8400,
     "energy_density": 0,
-    "tensile": 1100e6,
+    "tensile": 1100000000.0,
     "melting_point": 1455,
     "specific_heat": 435,
     "hvl": {
@@ -102,7 +102,7 @@
     "name": "hardened_steel",
     "density": 8000,
     "energy_density": 0,
-    "tensile": 600e6,
+    "tensile": 600000000.0,
     "melting_point": 1400,
     "specific_heat": 500,
     "hvl": {
@@ -113,9 +113,111 @@
     "name": "titanium_alloy",
     "density": 4500,
     "energy_density": 0,
-    "tensile": 900e6,
+    "tensile": 900000000.0,
     "melting_point": 1668,
     "specific_heat": 520,
+    "hvl": {
+      "0.5MeV": 1.4
+    }
+  },
+  {
+    "name": "Silicon",
+    "density": 2330,
+    "energy_density": 0,
+    "tensile": 170000000,
+    "melting_point": 1414,
+    "specific_heat": 700,
+    "thermal_conductivity": 148,
+    "electrical_conductivity": 0.00156,
+    "dielectric_constant": 11.7,
+    "loss_tangent": 0.0005,
+    "band_gap": 1.12,
+    "temperature_coefficient_resistance": 0.00075,
+    "hvl": {
+      "0.5MeV": 2.2
+    }
+  },
+  {
+    "name": "Gallium Arsenide",
+    "density": 5317,
+    "energy_density": 0,
+    "tensile": 50000000,
+    "melting_point": 1238,
+    "specific_heat": 330,
+    "thermal_conductivity": 46,
+    "electrical_conductivity": 0.001,
+    "dielectric_constant": 13.1,
+    "loss_tangent": 0.006,
+    "band_gap": 1.43,
+    "temperature_coefficient_resistance": 0.00025,
+    "hvl": {
+      "0.5MeV": 2.1
+    }
+  },
+  {
+    "name": "Copper",
+    "density": 8960,
+    "energy_density": 0,
+    "tensile": 210000000,
+    "melting_point": 1085,
+    "specific_heat": 385,
+    "thermal_conductivity": 401,
+    "electrical_conductivity": 59600000.0,
+    "dielectric_constant": 1.0,
+    "loss_tangent": 0,
+    "band_gap": 0,
+    "temperature_coefficient_resistance": 0.0039,
+    "hvl": {
+      "0.5MeV": 1.3
+    }
+  },
+  {
+    "name": "Gold",
+    "density": 19300,
+    "energy_density": 0,
+    "tensile": 120000000,
+    "melting_point": 1064,
+    "specific_heat": 129,
+    "thermal_conductivity": 318,
+    "electrical_conductivity": 41000000.0,
+    "dielectric_constant": 1.0,
+    "loss_tangent": 0,
+    "band_gap": 0,
+    "temperature_coefficient_resistance": 0.0034,
+    "hvl": {
+      "0.5MeV": 1.2
+    }
+  },
+  {
+    "name": "FR4",
+    "density": 1900,
+    "energy_density": 0,
+    "tensile": 310000000,
+    "melting_point": 250,
+    "specific_heat": 1200,
+    "thermal_conductivity": 0.25,
+    "electrical_conductivity": 1e-14,
+    "dielectric_constant": 4.5,
+    "loss_tangent": 0.02,
+    "band_gap": null,
+    "temperature_coefficient_resistance": null,
+    "hvl": {
+      "0.5MeV": 3.0
+    }
+  },
+  {
+    "name": "Tantalum",
+    "density": 16690,
+    "energy_density": 0,
+    "tensile": 900000000,
+    "melting_point": 3017,
+    "specific_heat": 140,
+    "thermal_conductivity": 57,
+    "electrical_conductivity": 7400000.0,
+    "dielectric_constant": 26,
+    "loss_tangent": 0.02,
+    "band_gap": 0,
+    "temperature_coefficient_resistance": 0.0015,
     "hvl": {
       "0.5MeV": 1.4
     }
