@@ -126,11 +126,11 @@ def calculate_equilibrium_velocity(round_mass, caliber_mm, max_temp=1510):
 
 def time_to_half_equilibrium(round_mass, caliber_mm, max_temp=1510):
     cp = materials.get(STEEL_NAME, {}).get("specific_heat", 500)
-    surface_area = 2 * math.pi * (caliber_mm / 1000 / 2) * (caliber_mm / 1000 * 10)
+    surface_area = caliber_mm*caliber_mm*10/1000/1000*4
     h = HEAT_TRANSFER_COEFF
     m = round_mass
-    tau = m * cp / (h * surface_area)
-    t_half = tau * math.log(2)
+    tau = m * cp / (h * surface_area) /max_temp
+    t_half = tau/math.log(2)
     return t_half
 
 def calculate_rha_penetration_finite_block(round_mass, velocity, tensile_j_per_kg, hvl_cm, target_density, target_thickness_cm):
