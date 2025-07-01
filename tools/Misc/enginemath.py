@@ -63,7 +63,7 @@ class EngineThermalAnalysis:
         return delta_P, time_to_melt
 
     def run_example(self):
-        inlet_temp_k = 900
+        inlet_temp_k = 300
         area = 1.0
         dP, t = self.max_pressure_rise(inlet_temp_k, wall_area_m2=area)
         print(f"Material: {self.material_name}")
