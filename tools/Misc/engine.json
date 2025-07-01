@@ -1,5 +1,8 @@
 {
   "Pratt & Whitney F100-PW-200": {
+    "fan_blade_count": 24,
+    "compressor_blade_count": 90,
+    "turbine_blade_count": 65,
     "power_thrust_kN": 105.0,
     "diameter_m": 0.97,
     "length_m": 4.6,
@@ -25,6 +28,9 @@
     }
   },
   "Saturn AL-41F1S": {
+    "fan_blade_count": 24,
+    "compressor_blade_count": 120,
+    "turbine_blade_count": 68,
     "power_thrust_kN": 142.0,
     "diameter_m": 1.08,
     "length_m": 4.9,
@@ -50,6 +56,9 @@
     }
   },
   "General Electric F404": {
+    "fan_blade_count": 22,
+    "compressor_blade_count": 95,
+    "turbine_blade_count": 55,
     "power_thrust_kN": 79.0,
     "diameter_m": 0.78,
     "length_m": 3.5,
@@ -75,6 +84,9 @@
     }
   },
   "Rolls-Royce Turbomeca Adour": {
+    "fan_blade_count": 20,
+    "compressor_blade_count": 65,
+    "turbine_blade_count": 45,
     "power_thrust_kN": 50.0,
     "diameter_m": 0.75,
     "length_m": 3.3,
@@ -100,6 +112,9 @@
     }
   },
   "Tumansky R-13": {
+    "fan_blade_count": 0,
+    "compressor_blade_count": 80,
+    "turbine_blade_count": 45,
     "power_thrust_kN": 62.0,
     "diameter_m": 0.86,
     "length_m": 4.0,
