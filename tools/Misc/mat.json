@@ -230,7 +230,7 @@
     "melting_point": 63,
     "specific_heat": 1040,
     "hvl": {
-      "0.5MeV": 100.0
+      "0.5MeV": 6300.0
     },
     "thermal_conductivity": 0.02583,
     "electrical_conductivity": 0,
