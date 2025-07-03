@@ -221,5 +221,22 @@
     "hvl": {
       "0.5MeV": 1.4
     }
+  },
+  {
+    "name": "Nitrogen",
+    "density": 1.251,
+    "energy_density": 0,
+    "tensile": 0,
+    "melting_point": 63,
+    "specific_heat": 1040,
+    "hvl": {
+      "0.5MeV": 100.0
+    },
+    "thermal_conductivity": 0.02583,
+    "electrical_conductivity": 0,
+    "dielectric_constant": 1.0006,
+    "loss_tangent": 0,
+    "band_gap": null,
+    "temperature_coefficient_resistance": null
   }
 ]
