@@ -1,33 +1,39 @@
-import math
+import json
+
+# Load materials
+with open('mat.json', 'r') as f:
+    materials = json.load(f)
+
+# Extract steel data
+steel = next(m for m in materials if m['name'].lower() == 'steel')
+density_steel = steel['density']       # kg/m3
+tensile_steel = steel['tensile']       # Pa = J/kg
 
 # Constants
-kB = 1.380649e-23       # Boltzmann constant (J/K)
-m_air = 4.65e-26        # Effective mass of air molecule (mostly N2, kg)
-ionization_energy_N2 = 15.6 * 1.602e-19  # Ionization energy of nitrogen (J)
-Na = 6.022e23           # Avogadro's number
-air_density = 1.225     # kg/m³
-area = 1.0              # m²
-mach_start = 1
-mach_end = 100
-step = 1
-speed_of_sound = 343    # m/s
+area = 1.0                            # m^2
+rho_air = 1.225                      # kg/m^3 at sea level (approx)
+speed_of_sound = 340                 # m/s at sea level
+mach = 30
+velocity = mach * speed_of_sound     # m/s
 
-print(f"{'Mach':<6} {'Speed(m/s)':<12} {'Atoms/s':<14} {'KE per atom (eV)':<20} {'Temp (K)':<10} {'Ionize?'}")
-print("-" * 80)
+# Mass flow rate (kg/s)
+mass_flux = rho_air * velocity * area
 
-for mach in range(mach_start, mach_end + 1, step):
-    v = mach * speed_of_sound
-    volume_per_sec = v * area            # m³/s
-    mass_per_sec = air_density * volume_per_sec  # kg/s
-    atoms_per_sec = mass_per_sec / m_air         # atoms/s
+# Energy per kg nitrogen kinetic energy (J/kg = Pa equivalence)
+energy_per_kg = velocity ** 2
 
-    # Kinetic energy per atom (0.5mv²)
-    ke = 0.5 * m_air * v**2
-    ke_ev = ke / 1.602e-19
+# Total power on surface (W = J/s)
+power = mass_flux * energy_per_kg
 
-    # Estimate equivalent plasma temperature (in K)
-    temp = ke / kB
+# Ablation rate (kg/s), energy required to remove 1 kg steel = tensile strength (J/kg)
+ablation_rate_kg_per_s = power / tensile_steel
 
-    ionizes = "Yes" if ke >= ionization_energy_N2 else "No"
+# Ablation rate (m/s thickness)
+ablation_rate_m_per_s = ablation_rate_kg_per_s / density_steel
 
-    print(f"{mach:<6} {v:<12.1f} {atoms_per_sec:<14.2e} {ke_ev:<20.2f} {temp:<10.0f} {ionizes}")
+print(f"At Mach {mach} (velocity {velocity:.1f} m/s):")
+print(f"Mass flux of nitrogen: {mass_flux:.2f} kg/s per m^2")
+print(f"Kinetic energy per kg nitrogen: {energy_per_kg:.2e} J/kg")
+print(f"Power on surface: {power:.2e} W/m^2")
+print(f"Estimated ablation rate: {ablation_rate_kg_per_s:.4f} kg/s")
+print(f"Estimated thickness ablation rate: {ablation_rate_m_per_s*1000:.3f} mm/s")
