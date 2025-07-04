@@ -109,7 +109,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     c.setFont("Times-Roman", 12)
     intro_text = [
-        "Notice is given that petitioner appeals to the United States Court of Appeals from the order dismissing the case,","entered on June 24th.",]
+        "Notice is given that petitioner appeals to the United States Court of Appeals from the order dismissing the case,","entered on June 24th. A possible duplicate case exists filed in DC district court. California case should take"," precedence.",]
     y_position -= 1*inch
     for line in intro_text:
         c.drawString(left_margin, y_position, line)
