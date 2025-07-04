@@ -4,8 +4,10 @@ import math
 PLANCK_CONSTANT = 6.62607015e-34  # J·s
 SPEED_OF_LIGHT = 299792458        # m/s
 ATOMIC_DIAMETER_SI = 2.2e-10      # m
-FINE_STRUCTURE_ALPHA = 137.035999084
 PHI = (1 + math.sqrt(5)) / 2
+FINE_STRUCTURE_ALPHA = 4*math.pi-6
+FINE_STRUCTURE_ALPHA=math.pow(FINE_STRUCTURE_ALPHA,math.pow(PHI,2))
+
 
 # === Core Atom Cube Definition ===
 
