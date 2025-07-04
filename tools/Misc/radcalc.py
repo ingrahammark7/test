@@ -59,7 +59,7 @@ class RadCalc:
         """
         if target_energy_mev <= 0:
             raise ValueError("Energy must be positive")
-        scale_factor = (base_energy_mev / target_energy_mev) ** exponent
+        scale_factor = (target_energy_mev/ base_energy_mev) ** exponent
         return self.hvl * scale_factor
 
     def max_photon_energy(self):
