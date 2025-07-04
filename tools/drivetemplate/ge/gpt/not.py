@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.5* inch, "Notice to Court")
+    c.drawString(space, top_margin - 4.5* inch, "Notice of Appeal")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
