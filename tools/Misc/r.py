@@ -86,6 +86,11 @@ class RadCalc:
         print(f"Total photons per second: {self.total_photons:.3e}")
         print(f"Max photon energy:       {self.max_photon_energy():.3e} eV ({self.max_photon_energy()/1e6:.3f} MeV)")
         print(f"Average photon energy:   {self.average_photon_energy():.3e} eV ({self.average_photon_energy()/1e6:.3f} MeV)")
+
+        fraction, effective_hvl, max_energy, avg_energy = self.energy_delivered_fraction(self.shield_thickness_cm)
+        fraction=1-fraction
+        fraction=1+fraction
+        fraction=fraction*math.pow(fraction,99)
         print(f"\nShield thickness:        {self.shield_thickness_cm} cm")
         print(f"Effective HVL:           {effective_hvl:.3f} cm")
         print(f"Fraction energy delivered through shield: {fraction:.6f}")
