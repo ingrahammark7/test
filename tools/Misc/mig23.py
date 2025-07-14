@@ -1,66 +1,40 @@
-
+# === Part 1: Imports and Utilities ===
 import math
 import random
 import sys
 import numpy as np
 
-deadtargets={}
+deadtargets = {}
 
 def angle_diff(a, b):
     """Minimal difference between two angles in degrees."""
     diff = (a - b + 180) % 360 - 180
     return diff
 
-maxtime=600
+maxtime = 600
+
 # --- Radar class ---
 class Radar:
     def __init__(self, max_range_km=50, base_detection_prob=0.9):
-        """
-        max_range_km: maximum radar detection range in kilometers.
-        base_detection_prob: base probability to detect a target at close range.
-        """
         self.max_range_km = max_range_km
         self.base_detection_prob = base_detection_prob
-        self.jamming_level = 0.0  # 0.0 = no jamming, 1.0 = full jam
+        self.jamming_level = 0.0
 
     def set_jamming_level(self, level):
-        """
-        Set ECM jamming level (0.0 to 1.0).
-        """
         self.jamming_level = max(0.0, min(1.0, level))
 
     def detect(self, own_position, target_position, target_rcs):
-        """
-        Returns True if the radar detects the target, False otherwise.
-
-        Detection probability is affected by:
-        - Distance: detection probability falls off linearly from base_detection_prob at zero range to 0 at max_range.
-        - Target RCS: larger RCS increases detection.
-        - Jamming level: reduces detection chance.
-
-        own_position, target_position: tuples (x, y) in km.
-        target_rcs: Radar Cross Section of the target (m²).
-        """
         dx = target_position[0] - own_position[0]
         dy = target_position[1] - own_position[1]
         distance = math.hypot(dx, dy)
-
         if distance > self.max_range_km:
-            return False  # Out of radar range
+            return False
 
-        # Base detection chance drops linearly with distance
         detection_chance = self.base_detection_prob * (1 - distance / self.max_range_km)
-
-        # Adjust detection by RCS (assume typical fighter RCS ~5 m²)
         rcs_factor = target_rcs / 5.0
-        detection_chance *= min(2.0, rcs_factor)  # Cap max increase
-
-        # Reduce detection by jamming
+        detection_chance *= min(2.0, rcs_factor)
         detection_chance *= (1 - self.jamming_level)
-
-        # Clamp detection chance between 0 and 1
         detection_chance = max(0.0, min(1.0, detection_chance))
-
         return random.random() < detection_chance
 
 class EnemyAircraft:
@@ -103,7 +77,6 @@ def generate_random_enemies(n=5):
         )
         enemies.append(enemy)
     return enemies
-
 class Missile:
     def __init__(self, launcher, target):
         self.launcher = launcher
@@ -111,7 +84,7 @@ class Missile:
         self.position = launcher.position
         self.speed = 3000  # km/h approx Mach 2.5
         self.alive = True
-        self.max_turn_rate = 20# degrees per second
+        self.max_turn_rate = 20  # degrees per second
         self.heading = launcher.heading
 
     def update(self, time_sec=1.0):
@@ -135,15 +108,11 @@ class Missile:
         dy = dist_km * math.sin(rad)
         x, y = self.position
         self.position = (x + dx, y + dy)
-        dist=self._distance_to_point(self.target.position)
-        
 
         # Check for hit (within 0.2 km)
         if self._distance_to_point(self.target.position) < 0.2:
-            # Hit chance reduced by target evasion (simplified)
             hit_chance = 0.8
             if random.random() < hit_chance:
-                
                 print(f"Missile from {self.launcher.name} hit {self.target.id}!")
                 deadtargets.setdefault(self.target.id)
                 self.target.alive = False
@@ -162,7 +131,6 @@ class Missile:
         dy = point[1] - self.position[1]
         return math.degrees(math.atan2(dy, dx)) % 360
 
-
 class MiG25:
     def __init__(self, name):
         self.name = name
@@ -179,8 +147,8 @@ class MiG25:
         self.current_missile = None
         self.evasive = False
         self.evasive_time = 0
+        self.alive=1
 
-        # Radar added here
         self.radar = Radar(max_range_km=60, base_detection_prob=0.95)
 
     def set_jamming(self, level):
@@ -196,7 +164,6 @@ class MiG25:
         dy = point[1] - self.position[1]
         return math.degrees(math.atan2(dy, dx)) % 360
 
-    # Replaced detect_target with radar detection
     def detect_target(self, target):
         return self.radar.detect(self.position, target.position, target.rcs)
 
@@ -212,7 +179,6 @@ class MiG25:
             self.rtb_mode = True
             print(f"{self.name} OUT OF FUEL - Forced RTB")
             return
-        # Fuel burn with extra if evasive
         burn = self.fuel_burn_rate * time_sec * (2 if self.evasive else 1)
         self.fuel -= burn
 
@@ -230,7 +196,7 @@ class MiG25:
 
     def launch_missile(self, target):
         if self.current_missile and self.current_missile.alive:
-            return False  # One missile at a time
+            return False
         distance = self._distance_to_point(target.position)
         if distance > self.max_fire_range:
             return False
@@ -238,8 +204,8 @@ class MiG25:
         self.current_missile = Missile(self, target)
         print(f"{self.name} launched missile at {target.id}")
         self.evasive = True
-        self.evasive_time = 10  # evade 10 sec after launch
-        self.fuel -= 500  # missile launch fuel cost
+        self.evasive_time = 10
+        self.fuel -= 500
         return True
 
     def update_missile(self):
@@ -252,7 +218,6 @@ class MiG25:
         return (f"{self.name}: Pos=({x:.1f},{y:.1f}) Alt={self.altitude:.0f}m "
                 f"Heading={self.heading:.1f} Speed={self.speed:.0f} "
                 f"Weapons Fired={self.weapons_fired} Fuel={self.fuel:.0f}kg Mode={mode}")
-
 class MiG23:
     def __init__(self, name):
         self.name = name
@@ -267,8 +232,8 @@ class MiG23:
         self.fuel_burn_rate = 40  # kg/sec
         self.command_failure_chance = 0.1
         self.dogfight_mode = False
+        self.alive=1
 
-        # Radar added here
         self.radar = Radar(max_range_km=30, base_detection_prob=0.8)
 
     def set_jamming(self, level):
@@ -284,7 +249,6 @@ class MiG23:
         dy = point[1] - self.position[1]
         return math.degrees(math.atan2(dy, dx)) % 360
 
-    # Radar detection used here
     def detect_target(self, target):
         return self.radar.detect(self.position, target.position, target.rcs)
 
@@ -340,14 +304,12 @@ class MiG23:
         return (f"{self.name}: Pos=({x:.1f},{y:.1f}) Alt={self.altitude:.0f}m "
                 f"Heading={self.heading:.1f} Speed={self.speed:.0f} "
                 f"Weapons Fired={self.weapons_fired} Fuel={self.fuel:.0f}kg Mode={mode}")
-
 class GroundTarget:
     def __init__(self, tid, position, health=100):
         self.id = tid
         self.position = position
         self.health = health
         self.alive = True
-
 
     def take_damage(self, dmg):
         self.health -= dmg
@@ -358,6 +320,7 @@ class GroundTarget:
     def status(self):
         x, y = self.position
         return f"Ground Target {self.id}: Pos=({x:.1f},{y:.1f}) Health={self.health}"
+
 
 class GlideBomb:
     def __init__(self, position, target):
@@ -382,6 +345,7 @@ class GlideBomb:
         self.position = (self.position[0] + dx / dist * move_dist,
                          self.position[1] + dy / dist * move_dist)
 
+
 class MiG27:
     def __init__(self, name):
         self.name = name
@@ -394,6 +358,7 @@ class MiG27:
         self.weapons_fired = 0
         self.rtb_mode = False
         self.target_ground = None
+        self.alive=1
 
     def _distance_to_point(self, point):
         dx = point[0] - self.position[0]
@@ -437,8 +402,7 @@ class MiG27:
         return (f"{self.name}: Pos=({x:.1f},{y:.1f}) Speed={self.speed:.0f} "
                 f"Fuel={self.fuel:.0f} GlideBombs={len(self.glide_bombs)} "
                 f"Weapons Fired={self.weapons_fired} RTB={self.rtb_mode}")
-
-def generate_debrief(migs, enemies, ground_targets,starten):
+def generate_debrief(migs, enemies, ground_targets, starten,sams):
     print("\n=== MISSION DEBRIEF ===\n")
 
     total_sorties = len(migs)
@@ -468,9 +432,43 @@ def generate_debrief(migs, enemies, ground_targets,starten):
     for g in ground_targets:
         if g.alive:
             print(f"{g.id} Pos=({g.position[0]:.1f}, {g.position[1]:.1f})")
+    
+    if sams:
+        print("\n--- Ground Defense Summary ---")
+        for sam in sams:
+            print(f"{sam.name}: Cooldown Remaining={sam.cooldown:.1f}s")
 
     print("\n=== END OF DEBRIEF ===")
-    
+
+class GroundDefense:
+    def __init__(self, name, position, detection_range_km, fire_range_km, cooldown_time, hit_chance=0.5):
+        self.name = name
+        self.position = position
+        self.detection_range_km = detection_range_km
+        self.fire_range_km = fire_range_km
+        self.cooldown = 0
+        self.cooldown_time = cooldown_time
+        self.hit_chance = hit_chance
+
+    def _distance_to(self, aircraft):
+        dx = aircraft.position[0] - self.position[0]
+        dy = aircraft.position[1] - self.position[1]
+        return math.hypot(dx, dy)
+
+    def engage(self, aircraft, time_step=1.0):
+        if self.cooldown > 0:
+            self.cooldown -= time_step
+            return
+        if not aircraft.alive:
+            return
+        dist = self._distance_to(aircraft)
+        if dist < self.fire_range_km:
+            self.cooldown = self.cooldown_time
+            print(f"{self.name} fires at {aircraft.name}")
+            evade_penalty = 0.5 if getattr(aircraft, "evasive", False) else 1.0
+            if random.random() < self.hit_chance * evade_penalty:
+                aircraft.alive = False
+                print(f"{aircraft.name} was destroyed by {self.name}!")
 
 def main():
     # Create aircraft
@@ -479,10 +477,16 @@ def main():
     mig27s = [MiG27(f"MiG27_{i+1}") for i in range(1)]
 
     enemies = generate_random_enemies(6)
-    starten=len(enemies)
+    starten = len(enemies)
     ground_targets = [GroundTarget(f"GT{i+1}", (random.uniform(10, 40), random.uniform(-20, 20))) for i in range(3)]
 
-    max_time = maxtime # seconds
+    # Initialize SAM ground defenses
+    sams = [
+        GroundDefense("SAM1", (25, 5), detection_range_km=40, fire_range_km=10, cooldown_time=100, hit_chance=0.65),
+        GroundDefense("SAM2", (35, -10), detection_range_km=35, fire_range_km=8, cooldown_time=80, hit_chance=0.6),
+    ]
+
+    max_time = maxtime  # seconds
     time_step = 1
 
     for t in range(0, max_time, time_step):
@@ -496,7 +500,7 @@ def main():
 
         # MiG-25 actions
         for mig in mig25s:
-            if mig.rtb_mode:
+            if mig.rtb_mode or not mig.alive:
                 continue
             live_targets = [e for e in enemies if e.alive]
             if not live_targets:
@@ -505,29 +509,28 @@ def main():
                 continue
             target = min(live_targets, key=lambda e: mig._distance_to_point(e.position))
             if target.id in deadtargets:
-            	target.alive=0
+                target.alive = False
             if mig.detect_target(target):
                 mig.receive_gci_command(target)
                 if not mig.launch_missile(target):
                     pass
                 else:
-                	mig.launch_missile(target)
+                    mig.launch_missile(target)
             else:
                 print(f"{mig.name} lost target detection.")
             mig.update_position(time_step)
-            f=mig.update_missile()
-            if(f!=None):
-            	for e in enemies:
-            		if e.id == f:
-            			e.alive=0
-           
+            missile_result = mig.update_missile()
+            if missile_result is not None:
+                for e in enemies:
+                    if e.id == missile_result:
+                        e.alive = False
+
             enemies = [e for e in enemies if e.alive]
             print(mig.status())
-            
 
         # MiG-23 actions
         for mig in mig23s:
-            if mig.rtb_mode:
+            if mig.rtb_mode or not mig.alive:
                 continue
             live_targets = [e for e in enemies if e.alive]
             if not live_targets:
@@ -545,8 +548,13 @@ def main():
             print(mig.status())
 
         # MiG-27 ground attack
+        # Ground defense engagements
+        for sam in sams:
+            for mig in mig25s + mig23s + mig27s:
+                if mig.alive:
+                    sam.engage(mig, time_step)
         for mig in mig27s:
-            if mig.fuel <= 0:
+            if mig.fuel <= 0 or not mig.alive:
                 continue
             if mig.target_ground is None or not mig.target_ground.alive:
                 mig.select_ground_target(ground_targets)
@@ -555,21 +563,25 @@ def main():
             mig.update(time_step)
             print(mig.status())
 
-        # Remove dead enemies from list
-        enemies = [e for e in enemies if e.alive]
+        # Ground defense engagements (SAMs)
+        for sam in sams:
+            for mig in mig25s + mig23s + mig27s:
+                if mig.alive:
+                    sam.engage(mig, time_step)
 
-        # Remove destroyed ground targets
-        ground_targets = [g for g in ground_targets if g.alive]
-
-        # Check mission completion
-        if not enemies and not ground_targets:
-            print("\n*** Mission complete: All enemy and ground targets destroyed! ***")
+        # Optional: Stop simulation early if no enemies or no MiGs alive
+        if(t==max_time-1):
+        	generate_debrief(mig25s + mig23s + mig27s, enemies, ground_targets, starten, sams=sams)
+        if not any(e.alive for e in enemies) or not any(mig.alive for mig in mig25s + mig23s + mig27s):
+            print("\nAll air combatants have been neutralized or MiGs out of fuel/life. Ending mission.")
+            generate_debrief(mig25s + mig23s + mig27s, enemies, ground_targets, starten, sams=sams)
             break
+  
+            
+            
 
-    generate_debrief(mig25s + mig23s + mig27s, enemies, ground_targets,starten)
 
 if __name__ == "__main__":
     main()
-
-
-
+                
+               
