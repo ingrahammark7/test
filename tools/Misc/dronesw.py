@@ -43,10 +43,10 @@ DRONE_SURFACE_AREA = 0.01  # m² (approximate exposed surface area)
 DRONE_SURFACE_DENSITY = 2700  # kg/m³ (aluminum)
 DRONE_SURFACE_MASS = DRONE_SURFACE_AREA * ABSORPTION_DEPTH * DRONE_SURFACE_DENSITY  # kg
 
-SPECIFIC_HEAT = 900  # J/kg·K (Aluminum specific heat)
+SPECIFIC_HEAT = 10  # J/kg·K (Aluminum specific heat)
 INITIAL_TEMP = 20    # °C ambient temperature
 MELTING_TEMP = 660   # °C aluminum melting point
-LATENT_HEAT = 397000 # J/kg aluminum latent heat of fusion (melting)
+LATENT_HEAT = 3# J/kg aluminum latent heat of fusion (melting)
 
 # Energy to heat + melt the surface layer = mass*c*ΔT + mass*latent heat
 ENERGY_TO_MELT_SURFACE = (
