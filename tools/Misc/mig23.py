@@ -1,12 +1,17 @@
 
 import math
 import random
+import sys
+import numpy as np
+
+deadtargets={}
 
 def angle_diff(a, b):
     """Minimal difference between two angles in degrees."""
     diff = (a - b + 180) % 360 - 180
     return diff
 
+maxtime=600
 # --- Radar class ---
 class Radar:
     def __init__(self, max_range_km=50, base_detection_prob=0.9):
@@ -106,7 +111,7 @@ class Missile:
         self.position = launcher.position
         self.speed = 3000  # km/h approx Mach 2.5
         self.alive = True
-        self.max_turn_rate = 20  # degrees per second
+        self.max_turn_rate = 20# degrees per second
         self.heading = launcher.heading
 
     def update(self, time_sec=1.0):
@@ -130,14 +135,19 @@ class Missile:
         dy = dist_km * math.sin(rad)
         x, y = self.position
         self.position = (x + dx, y + dy)
+        dist=self._distance_to_point(self.target.position)
+        
 
         # Check for hit (within 0.2 km)
         if self._distance_to_point(self.target.position) < 0.2:
             # Hit chance reduced by target evasion (simplified)
             hit_chance = 0.8
             if random.random() < hit_chance:
+                
                 print(f"Missile from {self.launcher.name} hit {self.target.id}!")
+                deadtargets.setdefault(self.target.id)
                 self.target.alive = False
+                return self.target.id
             else:
                 print(f"Missile from {self.launcher.name} missed {self.target.id}.")
             self.alive = False
@@ -234,7 +244,7 @@ class MiG25:
 
     def update_missile(self):
         if self.current_missile and self.current_missile.alive:
-            self.current_missile.update()
+            return self.current_missile.update()
 
     def status(self):
         x, y = self.position
@@ -428,7 +438,7 @@ class MiG27:
                 f"Fuel={self.fuel:.0f} GlideBombs={len(self.glide_bombs)} "
                 f"Weapons Fired={self.weapons_fired} RTB={self.rtb_mode}")
 
-def generate_debrief(migs, enemies, ground_targets):
+def generate_debrief(migs, enemies, ground_targets,starten):
     print("\n=== MISSION DEBRIEF ===\n")
 
     total_sorties = len(migs)
@@ -439,7 +449,7 @@ def generate_debrief(migs, enemies, ground_targets):
     ground_kills = sum(1 for g in ground_targets if not g.alive)
 
     print(f"Total Sorties: {total_sorties}")
-    print(f"Enemy Aircraft Destroyed: {enemy_kills} / {len(enemies) + enemy_kills}")
+    print(f"Enemy Aircraft Destroyed: {starten-len(enemies)} / {starten}")
     print(f"Ground Targets Destroyed: {ground_kills} / {len(ground_targets) + ground_kills}")
     print(f"Total Weapons Fired: {total_weapons_fired}")
     print(f"Sorties that Returned to Base or Landed: {total_rtb} / {total_sorties}")
@@ -460,6 +470,7 @@ def generate_debrief(migs, enemies, ground_targets):
             print(f"{g.id} Pos=({g.position[0]:.1f}, {g.position[1]:.1f})")
 
     print("\n=== END OF DEBRIEF ===")
+    
 
 def main():
     # Create aircraft
@@ -468,9 +479,10 @@ def main():
     mig27s = [MiG27(f"MiG27_{i+1}") for i in range(1)]
 
     enemies = generate_random_enemies(6)
+    starten=len(enemies)
     ground_targets = [GroundTarget(f"GT{i+1}", (random.uniform(10, 40), random.uniform(-20, 20))) for i in range(3)]
 
-    max_time = 600  # seconds
+    max_time = maxtime # seconds
     time_step = 1
 
     for t in range(0, max_time, time_step):
@@ -492,15 +504,26 @@ def main():
                 print(f"{mig.name} RTB: All targets destroyed")
                 continue
             target = min(live_targets, key=lambda e: mig._distance_to_point(e.position))
+            if target.id in deadtargets:
+            	target.alive=0
             if mig.detect_target(target):
                 mig.receive_gci_command(target)
                 if not mig.launch_missile(target):
                     pass
+                else:
+                	mig.launch_missile(target)
             else:
                 print(f"{mig.name} lost target detection.")
             mig.update_position(time_step)
-            mig.update_missile()
+            f=mig.update_missile()
+            if(f!=None):
+            	for e in enemies:
+            		if e.id == f:
+            			e.alive=0
+           
+            enemies = [e for e in enemies if e.alive]
             print(mig.status())
+            
 
         # MiG-23 actions
         for mig in mig23s:
@@ -543,7 +566,7 @@ def main():
             print("\n*** Mission complete: All enemy and ground targets destroyed! ***")
             break
 
-    generate_debrief(mig25s + mig23s + mig27s, enemies, ground_targets)
+    generate_debrief(mig25s + mig23s + mig27s, enemies, ground_targets,starten)
 
 if __name__ == "__main__":
     main()
