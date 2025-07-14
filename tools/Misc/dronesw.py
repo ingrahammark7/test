@@ -53,51 +53,60 @@ def interpolate_color(progress):
         b = 0
     return (r, g, b)
 
+def line_blocked(p1, p2):
+    # Check if line between p1 and p2 crosses any terrain
+    for x,y,w,h in terrain_rects:
+        if line_intersects_rect(p1, p2, (x,y,w,h)):
+            return True
+    for cx,cy,r in terrain_circles:
+        if line_intersects_circle(p1, p2, (cx, cy, r)):
+            return True
+    return False
+
 def line_intersects_rect(p1, p2, rect):
     rx, ry, rw, rh = rect
-    corners = [np.array([rx, ry]), np.array([rx+rw, ry]), np.array([rx+rw, ry+rh]), np.array([rx, ry+rh])]
-    edges = [(corners[i], corners[(i+1)%4]) for i in range(4)]
-
-    def ccw(A, B, C):
+    corners = [
+        np.array([rx, ry]),
+        np.array([rx + rw, ry]),
+        np.array([rx + rw, ry + rh]),
+        np.array([rx, ry + rh])
+    ]
+    edges = [
+        (corners[0], corners[1]),
+        (corners[1], corners[2]),
+        (corners[2], corners[3]),
+        (corners[3], corners[0])
+    ]
+    def ccw(A,B,C):
         return (C[1]-A[1])*(B[0]-A[0]) > (B[1]-A[1])*(C[0]-A[0])
-
-    def segments_intersect(A, B, C, D):
+    def segments_intersect(A,B,C,D):
         return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
-
     for edge_start, edge_end in edges:
         if segments_intersect(p1, p2, edge_start, edge_end):
             return True
     return False
 
-def line_intersects_circle(p1, p2, center, radius):
+def line_intersects_circle(p1, p2, circle):
+    cx, cy, r = circle
+    p1 = np.array(p1)
+    p2 = np.array(p2)
     d = p2 - p1
-    f = p1 - center
-    a = np.dot(d, d)
-    b = 2 * np.dot(f, d)
-    c = np.dot(f, f) - radius**2
-
+    f = p1 - np.array([cx, cy])
+    a = np.dot(d,d)
+    b = 2*np.dot(f,d)
+    c = np.dot(f,f) - r*r
     discriminant = b*b - 4*a*c
     if discriminant < 0:
-        return False  # no intersection
-
+        return False
     discriminant = np.sqrt(discriminant)
     t1 = (-b - discriminant) / (2*a)
     t2 = (-b + discriminant) / (2*a)
-
-    if (0 <= t1 <= 1) or (0 <= t2 <= 1):
+    if (0 <= t1 <=1) or (0 <= t2 <=1):
         return True
     return False
 
-def line_blocked(p1, p2):
-    for rect in terrain_rects:
-        if line_intersects_rect(p1, p2, rect):
-            return True
-    for cx, cy, r in terrain_circles:
-        if line_intersects_circle(p1, p2, np.array([cx, cy]), r):
-            return True
-    return False
-
 # === CLASSES ===
+
 class ExplosionParticle:
     def __init__(self, pos):
         self.pos = np.array(pos)
@@ -140,12 +149,14 @@ class Drone:
         if not self.alive:
             return
 
+        # Cloak toggle logic
         self.cloak_timer += DT
         if self.cloak_timer > self.cloak_duration:
             self.cloaked = not self.cloaked
             self.cloak_timer = 0
             self.cloak_duration = np.random.uniform(2, 5)
 
+        # Predictive evasion
         evade_force = np.zeros(2)
         for laser in lasers:
             to_laser = laser.pos - self.pos
@@ -157,6 +168,7 @@ class Drone:
                 if evade_dist > 0:
                     evade_force += normalize(evade_dir) / (evade_dist**1.5 + 1e-6)
 
+        # Group cohesion
         neighbor_positions = []
         for d in drones:
             if d is self or not d.alive:
@@ -169,6 +181,7 @@ class Drone:
             cohesion_dir = avg_pos - self.pos
             cohesion_force = normalize(cohesion_dir) * 0.5
 
+        # Combine forces + randomness
         random_dir = np.random.uniform(-1,1,2)
         move_dir = normalize(evade_force + cohesion_force + 0.3 * random_dir)
 
@@ -183,6 +196,7 @@ class Drone:
         if speed > 0.1:
             self.angle = np.arctan2(self.velocity[1], self.velocity[0])
 
+        # Boundaries & terrain avoidance
         self.pos[0] = np.clip(self.pos[0], 0, WIDTH)
         self.pos[1] = np.clip(self.pos[1], 0, HEIGHT)
         for x,y,w,h in terrain_rects:
@@ -249,8 +263,21 @@ class LaserTroop:
         alive = [d for d in drones if d.alive]
         if not alive:
             return
-        dists = [np.linalg.norm(d.pos - self.pos) for d in alive]
-        target = alive[np.argmin(dists)]
+        # Target nearest drone within LOS (not blocked by terrain)
+        visible_drones = []
+        for d in alive:
+            dist = np.linalg.norm(d.pos - self.pos)
+            if dist <= LASER_RANGE and not line_blocked(self.pos, d.pos):
+                visible_drones.append((dist, d))
+        if not visible_drones:
+            # No visible drones, rotate slowly scanning
+            self.angle += 0.03
+            c, s = np.cos(self.angle), np.sin(self.angle)
+            self.direction = np.array([c, s])
+            return
+
+        # Pick closest visible drone
+        dist, target = min(visible_drones, key=lambda x: x[0])
 
         vec = target.pos - self.pos
         dist = np.linalg.norm(vec)
@@ -267,10 +294,9 @@ class LaserTroop:
             self.direction /= np.linalg.norm(self.direction)
             self.angle = np.arctan2(self.direction[1], self.direction[0])
 
-            # Move forward
             new_pos = self.pos + self.direction * LASER_SPEED * DT
 
-            # Collision with terrain check
+            # Check terrain collision
             collision = False
             for x,y,w,h in terrain_rects:
                 if x <= new_pos[0] <= x+w and y <= new_pos[1] <= y+h:
@@ -378,7 +404,7 @@ def update(frame):
                 continue
             vec = drone.pos - laser.pos
             dist = np.linalg.norm(vec)
-            if dist > LASER_RANGE:
+            if dist > LASER_RANGE or line_blocked(laser.pos, drone.pos):
                 laser.reset_lock(drone)
                 drone.energy_absorbed = max(0, drone.energy_absorbed - 15 * DT)
                 continue
@@ -387,8 +413,7 @@ def update(frame):
             vec_dir = vec / dist
             angle = np.arccos(np.clip(np.dot(laser_dir, vec_dir), -1.0, 1.0))
 
-            # Check line of sight blockage by terrain
-            if angle < beam_angle and not line_blocked(laser.pos, drone.pos):
+            if angle < beam_angle:
                 laser.increment_lock(drone, DT)
                 if laser.is_locked(drone):
                     energy_this_step = laser_power * absorptivity * DT
