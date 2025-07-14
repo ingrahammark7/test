@@ -1,48 +1,62 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from matplotlib.patches import Rectangle, Wedge, Circle
+from matplotlib.patches import Polygon, Circle, FancyBboxPatch, Rectangle, Wedge, Ellipse
 
-# Simulation parameters
-WIDTH, HEIGHT = 400, 300
+# === PARAMETERS ===
+WIDTH, HEIGHT = 600, 400
 NUM_DRONES = 40
-DRONE_SPEED = 5.0
-DRONE_ACCEL = 3.0
-DRONE_SIZE = 15
-
-LASER_SPEED = 3.0
-LASER_BEAM_ANGLE_DEG = 15
-LASER_BEAM_ANGLE = np.deg2rad(LASER_BEAM_ANGLE_DEG)
+DRONE_MAX_SPEED = 6.0
+DRONE_MAX_ACCEL = 4.0
+LASER_SPEED = 4.0
 LASER_LOCK_TIME = 2.0
-LASER_RANGE = 150.0
-LASER_SPAWN_INTERVAL = 50
-DRONE_RESPAWN_TIME = 5.0
-
+LASER_RANGE = 180.0
+LASER_BEAM_ANGLE_DEG = 12
 DT = 0.1
 
-# Terrain
-terrain = [
-    (150, 100, 50, 10),
-    (250, 180, 60, 15),
-    (80, 220, 40, 20),
+terrain_rects = [
+    (150, 100, 80, 15),
+    (320, 250, 90, 25),
+    (80, 320, 70, 30),
 ]
+
+terrain_circles = [
+    (100, 180, 25),
+    (400, 100, 40),
+    (250, 350, 30),
+]
+
+fog_patches = [
+    Ellipse((200, 200), 150, 70, angle=30, color='lightgray', alpha=0.2),
+    Ellipse((350, 150), 180, 90, angle=15, color='lightgray', alpha=0.15),
+]
+
+laser_power = 5  # Watts emitted by laser pointer
+absorptivity = 0.9  # Fraction of laser energy absorbed by drone
+
+# === UTILITIES ===
+def normalize(v):
+    norm = np.linalg.norm(v)
+    return v / norm if norm > 0 else v
+
+def interpolate_color(progress):
+    # Map progress [0,1] to color gradient blue → yellow → red
+    if progress < 0.5:
+        t = progress / 0.5
+        r = t
+        g = t
+        b = 1 - t
+    else:
+        t = (progress - 0.5) / 0.5
+        r = 1
+        g = 1 - t
+        b = 0
+    return (r, g, b)
 
 def line_intersects_rect(p1, p2, rect):
     rx, ry, rw, rh = rect
-
-    corners = [
-        np.array([rx, ry]),
-        np.array([rx + rw, ry]),
-        np.array([rx + rw, ry + rh]),
-        np.array([rx, ry + rh])
-    ]
-
-    edges = [
-        (corners[0], corners[1]),
-        (corners[1], corners[2]),
-        (corners[2], corners[3]),
-        (corners[3], corners[0])
-    ]
+    corners = [np.array([rx, ry]), np.array([rx+rw, ry]), np.array([rx+rw, ry+rh]), np.array([rx, ry+rh])]
+    edges = [(corners[i], corners[(i+1)%4]) for i in range(4)]
 
     def ccw(A, B, C):
         return (C[1]-A[1])*(B[0]-A[0]) > (B[1]-A[1])*(C[0]-A[0])
@@ -53,198 +67,228 @@ def line_intersects_rect(p1, p2, rect):
     for edge_start, edge_end in edges:
         if segments_intersect(p1, p2, edge_start, edge_end):
             return True
-
-    def point_in_rect(p):
-        return rx <= p[0] <= rx+rw and ry <= p[1] <= ry+rh
-
-    if point_in_rect(p1) or point_in_rect(p2):
-        return True
-
     return False
 
-def blocked_by_terrain(p1, p2):
-    for rect in terrain:
+def line_intersects_circle(p1, p2, center, radius):
+    d = p2 - p1
+    f = p1 - center
+    a = np.dot(d, d)
+    b = 2 * np.dot(f, d)
+    c = np.dot(f, f) - radius**2
+
+    discriminant = b*b - 4*a*c
+    if discriminant < 0:
+        return False  # no intersection
+
+    discriminant = np.sqrt(discriminant)
+    t1 = (-b - discriminant) / (2*a)
+    t2 = (-b + discriminant) / (2*a)
+
+    if (0 <= t1 <= 1) or (0 <= t2 <= 1):
+        return True
+    return False
+
+def line_blocked(p1, p2):
+    for rect in terrain_rects:
         if line_intersects_rect(p1, p2, rect):
+            return True
+    for cx, cy, r in terrain_circles:
+        if line_intersects_circle(p1, p2, np.array([cx, cy]), r):
             return True
     return False
 
-def normalize(v):
-    norm = np.linalg.norm(v)
-    return v / norm if norm > 0 else v
+# === CLASSES ===
+class ExplosionParticle:
+    def __init__(self, pos):
+        self.pos = np.array(pos)
+        self.velocity = np.random.uniform(-1,1,2)*3
+        self.radius = np.random.uniform(1.5,4)
+        self.life = np.random.uniform(20,35)
+        self.age = 0
+        self.alpha = 1.0
+        self.color = (1.0, 0.5 + 0.5*np.random.rand(), 0)  # orange-yellowish
+
+    def update(self):
+        self.pos += self.velocity * 0.6
+        self.velocity *= 0.85
+        self.age += 1
+        self.alpha = max(0, 1 - self.age/self.life)
+        self.radius *= 0.96
+        return self.age < self.life
 
 class Explosion:
     def __init__(self, pos):
-        self.pos = np.array(pos)
-        self.radius = 1.0
-        self.max_radius = 30.0
-        self.alpha = 1.0
-        self.finished = False
+        self.particles = [ExplosionParticle(pos) for _ in range(35)]
 
     def update(self):
-        self.radius += 5.0
-        self.alpha -= 0.15
-        if self.alpha <= 0:
-            self.finished = True
+        self.particles = [p for p in self.particles if p.update()]
+        return len(self.particles) > 0
 
 class Drone:
     def __init__(self):
         self.pos = np.array([np.random.uniform(0, WIDTH), np.random.uniform(0, HEIGHT)])
         self.velocity = np.zeros(2)
+        self.angle = 0
         self.alive = True
-        self.exposure_time = 0.0
-        self.respawn_timer = 0.0
-        self.just_died = False
-        self.color = 'blue'
+        self.damage_energy_threshold = 10.0
+        self.energy_absorbed = 0.0
+        self.cloaked = False
+        self.cloak_timer = 0
+        self.cloak_duration = np.random.uniform(2, 5)
 
-    def update(self, lasers):
+    def update(self, lasers, drones):
         if not self.alive:
-            if not self.just_died:
-                self.just_died = True
-                explosions.append(Explosion(self.pos.copy()))
-            self.respawn_timer += DT
-            self.color = (1.0, 0, 0)  # Red flash on death
-            if self.respawn_timer >= DRONE_RESPAWN_TIME:
-                while True:
-                    new_pos = np.array([np.random.uniform(0, WIDTH), np.random.uniform(0, HEIGHT)])
-                    if not any(
-                        (new_pos[0] >= t[0] and new_pos[0] <= t[0]+t[2] and
-                         new_pos[1] >= t[1] and new_pos[1] <= t[1]+t[3])
-                        for t in terrain
-                    ):
-                        break
-                self.pos = new_pos
-                self.velocity = np.zeros(2)
-                self.alive = True
-                self.exposure_time = 0.0
-                self.respawn_timer = 0.0
-                self.just_died = False
-                self.color = 'blue'
             return
 
-        flee_dir = np.zeros(2)
+        self.cloak_timer += DT
+        if self.cloak_timer > self.cloak_duration:
+            self.cloaked = not self.cloaked
+            self.cloak_timer = 0
+            self.cloak_duration = np.random.uniform(2, 5)
+
+        evade_force = np.zeros(2)
         for laser in lasers:
             to_laser = laser.pos - self.pos
             dist = np.linalg.norm(to_laser)
             if dist < LASER_RANGE:
-                if not blocked_by_terrain(self.pos, laser.pos):
-                    flee_dir -= (to_laser) / (dist**2 + 1e-6)
+                predicted_laser_pos = laser.pos + laser.direction * LASER_SPEED * 0.5
+                evade_dir = self.pos - predicted_laser_pos
+                evade_dist = np.linalg.norm(evade_dir)
+                if evade_dist > 0:
+                    evade_force += normalize(evade_dir) / (evade_dist**1.5 + 1e-6)
+
+        neighbor_positions = []
+        for d in drones:
+            if d is self or not d.alive:
+                continue
+            if np.linalg.norm(d.pos - self.pos) < 60:
+                neighbor_positions.append(d.pos)
+        cohesion_force = np.zeros(2)
+        if neighbor_positions:
+            avg_pos = np.mean(neighbor_positions, axis=0)
+            cohesion_dir = avg_pos - self.pos
+            cohesion_force = normalize(cohesion_dir) * 0.5
 
         random_dir = np.random.uniform(-1,1,2)
-        flee_dir += 0.2 * random_dir
+        move_dir = normalize(evade_force + cohesion_force + 0.3 * random_dir)
 
-        if np.linalg.norm(flee_dir) > 0:
-            flee_dir = flee_dir / np.linalg.norm(flee_dir)
-        else:
-            flee_dir = random_dir / np.linalg.norm(random_dir)
-
-        desired_velocity = flee_dir * DRONE_SPEED
+        desired_velocity = move_dir * DRONE_MAX_SPEED
         delta_v = desired_velocity - self.velocity
-
-        accel = np.clip(np.linalg.norm(delta_v), 0, DRONE_ACCEL)
+        accel = np.clip(np.linalg.norm(delta_v), 0, DRONE_MAX_ACCEL)
         if np.linalg.norm(delta_v) > 0:
             self.velocity += (delta_v / np.linalg.norm(delta_v)) * accel * DT
 
-        new_pos = self.pos + self.velocity * DT
+        self.pos += self.velocity * DT
+        speed = np.linalg.norm(self.velocity)
+        if speed > 0.1:
+            self.angle = np.arctan2(self.velocity[1], self.velocity[0])
 
-        for t in terrain:
-            if (new_pos[0] >= t[0] and new_pos[0] <= t[0] + t[2] and
-                new_pos[1] >= t[1] and new_pos[1] <= t[1] + t[3]):
-                self.velocity = np.zeros(2)
-                new_pos = self.pos
-                break
+        self.pos[0] = np.clip(self.pos[0], 0, WIDTH)
+        self.pos[1] = np.clip(self.pos[1], 0, HEIGHT)
+        for x,y,w,h in terrain_rects:
+            if x <= self.pos[0] <= x+w and y <= self.pos[1] <= y+h:
+                self.velocity = -self.velocity * 0.5
+                self.pos += self.velocity * DT * 2
+        for cx,cy,r in terrain_circles:
+            if np.linalg.norm(self.pos - np.array([cx,cy])) < r:
+                self.velocity = -self.velocity * 0.5
+                self.pos += self.velocity * DT * 2
 
-        new_pos[0] = np.clip(new_pos[0], 0, WIDTH)
-        new_pos[1] = np.clip(new_pos[1], 0, HEIGHT)
+    def absorb_energy(self, energy):
+        if self.cloaked:
+            energy *= 0.3
+        self.energy_absorbed += energy
+        self.energy_absorbed = min(self.energy_absorbed, self.damage_energy_threshold)
 
-        self.pos = new_pos
+    def draw(self, ax):
+        size = 10
+        points = np.array([
+            [size, 0],
+            [-size*0.6, size*0.6],
+            [-size*0.6, -size*0.6]
+        ])
+        c, s = np.cos(self.angle), np.sin(self.angle)
+        R = np.array([[c, -s], [s, c]])
+        pts_rot = points @ R.T + self.pos
 
-    def check_laser_lock(self, lasers):
-        if not self.alive:
-            return
+        progress = self.energy_absorbed / self.damage_energy_threshold
+        base_color = interpolate_color(progress)
+        if self.cloaked:
+            base_color = tuple(min(1.0, c+0.4) for c in base_color)
+            alpha = 0.6
+        else:
+            alpha = 1.0
 
-        for laser in lasers:
-            vec = self.pos - laser.pos
-            dist = np.linalg.norm(vec)
-            if dist > LASER_RANGE:
-                laser.reset_lock(self)
-                continue
+        drone_poly = Polygon(pts_rot, closed=True, color=base_color, alpha=alpha)
+        ax.add_patch(drone_poly)
 
-            if blocked_by_terrain(laser.pos, self.pos):
-                laser.reset_lock(self)
-                continue
-
-            laser_dir = laser.direction
-            vec_dir = vec / dist
-            angle = np.arccos(np.clip(np.dot(laser_dir, vec_dir), -1.0, 1.0))
-
-            if angle < LASER_BEAM_ANGLE:
-                laser.increment_lock(self, DT)
-                if laser.is_locked(self):
-                    self.exposure_time += DT
-                    if self.exposure_time > 5:
-                        self.alive = False
-                        laser.reset_lock(self)
-            else:
-                laser.reset_lock(self)
+        # Energy bar
+        bar_width = 20
+        bar_height = 4
+        bar_x = self.pos[0] - bar_width/2
+        bar_y = self.pos[1] + 15
+        ax.add_patch(FancyBboxPatch((bar_x, bar_y), bar_width, bar_height,
+                                   boxstyle="round,pad=0.1", linewidth=0, facecolor='gray', alpha=0.5))
+        ax.add_patch(FancyBboxPatch((bar_x, bar_y), bar_width*progress, bar_height,
+                                   boxstyle="round,pad=0.1", linewidth=0, facecolor=base_color, alpha=alpha))
 
 class LaserTroop:
     def __init__(self):
         while True:
             pos = np.array([np.random.uniform(0, WIDTH), np.random.uniform(0, HEIGHT)])
-            if not any(
-                (pos[0] >= t[0] and pos[0] <= t[0]+t[2] and
-                 pos[1] >= t[1] and pos[1] <= t[1]+t[3])
-                for t in terrain
-            ):
-                break
+            if not any((pos[0]>=x and pos[0]<=x+w and pos[1]>=y and pos[1]<=y+h) for x,y,w,h in terrain_rects):
+                if all(np.linalg.norm(pos - np.array([cx,cy])) > r for cx,cy,r in terrain_circles):
+                    break
         self.pos = pos
         self.direction = np.array([1.0, 0.0])
         self.lock_timers = dict()
+        self.angle = 0
+        self.pulse = 0.0
 
     def update(self, drones):
-        alive_drones = [d for d in drones if d.alive]
-        if not alive_drones:
+        alive = [d for d in drones if d.alive]
+        if not alive:
             return
-
-        distances = [np.linalg.norm(d.pos - self.pos) for d in alive_drones]
-        target = alive_drones[np.argmin(distances)]
+        dists = [np.linalg.norm(d.pos - self.pos) for d in alive]
+        target = alive[np.argmin(dists)]
 
         vec = target.pos - self.pos
         dist = np.linalg.norm(vec)
         if dist > 0:
             desired_dir = vec / dist
-            turn_rate = 0.1
             current_dir = self.direction
+            angle_diff = np.arctan2(desired_dir[1], desired_dir[0]) - np.arctan2(current_dir[1], current_dir[0])
+            angle_diff = (angle_diff + np.pi) % (2 * np.pi) - np.pi
+            max_turn = 0.1
+            angle_change = np.clip(angle_diff, -max_turn, max_turn)
+            c, s = np.cos(angle_change), np.sin(angle_change)
+            R = np.array([[c, -s], [s, c]])
+            self.direction = R @ current_dir
+            self.direction /= np.linalg.norm(self.direction)
+            self.angle = np.arctan2(self.direction[1], self.direction[0])
 
-            # Fix np.cross for 2D vectors by adding z=0 component
-            current_dir_3d = np.append(current_dir, 0)
-            desired_dir_3d = np.append(desired_dir, 0)
-            sign = np.sign(np.cross(current_dir_3d, desired_dir_3d)[2])
-
-            angle = np.arccos(np.clip(np.dot(current_dir, desired_dir), -1.0, 1.0))
-            if angle > turn_rate:
-                rot_angle = turn_rate * sign
-                c, s = np.cos(rot_angle), np.sin(rot_angle)
-                R = np.array([[c, -s], [s, c]])
-                self.direction = R @ current_dir
-                self.direction /= np.linalg.norm(self.direction)
-            else:
-                self.direction = desired_dir
-
+            # Move forward
             new_pos = self.pos + self.direction * LASER_SPEED * DT
 
+            # Collision with terrain check
             collision = False
-            for t in terrain:
-                if (new_pos[0] >= t[0] and new_pos[0] <= t[0]+t[2] and
-                    new_pos[1] >= t[1] and new_pos[1] <= t[1]+t[3]):
+            for x,y,w,h in terrain_rects:
+                if x <= new_pos[0] <= x+w and y <= new_pos[1] <= y+h:
                     collision = True
                     break
-
+            for cx,cy,r in terrain_circles:
+                if np.linalg.norm(new_pos - np.array([cx,cy])) < r:
+                    collision = True
+                    break
             if not collision:
                 self.pos = new_pos
 
             self.pos[0] = np.clip(self.pos[0], 0, WIDTH)
             self.pos[1] = np.clip(self.pos[1], 0, HEIGHT)
+
+        self.pulse += DT * 10
+        if self.pulse > 2*np.pi:
+            self.pulse -= 2*np.pi
 
     def increment_lock(self, drone, dt):
         drone_id = id(drone)
@@ -259,113 +303,129 @@ class LaserTroop:
         drone_id = id(drone)
         return self.lock_timers.get(drone_id, 0) >= LASER_LOCK_TIME
 
+    def draw(self, ax):
+        # Base dot
+        ax.plot(self.pos[0], self.pos[1], 'ro', markersize=10)
+
+        # Glowing aura
+        glow = Circle(self.pos, radius=18, color='red', alpha=0.15 + 0.15 * np.sin(self.pulse * 3))
+        ax.add_patch(glow)
+
+        # Direction arrow
+        dx = np.cos(self.angle) * 25
+        dy = np.sin(self.angle) * 25
+        ax.arrow(self.pos[0], self.pos[1], dx, dy, head_width=7, head_length=10, fc='red', ec='red', alpha=0.9)
+
+        # Laser flare at tip
+        flare_pos = self.pos + np.array([dx, dy])
+        flare = Circle(flare_pos, radius=4 + 2 * np.sin(self.pulse * 5), color='yellow', alpha=0.8)
+        ax.add_patch(flare)
+
+# === INITIALIZE ===
 drones = [Drone() for _ in range(NUM_DRONES)]
-lasers = []
+lasers = [LaserTroop()]
 explosions = []
 
-frame_count = 0
+terrain_patches = [Rectangle((x,y), w, h, color='dimgray', alpha=0.9) for x,y,w,h in terrain_rects]
 
-fig, ax = plt.subplots(figsize=(8,6))
-ax.set_xlim(0, WIDTH)
-ax.set_ylim(0, HEIGHT)
-ax.set_aspect('equal')
-ax.set_title('Drone Swarm vs Laser Troops with Explosions & Visuals')
-
-terrain_patches = []
-for x, y, w, h in terrain:
-    patch = Rectangle((x, y), w, h, color='grey', alpha=0.7)
-    terrain_patches.append(patch)
-    ax.add_patch(patch)
-
-drone_scat = ax.scatter([], [], c='blue', s=DRONE_SIZE, label='Drones')
-laser_scat = ax.scatter([], [], c='red', s=50, marker='x', label='Laser Troops')
-lock_lines = []
-laser_beam_wedges = []
-
-explosion_patches = []
-
-quiver = ax.quiver([], [], [], [], angles='xy', scale_units='xy', scale=1, color='cyan', alpha=0.6)
+fig, ax = plt.subplots(figsize=(10,7))
 
 def update(frame):
-    global frame_count
+    ax.clear()
+    ax.set_xlim(0, WIDTH)
+    ax.set_ylim(0, HEIGHT)
+    ax.set_aspect('equal')
+    ax.set_facecolor('lightsteelblue')
 
-    if frame_count % LASER_SPAWN_INTERVAL == 0:
-        lasers.append(LaserTroop())
+    # Draw terrain rectangles
+    for patch in terrain_patches:
+        ax.add_patch(patch)
 
+    # Draw terrain circles
+    for (cx, cy, r) in terrain_circles:
+        circle = Circle((cx, cy), r, color='dimgray', alpha=0.85)
+        ax.add_patch(circle)
+
+    # Draw fog patches
+    for fog in fog_patches:
+        ax.add_patch(fog)
+
+    # Update lasers
     for laser in lasers:
         laser.update(drones)
 
+    # Update drones
     for drone in drones:
-        drone.update(lasers)
-        drone.check_laser_lock(lasers)
+        drone.update(lasers, drones)
 
-    alive_drones = [d for d in drones if d.alive]
-    score = len(alive_drones)
+    beam_angle = np.deg2rad(LASER_BEAM_ANGLE_DEG)
 
-    drone_positions = np.array([d.pos for d in alive_drones]) if alive_drones else np.empty((0,2))
-    drone_colors = [d.color for d in alive_drones]
-    drone_scat.set_offsets(drone_positions)
-    drone_scat.set_color(drone_colors)
-    drone_scat.set_sizes([DRONE_SIZE]*len(drone_positions))
-
-    laser_positions = np.array([l.pos for l in lasers])
-    laser_scat.set_offsets(laser_positions if len(lasers) > 0 else np.empty((0,2)))
-
-    # Robust quiver update to fix size mismatch error
-    if len(alive_drones) > 0:
-        vx = np.array([d.velocity[0] for d in alive_drones])
-        vy = np.array([d.velocity[1] for d in alive_drones])
-        quiver.set_offsets(drone_positions)
-        try:
-        	quiver.set_UVC(vx, vy)
-        except:
-        	ff=0
-    else:
-        quiver.set_offsets(np.empty((0, 2)))
-        quiver.set_UVC(np.zeros(0), np.zeros(0))
-
-    # Remove old lock lines and beam wedges
-    for line in lock_lines:
-        line.remove()
-    lock_lines.clear()
-    for wedge in laser_beam_wedges:
-        wedge.remove()
-    laser_beam_wedges.clear()
-
-    # Remove old explosion patches
-    for patch in explosion_patches:
-        patch.remove()
-    explosion_patches.clear()
-
-    # Update explosions
-    still_explosions = []
-    for exp in explosions:
-        exp.update()
-        if not exp.finished:
-            circle = Circle(exp.pos, exp.radius, color='orange', alpha=exp.alpha)
-            ax.add_patch(circle)
-            explosion_patches.append(circle)
-            still_explosions.append(exp)
-    explosions[:] = still_explosions
-
-    # Draw laser beams and lock lines
+    # Laser locking, damage, and visuals
     for laser in lasers:
-        beam_angle_deg = LASER_BEAM_ANGLE_DEG
-        start_angle = np.rad2deg(np.arctan2(laser.direction[1], laser.direction[0])) - beam_angle_deg
-        wedge = Wedge(laser.pos, LASER_RANGE, start_angle, start_angle + 2*beam_angle_deg, alpha=0.15, color='red')
+        # Draw laser cone
+        base_angle = np.arctan2(laser.direction[1], laser.direction[0])
+        start_angle = np.rad2deg(base_angle - beam_angle)
+        end_angle = np.rad2deg(base_angle + beam_angle)
+        wedge_alpha = 0.15 + 0.1*np.sin(laser.pulse)
+        wedge = Wedge(laser.pos, LASER_RANGE, start_angle, end_angle, color='red', alpha=wedge_alpha)
         ax.add_patch(wedge)
-        laser_beam_wedges.append(wedge)
+
+        # Draw laser troop itself
+        laser.draw(ax)
 
         for drone in drones:
-            if drone.alive and laser.is_locked(drone):
-                line = ax.plot([laser.pos[0], drone.pos[0]], [laser.pos[1], drone.pos[1]], 'r--', alpha=0.6, linewidth=2)[0]
-                lock_lines.append(line)
+            if not drone.alive:
+                continue
+            vec = drone.pos - laser.pos
+            dist = np.linalg.norm(vec)
+            if dist > LASER_RANGE:
+                laser.reset_lock(drone)
+                drone.energy_absorbed = max(0, drone.energy_absorbed - 15 * DT)
+                continue
 
-    ax.set_title(f'Drone Swarm vs Laser Troops — Drones Alive: {score}')
-    frame_count += 1
+            laser_dir = laser.direction
+            vec_dir = vec / dist
+            angle = np.arccos(np.clip(np.dot(laser_dir, vec_dir), -1.0, 1.0))
 
-    return drone_scat, laser_scat, quiver, *lock_lines, *laser_beam_wedges, *explosion_patches
+            # Check line of sight blockage by terrain
+            if angle < beam_angle and not line_blocked(laser.pos, drone.pos):
+                laser.increment_lock(drone, DT)
+                if laser.is_locked(drone):
+                    energy_this_step = laser_power * absorptivity * DT
+                    drone.absorb_energy(energy_this_step)
 
-ani = FuncAnimation(fig, update, frames=2000, interval=DT*1000, blit=False)
-plt.legend(loc='upper right')
+                    # Draw thick locking beam
+                    ax.plot([laser.pos[0], drone.pos[0]], [laser.pos[1], drone.pos[1]],
+                            color='red', linestyle='-', linewidth=3, alpha=0.7)
+
+                    if drone.energy_absorbed >= drone.damage_energy_threshold:
+                        drone.alive = False
+                        explosions.append(Explosion(drone.pos.copy()))
+                        laser.reset_lock(drone)
+            else:
+                laser.reset_lock(drone)
+                drone.energy_absorbed = max(0, drone.energy_absorbed - 10 * DT)
+
+    # Draw drones
+    for drone in drones:
+        if drone.alive:
+            drone.draw(ax)
+        else:
+            ax.plot(drone.pos[0], drone.pos[1], 'o', color='dimgray', markersize=12, alpha=0.6)
+
+    # Update explosions
+    alive_explosions = []
+    for explosion in explosions:
+        if explosion.update():
+            for p in explosion.particles:
+                circle = Circle(p.pos, p.radius, color=p.color, alpha=p.alpha)
+                ax.add_patch(circle)
+            alive_explosions.append(explosion)
+    explosions[:] = alive_explosions
+
+    ax.set_title(f'Drone Swarm vs Laser Troops — Drones Alive: {sum(d.alive for d in drones)}')
+    ax.axis('off')
+    return []
+
+ani = FuncAnimation(fig, update, frames=1000, interval=DT*1000)
 plt.show()
