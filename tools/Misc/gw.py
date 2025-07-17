@@ -1,66 +1,78 @@
-import math
+import numpy as np
 
-insolation=1361
-phi=1.618
-fr=math.pow(2,phi)
-afterf=insolation/4
-afterconvec=afterf/fr
-afterloss=afterconvec/fr
-afterIR=afterloss/fr
-print(afterIR, "W/m2 heating energy available")
-mil=math.pow(10,6)
-oceanar=386*mil*1000*1000
-oceanen=oceanar*afterIR
-time=60*60*24*365*100
-toten=time*oceanen
-oceanmass=math.pow(10,24)
-oceanenergypergram=toten/oceanmass
-specheat=4
-tempbase=oceanenergypergram/specheat
-carbonppm=380
-dcarbon=2
-tempc=math.log(dcarbon*carbonppm/carbonppm)*tempbase
-print(tempc, " degrees change from " , dcarbon,"x ghg change over century")
-co2pct=0.1
-tempc=tempc*co2pct
-print(tempc, " degrees change from " , dcarbon,"x co2 change over century")
-#global warming is fake
+# Constants
+c = 3e8  # Speed of light (m/s)
+solar_constant_1au = 1361  # Solar irradiance at 1 AU (W/m²)
+au = 1.496e11  # Astronomical unit (m)
+sigma = 5.67e-8  # Stefan-Boltzmann constant (W/m²/K⁴)
 
-earthmass=6*math.pow(10,27)
-earthspecheat=1
-earthheatcap=earthspecheat*earthmass
-u238pow=8.5*math.pow(10,-9)
-u235pow=6*math.pow(10,-8)
-th232pow=2.6*math.pow(10,-9)
-k40pow=5.6*math.pow(10,-9)
-k40is=0.0001
-u235is=0.992
-u238is=0.007
-uab=2.8/mil
-thab=10.7/mil
-kab=0.023
-upow=u238pow*uab*u235is*earthmass+u235pow*uab*u235is*earthmass
-thpow=th232pow*thab*1*earthmass
-kpow=k40pow*kab*k40is*earthmass
-radpow=(upow+thpow+kpow)
-earthtemp=288
-spacetemp=0
-bolt=5.67*math.pow(10,-8)
-hr=bolt*(earthtemp*earthtemp*earthtemp)
-emis=0.61
-hr=emis*hr
-earthar=509*mil*mil
-qr=hr*earthtemp
-eh=qr*earthar
-pctrad=radpow/eh
-toteart=earthtemp*4
-latentearth=earthspecheat*earthmass*toteart
-ratetr=eh/latentearth
-secsto=1/ratetr
-year=60*60*24*365
-irof=7.5*math.pow(10,5)
-coremass=9.8*math.pow(10,25)
-elatent=irof*coremass
-k=0.6*math.pow(10,-6)
-dept=math.sqrt(k*time)
+# User-defined parameters
+spacecraft_mass_kg = 100000       # Spacecraft mass (kg)
+sail_area_m2 = 1_000_000          # Sail area (m²)
+ion_exhaust_velocity_m_s = 100000  # Ion exhaust velocity (m/s)
+ion_thruster_efficiency = 0.7     # Efficiency (0-1)
+target_velocity_fraction_c = 0.1  # Target velocity fraction of c
+absorption_coeff = 0.1            # Absorptivity (0-1)
+emissivity_coeff = 0.9            # Emissivity (0-1)
+heat_capacity_j_per_kg_k = 700    # Heat capacity (J/kg·K)
+cooling_factor = 1e-4             # Cooling factor (fraction per second)
+time_step_s = 1000                  # Time step (seconds)
+distance_au = 1                   # Distance from Sun (AU) — you can change this
 
+# Functions
+
+def solar_power_at_distance(distance_m):
+    return solar_constant_1au * (au / distance_m) ** 2
+
+def thrust_from_power(power_watts, exhaust_velocity_m_s, efficiency=0.7):
+    return 2 * efficiency * power_watts / exhaust_velocity_m_s
+
+def acceleration(thrust_newtons, spacecraft_mass_kg):
+    return thrust_newtons / spacecraft_mass_kg
+
+def relativistic_velocity(acceleration_m_s2, proper_time_s):
+    return c * np.tanh(acceleration_m_s2 * proper_time_s / c)
+
+def coordinate_time(acceleration_m_s2, proper_time_s):
+    return (c / acceleration_m_s2) * np.sinh(acceleration_m_s2 * proper_time_s / c)
+
+def relativistic_time_to_velocity(target_velocity_m_s, acceleration_m_s2):
+    atanh_arg = target_velocity_m_s / c
+    if abs(atanh_arg) >= 1:
+        raise ValueError("Target velocity must be less than c")
+    return (c / acceleration_m_s2) * np.arctanh(atanh_arg)
+
+def simulate_cli():
+    distance_m = distance_au * au
+    solar_power_density = solar_power_at_distance(distance_m)
+    total_power_input = solar_power_density * sail_area_m2
+    thrust_newtons = thrust_from_power(total_power_input, ion_exhaust_velocity_m_s, ion_thruster_efficiency)
+    acceleration_m_s2 = acceleration(thrust_newtons, spacecraft_mass_kg)
+
+    target_velocity_m_s = target_velocity_fraction_c * c
+    proper_time_to_target_s = relativistic_time_to_velocity(target_velocity_m_s, acceleration_m_s2)
+
+    num_steps = int(proper_time_to_target_s / time_step_s) + 1
+
+    temperature = 3.0  # Initial temperature (K)
+
+    print(f"Simulating acceleration to {target_velocity_fraction_c*100:.1f}% of c over {num_steps} steps")
+    print(f"{'Step':>5} | {'PropTime(s)':>10} | {'CoordTime(s)':>12} | {'Vel(m/s)':>12} | {'Vel(%c)':>8} | {'Temp(K)':>8}")
+
+    for i in range(num_steps):
+        proper_time = i * time_step_s
+        velocity = relativistic_velocity(acceleration_m_s2, proper_time)
+        coord_time = coordinate_time(acceleration_m_s2, proper_time)
+
+        # Thermal calculation
+        absorbed_power_density = solar_power_density * absorption_coeff
+        emitted_power_density = emissivity_coeff * sigma * temperature ** 4
+        net_power_density = absorbed_power_density - emitted_power_density
+        net_power_density -= cooling_factor * (temperature - 3)
+        net_power_total = net_power_density * sail_area_m2
+        delta_T = (net_power_total * time_step_s) / (spacecraft_mass_kg * heat_capacity_j_per_kg_k)
+        temperature = max(temperature + delta_T, 3)
+
+        print(f"{i:5d} | {proper_time:10.1f} | {coord_time:12.1f} | {velocity:12.0f} | {velocity/c*100:8.3f} | {temperature:8.1f}")
+
+simulate_cli()
