@@ -11,7 +11,7 @@ def angle_diff(a, b):
     diff = (a - b + 180) % 360 - 180
     return diff
 
-maxtime = 30000
+maxtime = 600
 
 # --- Radar class ---
 class Radar:
@@ -142,7 +142,7 @@ class MiG25:
         self.max_fire_range = 20.0
         self.rtb_mode = False
         self.fuel = 18000  # kg
-        self.fuel_burn_rate = 0.5 # kg/sec
+        self.fuel_burn_rate = 50 # kg/sec
         self.command_failure_chance = 0.1
         self.current_missile = None
         self.evasive = False
@@ -229,7 +229,7 @@ class MiG23:
         self.max_fire_range = 3.0  # guns only
         self.rtb_mode = False
         self.fuel = 15000  # kg
-        self.fuel_burn_rate = 0.4# kg/sec
+        self.fuel_burn_rate = 40# kg/sec
         self.command_failure_chance = 0.1
         self.dogfight_mode = False
         self.alive=1
@@ -389,21 +389,15 @@ class MiG27:
             return
         if(self.rtb_mode):
         	return
-        self.fuel -= 0.4* time_sec
+        self.fuel -= 40* time_sec
         dx =  self.target_ground.position[0]-self.position[0]
         dy =  self.target_ground.position[1]-self.position[1]
         if(self.target_ground.alive==1):
         	
         	self.heading=math.degrees(math.atan2(dx,dy))
-        	print(self.heading)
-        
-        if(abs(self.position[0])>100):
-        	print(self.target_ground.position)
-        	sys.exit()
         if(dy==-1):
         	dy=0
-        print(dx)
-        print(dy)
+        
         sl=(dx/(dy+1))/(dx+dy)
         dist = self.speed * time_sec / 3600
         sl=sl*dist
@@ -412,7 +406,7 @@ class MiG27:
         if(dx==0):
         	sx=0
         	sy=dist
-        print(dist)
+        
         self.position = (self.position[0] + sx,
         self.position[1] + sy)	
         # Update glide bombs
@@ -507,8 +501,8 @@ def main():
 
     # Initialize SAM ground defenses
     sams = [
-        GroundDefense("SAM1", (25, 5), detection_range_km=40, fire_range_km=10, cooldown_time=100, hit_chance=0),
-        GroundDefense("SAM2", (35, -10), detection_range_km=35, fire_range_km=8, cooldown_time=80, hit_chance=0),
+        GroundDefense("SAM1", (25, 5), detection_range_km=40, fire_range_km=10, cooldown_time=100, hit_chance=0.1),
+        GroundDefense("SAM2", (35, -10), detection_range_km=35, fire_range_km=8, cooldown_time=80, hit_chance=0.1),
     ]
 
     max_time = maxtime  # seconds
