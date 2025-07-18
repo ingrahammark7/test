@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fractal Terrain</title>
+  <meta charset="UTF-8">
+  <style>
+    body { margin: 0; background: black; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<canvas id="terrain"></canvas>
+<script>
+const canvas = document.getElementById('terrain');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const size = 257; // Must be 2^n + 1
+let map = Array(size).fill().map(() => Array(size).fill(0));
+
+function diamondSquare(size, roughness) {
+  map[0][0] = map[0][size-1] = map[size-1][0] = map[size-1][size-1] = Math.random();
+
+  let step = size - 1;
+  while (step > 1) {
+    let half = step / 2;
+
+    // Diamond step
+    for (let y = half; y < size; y += step) {
+      for (let x = half; x < size; x += step) {
+        const avg = (map[y-half][x-half] + map[y-half][x+half] + map[y+half][x-half] + map[y+half][x+half]) / 4;
+        map[y][x] = avg + (Math.random() * 2 - 1) * roughness * step / size;
+      }
+    }
+
+    // Square step
+    for (let y = 0; y < size; y += half) {
+      for (let x = (y + half) % step; x < size; x += step) {
+        const neighbors = [];
+        if (x - half >= 0) neighbors.push(map[y][x - half]);
+        if (x + half < size) neighbors.push(map[y][x + half]);
+        if (y - half >= 0) neighbors.push(map[y - half][x]);
+        if (y + half < size) neighbors.push(map[y + half][x]);
+        const avg = neighbors.reduce((a, b) => a + b, 0) / neighbors.length;
+        map[y][x] = avg + (Math.random() * 2 - 1) * roughness * step / size;
+      }
+    }
+
+    step = half;
+  }
+}
+
+function drawMap(offset = 0) {
+  const imgData = ctx.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const val = Math.floor((map[y][x] + offset) * 128 + 128);
+      const i = (y * size + x) * 4;
+      imgData.data[i] = val; // R
+      imgData.data[i+1] = val; // G
+      imgData.data[i+2] = val; // B
+      imgData.data[i+3] = 255; // A
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function animate() {
+  diamondSquare(size, 0.8);
+  let frame = 0;
+  function step() {
+    drawMap(Math.sin(frame * 0.05) * 0.5);
+    frame++;
+    requestAnimationFrame(step);
+  }
+  step();
+}
+
+animate();
+</script>
+</body>
+</html>
