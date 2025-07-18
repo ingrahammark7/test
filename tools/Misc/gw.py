@@ -1,55 +1,86 @@
-# Constants
-G = 6.67430e-11  # m^3 kg^-1 s^-2
-m_p = 1.67262e-27  # kg
-d = 1e-15  # m
-v = 3e7  # m/s
 import math
 
-# Time per crossing
-dt = (d**.5)/ v
+# Constants
+NA = 6.022e23  # Avogadro's number, molecules/mol
+kB = 1.38e-23  # Boltzmann constant, J/K
+g = 9.81  # gravity, m/s^2
+eta = 1.8e-5  # dynamic viscosity of air, Pa·s
+rho_air = 1.2  # air density kg/m^3 (sea level)
+rho_salt = 2170  # salt density kg/m^3
 
-# Number of crossings per second
-f = v / (d**2)
+# Inputs
+mass_salt_g = 1.0  # grams
+molar_mass_salt = 58.44  # g/mol (NaCl)
+particle_diameter_m = 1e-6  # 1 micron
+airspeed_m_per_s = 1.0  # m/s
+temp_K = 298  # Kelvin (25C)
+relative_humidity = 0.5  # 50%
+settling_height_m = 3000  # 3 km altitude
+column_area_m2 = 1.0  # cross-sectional area of air column in m^2
 
-# Calculate instantaneous gravitational force at distance d
-de=(d**.5)/f
-F_g = G * m_p**2 / de**2
+# Calculations
 
-# Total impulse per second (force * total time in 1s)
-impulse_per_sec = F_g * dt* f # This should equal F_g
+# Number of moles of salt
+moles_salt = mass_salt_g / molar_mass_salt
 
+# Number of salt molecules
+num_salt_molecules = moles_salt * NA
 
-print(f"Instantaneous gravitational force: {F_g:.3e} N")
-print(f"Crossing time per event: {dt:.3e} s")
-print(f"Crossings per second: {f:.3e}")
-print(f"Impulse per second (force*time): {impulse_per_sec:.3e} N·s")
+# Particle volume and mass
+radius = particle_diameter_m / 2
+particle_volume = (4/3) * math.pi * radius**3  # m^3
+particle_mass = rho_salt * particle_volume  # kg
 
-# Number of crossings per second
-f1 = v / d
-# Total impulse per second (force * total time in 1s)
-dt1=d/v
-F_g1 = G * m_p**2 / d**2
+# Number of particles
+mass_salt_kg = mass_salt_g / 1000
+num_particles = mass_salt_kg / particle_mass
 
-impulse_per_sec1 = F_g1 * dt1 * f1 # This should equal F_g
-ff=math.pow(10,38)
-fd=impulse_per_sec/impulse_per_sec1
-print(f"Ratio impulse per sec to instantaneous force: {fd:.3e}")
-#gravity is 10^44 times stronger than the strong force
-planck_mass = 2.18e-8
-c=3*math.pow(10,8)
-amu = 1.66e-27  # kg
-f=(4*math.pi)-6
-phi = 1.6180339887
-f=f**phi
-f=f**phi
-f6=f**(phi)
-f7=f6
-f6=f6**6
-f6=(f6**1.25)/f
-planck_mass = 2.18e-8
-pm=10**-12
-cr=140*pm
-rate=(c/cr)
-av=6*math.pow(10,23)
-cm=amu*24
-cper=planck_mass/cm
+# Water vapor number density
+# Saturation vapor pressure at 25C ~3167 Pa
+partial_pressure_water = relative_humidity * 3167  # Pa
+number_density_water = partial_pressure_water / (kB * temp_K)  # molecules/m^3
+
+# Cross-sectional area of one particle
+cross_section_area = math.pi * radius**2  # m^2
+
+# Volume swept per second by particle
+volume_swept_per_sec = cross_section_area * airspeed_m_per_s  # m^3/s
+
+# Number of water molecules encountered per particle per second
+water_molecules_per_particle_sec = number_density_water * volume_swept_per_sec
+
+# Total water molecules encountered by all salt particles per second
+total_water_encounters_per_sec = num_particles * water_molecules_per_particle_sec
+
+# Calculate settling velocity with Stokes' Law
+settling_velocity = (2/9) * (radius**2) * g * (rho_salt - rho_air) / eta  # m/s
+
+# Time to settle from altitude (seconds)
+settling_time_sec = settling_height_m / settling_velocity
+
+# Total water molecules encountered over settling time
+total_water_encounters_over_time = total_water_encounters_per_sec * settling_time_sec
+
+# Molar ratio: total water molecules encountered over settling time to salt molecules
+molar_ratio = total_water_encounters_over_time / num_salt_molecules
+
+# Calculate total water molecules in air column
+air_column_volume = column_area_m2 * settling_height_m  # m^3
+total_water_molecules_in_column = number_density_water * air_column_volume
+
+# Calculate salt mass needed so total encounters = total water molecules in column
+# Since encounters scale linearly with salt mass:
+salt_mass_needed_kg = (total_water_molecules_in_column / total_water_encounters_over_time) * mass_salt_kg
+salt_mass_needed_g = salt_mass_needed_kg * 1000  # convert to grams
+
+# Print results
+print(f"Number of salt molecules in {mass_salt_g}g salt: {num_salt_molecules:.2e}")
+print(f"Number of salt particles (1 micron diameter): {num_particles:.2e}")
+print(f"Water molecules encountered per particle per second: {water_molecules_per_particle_sec:.2e}")
+print(f"Total water molecules encountered by all salt particles per second: {total_water_encounters_per_sec:.2e}")
+print(f"Settling velocity (m/s): {settling_velocity:.2e}")
+print(f"Time to settle {settling_height_m} m (seconds): {settling_time_sec:.2e} (~{settling_time_sec / (3600*24*365):.2f} years)")
+print(f"Total water molecules encountered over settling time: {total_water_encounters_over_time:.2e}")
+print(f"Molar ratio (water molecules encountered / salt molecules): {molar_ratio:.2f}")
+print(f"Total water molecules in {column_area_m2} m² × {settling_height_m} m air column: {total_water_molecules_in_column:.2e}")
+print(f"Salt mass needed (grams) to encounter all water molecules in column: {salt_mass_needed_g:.5e} g")
