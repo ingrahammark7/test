@@ -29,3 +29,29 @@ print(f"Total salt ions released: {total_ions:.2e}")
 print(f"Total ion-molecule contacts: {total_contacts_possible:.2e}")
 print(f"Coverage efficacy: {efficacy:.4f} ({efficacy*100:.2f}%)")
 print(f"Salt mass: {mol_salt * 58.5:.2f} g ({(mol_salt * 58.5)/1e6:.2f} tonnes)")
+
+import numpy as np
+
+# Constants
+stefan_boltzmann = 5.670374419e-8  # W/m²K⁴
+earth_surface_area = 5.1e14  # m²
+baseline_temp_K = 288  # Approx 15°C in Kelvin
+temp_increase_K = 3  # Estimated average global warming (3°C)
+new_temp_K = baseline_temp_K + temp_increase_K
+
+# Calculate radiated power before and after warming
+radiated_power_baseline = stefan_boltzmann * earth_surface_area * baseline_temp_K**4
+radiated_power_warmed = stefan_boltzmann * earth_surface_area * new_temp_K**4
+
+# Excess heat loss rate
+excess_radiation = radiated_power_warmed - radiated_power_baseline  # W
+
+# Assume total excess heat added due to warming is 2.9e23 J (IPCC rough estimate)
+total_excess_heat = 2.9e23  # J
+
+# Time to lose half of that excess energy
+half_excess_heat = total_excess_heat / 2
+time_seconds = half_excess_heat / excess_radiation
+time_years = time_seconds / (60 * 60 * 24 * 365.25)
+
+print(excess_radiation, time_years)
