@@ -1,83 +1,194 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Fractal Terrain</title>
-  <meta charset="UTF-8">
-  <style>
-    body { margin: 0; background: black; overflow: hidden; }
-    canvas { display: block; }
-  </style>
+<meta charset="UTF-8" />
+<title>Animated Terrain + Clouds + Wind + Temp</title>
+<style>
+  body, html {
+    margin: 0; padding: 0;
+    background: #000;
+    overflow: hidden;
+    user-select: none;
+  }
+  canvas {
+    display: block;
+    margin: 0 auto;
+    background: #111;
+  }
+  #ui {
+    position: fixed;
+    top: 10px; left: 10px;
+    color: #ccc;
+    font-family: monospace;
+    background: rgba(0,0,0,0.5);
+    padding: 8px 12px;
+    border-radius: 6px;
+    user-select: none;
+  }
+  #ui label {
+    margin-right: 12px;
+  }
+</style>
 </head>
 <body>
-<canvas id="terrain"></canvas>
+
+<canvas id="canvas"></canvas>
+<div id="ui">
+  <label><input type="checkbox" id="toggleClouds" checked> Clouds</label>
+  <label><input type="checkbox" id="toggleWind" checked> Wind</label>
+  <label><input type="checkbox" id="toggleTemp" checked> Temp Gradient</label>
+  <label>Speed <input type="range" id="speedRange" min="0.1" max="3" step="0.1" value="1"></label>
+</div>
+
 <script>
-const canvas = document.getElementById('terrain');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+(() => {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W;
+    canvas.height = H;
+  }
+  window.addEventListener('resize', resize);
+  resize();
 
-const size = 257; // Must be 2^n + 1
-let map = Array(size).fill().map(() => Array(size).fill(0));
+  // Settings from UI
+  const ui = {
+    toggleClouds: document.getElementById('toggleClouds'),
+    toggleWind: document.getElementById('toggleWind'),
+    toggleTemp: document.getElementById('toggleTemp'),
+    speedRange: document.getElementById('speedRange'),
+  };
 
-function diamondSquare(size, roughness) {
-  map[0][0] = map[0][size-1] = map[size-1][0] = map[size-1][size-1] = Math.random();
+  // Fractal Terrain Generation (1D fractal noise for simplicity)
+  function fractalNoise(x, t) {
+    return 0.6 * Math.sin(x * 0.01 + t) +
+           0.3 * Math.sin(x * 0.05 + t * 0.8) +
+           0.1 * Math.sin(x * 0.1 + t * 1.5);
+  }
 
-  let step = size - 1;
-  while (step > 1) {
-    let half = step / 2;
+  // Clouds as semi-transparent moving white blobs
+  class Cloud {
+    constructor() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * (H * 0.5);
+      this.size = 80 + Math.random() * 100;
+      this.speed = 5 + Math.random() * 15;
+      this.alpha = 0.15 + Math.random() * 0.1;
+    }
+    update(dt, speedMultiplier) {
+      this.x += (this.speed * speedMultiplier * dt);
+      if(this.x - this.size > W) this.x = -this.size;
+    }
+    draw(ctx) {
+      let grad = ctx.createRadialGradient(this.x, this.y, this.size*0.3, this.x, this.y, this.size);
+      grad.addColorStop(0, `rgba(255,255,255,${this.alpha})`);
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y, this.size*1.2, this.size*0.7, 0, 0, 2*Math.PI);
+      ctx.fill();
+    }
+  }
 
-    // Diamond step
-    for (let y = half; y < size; y += step) {
-      for (let x = half; x < size; x += step) {
-        const avg = (map[y-half][x-half] + map[y-half][x+half] + map[y+half][x-half] + map[y+half][x+half]) / 4;
-        map[y][x] = avg + (Math.random() * 2 - 1) * roughness * step / size;
-      }
+  // Wind vector arrows drifting diagonally
+  class WindArrow {
+    constructor() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * H;
+      this.length = 20 + Math.random() * 15;
+      this.speed = 30 + Math.random() * 40;
+      this.angle = Math.PI / 4; // 45 degrees
+      this.alpha = 0.2 + Math.random() * 0.3;
+    }
+    update(dt, speedMultiplier) {
+      this.x += Math.cos(this.angle) * this.speed * speedMultiplier * dt;
+      this.y += Math.sin(this.angle) * this.speed * speedMultiplier * dt;
+      if(this.x > W + 30) this.x = -30;
+      if(this.y > H + 30) this.y = -30;
+    }
+    draw(ctx) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.angle);
+      ctx.globalAlpha = this.alpha;
+      ctx.strokeStyle = '#aaffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(this.length, 0);
+      ctx.lineTo(this.length - 5, -5);
+      ctx.moveTo(this.length, 0);
+      ctx.lineTo(this.length - 5, 5);
+      ctx.stroke();
+      ctx.restore();
+      ctx.globalAlpha = 1.0;
+    }
+  }
+
+  // Temperature Gradient Overlay (top to bottom: warm to cold)
+  function drawTemperatureGradient(ctx, width, height) {
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, 'rgba(255, 80, 80, 0.15)');  // warm red, transparent
+    grad.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
+    grad.addColorStop(1, 'rgba(100, 100, 255, 0.15)'); // cold blue, transparent
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  // Initialize clouds and wind arrows
+  const clouds = [];
+  for(let i=0; i<15; i++) clouds.push(new Cloud());
+  const windArrows = [];
+  for(let i=0; i<50; i++) windArrows.push(new WindArrow());
+
+  let lastTime = 0;
+
+  function draw(time=0) {
+    if(!lastTime) lastTime = time;
+    const dt = (time - lastTime) / 1000;
+    lastTime = time;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Draw fractal terrain - a wavy line
+    ctx.strokeStyle = '#77cc77';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for(let x=0; x<W; x++) {
+      let y = H/2 + fractalNoise(x, time*0.002) * 80;
+      if(x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Temperature gradient overlay
+    if(ui.toggleTemp.checked) drawTemperatureGradient(ctx, W, H);
+
+    // Clouds
+    if(ui.toggleClouds.checked) {
+      clouds.forEach(cloud => {
+        cloud.update(dt, ui.speedRange.value);
+        cloud.draw(ctx);
+      });
     }
 
-    // Square step
-    for (let y = 0; y < size; y += half) {
-      for (let x = (y + half) % step; x < size; x += step) {
-        const neighbors = [];
-        if (x - half >= 0) neighbors.push(map[y][x - half]);
-        if (x + half < size) neighbors.push(map[y][x + half]);
-        if (y - half >= 0) neighbors.push(map[y - half][x]);
-        if (y + half < size) neighbors.push(map[y + half][x]);
-        const avg = neighbors.reduce((a, b) => a + b, 0) / neighbors.length;
-        map[y][x] = avg + (Math.random() * 2 - 1) * roughness * step / size;
-      }
+    // Wind arrows
+    if(ui.toggleWind.checked) {
+      windArrows.forEach(arrow => {
+        arrow.update(dt, ui.speedRange.value);
+        arrow.draw(ctx);
+      });
     }
 
-    step = half;
+    requestAnimationFrame(draw);
   }
-}
 
-function drawMap(offset = 0) {
-  const imgData = ctx.createImageData(size, size);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const val = Math.floor((map[y][x] + offset) * 128 + 128);
-      const i = (y * size + x) * 4;
-      imgData.data[i] = val; // R
-      imgData.data[i+1] = val; // G
-      imgData.data[i+2] = val; // B
-      imgData.data[i+3] = 255; // A
-    }
-  }
-  ctx.putImageData(imgData, 0, 0);
-}
-
-function animate() {
-  diamondSquare(size, 0.8);
-  let frame = 0;
-  function step() {
-    drawMap(Math.sin(frame * 0.05) * 0.5);
-    frame++;
-    requestAnimationFrame(step);
-  }
-  step();
-}
-
-animate();
+  draw();
+})();
 </script>
+
 </body>
 </html>
