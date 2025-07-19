@@ -2,496 +2,94 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Procedural Sound Dogfight Spectacle</title>
-<style>
-  body { margin: 0; overflow: hidden; background: #001f3f; color: #fff; }
-  #hud {
-    position: absolute; top: 10px; left: 10px; font-family: monospace;
-    background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;
-    user-select: none; pointer-events: none;
-  }
-</style>
+<title>Dynamic Cloud System</title>
+<style>body { margin: 0; overflow: hidden; background: #000; }</style>
 </head>
 <body>
-<div id="hud">Loading...</div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script>
-(() => {
-  // --- Web Audio Setup ---
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-  // --- Three.js Setup ---
   const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 0, 20);
 
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
-  camera.position.set(0, 40, 60);
-  camera.lookAt(0, 5, 0);
-
-  const renderer = new THREE.WebGLRenderer({antialias:true});
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // --- Lighting ---
-  const ambient = new THREE.AmbientLight(0x888888);
-  scene.add(ambient);
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-  dirLight.position.set(20, 30, 10);
-  scene.add(dirLight);
+  // Cloud parameters
+  const cloudCount = 100;
+  const clouds = [];
 
-  // --- Arena Floor ---
-  const floorGeom = new THREE.PlaneGeometry(100, 100, 10, 10);
-  const floorMat = new THREE.MeshStandardMaterial({color: 0x0a2a5b, roughness: 0.8, metalness: 0.1});
-  const floor = new THREE.Mesh(floorGeom, floorMat);
-  floor.rotation.x = -Math.PI/2;
-  floor.position.y = 0;
-  scene.add(floor);
-
-  // --- Jet creation ---
-  const maxSpeed = 0.3;
-  const maxForce = 0.02;
-
-  function createJetMesh(color=0xff0000) {
-    const g = new THREE.ConeGeometry(0.7, 3, 8);
-    const m = new THREE.MeshStandardMaterial({color, flatShading:true});
-    const jet = new THREE.Mesh(g,m);
-    jet.rotation.x = Math.PI/2;
-    jet.castShadow = true;
-
-    // Afterburner (cone)
-    const flameGeom = new THREE.ConeGeometry(0.3, 0.8, 8);
-    const flameMat = new THREE.MeshBasicMaterial({color: 0xff6600, transparent:true, opacity:0.7});
-    const flame = new THREE.Mesh(flameGeom, flameMat);
-    flame.position.set(0, -1.5, 0);
-    flame.rotation.x = Math.PI;
-    jet.add(flame);
-    jet.afterburner = flame;
-
-    // Velocity vector
-    jet.velocity = new THREE.Vector3();
-
-    // Contrail particles array
-    jet.contrailParticles = [];
-
-    return jet;
-  }
-
-  // --- Jets ---
-  const jets = [];
-  const respawnQueue = [];
-
-  function spawnJet(id, teamColor, isRespawn=false) {
-    if(jets[id]) {
-      if(jets[id].isAlive) return jets[id];
-      else {
-        scene.remove(jets[id]);
-        jets[id] = null;
-      }
-    }
-    const color = teamColor === 0 ? 0xff2222 : 0x2222ff;
-    const jet = createJetMesh(color);
-    // Spawn positions opposite sides:
-    jet.position.set(teamColor === 0 ? -40 : 40, 5 + Math.random() * 10, (Math.random()-0.5)*20);
-    jet.velocity.set(
-      (teamColor === 0 ? 1 : -1)*0.1,
-      0,
-      (Math.random()-0.5)*0.05
-    );
-    jet.teamColor = teamColor;
-    jet.isAlive = true;
-    jet.id = id;
-    scene.add(jet);
-    jets[id] = jet;
-    if(!isRespawn) jet.cooldown = 100 + Math.floor(Math.random()*50);
-
-    addProceduralEngineSound(jet);
-
-    return jet;
-  }
-
-  // --- Audio functions ---
-  function addProceduralEngineSound(jet) {
-    if(!audioCtx) return;
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-
-    oscillator.type = 'sawtooth';
-    oscillator.frequency.setValueAtTime(100, audioCtx.currentTime); // Low drone
-    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    oscillator.start();
-
-    jet.engineSound = {oscillator, gainNode};
-
-    function modulate() {
-      const now = audioCtx.currentTime;
-      oscillator.frequency.setValueAtTime(95 + 10 * Math.sin(now * 5 + jet.id), now);
-      requestAnimationFrame(modulate);
-    }
-    modulate();
-  }
-
-  function stopEngineSound(jet) {
-    if(jet.engineSound) {
-      jet.engineSound.oscillator.stop();
-      jet.engineSound.gainNode.disconnect();
-      jet.engineSound = null;
-    }
-  }
-
-  function playProceduralExplosionSound() {
-    if(!audioCtx) return;
-    const bufferSize = audioCtx.sampleRate * 0.2; // 0.2 sec
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for(let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random()*2 - 1)*(1 - i/bufferSize);
-    }
-    const noiseSource = audioCtx.createBufferSource();
-    noiseSource.buffer = buffer;
-
-    const gainNode = audioCtx.createGain();
-    gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-
-    noiseSource.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    noiseSource.start();
-  }
-
-  // --- Missile class ---
-  class Missile {
-    constructor(position, direction, owner) {
-      this.owner = owner;
-      this.velocity = direction.clone().multiplyScalar(0.6);
-      this.isDestroyed = false;
-
-      const geom = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 6);
-      const mat = new THREE.MeshBasicMaterial({color:0xffff00});
-      this.mesh = new THREE.Mesh(geom, mat);
-      this.mesh.rotation.x = Math.PI / 2;
-      this.mesh.position.copy(position);
-      scene.add(this.mesh);
-    }
-    update() {
-      if(this.isDestroyed) return;
-      this.mesh.position.add(this.velocity);
-      // Simple boundary destroy
-      if(this.mesh.position.length() > 70) this.destroy();
-    }
-    destroy() {
-      if(this.isDestroyed) return;
-      this.isDestroyed = true;
-      scene.remove(this.mesh);
-      playProceduralExplosionSound();
-      explosions.push(new Fireball(this.mesh.position.clone()));
-      for(let i=0; i<25; i++) explosions.push(new ExplosionParticle(this.mesh.position.clone()));
-      triggerCameraShake(0.8);
-    }
-  }
-
-  // --- Explosions ---
-  class Fireball {
-    constructor(pos) {
-      this.mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(1.5, 8, 8),
-        new THREE.MeshBasicMaterial({color: 0xff6600, transparent:true, opacity:0.7})
-      );
-      this.mesh.position.copy(pos);
-      this.lifetime = 30;
-      scene.add(this.mesh);
-    }
-    update() {
-      this.lifetime--;
-      this.mesh.material.opacity = (this.lifetime/30)*0.7;
-      this.mesh.scale.multiplyScalar(1.1);
-      if(this.lifetime <= 0) {
-        scene.remove(this.mesh);
-        return false;
-      }
-      return true;
-    }
-  }
-
-  class ExplosionParticle {
-    constructor(pos) {
-      const geom = new THREE.SphereGeometry(0.1, 4, 4);
-      const mat = new THREE.MeshBasicMaterial({color:0xffaa00, transparent:true, opacity:1});
-      this.mesh = new THREE.Mesh(geom, mat);
-      this.mesh.position.copy(pos);
-      this.velocity = new THREE.Vector3(
-        (Math.random()-0.5)*0.3,
-        (Math.random()-0.5)*0.3,
-        (Math.random()-0.5)*0.3
-      );
-      this.lifetime = 40 + Math.floor(Math.random()*20);
-      scene.add(this.mesh);
-    }
-    update() {
-      this.lifetime--;
-      this.mesh.position.add(this.velocity);
-      this.mesh.material.opacity = this.lifetime/60;
-      if(this.lifetime <= 0) {
-        scene.remove(this.mesh);
-        return false;
-      }
-      return true;
-    }
-  }
-
-  // --- Fireball & Explosion array ---
-  const explosions = [];
-
-  // --- Jets array & Missiles array ---
-  const missiles = [];
-
-  // --- Jet AI & update ---
-  function getEnemies(jet) {
-    return jets.filter(j => j && j.isAlive && j.teamColor !== jet.teamColor);
-  }
-
-  function updateJetAI(jet) {
-    if(!jet.isAlive) return;
-
-    const enemies = getEnemies(jet);
-    if(enemies.length === 0) return;
-
-    // Find closest enemy
-    let closestEnemy = null;
-    let closestDist = Infinity;
-    enemies.forEach(e => {
-      const dist = jet.position.distanceTo(e.position);
-      if(dist < closestDist) {
-        closestDist = dist;
-        closestEnemy = e;
-      }
+  // Create cloud spheres with random positions and sizes
+  function createCloud() {
+    const geometry = new THREE.SphereGeometry(0.5 + Math.random() * 1.0, 16, 16);
+    const material = new THREE.MeshBasicMaterial({ 
+      color: 0xffffff, 
+      transparent: true, 
+      opacity: 0.3 + Math.random() * 0.3 
     });
-
-    if(!closestEnemy) return;
-
-    // Steering vector
-    const desired = closestEnemy.position.clone().sub(jet.position).normalize().multiplyScalar(maxSpeed);
-    const steer = desired.sub(jet.velocity);
-    steer.clampLength(0, maxForce);
-
-    jet.rotation.y = THREE.MathUtils.lerp(jet.rotation.y, Math.atan2(steer.z, steer.x), 0.1);
-    jet.rotation.x = THREE.MathUtils.lerp(jet.rotation.x, steer.y * 5, 0.1);
-
-    jet.velocity.add(steer);
-    jet.velocity.clampLength(0, maxSpeed);
-    jet.position.add(jet.velocity);
-
-    // Stay inside arena
-    jet.position.x = THREE.MathUtils.clamp(jet.position.x, -45, 45);
-    jet.position.y = THREE.MathUtils.clamp(jet.position.y, 2, 20);
-    jet.position.z = THREE.MathUtils.clamp(jet.position.z, -45, 45);
-
-    // Fire missile cooldown
-    jet.cooldown--;
-    if(jet.cooldown <= 0 && closestEnemy && closestDist < 20) {
-      fireMissile(jet, closestEnemy);
-      jet.cooldown = 100 + Math.floor(Math.random()*50);
-    }
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(
+      (Math.random() - 0.5) * 40,
+      (Math.random() - 0.5) * 20,
+      (Math.random() - 0.5) * 40
+    );
+    mesh.userData = {
+      velocity: new THREE.Vector3(
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * 0.01,
+        (Math.random() - 0.5) * 0.02
+      ),
+      life: 200 + Math.random() * 300
+    };
+    scene.add(mesh);
+    return mesh;
   }
 
-  function fireMissile(jet, target) {
-    const dir = target.position.clone().sub(jet.position).normalize();
-    const missile = new Missile(jet.position.clone().add(dir.clone().multiplyScalar(1.5)), dir, jet);
-    missiles.push(missile);
+  // Initialize clouds
+  for (let i = 0; i < cloudCount; i++) {
+    clouds.push(createCloud());
   }
 
-  function updateMissiles() {
-    for(let i=missiles.length-1; i>=0; i--) {
-      const m = missiles[i];
-      m.update();
-
-      jets.forEach(jet => {
-        if(jet.isAlive && jet !== m.owner) {
-          if(m.mesh.position.distanceTo(jet.position) < 1) {
-            jet.isAlive = false;
-            scene.remove(jet);
-            stopEngineSound(jet);
-            missiles.splice(i, 1);
-            m.destroy();
-            respawnQueue.push({id: jet.id, teamColor: jet.teamColor, timer: 200});
-          }
-        }
-      });
-
-      if(m.isDestroyed) missiles.splice(i,1);
-    }
-  }
-
-  // --- Afterburner flicker and contrails ---
-  function updateJetVisuals(jet) {
-    if(!jet.isAlive) return;
-
-    // Flicker afterburner
-    const flicker = 0.7 + Math.sin(Date.now()*0.02 + jet.id)*0.3;
-    jet.afterburner.scale.set(1, flicker, flicker);
-    jet.afterburner.material.opacity = flicker;
-
-    // Contrail particles
-    if(jet.position.y > 8) {
-      if(Math.random() < 0.3) {
-        const pos = jet.position.clone().add(new THREE.Vector3(0.5,0,0));
-        jet.contrailParticles.push(new ContrailParticle(pos));
-      }
-    }
-    jet.contrailParticles = jet.contrailParticles.filter(p => p.update());
-  }
-
-  // --- Contrail particle ---
-  class ContrailParticle {
-    constructor(pos) {
-      const geom = new THREE.SphereGeometry(0.1,4,4);
-      const mat = new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.4});
-      this.mesh = new THREE.Mesh(geom, mat);
-      this.mesh.position.copy(pos);
-      this.lifetime = 60;
-      scene.add(this.mesh);
-    }
-    update() {
-      this.lifetime--;
-      this.mesh.position.y += 0.01;
-      this.mesh.material.opacity = this.lifetime/60*0.4;
-      if(this.lifetime <= 0) {
-        scene.remove(this.mesh);
-        return false;
-      }
-      return true;
-    }
-  }
-
-  // --- Camera chase & shake ---
-  let chaseTarget = null;
-  let chaseTimer = 0;
-  let shakeAmount = 0;
-  const shakeDecay = 0.02;
-  const shakeOffset = new THREE.Vector3();
-
-  function selectChaseTarget() {
-    const aliveJets = jets.filter(j => j && j.isAlive);
-    if(aliveJets.length === 0) return null;
-    return aliveJets[Math.floor(Math.random()*aliveJets.length)];
-  }
-
-  function applyCameraShake() {
-    if(shakeAmount > 0) {
-      shakeOffset.set(
-        (Math.random()-0.5)*shakeAmount,
-        (Math.random()-0.5)*shakeAmount,
-        (Math.random()-0.5)*shakeAmount
-      );
-      shakeAmount -= shakeDecay;
-      if(shakeAmount < 0) shakeAmount=0;
-    } else {
-      shakeOffset.set(0,0,0);
-    }
-  }
-
-  function updateCamera() {
-    if(!chaseTarget || !chaseTarget.isAlive) {
-      chaseTarget = selectChaseTarget();
-      chaseTimer = 0;
-    }
-    chaseTimer++;
-    if(chaseTimer > 900) {
-      chaseTarget = selectChaseTarget();
-      chaseTimer = 0;
-    }
-    if(chaseTarget) {
-      const backOffset = chaseTarget.velocity.clone().normalize().multiplyScalar(-8);
-      const upOffset = new THREE.Vector3(0,3,0);
-      const desiredPos = chaseTarget.position.clone().add(backOffset).add(upOffset);
-
-      camera.position.lerp(desiredPos, 0.05);
-      const lookAtPos = chaseTarget.position.clone().add(chaseTarget.velocity.clone().multiplyScalar(2));
-      camera.lookAt(lookAtPos);
-
-      applyCameraShake();
-      camera.position.add(shakeOffset);
-    } else {
-      camera.position.lerp(new THREE.Vector3(0,40,60), 0.05);
-      camera.lookAt(new THREE.Vector3(0,5,0));
-    }
-  }
-
-  function triggerCameraShake(intensity=0.5) {
-    shakeAmount = Math.min(shakeAmount + intensity, 1.5);
-  }
-
-  // --- HUD ---
-  function updateHUD() {
-    const hud = document.getElementById('hud');
-    hud.innerHTML = `
-      Jets Alive: ${jets.filter(j => j && j.isAlive).length} <br>
-      Missiles Active: ${missiles.length} <br>
-      Camera: Chase Mode
-    `;
-  }
-
-  // --- Respawn ---
-  function handleRespawn() {
-    for(let i=respawnQueue.length-1; i>=0; i--) {
-      const item = respawnQueue[i];
-      item.timer--;
-      if(item.timer <= 0) {
-        spawnJet(item.id, item.teamColor, true);
-        respawnQueue.splice(i, 1);
-      }
-    }
-  }
-
-  // --- Animate loop ---
+  // Animate clouds: drift and fade out, recycle
   function animate() {
     requestAnimationFrame(animate);
 
-    jets.forEach(jet => {
-      if(jet && jet.isAlive) updateJetAI(jet);
-      if(jet) updateJetVisuals(jet);
-    });
+    clouds.forEach(cloud => {
+      cloud.position.add(cloud.userData.velocity);
+      cloud.userData.life -= 1;
 
-    updateMissiles();
-    updateExplosions();
-    updateCamera();
-    updateHUD();
-    handleRespawn();
+      // Fade out near end of life
+      if (cloud.userData.life < 50) {
+        cloud.material.opacity = (cloud.userData.life / 50) * 0.3;
+      }
+
+      // Reset cloud when life ends
+      if (cloud.userData.life <= 0) {
+        cloud.position.set(
+          (Math.random() - 0.5) * 40,
+          (Math.random() - 0.5) * 20,
+          (Math.random() - 0.5) * 40
+        );
+        cloud.material.opacity = 0.3 + Math.random() * 0.3;
+        cloud.userData.life = 200 + Math.random() * 300;
+        cloud.userData.velocity.set(
+          (Math.random() - 0.5) * 0.02,
+          (Math.random() - 0.5) * 0.01,
+          (Math.random() - 0.5) * 0.02
+        );
+      }
+    });
 
     renderer.render(scene, camera);
   }
+  animate();
 
-  function updateExplosions() {
-    for(let i=explosions.length-1; i>=0; i--) {
-      if(!explosions[i].update()) explosions.splice(i, 1);
-    }
-  }
-
-  // --- Initial spawn ---
-  const totalJets = 12;
-  for(let i=0; i<totalJets; i++) {
-    spawnJet(i, i < totalJets/2 ? 0 : 1);
-  }
-
-  // --- Resize handler ---
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
-
-  // --- Start ---
-  animate();
-
-  // --- Unlock audio on first user gesture for some browsers ---
-  window.addEventListener('click', () => {
-    if(audioCtx.state === 'suspended') audioCtx.resume();
-  }, { once: true });
-})();
 </script>
 </body>
 </html>
