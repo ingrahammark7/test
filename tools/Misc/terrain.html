@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Infinite Dogfight with Team-Based Respawn Fix</title>
+<title>Infinite Dogfight Spectacle with Dynamic Chase Camera & Shake</title>
 <style>
-  body { margin: 0; overflow: hidden; }
+  body { margin: 0; overflow: hidden; background: #000; }
   canvas { display: block; }
   #hud {
     position: absolute; top: 10px; left: 10px; 
@@ -83,45 +83,62 @@
 
   function createJet(color=0xff0000) {
     const jet = new THREE.Group();
-    const material = new THREE.MeshStandardMaterial({color, roughness: 0.5, metalness: 0.7});
+    const material = new THREE.MeshStandardMaterial({color, roughness: 0.4, metalness: 0.8});
 
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,5,12), material);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 5, 16), material);
     body.rotation.z = Math.PI/2;
     jet.add(body);
 
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.4,1,12), material);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.2, 16), material);
     nose.rotation.z = Math.PI/2;
-    nose.position.x = 2.5;
+    nose.position.x = 2.6;
     jet.add(nose);
 
-    const wingGeo = new THREE.BoxGeometry(3,0.1,0.6);
+    const wingShape = new THREE.Shape();
+    wingShape.moveTo(0,0);
+    wingShape.lineTo(2,0.6);
+    wingShape.lineTo(2,-0.6);
+    wingShape.lineTo(0,0);
+    const wingGeo = new THREE.ExtrudeGeometry(wingShape, {depth: 0.1, bevelEnabled: false});
     const wingL = new THREE.Mesh(wingGeo, material);
     const wingR = new THREE.Mesh(wingGeo, material);
-    wingL.position.set(0,0.2,-0.7);
-    wingR.position.set(0,0.2,0.7);
+    wingL.position.set(0, 0.15, -0.7);
+    wingR.position.set(0, 0.15, 0.7);
     jet.add(wingL, wingR);
 
-    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.1,1,0.6), material);
-    tail.position.set(-2.4,0.6,0);
-    jet.add(tail);
+    const tailFinGeo = new THREE.ConeGeometry(0.3, 1, 12);
+    const tailFin = new THREE.Mesh(tailFinGeo, material);
+    tailFin.position.set(-2.3, 0.7, 0);
+    tailFin.rotation.z = Math.PI / 2;
+    tailFin.rotation.x = Math.PI / 10;
+    jet.add(tailFin);
 
     const tailWingL = new THREE.Mesh(wingGeo, material);
     const tailWingR = new THREE.Mesh(wingGeo, material);
-    tailWingL.scale.set(0.5,1,0.5);
-    tailWingR.scale.set(0.5,1,0.5);
-    tailWingL.position.set(-2.5,0.1,-0.6);
-    tailWingR.position.set(-2.5,0.1,0.6);
+    tailWingL.scale.set(0.6,1,0.5);
+    tailWingR.scale.set(0.6,1,0.5);
+    tailWingL.position.set(-2.3, 0.1, -0.6);
+    tailWingR.position.set(-2.3, 0.1, 0.6);
     jet.add(tailWingL, tailWingR);
 
-    const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.5,8),
-      new THREE.MeshStandardMaterial({color: 0xff6600, emissive: 0xff4400, emissiveIntensity: 3}));
+    const engineMat = new THREE.MeshStandardMaterial({
+      color: 0xff4400,
+      emissive: 0xff3300,
+      emissiveIntensity: 2,
+      roughness: 0.2,
+      metalness: 0.8
+    });
+    const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.6, 12), engineMat);
     engine.rotation.z = Math.PI/2;
-    engine.position.set(-2.8,0,0);
+    engine.position.set(-2.8, 0, 0);
     jet.add(engine);
 
-    const glow = new THREE.PointLight(0xff6600, 1, 4);
-    glow.position.copy(engine.position);
-    jet.add(glow);
+    const flameLight = new THREE.PointLight(0xff6600, 1.5, 6);
+    flameLight.position.copy(engine.position);
+    jet.add(flameLight);
+
+    jet.engineLight = flameLight;
+    jet.engineMaterial = engineMat;
 
     return jet;
   }
@@ -132,13 +149,68 @@
       const mat = new THREE.MeshBasicMaterial({color: 0xaaaaaa, transparent: true, opacity: 0.5});
       this.mesh = new THREE.Mesh(geo, mat);
       this.mesh.position.copy(position);
-      this.life = 20;
+      this.life = 30;
+      this.size = 0.07;
       scene.add(this.mesh);
     }
     update() {
       this.life--;
       this.mesh.position.y += 0.01;
-      this.mesh.material.opacity = this.life / 20 * 0.5;
+      this.size += 0.002;
+      this.mesh.scale.set(this.size, this.size, this.size);
+      this.mesh.material.opacity = (this.life / 30) * 0.5;
+      if(this.life <= 0) {
+        scene.remove(this.mesh);
+        return false;
+      }
+      return true;
+    }
+  }
+
+  class ExplosionParticle {
+    constructor(position) {
+      const geo = new THREE.SphereGeometry(0.1, 6, 6);
+      const mat = new THREE.MeshBasicMaterial({color: 0xff6600, transparent: true, opacity: 0.8});
+      this.mesh = new THREE.Mesh(geo, mat);
+      this.mesh.position.copy(position);
+      this.velocity = new THREE.Vector3(
+        (Math.random()-0.5)*0.5,
+        (Math.random()-0.5)*0.5,
+        (Math.random()-0.5)*0.5
+      );
+      this.life = 40 + Math.floor(Math.random()*20);
+      this.size = 0.1;
+      scene.add(this.mesh);
+    }
+    update() {
+      this.life--;
+      this.mesh.position.add(this.velocity);
+      this.size += 0.01;
+      this.mesh.scale.set(this.size, this.size, this.size);
+      this.mesh.material.opacity = this.life / 60;
+      if(this.life <= 0) {
+        scene.remove(this.mesh);
+        return false;
+      }
+      return true;
+    }
+  }
+
+  class Fireball {
+    constructor(position) {
+      const geo = new THREE.SphereGeometry(0.5, 12, 12);
+      const mat = new THREE.MeshBasicMaterial({color: 0xff3300, transparent: true, opacity: 0.7});
+      this.mesh = new THREE.Mesh(geo, mat);
+      this.mesh.position.copy(position);
+      this.life = 20;
+      this.size = 0.5;
+      scene.add(this.mesh);
+    }
+    update() {
+      this.life--;
+      this.size += 0.05;
+      this.mesh.scale.set(this.size, this.size, this.size);
+      this.mesh.material.opacity = this.life / 20 * 0.7;
       if(this.life <= 0) {
         scene.remove(this.mesh);
         return false;
@@ -171,9 +243,8 @@
       this.mesh.position.add(this.velocity);
       this.life--;
 
-      if(this.life % 2 === 0) {
-        this.smokeParticles.push(new SmokeParticle(this.mesh.position.clone()));
-      }
+      this.smokeParticles.push(new SmokeParticle(this.mesh.position.clone()));
+
       this.smokeParticles = this.smokeParticles.filter(p => p.update());
 
       if (this.life <= 0) this.destroy();
@@ -184,22 +255,10 @@
       this.isDestroyed = true;
       scene.remove(this.mesh);
 
-      const explosionCount = 20;
-      for(let i=0; i<explosionCount; i++) {
-        const spark = new THREE.Mesh(
-          new THREE.SphereGeometry(0.1, 6, 6),
-          new THREE.MeshBasicMaterial({color: 0xffaa00, transparent: true, opacity: 0.8})
-        );
-        spark.position.copy(this.mesh.position);
-        spark.velocity = new THREE.Vector3(
-          (Math.random()-0.5)*0.4,
-          (Math.random()-0.5)*0.4,
-          (Math.random()-0.5)*0.4
-        );
-        spark.life = 15 + Math.floor(Math.random()*15);
-        scene.add(spark);
-        explosions.push(spark);
-      }
+      explosions.push(new Fireball(this.mesh.position.clone()));
+      for(let i=0; i<25; i++) explosions.push(new ExplosionParticle(this.mesh.position.clone()));
+
+      triggerCameraShake(0.8);
     }
   }
 
@@ -211,10 +270,8 @@
   const maxSpeed = 0.15;
   const maxForce = 0.02;
 
-  // Respawn jets on their team side with initial velocity pushing toward the enemy side
   function spawnJet(id, teamColor, isRespawn = false) {
     const jet = createJet(teamColor);
-    // If red, spawn left side; if blue, spawn right side
     const sideX = (teamColor === 0xff0000) 
                     ? -30 + Math.random() * 10 
                     : 30 - Math.random() * 10;
@@ -223,24 +280,19 @@
       5 + Math.random() * 5,
       (Math.random() - 0.5) * 40
     );
-
-    // Velocity: red jets move toward +X, blue jets toward -X
     jet.velocity = new THREE.Vector3(
       (teamColor === 0xff0000 ? 0.05 : -0.05) + (Math.random() - 0.5) * 0.02,
       0,
       (Math.random() - 0.5) * 0.1
     );
-
     jet.isAlive = true;
     jet.cooldown = 0;
     jet.id = id;
     jet.teamColor = teamColor;
-
     scene.add(jet);
     jets[id] = jet;
   }
 
-  // Spawn initial jets with explicit team color:
   for (let i = 0; i < 6; i++) {
     const color = i < 3 ? 0xff0000 : 0x0000ff;
     spawnJet(i, color);
@@ -285,101 +337,146 @@
     jet.velocity.clampLength(0, maxSpeed);
     jet.position.add(jet.velocity);
 
-    if(jet.velocity.lengthSq() > 0.0001) {
-      const lookPos = jet.position.clone().add(jet.velocity);
-      jet.lookAt(lookPos);
-    }
+    // Clamp inside arena
+    jet.position.x = THREE.MathUtils.clamp(jet.position.x, -45, 45);
+    jet.position.y = THREE.MathUtils.clamp(jet.position.y, 2, 20);
+    jet.position.z = THREE.MathUtils.clamp(jet.position.z, -45, 45);
 
-    if(jet.cooldown <= 0 && closestDist < 25) {
-      const missilePos = jet.position.clone().add(jet.velocity.clone().normalize().multiplyScalar(2));
-      const missileDir = jet.velocity.clone().normalize();
-      missiles.push(new Missile(missilePos, missileDir, jet));
-      jet.cooldown = 50;
-    } else {
-      jet.cooldown--;
+    jet.cooldown--;
+    if(jet.cooldown <= 0 && closestEnemy && closestDist < 20) {
+      fireMissile(jet, closestEnemy);
+      jet.cooldown = 100 + Math.floor(Math.random()*50);
     }
   }
 
+  function fireMissile(jet, target) {
+    const dir = target.position.clone().sub(jet.position).normalize();
+    const missile = new Missile(jet.position.clone().add(dir.clone().multiplyScalar(1.5)), dir, jet);
+    missiles.push(missile);
+  }
+
   function updateMissiles() {
-    for(let i=missiles.length-1; i>=0; i--) {
-      const missile = missiles[i];
-      if(missile.isDestroyed) {
-        missiles.splice(i, 1);
-        continue;
-      }
-      missile.update();
+    for(let i = missiles.length - 1; i >= 0; i--) {
+      const m = missiles[i];
+      m.update();
 
       jets.forEach(jet => {
-        if(jet !== missile.owner && jet.isAlive && missile.mesh.position.distanceTo(jet.position) < 1.5) {
-          jet.isAlive = false;
-          scene.remove(jet);
-          missile.destroy();
-
-          // Queue jet respawn after delay, preserving teamColor
-          respawnQueue.push({id: jet.id, teamColor: jet.teamColor, timer: 200});
+        if(jet.isAlive && jet !== m.owner) {
+          const dist = m.mesh.position.distanceTo(jet.position);
+          if(dist < 1) {
+            jet.isAlive = false;
+            scene.remove(jet);
+            missiles.splice(i, 1);
+            m.destroy();
+            respawnQueue.push({id: jet.id, teamColor: jet.teamColor, timer: 200});
+          }
         }
       });
+
+      if(m.isDestroyed) missiles.splice(i, 1);
     }
   }
 
   function updateExplosions() {
-    for(let i=explosions.length-1; i>=0; i--) {
-      const spark = explosions[i];
-      spark.position.add(spark.velocity);
-      spark.material.opacity -= 0.05;
-      spark.life--;
-      if(spark.life <= 0 || spark.material.opacity <= 0) {
-        scene.remove(spark);
-        explosions.splice(i, 1);
-      }
+    for(let i = explosions.length - 1; i >= 0; i--) {
+      const p = explosions[i];
+      if(!p.update()) explosions.splice(i, 1);
     }
   }
 
-  let camMode = 0;
-  let camFocusIndex = 0;
+  // === Dynamic Chase Camera and Shake ===
+
+  let chaseTarget = null;
+  let chaseTimer = 0;
+  let shakeAmount = 0;
+  const shakeDecay = 0.02;
+  const shakeOffset = new THREE.Vector3();
+
+  function selectChaseTarget() {
+    const aliveJets = jets.filter(j => j && j.isAlive);
+    if (aliveJets.length === 0) return null;
+    return aliveJets[Math.floor(Math.random() * aliveJets.length)];
+  }
+
+  function applyCameraShake() {
+    if(shakeAmount > 0) {
+      shakeOffset.set(
+        (Math.random() - 0.5) * shakeAmount,
+        (Math.random() - 0.5) * shakeAmount,
+        (Math.random() - 0.5) * shakeAmount
+      );
+      shakeAmount -= shakeDecay;
+      if(shakeAmount < 0) shakeAmount = 0;
+    } else {
+      shakeOffset.set(0, 0, 0);
+    }
+  }
 
   function updateCamera() {
-    if(camMode === 0) {
-      camera.position.set(0, 40, 60);
-      camera.lookAt(0,0,0);
+    if(!chaseTarget || !chaseTarget.isAlive) {
+      chaseTarget = selectChaseTarget();
+      chaseTimer = 0;
+    }
+    chaseTimer++;
+    if(chaseTimer > 900) { // Switch every ~15 seconds assuming 60fps
+      chaseTarget = selectChaseTarget();
+      chaseTimer = 0;
+    }
+    if(chaseTarget) {
+      const backOffset = chaseTarget.velocity.clone().normalize().multiplyScalar(-8);
+      const upOffset = new THREE.Vector3(0, 3, 0);
+      const desiredPos = chaseTarget.position.clone().add(backOffset).add(upOffset);
+
+      camera.position.lerp(desiredPos, 0.05);
+
+      const lookAtPos = chaseTarget.position.clone().add(chaseTarget.velocity.clone().multiplyScalar(2));
+      camera.lookAt(lookAtPos);
+
+      applyCameraShake();
+      camera.position.add(shakeOffset);
     } else {
-      const jet = jets[camFocusIndex];
-      if(jet && jet.isAlive) {
-        const offset = new THREE.Vector3(-5, 3, 0);
-        offset.applyQuaternion(jet.quaternion);
-        camera.position.copy(jet.position).add(offset);
-        camera.lookAt(jet.position);
-      } else {
-        camFocusIndex = (camFocusIndex + 1) % jets.length;
-      }
+      camera.position.lerp(new THREE.Vector3(0, 40, 60), 0.05);
+      camera.lookAt(new THREE.Vector3(0, 5, 0));
     }
   }
 
-  const hud = document.getElementById('hud');
-  function updateHUD() {
-    hud.innerHTML = `Camera: ${camMode === 0 ? 'Overview' : 'Follow Jet'}<br>Missiles: ${missiles.length}`;
+  function triggerCameraShake(intensity=0.5) {
+    shakeAmount = Math.min(shakeAmount + intensity, 1.5);
   }
 
-  window.addEventListener('click', () => {
-    camMode = (camMode + 1) % 2;
-  });
+  Missile.prototype.destroy = function() {
+    if(this.isDestroyed) return;
+    this.isDestroyed = true;
+    scene.remove(this.mesh);
 
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+    explosions.push(new Fireball(this.mesh.position.clone()));
+    for(let i=0; i<25; i++) explosions.push(new ExplosionParticle(this.mesh.position.clone()));
+
+    triggerCameraShake(0.8);
+  };
+
+  function updateHUD() {
+    const hud = document.getElementById('hud');
+    hud.innerHTML = `Camera: Chase<br>Missiles: ${missiles.length}<br>Jets Alive: ${jets.filter(j => j && j.isAlive).length}`;
+  }
 
   function animate() {
     requestAnimationFrame(animate);
 
-    jets.forEach(jet => updateJetAI(jet));
+    jets.forEach(jet => {
+      if(jet && jet.isAlive && jet.engineLight) {
+        const intensity = 1.0 + Math.sin(Date.now() * 0.01 + jet.id) * 0.5;
+        jet.engineLight.intensity = THREE.MathUtils.clamp(intensity, 0.7, 2.5);
+        jet.engineMaterial.emissiveIntensity = jet.engineLight.intensity;
+      }
+    });
+
+    jets.forEach(updateJetAI);
     updateMissiles();
     updateExplosions();
     updateCamera();
     updateHUD();
 
-    // Handle respawn timers
     for(let i=respawnQueue.length-1; i>=0; i--) {
       const item = respawnQueue[i];
       item.timer--;
@@ -389,12 +486,21 @@
       }
     }
 
-    clouds.forEach(c => c.position.x += 0.005);
+    clouds.forEach(c => {
+      c.position.x += 0.005;
+      if(c.position.x > 100) c.position.x = -100;
+    });
 
     renderer.render(scene, camera);
   }
 
   animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
 })();
 </script>
 </body>
