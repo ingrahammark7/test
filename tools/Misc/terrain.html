@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Fast Aircraft with Plasma and Meltdown</title>
+<title>3/4 View Camera & Heat-Color Plasma</title>
 <style>
   body { margin: 0; overflow: hidden; background: #000; }
 </style>
@@ -12,7 +12,7 @@
 <script>
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 5, 15);
+  camera.position.set(15, 10, 20); // start at a 3/4 angle behind and above
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -29,18 +29,18 @@
   aircraft.rotation.x = Math.PI / 2;
   scene.add(aircraft);
 
-  // Plasma effect: layered transparent spheres around aircraft
+  // Plasma effect group
   const plasmaGroup = new THREE.Group();
   scene.add(plasmaGroup);
 
   const plasmaSpheres = [];
-  const plasmaCount = 3;
+  const plasmaCount = 4;
   for(let i=0; i<plasmaCount; i++) {
     const plasmaGeo = new THREE.SphereGeometry(1 + i*0.5, 32, 32);
     const plasmaMat = new THREE.MeshBasicMaterial({
-      color: 0x33ccff,
+      color: new THREE.Color(0x33ccff),
       transparent: true,
-      opacity: 0.4 / (i+1),
+      opacity: 0.3 / (i+1),
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -82,21 +82,34 @@
     clouds.push(createCloud(pos));
   }
 
-  // Aircraft motion params
+  // Speed and heat parameters
   let aircraftAngle = 0;
   let speed = 0.1;
   const maxSpeed = 1.0;
   const acceleration = 0.002;
+  const relativisticSpeed = 0.9 * maxSpeed; // conceptual threshold
 
-  // Meltdown control
+  // Meltdown
   let meltingDown = false;
   let meltProgress = 0;
 
-  // Animate loop
+  // Color helper function: interpolate from blue->yellow->orange->white based on heat (0..1)
+  function heatColor(t) {
+    if (t < 0.5) {
+      // blue to yellow
+      return new THREE.Color().lerpColors(new THREE.Color(0x33ccff), new THREE.Color(0xffff66), t * 2);
+    } else if (t < 0.8) {
+      // yellow to orange
+      return new THREE.Color().lerpColors(new THREE.Color(0xffff66), new THREE.Color(0xff6600), (t - 0.5) / 0.3);
+    } else {
+      // orange to white
+      return new THREE.Color().lerpColors(new THREE.Color(0xff6600), new THREE.Color(0xffffff), (t - 0.8) / 0.2);
+    }
+  }
+
   function animate() {
     requestAnimationFrame(animate);
 
-    // Increase speed if not melting down
     if (!meltingDown) {
       speed += acceleration;
       if (speed > maxSpeed) {
@@ -105,27 +118,29 @@
       }
     }
 
-    // Update aircraft position - fast circular path
+    // Update aircraft position (fast circular path)
     aircraftAngle += speed;
     aircraft.position.set(Math.cos(aircraftAngle) * 20, 5, Math.sin(aircraftAngle) * 20);
     aircraft.rotation.z = aircraftAngle + Math.PI / 2;
 
-    // Position plasma group at aircraft
     plasmaGroup.position.copy(aircraft.position);
 
-    // Animate plasma spheres (pulse opacity & scale)
+    // Calculate heat ratio for plasma color based on speed
+    let heatRatio = speed / maxSpeed;
+    if (heatRatio > 1) heatRatio = 1;
+
     plasmaSpheres.forEach((sphere, idx) => {
       const pulse = Math.sin(Date.now() * 0.005 + idx * 2) * 0.3 + 0.7;
-      sphere.material.opacity = 0.4 * pulse * (meltingDown ? (1 - meltProgress) : 1);
+      const color = heatColor(heatRatio);
+      sphere.material.color.copy(color);
+      sphere.material.opacity = (0.3 / (idx + 1)) * pulse * (meltingDown ? (1 - meltProgress) : 1);
       sphere.scale.setScalar(1 + 0.2 * pulse * (meltingDown ? (1 - meltProgress) : 1));
     });
 
     if (meltingDown) {
       meltProgress += 0.01;
-      // Fade out aircraft
       aircraft.material.opacity = 1 - meltProgress;
       if (meltProgress >= 1) {
-        // Respawn aircraft and plasma
         meltingDown = false;
         speed = 0.1;
         aircraft.material.opacity = 1;
@@ -156,9 +171,10 @@
       clouds.push(createCloud(spawnPos));
     }
 
-    // Camera chase
-    const desiredPosition = aircraft.position.clone().add(new THREE.Vector3(0, 5, 15));
-    camera.position.lerp(desiredPosition, 0.1);
+    // Chase camera with fixed 3/4 offset (behind & above, slightly lateral)
+    const offset = new THREE.Vector3(-10, 7, 10);
+    const desiredPos = aircraft.position.clone().add(offset);
+    camera.position.lerp(desiredPos, 0.1);
     camera.lookAt(aircraft.position);
 
     renderer.render(scene, camera);
