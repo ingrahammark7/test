@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Dogfight Visuals Upgrade</title>
+<title>Infinite Dogfight with Team-Based Respawn Fix</title>
 <style>
   body { margin: 0; overflow: hidden; }
   canvas { display: block; }
@@ -21,7 +21,7 @@
 (() => {
   const scene = new THREE.Scene();
 
-  // Skybox gradient - large sphere with gradient material
+  // Skybox gradient sphere
   const skyGeo = new THREE.SphereGeometry(500, 32, 15);
   const skyMat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
@@ -50,7 +50,7 @@
   const sky = new THREE.Mesh(skyGeo, skyMat);
   scene.add(sky);
 
-  // Add a very subtle cloud layer - semi-transparent planes with white blurred circles
+  // Clouds layer
   const cloudTex = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/cloud.png');
   const clouds = [];
   for(let i=0; i<20; i++) {
@@ -66,7 +66,6 @@
     clouds.push(cloud);
   }
 
-  // Camera setup
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
   camera.position.set(0, 40, 60);
 
@@ -74,7 +73,6 @@
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // Lighting
   const dirLight = new THREE.DirectionalLight(0xffffff, 1);
   dirLight.position.set(30, 50, 30);
   scene.add(dirLight);
@@ -83,7 +81,6 @@
   const grid = new THREE.GridHelper(100, 20, 0x222222, 0x444444);
   scene.add(grid);
 
-  // Jet builder with engine glow (emissive sphere)
   function createJet(color=0xff0000) {
     const jet = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({color, roughness: 0.5, metalness: 0.7});
@@ -122,7 +119,6 @@
     engine.position.set(-2.8,0,0);
     jet.add(engine);
 
-    // Engine glow light
     const glow = new THREE.PointLight(0xff6600, 1, 4);
     glow.position.copy(engine.position);
     jet.add(glow);
@@ -130,7 +126,6 @@
     return jet;
   }
 
-  // Smoke trail particle system for missiles
   class SmokeParticle {
     constructor(position) {
       const geo = new THREE.SphereGeometry(0.07, 6, 6);
@@ -152,7 +147,6 @@
     }
   }
 
-  // Missile class with smoke trail
   class Missile {
     constructor(position, direction, owner) {
       this.speed = 0.6;
@@ -177,7 +171,6 @@
       this.mesh.position.add(this.velocity);
       this.life--;
 
-      // Add smoke particle
       if(this.life % 2 === 0) {
         this.smokeParticles.push(new SmokeParticle(this.mesh.position.clone()));
       }
@@ -191,7 +184,6 @@
       this.isDestroyed = true;
       scene.remove(this.mesh);
 
-      // Explosion particles
       const explosionCount = 20;
       for(let i=0; i<explosionCount; i++) {
         const spark = new THREE.Mesh(
@@ -214,29 +206,53 @@
   const jets = [];
   const missiles = [];
   const explosions = [];
+  const respawnQueue = [];
 
   const maxSpeed = 0.15;
   const maxForce = 0.02;
 
-  for(let i=0; i<6; i++) {
-    const color = i < 3 ? 0xff0000 : 0x0000ff;
-    const jet = createJet(color);
-    jet.position.set(i*5 - 10, 5, 0);
-    jet.velocity = new THREE.Vector3(0, 0, 0.05);
+  // Respawn jets on their team side with initial velocity pushing toward the enemy side
+  function spawnJet(id, teamColor, isRespawn = false) {
+    const jet = createJet(teamColor);
+    // If red, spawn left side; if blue, spawn right side
+    const sideX = (teamColor === 0xff0000) 
+                    ? -30 + Math.random() * 10 
+                    : 30 - Math.random() * 10;
+    jet.position.set(
+      sideX,
+      5 + Math.random() * 5,
+      (Math.random() - 0.5) * 40
+    );
+
+    // Velocity: red jets move toward +X, blue jets toward -X
+    jet.velocity = new THREE.Vector3(
+      (teamColor === 0xff0000 ? 0.05 : -0.05) + (Math.random() - 0.5) * 0.02,
+      0,
+      (Math.random() - 0.5) * 0.1
+    );
+
     jet.isAlive = true;
     jet.cooldown = 0;
+    jet.id = id;
+    jet.teamColor = teamColor;
+
     scene.add(jet);
-    jets.push(jet);
+    jets[id] = jet;
+  }
+
+  // Spawn initial jets with explicit team color:
+  for (let i = 0; i < 6; i++) {
+    const color = i < 3 ? 0xff0000 : 0x0000ff;
+    spawnJet(i, color);
   }
 
   function updateJetAI(jet) {
     if (!jet.isAlive) return;
 
-    // Find closest enemy
     let closestEnemy = null;
     let closestDist = Infinity;
     jets.forEach(other => {
-      if (other !== jet && other.isAlive && ((jet.children[0].material.color.getHex() !== other.children[0].material.color.getHex()))) {
+      if (other !== jet && other.isAlive && (jet.teamColor !== other.teamColor)) {
         const dist = jet.position.distanceTo(other.position);
         if (dist < closestDist) {
           closestDist = dist;
@@ -246,7 +262,6 @@
     });
     if (!closestEnemy) return;
 
-    // Avoid crowding - simple repulsion from other jets
     const avoidForce = new THREE.Vector3();
     jets.forEach(other => {
       if (other !== jet && other.isAlive) {
@@ -259,19 +274,15 @@
       }
     });
 
-    // Steering toward enemy + avoid force
     const desired = closestEnemy.position.clone().sub(jet.position).normalize().multiplyScalar(maxSpeed);
     const steer = desired.sub(jet.velocity).add(avoidForce.multiplyScalar(0.5));
     steer.clampLength(0, maxForce);
 
-    // Bank & roll based on steer
-    const targetAngle = Math.atan2(steer.z, steer.x);
     jet.rotation.z = THREE.MathUtils.lerp(jet.rotation.z, -steer.z * 5, 0.1);
     jet.rotation.x = THREE.MathUtils.lerp(jet.rotation.x, steer.y * 5, 0.1);
 
     jet.velocity.add(steer);
     jet.velocity.clampLength(0, maxSpeed);
-
     jet.position.add(jet.velocity);
 
     if(jet.velocity.lengthSq() > 0.0001) {
@@ -279,7 +290,6 @@
       jet.lookAt(lookPos);
     }
 
-    // Fire missile if cooldown 0 and enemy close
     if(jet.cooldown <= 0 && closestDist < 25) {
       const missilePos = jet.position.clone().add(jet.velocity.clone().normalize().multiplyScalar(2));
       const missileDir = jet.velocity.clone().normalize();
@@ -304,6 +314,9 @@
           jet.isAlive = false;
           scene.remove(jet);
           missile.destroy();
+
+          // Queue jet respawn after delay, preserving teamColor
+          respawnQueue.push({id: jet.id, teamColor: jet.teamColor, timer: 200});
         }
       });
     }
@@ -322,7 +335,6 @@
     }
   }
 
-  // Camera modes: 0 overview, 1 follow jet
   let camMode = 0;
   let camFocusIndex = 0;
 
@@ -343,7 +355,6 @@
     }
   }
 
-  // HUD updates
   const hud = document.getElementById('hud');
   function updateHUD() {
     hud.innerHTML = `Camera: ${camMode === 0 ? 'Overview' : 'Follow Jet'}<br>Missiles: ${missiles.length}`;
@@ -368,14 +379,22 @@
     updateCamera();
     updateHUD();
 
-    // Animate clouds slowly
+    // Handle respawn timers
+    for(let i=respawnQueue.length-1; i>=0; i--) {
+      const item = respawnQueue[i];
+      item.timer--;
+      if(item.timer <= 0) {
+        spawnJet(item.id, item.teamColor, true);
+        respawnQueue.splice(i, 1);
+      }
+    }
+
     clouds.forEach(c => c.position.x += 0.005);
 
     renderer.render(scene, camera);
   }
 
   animate();
-
 })();
 </script>
 </body>
