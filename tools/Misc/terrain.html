@@ -2,164 +2,214 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Infinite Dogfight Spectacle with Dynamic Chase Camera & Shake</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Procedural Sound Dogfight Spectacle</title>
 <style>
-  body { margin: 0; overflow: hidden; background: #000; }
-  canvas { display: block; }
+  body { margin: 0; overflow: hidden; background: #001f3f; color: #fff; }
   #hud {
-    position: absolute; top: 10px; left: 10px; 
-    color: #eee; font-family: monospace; 
-    background: rgba(0,0,0,0.5); padding: 6px 10px; 
-    border-radius: 6px; user-select:none; z-index: 10;
+    position: absolute; top: 10px; left: 10px; font-family: monospace;
+    background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;
+    user-select: none; pointer-events: none;
   }
 </style>
 </head>
 <body>
-<div id="hud">Camera: Overview<br>Missiles: 0</div>
+<div id="hud">Loading...</div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
 <script>
 (() => {
+  // --- Web Audio Setup ---
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // --- Three.js Setup ---
   const scene = new THREE.Scene();
 
-  // Skybox gradient sphere
-  const skyGeo = new THREE.SphereGeometry(500, 32, 15);
-  const skyMat = new THREE.ShaderMaterial({
-    side: THREE.BackSide,
-    uniforms: {
-      topColor: { value: new THREE.Color(0x87CEEB) },
-      bottomColor: { value: new THREE.Color(0xffffff) }
-    },
-    vertexShader: `
-      varying vec3 vWorldPosition;
-      void main() {
-        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-        vWorldPosition = worldPosition.xyz;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 topColor;
-      uniform vec3 bottomColor;
-      varying vec3 vWorldPosition;
-      void main() {
-        float h = normalize(vWorldPosition).y * 0.5 + 0.5;
-        gl_FragColor = vec4(mix(bottomColor, topColor, h), 1.0);
-      }
-    `
-  });
-  const sky = new THREE.Mesh(skyGeo, skyMat);
-  scene.add(sky);
-
-  // Clouds layer
-  const cloudTex = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/cloud.png');
-  const clouds = [];
-  for(let i=0; i<20; i++) {
-    const cloudMat = new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.15 });
-    const cloud = new THREE.Sprite(cloudMat);
-    cloud.position.set(
-      (Math.random()-0.5)*200,
-      40 + Math.random()*20,
-      (Math.random()-0.5)*200
-    );
-    cloud.scale.set(20,20,1);
-    scene.add(cloud);
-    clouds.push(cloud);
-  }
-
-  const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
   camera.position.set(0, 40, 60);
+  camera.lookAt(0, 5, 0);
 
-  const renderer = new THREE.WebGLRenderer({antialias: true});
+  const renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-  dirLight.position.set(30, 50, 30);
+  // --- Lighting ---
+  const ambient = new THREE.AmbientLight(0x888888);
+  scene.add(ambient);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  dirLight.position.set(20, 30, 10);
   scene.add(dirLight);
-  scene.add(new THREE.AmbientLight(0x404040));
 
-  const grid = new THREE.GridHelper(100, 20, 0x222222, 0x444444);
-  scene.add(grid);
+  // --- Arena Floor ---
+  const floorGeom = new THREE.PlaneGeometry(100, 100, 10, 10);
+  const floorMat = new THREE.MeshStandardMaterial({color: 0x0a2a5b, roughness: 0.8, metalness: 0.1});
+  const floor = new THREE.Mesh(floorGeom, floorMat);
+  floor.rotation.x = -Math.PI/2;
+  floor.position.y = 0;
+  scene.add(floor);
 
-  function createJet(color=0xff0000) {
-    const jet = new THREE.Group();
-    const material = new THREE.MeshStandardMaterial({color, roughness: 0.4, metalness: 0.8});
+  // --- Jet creation ---
+  const maxSpeed = 0.3;
+  const maxForce = 0.02;
 
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 5, 16), material);
-    body.rotation.z = Math.PI/2;
-    jet.add(body);
+  function createJetMesh(color=0xff0000) {
+    const g = new THREE.ConeGeometry(0.7, 3, 8);
+    const m = new THREE.MeshStandardMaterial({color, flatShading:true});
+    const jet = new THREE.Mesh(g,m);
+    jet.rotation.x = Math.PI/2;
+    jet.castShadow = true;
 
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.2, 16), material);
-    nose.rotation.z = Math.PI/2;
-    nose.position.x = 2.6;
-    jet.add(nose);
+    // Afterburner (cone)
+    const flameGeom = new THREE.ConeGeometry(0.3, 0.8, 8);
+    const flameMat = new THREE.MeshBasicMaterial({color: 0xff6600, transparent:true, opacity:0.7});
+    const flame = new THREE.Mesh(flameGeom, flameMat);
+    flame.position.set(0, -1.5, 0);
+    flame.rotation.x = Math.PI;
+    jet.add(flame);
+    jet.afterburner = flame;
 
-    const wingShape = new THREE.Shape();
-    wingShape.moveTo(0,0);
-    wingShape.lineTo(2,0.6);
-    wingShape.lineTo(2,-0.6);
-    wingShape.lineTo(0,0);
-    const wingGeo = new THREE.ExtrudeGeometry(wingShape, {depth: 0.1, bevelEnabled: false});
-    const wingL = new THREE.Mesh(wingGeo, material);
-    const wingR = new THREE.Mesh(wingGeo, material);
-    wingL.position.set(0, 0.15, -0.7);
-    wingR.position.set(0, 0.15, 0.7);
-    jet.add(wingL, wingR);
+    // Velocity vector
+    jet.velocity = new THREE.Vector3();
 
-    const tailFinGeo = new THREE.ConeGeometry(0.3, 1, 12);
-    const tailFin = new THREE.Mesh(tailFinGeo, material);
-    tailFin.position.set(-2.3, 0.7, 0);
-    tailFin.rotation.z = Math.PI / 2;
-    tailFin.rotation.x = Math.PI / 10;
-    jet.add(tailFin);
-
-    const tailWingL = new THREE.Mesh(wingGeo, material);
-    const tailWingR = new THREE.Mesh(wingGeo, material);
-    tailWingL.scale.set(0.6,1,0.5);
-    tailWingR.scale.set(0.6,1,0.5);
-    tailWingL.position.set(-2.3, 0.1, -0.6);
-    tailWingR.position.set(-2.3, 0.1, 0.6);
-    jet.add(tailWingL, tailWingR);
-
-    const engineMat = new THREE.MeshStandardMaterial({
-      color: 0xff4400,
-      emissive: 0xff3300,
-      emissiveIntensity: 2,
-      roughness: 0.2,
-      metalness: 0.8
-    });
-    const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.6, 12), engineMat);
-    engine.rotation.z = Math.PI/2;
-    engine.position.set(-2.8, 0, 0);
-    jet.add(engine);
-
-    const flameLight = new THREE.PointLight(0xff6600, 1.5, 6);
-    flameLight.position.copy(engine.position);
-    jet.add(flameLight);
-
-    jet.engineLight = flameLight;
-    jet.engineMaterial = engineMat;
+    // Contrail particles array
+    jet.contrailParticles = [];
 
     return jet;
   }
 
-  class SmokeParticle {
-    constructor(position) {
-      const geo = new THREE.SphereGeometry(0.07, 6, 6);
-      const mat = new THREE.MeshBasicMaterial({color: 0xaaaaaa, transparent: true, opacity: 0.5});
-      this.mesh = new THREE.Mesh(geo, mat);
+  // --- Jets ---
+  const jets = [];
+  const respawnQueue = [];
+
+  function spawnJet(id, teamColor, isRespawn=false) {
+    if(jets[id]) {
+      if(jets[id].isAlive) return jets[id];
+      else {
+        scene.remove(jets[id]);
+        jets[id] = null;
+      }
+    }
+    const color = teamColor === 0 ? 0xff2222 : 0x2222ff;
+    const jet = createJetMesh(color);
+    // Spawn positions opposite sides:
+    jet.position.set(teamColor === 0 ? -40 : 40, 5 + Math.random() * 10, (Math.random()-0.5)*20);
+    jet.velocity.set(
+      (teamColor === 0 ? 1 : -1)*0.1,
+      0,
+      (Math.random()-0.5)*0.05
+    );
+    jet.teamColor = teamColor;
+    jet.isAlive = true;
+    jet.id = id;
+    scene.add(jet);
+    jets[id] = jet;
+    if(!isRespawn) jet.cooldown = 100 + Math.floor(Math.random()*50);
+
+    addProceduralEngineSound(jet);
+
+    return jet;
+  }
+
+  // --- Audio functions ---
+  function addProceduralEngineSound(jet) {
+    if(!audioCtx) return;
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = 'sawtooth';
+    oscillator.frequency.setValueAtTime(100, audioCtx.currentTime); // Low drone
+    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+
+    jet.engineSound = {oscillator, gainNode};
+
+    function modulate() {
+      const now = audioCtx.currentTime;
+      oscillator.frequency.setValueAtTime(95 + 10 * Math.sin(now * 5 + jet.id), now);
+      requestAnimationFrame(modulate);
+    }
+    modulate();
+  }
+
+  function stopEngineSound(jet) {
+    if(jet.engineSound) {
+      jet.engineSound.oscillator.stop();
+      jet.engineSound.gainNode.disconnect();
+      jet.engineSound = null;
+    }
+  }
+
+  function playProceduralExplosionSound() {
+    if(!audioCtx) return;
+    const bufferSize = audioCtx.sampleRate * 0.2; // 0.2 sec
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random()*2 - 1)*(1 - i/bufferSize);
+    }
+    const noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = buffer;
+
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+
+    noiseSource.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    noiseSource.start();
+  }
+
+  // --- Missile class ---
+  class Missile {
+    constructor(position, direction, owner) {
+      this.owner = owner;
+      this.velocity = direction.clone().multiplyScalar(0.6);
+      this.isDestroyed = false;
+
+      const geom = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 6);
+      const mat = new THREE.MeshBasicMaterial({color:0xffff00});
+      this.mesh = new THREE.Mesh(geom, mat);
+      this.mesh.rotation.x = Math.PI / 2;
       this.mesh.position.copy(position);
-      this.life = 30;
-      this.size = 0.07;
       scene.add(this.mesh);
     }
     update() {
-      this.life--;
-      this.mesh.position.y += 0.01;
-      this.size += 0.002;
-      this.mesh.scale.set(this.size, this.size, this.size);
-      this.mesh.material.opacity = (this.life / 30) * 0.5;
-      if(this.life <= 0) {
+      if(this.isDestroyed) return;
+      this.mesh.position.add(this.velocity);
+      // Simple boundary destroy
+      if(this.mesh.position.length() > 70) this.destroy();
+    }
+    destroy() {
+      if(this.isDestroyed) return;
+      this.isDestroyed = true;
+      scene.remove(this.mesh);
+      playProceduralExplosionSound();
+      explosions.push(new Fireball(this.mesh.position.clone()));
+      for(let i=0; i<25; i++) explosions.push(new ExplosionParticle(this.mesh.position.clone()));
+      triggerCameraShake(0.8);
+    }
+  }
+
+  // --- Explosions ---
+  class Fireball {
+    constructor(pos) {
+      this.mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(1.5, 8, 8),
+        new THREE.MeshBasicMaterial({color: 0xff6600, transparent:true, opacity:0.7})
+      );
+      this.mesh.position.copy(pos);
+      this.lifetime = 30;
+      scene.add(this.mesh);
+    }
+    update() {
+      this.lifetime--;
+      this.mesh.material.opacity = (this.lifetime/30)*0.7;
+      this.mesh.scale.multiplyScalar(1.1);
+      if(this.lifetime <= 0) {
         scene.remove(this.mesh);
         return false;
       }
@@ -168,27 +218,24 @@
   }
 
   class ExplosionParticle {
-    constructor(position) {
-      const geo = new THREE.SphereGeometry(0.1, 6, 6);
-      const mat = new THREE.MeshBasicMaterial({color: 0xff6600, transparent: true, opacity: 0.8});
-      this.mesh = new THREE.Mesh(geo, mat);
-      this.mesh.position.copy(position);
+    constructor(pos) {
+      const geom = new THREE.SphereGeometry(0.1, 4, 4);
+      const mat = new THREE.MeshBasicMaterial({color:0xffaa00, transparent:true, opacity:1});
+      this.mesh = new THREE.Mesh(geom, mat);
+      this.mesh.position.copy(pos);
       this.velocity = new THREE.Vector3(
-        (Math.random()-0.5)*0.5,
-        (Math.random()-0.5)*0.5,
-        (Math.random()-0.5)*0.5
+        (Math.random()-0.5)*0.3,
+        (Math.random()-0.5)*0.3,
+        (Math.random()-0.5)*0.3
       );
-      this.life = 40 + Math.floor(Math.random()*20);
-      this.size = 0.1;
+      this.lifetime = 40 + Math.floor(Math.random()*20);
       scene.add(this.mesh);
     }
     update() {
-      this.life--;
+      this.lifetime--;
       this.mesh.position.add(this.velocity);
-      this.size += 0.01;
-      this.mesh.scale.set(this.size, this.size, this.size);
-      this.mesh.material.opacity = this.life / 60;
-      if(this.life <= 0) {
+      this.mesh.material.opacity = this.lifetime/60;
+      if(this.lifetime <= 0) {
         scene.remove(this.mesh);
         return false;
       }
@@ -196,152 +243,54 @@
     }
   }
 
-  class Fireball {
-    constructor(position) {
-      const geo = new THREE.SphereGeometry(0.5, 12, 12);
-      const mat = new THREE.MeshBasicMaterial({color: 0xff3300, transparent: true, opacity: 0.7});
-      this.mesh = new THREE.Mesh(geo, mat);
-      this.mesh.position.copy(position);
-      this.life = 20;
-      this.size = 0.5;
-      scene.add(this.mesh);
-    }
-    update() {
-      this.life--;
-      this.size += 0.05;
-      this.mesh.scale.set(this.size, this.size, this.size);
-      this.mesh.material.opacity = this.life / 20 * 0.7;
-      if(this.life <= 0) {
-        scene.remove(this.mesh);
-        return false;
-      }
-      return true;
-    }
-  }
-
-  class Missile {
-    constructor(position, direction, owner) {
-      this.speed = 0.6;
-      this.owner = owner;
-      this.life = 150;
-
-      this.mesh = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.05, 0.05, 1, 6),
-        new THREE.MeshBasicMaterial({color: 0xffff00})
-      );
-      this.mesh.rotation.z = Math.PI / 2;
-      this.mesh.position.copy(position);
-      scene.add(this.mesh);
-
-      this.velocity = direction.clone().multiplyScalar(this.speed);
-      this.isDestroyed = false;
-
-      this.smokeParticles = [];
-    }
-
-    update() {
-      this.mesh.position.add(this.velocity);
-      this.life--;
-
-      this.smokeParticles.push(new SmokeParticle(this.mesh.position.clone()));
-
-      this.smokeParticles = this.smokeParticles.filter(p => p.update());
-
-      if (this.life <= 0) this.destroy();
-    }
-
-    destroy() {
-      if(this.isDestroyed) return;
-      this.isDestroyed = true;
-      scene.remove(this.mesh);
-
-      explosions.push(new Fireball(this.mesh.position.clone()));
-      for(let i=0; i<25; i++) explosions.push(new ExplosionParticle(this.mesh.position.clone()));
-
-      triggerCameraShake(0.8);
-    }
-  }
-
-  const jets = [];
-  const missiles = [];
+  // --- Fireball & Explosion array ---
   const explosions = [];
-  const respawnQueue = [];
 
-  const maxSpeed = 0.15;
-  const maxForce = 0.02;
+  // --- Jets array & Missiles array ---
+  const missiles = [];
 
-  function spawnJet(id, teamColor, isRespawn = false) {
-    const jet = createJet(teamColor);
-    const sideX = (teamColor === 0xff0000) 
-                    ? -30 + Math.random() * 10 
-                    : 30 - Math.random() * 10;
-    jet.position.set(
-      sideX,
-      5 + Math.random() * 5,
-      (Math.random() - 0.5) * 40
-    );
-    jet.velocity = new THREE.Vector3(
-      (teamColor === 0xff0000 ? 0.05 : -0.05) + (Math.random() - 0.5) * 0.02,
-      0,
-      (Math.random() - 0.5) * 0.1
-    );
-    jet.isAlive = true;
-    jet.cooldown = 0;
-    jet.id = id;
-    jet.teamColor = teamColor;
-    scene.add(jet);
-    jets[id] = jet;
-  }
-
-  for (let i = 0; i < 6; i++) {
-    const color = i < 3 ? 0xff0000 : 0x0000ff;
-    spawnJet(i, color);
+  // --- Jet AI & update ---
+  function getEnemies(jet) {
+    return jets.filter(j => j && j.isAlive && j.teamColor !== jet.teamColor);
   }
 
   function updateJetAI(jet) {
-    if (!jet.isAlive) return;
+    if(!jet.isAlive) return;
 
+    const enemies = getEnemies(jet);
+    if(enemies.length === 0) return;
+
+    // Find closest enemy
     let closestEnemy = null;
     let closestDist = Infinity;
-    jets.forEach(other => {
-      if (other !== jet && other.isAlive && (jet.teamColor !== other.teamColor)) {
-        const dist = jet.position.distanceTo(other.position);
-        if (dist < closestDist) {
-          closestDist = dist;
-          closestEnemy = other;
-        }
-      }
-    });
-    if (!closestEnemy) return;
-
-    const avoidForce = new THREE.Vector3();
-    jets.forEach(other => {
-      if (other !== jet && other.isAlive) {
-        const dist = jet.position.distanceTo(other.position);
-        if(dist < 3) {
-          let diff = jet.position.clone().sub(other.position);
-          diff.divideScalar(dist*dist);
-          avoidForce.add(diff);
-        }
+    enemies.forEach(e => {
+      const dist = jet.position.distanceTo(e.position);
+      if(dist < closestDist) {
+        closestDist = dist;
+        closestEnemy = e;
       }
     });
 
+    if(!closestEnemy) return;
+
+    // Steering vector
     const desired = closestEnemy.position.clone().sub(jet.position).normalize().multiplyScalar(maxSpeed);
-    const steer = desired.sub(jet.velocity).add(avoidForce.multiplyScalar(0.5));
+    const steer = desired.sub(jet.velocity);
     steer.clampLength(0, maxForce);
 
-    jet.rotation.z = THREE.MathUtils.lerp(jet.rotation.z, -steer.z * 5, 0.1);
+    jet.rotation.y = THREE.MathUtils.lerp(jet.rotation.y, Math.atan2(steer.z, steer.x), 0.1);
     jet.rotation.x = THREE.MathUtils.lerp(jet.rotation.x, steer.y * 5, 0.1);
 
     jet.velocity.add(steer);
     jet.velocity.clampLength(0, maxSpeed);
     jet.position.add(jet.velocity);
 
-    // Clamp inside arena
+    // Stay inside arena
     jet.position.x = THREE.MathUtils.clamp(jet.position.x, -45, 45);
     jet.position.y = THREE.MathUtils.clamp(jet.position.y, 2, 20);
     jet.position.z = THREE.MathUtils.clamp(jet.position.z, -45, 45);
 
+    // Fire missile cooldown
     jet.cooldown--;
     if(jet.cooldown <= 0 && closestEnemy && closestDist < 20) {
       fireMissile(jet, closestEnemy);
@@ -356,16 +305,16 @@
   }
 
   function updateMissiles() {
-    for(let i = missiles.length - 1; i >= 0; i--) {
+    for(let i=missiles.length-1; i>=0; i--) {
       const m = missiles[i];
       m.update();
 
       jets.forEach(jet => {
         if(jet.isAlive && jet !== m.owner) {
-          const dist = m.mesh.position.distanceTo(jet.position);
-          if(dist < 1) {
+          if(m.mesh.position.distanceTo(jet.position) < 1) {
             jet.isAlive = false;
             scene.remove(jet);
+            stopEngineSound(jet);
             missiles.splice(i, 1);
             m.destroy();
             respawnQueue.push({id: jet.id, teamColor: jet.teamColor, timer: 200});
@@ -373,19 +322,52 @@
         }
       });
 
-      if(m.isDestroyed) missiles.splice(i, 1);
+      if(m.isDestroyed) missiles.splice(i,1);
     }
   }
 
-  function updateExplosions() {
-    for(let i = explosions.length - 1; i >= 0; i--) {
-      const p = explosions[i];
-      if(!p.update()) explosions.splice(i, 1);
+  // --- Afterburner flicker and contrails ---
+  function updateJetVisuals(jet) {
+    if(!jet.isAlive) return;
+
+    // Flicker afterburner
+    const flicker = 0.7 + Math.sin(Date.now()*0.02 + jet.id)*0.3;
+    jet.afterburner.scale.set(1, flicker, flicker);
+    jet.afterburner.material.opacity = flicker;
+
+    // Contrail particles
+    if(jet.position.y > 8) {
+      if(Math.random() < 0.3) {
+        const pos = jet.position.clone().add(new THREE.Vector3(0.5,0,0));
+        jet.contrailParticles.push(new ContrailParticle(pos));
+      }
+    }
+    jet.contrailParticles = jet.contrailParticles.filter(p => p.update());
+  }
+
+  // --- Contrail particle ---
+  class ContrailParticle {
+    constructor(pos) {
+      const geom = new THREE.SphereGeometry(0.1,4,4);
+      const mat = new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.4});
+      this.mesh = new THREE.Mesh(geom, mat);
+      this.mesh.position.copy(pos);
+      this.lifetime = 60;
+      scene.add(this.mesh);
+    }
+    update() {
+      this.lifetime--;
+      this.mesh.position.y += 0.01;
+      this.mesh.material.opacity = this.lifetime/60*0.4;
+      if(this.lifetime <= 0) {
+        scene.remove(this.mesh);
+        return false;
+      }
+      return true;
     }
   }
 
-  // === Dynamic Chase Camera and Shake ===
-
+  // --- Camera chase & shake ---
   let chaseTarget = null;
   let chaseTimer = 0;
   let shakeAmount = 0;
@@ -394,21 +376,21 @@
 
   function selectChaseTarget() {
     const aliveJets = jets.filter(j => j && j.isAlive);
-    if (aliveJets.length === 0) return null;
-    return aliveJets[Math.floor(Math.random() * aliveJets.length)];
+    if(aliveJets.length === 0) return null;
+    return aliveJets[Math.floor(Math.random()*aliveJets.length)];
   }
 
   function applyCameraShake() {
     if(shakeAmount > 0) {
       shakeOffset.set(
-        (Math.random() - 0.5) * shakeAmount,
-        (Math.random() - 0.5) * shakeAmount,
-        (Math.random() - 0.5) * shakeAmount
+        (Math.random()-0.5)*shakeAmount,
+        (Math.random()-0.5)*shakeAmount,
+        (Math.random()-0.5)*shakeAmount
       );
       shakeAmount -= shakeDecay;
-      if(shakeAmount < 0) shakeAmount = 0;
+      if(shakeAmount < 0) shakeAmount=0;
     } else {
-      shakeOffset.set(0, 0, 0);
+      shakeOffset.set(0,0,0);
     }
   }
 
@@ -418,25 +400,24 @@
       chaseTimer = 0;
     }
     chaseTimer++;
-    if(chaseTimer > 900) { // Switch every ~15 seconds assuming 60fps
+    if(chaseTimer > 900) {
       chaseTarget = selectChaseTarget();
       chaseTimer = 0;
     }
     if(chaseTarget) {
       const backOffset = chaseTarget.velocity.clone().normalize().multiplyScalar(-8);
-      const upOffset = new THREE.Vector3(0, 3, 0);
+      const upOffset = new THREE.Vector3(0,3,0);
       const desiredPos = chaseTarget.position.clone().add(backOffset).add(upOffset);
 
       camera.position.lerp(desiredPos, 0.05);
-
       const lookAtPos = chaseTarget.position.clone().add(chaseTarget.velocity.clone().multiplyScalar(2));
       camera.lookAt(lookAtPos);
 
       applyCameraShake();
       camera.position.add(shakeOffset);
     } else {
-      camera.position.lerp(new THREE.Vector3(0, 40, 60), 0.05);
-      camera.lookAt(new THREE.Vector3(0, 5, 0));
+      camera.position.lerp(new THREE.Vector3(0,40,60), 0.05);
+      camera.lookAt(new THREE.Vector3(0,5,0));
     }
   }
 
@@ -444,39 +425,18 @@
     shakeAmount = Math.min(shakeAmount + intensity, 1.5);
   }
 
-  Missile.prototype.destroy = function() {
-    if(this.isDestroyed) return;
-    this.isDestroyed = true;
-    scene.remove(this.mesh);
-
-    explosions.push(new Fireball(this.mesh.position.clone()));
-    for(let i=0; i<25; i++) explosions.push(new ExplosionParticle(this.mesh.position.clone()));
-
-    triggerCameraShake(0.8);
-  };
-
+  // --- HUD ---
   function updateHUD() {
     const hud = document.getElementById('hud');
-    hud.innerHTML = `Camera: Chase<br>Missiles: ${missiles.length}<br>Jets Alive: ${jets.filter(j => j && j.isAlive).length}`;
+    hud.innerHTML = `
+      Jets Alive: ${jets.filter(j => j && j.isAlive).length} <br>
+      Missiles Active: ${missiles.length} <br>
+      Camera: Chase Mode
+    `;
   }
 
-  function animate() {
-    requestAnimationFrame(animate);
-
-    jets.forEach(jet => {
-      if(jet && jet.isAlive && jet.engineLight) {
-        const intensity = 1.0 + Math.sin(Date.now() * 0.01 + jet.id) * 0.5;
-        jet.engineLight.intensity = THREE.MathUtils.clamp(intensity, 0.7, 2.5);
-        jet.engineMaterial.emissiveIntensity = jet.engineLight.intensity;
-      }
-    });
-
-    jets.forEach(updateJetAI);
-    updateMissiles();
-    updateExplosions();
-    updateCamera();
-    updateHUD();
-
+  // --- Respawn ---
+  function handleRespawn() {
     for(let i=respawnQueue.length-1; i>=0; i--) {
       const item = respawnQueue[i];
       item.timer--;
@@ -485,22 +445,52 @@
         respawnQueue.splice(i, 1);
       }
     }
+  }
 
-    clouds.forEach(c => {
-      c.position.x += 0.005;
-      if(c.position.x > 100) c.position.x = -100;
+  // --- Animate loop ---
+  function animate() {
+    requestAnimationFrame(animate);
+
+    jets.forEach(jet => {
+      if(jet && jet.isAlive) updateJetAI(jet);
+      if(jet) updateJetVisuals(jet);
     });
+
+    updateMissiles();
+    updateExplosions();
+    updateCamera();
+    updateHUD();
+    handleRespawn();
 
     renderer.render(scene, camera);
   }
 
-  animate();
+  function updateExplosions() {
+    for(let i=explosions.length-1; i>=0; i--) {
+      if(!explosions[i].update()) explosions.splice(i, 1);
+    }
+  }
 
+  // --- Initial spawn ---
+  const totalJets = 12;
+  for(let i=0; i<totalJets; i++) {
+    spawnJet(i, i < totalJets/2 ? 0 : 1);
+  }
+
+  // --- Resize handler ---
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
+
+  // --- Start ---
+  animate();
+
+  // --- Unlock audio on first user gesture for some browsers ---
+  window.addEventListener('click', () => {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+  }, { once: true });
 })();
 </script>
 </body>
