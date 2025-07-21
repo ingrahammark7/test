@@ -1,164 +1,54 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import math
 
-# === PARAMETERS ===
-years = np.arange(2025, 2036)  # inclusive
+# Constants
+c = 3e8  # m/s
+h = 6.626e-34  # J*s
+proton_mass = 1.67e-27  # kg
+atomic_radius = math.pow(10,-10) # m
+planck_length = 1.616e-35  # m
+seconds_per_year = 3.1536e7 # s
+pc = 6 * math.pow(10, -34)  # Energy unit (your scaling)
+meng=pc
+ema=9*math.pow(10,-31)
+g=6.7*math.pow(10,-11)
+ef=pc/(c*c)
+fo=g*ef*ef
+rad=math.pow(10,-38)
+tens=2*math.pow(10,9)
 
-# Initial population (millions)
-total_pop_0 = 43.0
-adult_ratio_0 = 0.6
-adult_pop_0 = total_pop_0 * adult_ratio_0
+rad=atomic_radius
+rad=rad*rad
+fo=fo/rad
+v=fo/ef
+v=math.sqrt(v)
+#e-29m elec
 
-# Initial industrial capacity (% of pre-war)
-industrial_capacity_0 = 50.0
 
-# Initial drone production (million drones/year)
-drone_prod_0 = 2.0
+# Proton and photon energies
+E_proton = proton_mass * c**2  # Proton rest energy in Joules (~1.5e-10 J)
+E_photon_planck = (h * c) / planck_length  # Energy of one Planck photon (~1.23e9 J)
 
-# Decline durations
-drone_prod_decline_years = 10  # linear decline to zero by 2035
+# Number of Planck photons from one proton (with your scaling)
+par=math.pow(10,7)
+N = (E_proton / pc) * par# Huge number, ~ e+68 range or so
+av=math.pow(10,24)
+pow=N*pc
+emas=proton_mass*par
+print(f"{emas:.3e}")
+print("ff")
 
-# Birth and death parameters
-birth_rate_0 = 9.0      # per 1000 population per year
-birth_rate_decline_rate = 0.02  # 2% annual decline
+# Volume of atomic radius sphere (m^3)
+V = 4 / 3 * np.pi * atomic_radius**3
 
-life_expectancy_0 = 72.0
-life_expectancy_final = 60.0
+# Calculate minimum distance for 1 crossing per year (from your code)
+cr = c / atomic_radius
+cr = cr * seconds_per_year
+hr=math.pow(cr,1/3)
+d_min = math.pow(cr * N, (1 /2))
+d_min = atomic_radius / d_min
+pow=hr*pow
+print(pow)
 
-# Annual declines / rates
-adult_pop_decline_rate = 0.02       # 2% per year from war casualties, emigration
-industrial_capacity_decline_rate = 0.05  # 5% per year degradation
-
-# Migration (million per year, negative = emigration)
-migration_start = -0.1   # start small negative
-migration_accel = -0.02  # yearly increase in emigration magnitude
-
-# Military aid parameters
-military_aid_start = 2025
-military_aid_drop_start = 2030
-military_aid_decline_rate = 0.20   # 20% drop per year after 2030
-military_aid_0 = 1.0               # normalized 1.0 in 2025
-
-# === ARRAYS TO STORE RESULTS ===
-N = len(years)
-total_pop = np.zeros(N)
-adult_pop = np.zeros(N)
-industrial_capacity = np.zeros(N)
-drone_prod = np.zeros(N)
-birth_rate = np.zeros(N)
-life_expectancy = np.zeros(N)
-migration = np.zeros(N)
-military_aid = np.zeros(N)
-
-# === INITIAL VALUES ===
-total_pop[0] = total_pop_0
-adult_pop[0] = adult_pop_0
-industrial_capacity[0] = industrial_capacity_0
-drone_prod[0] = drone_prod_0
-birth_rate[0] = birth_rate_0
-life_expectancy[0] = life_expectancy_0
-migration[0] = migration_start
-military_aid[0] = military_aid_0
-
-for i in range(1, N):
-    year = years[i]
-
-    # --- Military aid ---
-    if year < military_aid_drop_start:
-        military_aid[i] = military_aid_0
-    else:
-        years_since_drop = year - military_aid_drop_start + 1
-        military_aid[i] = military_aid_0 * ((1 - military_aid_decline_rate) ** years_since_drop)
-
-    # --- Drone production ---
-    years_since_start = year - years[0]
-    if years_since_start <= drone_prod_decline_years:
-        drone_prod[i] = drone_prod_0 * (1 - years_since_start / drone_prod_decline_years)
-    else:
-        drone_prod[i] = 0.0
-
-    # --- Industrial capacity ---
-    industrial_capacity[i] = industrial_capacity[i-1] * (1 - industrial_capacity_decline_rate)
-    industrial_capacity[i] = max(industrial_capacity[i], 10)  # assume a minimum baseline remains
-
-    # --- Migration ---
-    # Emigration grows in magnitude
-    migration[i] = migration[i-1] + migration_accel
-    # Clamp max emigration to -0.5 million/year
-    migration[i] = max(migration[i], -0.5)
-
-    # --- Birth rate ---
-    birth_rate[i] = birth_rate[i-1] * (1 - birth_rate_decline_rate)
-    birth_rate[i] = max(birth_rate[i], 5)  # minimum birth rate of 5 per 1000
-
-    # --- Life expectancy ---
-    life_expectancy[i] = life_expectancy_0 - ((life_expectancy_0 - life_expectancy_final) / (N-1)) * i
-
-    # --- Adult population ---
-    # Adult pop declines by war/emigration + natural aging/replacement
-    adult_loss = adult_pop[i-1] * adult_pop_decline_rate
-    adult_pop[i] = adult_pop[i-1] - adult_loss
-
-    # Adjust adult pop by net migration (assume mostly adults migrate)
-    adult_pop[i] += migration[i]
-    adult_pop[i] = max(adult_pop[i], 10)  # floor to avoid negative population
-
-    # --- Total population ---
-    # Births
-    births = total_pop[i-1] * (birth_rate[i] / 1000)
-    # Deaths ~ total_pop / life_expectancy
-    deaths = total_pop[i-1] / life_expectancy[i]
-    # Migration applies to total pop, approx equal to adult migration
-    total_pop[i] = total_pop[i-1] + births - deaths + migration[i]
-    total_pop[i] = max(total_pop[i], adult_pop[i])  # total population cannot be less than adults
-
-# === PLOTS ===
-plt.figure(figsize=(14, 10))
-
-plt.subplot(3,2,1)
-plt.plot(years, total_pop, label='Total Population (M)', color='blue')
-plt.plot(years, adult_pop, label='Adult Population (M)', color='navy')
-plt.ylabel('Millions')
-plt.title('Population')
-plt.legend()
-plt.grid()
-
-plt.subplot(3,2,2)
-plt.plot(years, industrial_capacity, 'orange', label='Industrial Capacity (%)')
-plt.plot(years, drone_prod, 'red', label='Drone Production (Million/year)')
-plt.ylabel('Percent / Million')
-plt.title('Industry & Drones')
-plt.legend()
-plt.grid()
-
-plt.subplot(3,2,3)
-plt.plot(years, birth_rate, 'green', label='Birth Rate (per 1000)')
-plt.ylabel('Births per 1000 per year')
-plt.title('Birth Rate')
-plt.legend()
-plt.grid()
-
-plt.subplot(3,2,4)
-plt.plot(years, life_expectancy, 'purple', label='Life Expectancy (years)')
-plt.ylabel('Years')
-plt.title('Life Expectancy')
-plt.legend()
-plt.grid()
-
-plt.subplot(3,2,5)
-plt.plot(years, migration, 'brown', label='Net Migration (Million/year)')
-plt.ylabel('Million per year')
-plt.title('Migration (mostly emigration)')
-plt.legend()
-plt.grid()
-
-plt.subplot(3,2,6)
-plt.plot(years, military_aid, 'black', label='Military Aid (relative scale)')
-plt.ylabel('Relative scale (1=2025)')
-plt.title('Military Aid Flow')
-plt.legend()
-plt.grid()
-
-plt.tight_layout()
-plt.suptitle('Ukraine 2025-2035 Collapse Model', fontsize=16, y=1.02)
-plt.show()
+print(f"Number of Planck photons from one proton: {N:.3e}")
+print(f"Minimum distance for 1 crossing per year: {d_min:.3e} meters")
