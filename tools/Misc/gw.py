@@ -30,7 +30,8 @@ E_proton = proton_mass * c**2  # Proton rest energy in Joules (~1.5e-10 J)
 E_photon_planck = (h * c) / planck_length  # Energy of one Planck photon (~1.23e9 J)
 
 # Number of Planck photons from one proton (with your scaling)
-par=math.pow(10,7)
+par=math.pow(10,10)
+r1=atomic_radius*math.pow(par,1/3)
 N = (E_proton / pc) * par# Huge number, ~ e+68 range or so
 av=math.pow(10,24)
 pow=N*pc
@@ -42,7 +43,7 @@ print("ff")
 V = 4 / 3 * np.pi * atomic_radius**3
 
 # Calculate minimum distance for 1 crossing per year (from your code)
-cr = c / atomic_radius
+cr = c / r1
 cr = cr * seconds_per_year
 hr=math.pow(cr,1/3)
 d_min = math.pow(cr * N, (1 /2))
