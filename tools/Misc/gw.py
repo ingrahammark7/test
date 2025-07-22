@@ -1,39 +1,39 @@
-import numpy as np
+# Constants
 import math
+molar_mass_fe = 55.85  # grams/mole
+mass_kg = 1.0  # kilograms of iron
+mass_g = mass_kg * 1000  # convert to grams
 
-# Physical Constants
-c = 3e8  # Speed of light, m/s
-h = 6.626e-34  # Planck's constant, J*s
-G = 6.67430e-11  # Gravitational constant, m^3/kg/s^2
-proton_mass = 1.67e-27  # kg
-planck_length = 1.616e-35  # m
-atomic_radius = 1e-10  # m
-seconds_per_year = 3.1536e7  # s
+avogadro = 6.022e23  # atoms/mole
+cohesive_energy_ev = 4.28# eV per atom
+ev_to_joule = 1.602e-19  # conversion factor
+ar=126*math.pow(10,-12)
+q=9*math.pow(10,9)
+el=1.6*math.pow(10,-19)
+ch=el*el*q
+ch=ch/(ar*ar)
+an=26
+ch=an*ch
+ac=avogadro*ch
+mo=1000/molar_mass_fe
+re=mo*ac
+print("J high estimate",re)
+re=re**(.5)
+print("2gj kg consistent with steel",re)
+# Step 1: Moles of iron
+moles_fe = mass_g / molar_mass_fe
 
-# Energy Unit (arbitrary scaling)
-pc = 6e-34  # J (you defined this)
+# Step 2: Number of atoms
+atoms = moles_fe * avogadro
 
-# Scaled particle count
-par = 1e10
-scaled_radius = atomic_radius * (par ** (1/3))  # Assuming 3D packing
-volume = (4/3) * np.pi * atomic_radius**3
+# Step 3: Bond energy per atom in joules
+bond_energy_per_atom_j = cohesive_energy_ev * ev_to_joule
 
-# Proton rest energy
-E_proton = proton_mass * c**2  # ~1.5e-10 J
+# Step 4: Total bond energy
+total_bond_energy_joules = atoms * bond_energy_per_atom_j
+total_bond_energy_mj = total_bond_energy_joules / 1e6
 
-# Number of Planck photons extractable from one proton, scaled
-N = (E_proton / pc) * par
-
-# Total power for all these photons over a year
-total_energy = N * pc
-crossings_per_year = (c / scaled_radius) * seconds_per_year  # photon crossings in confined radius
-freq_factor = crossings_per_year ** (1/3)
-
-# Estimate of minimum approach (inverse square root scaling)
-d_min = atomic_radius / math.sqrt(N * crossings_per_year)
-
-# Outputs
-print(f"Scaled equivalent mass: {proton_mass * par:.3e} kg")
-print(f"Total photon energy: {total_energy:.3e} J")
-print(f"Planck photon count (scaled): {N:.3e}")
-print(f"Minimum distance from confinement: {d_min:.3e} m")
+# Output
+print(f"Total atoms in {mass_kg} kg iron: {atoms:.2e}")
+print(f"Bond energy per atom: {bond_energy_per_atom_j:.2e} J")
+print(f"Total bond energy: {total_bond_energy_joules:.2e} J ({total_bond_energy_mj:.2f} MJ)")
