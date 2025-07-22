@@ -1,39 +1,84 @@
-# Constants
 import math
-molar_mass_fe = 55.85  # grams/mole
-mass_kg = 1.0  # kilograms of iron
-mass_g = mass_kg * 1000  # convert to grams
 
-avogadro = 6.022e23  # atoms/mole
-cohesive_energy_ev = 4.28# eV per atom
-ev_to_joule = 1.602e-19  # conversion factor
-ar=126*math.pow(10,-12)
-q=9*math.pow(10,9)
-el=1.6*math.pow(10,-19)
-ch=el*el*q
-ch=ch/(ar*ar)
-an=26
-ch=an*ch
-ac=avogadro*ch
-mo=1000/molar_mass_fe
-re=mo*ac
-print("J high estimate",re)
-re=re**(.5)
-print("2gj kg consistent with steel",re)
-# Step 1: Moles of iron
-moles_fe = mass_g / molar_mass_fe
+class Material:
+    def __init__(self, name, molar_mass_g_mol, density_kg_m3, atomic_radius_m, atomic_number,
+                 cohesive_energy_ev, base_hvl_cm, material_energy_density_mj_per_cm):
+        self.name = name
+        self.molar_mass = molar_mass_g_mol
+        self.density = density_kg_m3
+        self.atomic_radius = atomic_radius_m
+        self.atomic_number = atomic_number
+        self.cohesive_energy_ev = cohesive_energy_ev
+        self.base_hvl_cm = base_hvl_cm
+        self.material_energy_density_mj_per_cm = material_energy_density_mj_per_cm
+        
+        
+        # Constants
+        self.avogadro = 6.022e23
+        self.ev_to_joule = 1.602e-19
+        self.k = 9e9  # Coulomb constant
+        self.elementary_charge = 1.6e-19
+        
+        # Precompute values
+        self.j_high_estimate = self.compute_high_estimate()
+        self.j_high_estimate=self.j_high_estimate**.5
+    
+        self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
+    
+    def compute_high_estimate(self):
+        ch = (self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
+        ch *= self.atomic_number
+        ac = self.avogadro * ch
+        moles = 1000 / self.molar_mass
+        re = moles * ac
+        return re
+    
+    def compute_cohesive_bond_energy(self):
+        mass_g = 1000  # for 1 kg iron
+        moles = mass_g / self.molar_mass
+        atoms = moles * self.avogadro
+        bond_energy_per_atom_j = self.cohesive_energy_ev * self.ev_to_joule
+        total_bond_energy_joules = atoms * bond_energy_per_atom_j
+        return total_bond_energy_joules
 
-# Step 2: Number of atoms
-atoms = moles_fe * avogadro
 
-# Step 3: Bond energy per atom in joules
-bond_energy_per_atom_j = cohesive_energy_ev * ev_to_joule
+    def print_summary(self):
+        
+      print(f"2 GJ/kg consistent estimate (sqrt): {self.j_high_estimate:.4e}")
+      print(f"Cohesive bond energy total (J): {self.cohesive_bond_energy:.4e}")
+      print(f"Cohesive bond energy total (MJ): {self.cohesive_bond_energy / 1e6:.4f}")
+    
+    def penetration_depth(self, round_energy_mj, round_radius_cm, alpha=0.5):
+        """
+        Compute penetration depth (cm) using your MHD dynamic HVL model.
+        """
+        d0 = round_energy_mj / self.material_energy_density_mj_per_cm
+        n = round_radius_cm / self.base_hvl_cm
+        hvl = self.base_hvl_cm * max(0.01, (1 - alpha * n))  # prevent zero or negative HVL
+        n_eff = round_radius_cm / hvl
+        d = d0 * n_eff ** 2
+        return d, hvl
 
-# Step 4: Total bond energy
-total_bond_energy_joules = atoms * bond_energy_per_atom_j
-total_bond_energy_mj = total_bond_energy_joules / 1e6
 
-# Output
-print(f"Total atoms in {mass_kg} kg iron: {atoms:.2e}")
-print(f"Bond energy per atom: {bond_energy_per_atom_j:.2e} J")
-print(f"Total bond energy: {total_bond_energy_joules:.2e} J ({total_bond_energy_mj:.2f} MJ)")
+# Usage example:
+steel = Material(
+    name="Iron (Steel)",
+    molar_mass_g_mol=55.85,
+    density_kg_m3=7850,
+    atomic_radius_m=126e-12,
+    atomic_number=26,
+    cohesive_energy_ev=4.28,
+    base_hvl_cm=1.3,
+    material_energy_density_mj_per_cm=1
+)
+
+steel.print_summary()
+
+# Penetration example
+round_energy = 10  # MJ
+round_radius = 0.5  # cm
+
+steel.material_energy_density_mj_per_cm=(steel.j_high_estimate*steel.density)/1000000/1000000
+depth, effective_hvl = steel.penetration_depth(round_energy, round_radius)
+print(f"Penetration depth: {depth:.2f} cm")
+print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
