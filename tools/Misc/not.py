@@ -63,17 +63,13 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
     case_title = [
-        "Mark Ingraham",
-        "Plaintiff and Petitioner,",
-        "v.",
-        "Office of the Comptroller of the Currency of the United States Department of the Treasury",
-        "Respondent and Defendant.",
+        "IN THE MATTER OF MARK INGRAHAM",
         
     ]
     y_position = top_margin - 4.75* inch
@@ -89,12 +85,12 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 2:2025cv05342")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP02262")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.5* inch, "Certificate of Service")
+    c.drawString(space, top_margin - 4.5* inch, "Notice of Intent to Dismiss Case")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -106,20 +102,15 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "I. CERTIFICATE OF SERVICE")
+    c.drawString(left_margin, y_position - 0.25* inch, "NOTICE")
     c.setFont("Times-Roman",12)
     intro_text = [
-        "I certify on July 13th I served copies of the Notice of Appeal by USPS, addressed:",
-        "",
-        "Office of the Comptroller of the Currency",
-"400 7th Street SW, Washington, DC 20219",
-"",
-"United States Attorney for the District of Columbia",
-"555 4th Street NW, Washington, DC 20530",
-"",
-"Attorney General of the United States"
-"U.S. Department of Justice",
-"950 Pennsylvania Avenue NW, Washington, DC 20530-0001",
+        "1. Because the case dismissal form requires a defendant and this case has none,",
+        "2. I must dismiss with this notice.",
+        "3. I will not be attending the hearing and am cancelling all my cases.",
+        "4. Judge in Ingraham vs LAPD stated they would dismiss my case no matter what I did.",
+        "5. I expect similar rulings from other judges.",
+        "6. Therefore I am ordering all of my cases dismissed and continuing in federal court only.",
         ]
     y_position -= .5*inch
     for line in intro_text:
@@ -130,7 +121,7 @@ def create_pdf(output_filename):
 
     # Signature Block
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 7/13/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 7/22/2025")
 
  # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
