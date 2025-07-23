@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Certificate of Service"  # Title of the paper
+        footer_text = "Notice of Outcome"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -69,8 +69,11 @@ def create_pdf(output_filename):
     # (4) Case Title
     c.setFont("Times-Bold", 12)
     case_title = [
-        "IN THE MATTER OF MARK INGRAHAM",
-        
+        "Mark Ingraham,",
+        "Plaintiff and petitioner,",
+        "vs",
+        "Los Angeles Police Department",
+        "respondent and defendant",        
     ]
     y_position = top_margin - 4.75* inch
     counter=0
@@ -85,12 +88,12 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP02262")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.5* inch, "Notice of Intent to Dismiss Case")
+    c.drawString(space, top_margin - 4.5* inch, "Notice of Outcome")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -105,12 +108,9 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.25* inch, "NOTICE")
     c.setFont("Times-Roman",12)
     intro_text = [
-        "1. Because the case dismissal form requires a defendant and this case has none,",
-        "2. I must dismiss with this notice.",
-        "3. I will not be attending the hearing and am cancelling all my cases.",
-        "4. Judge in Ingraham vs LAPD stated they would dismiss my case no matter what I did.",
-        "5. I expect similar rulings from other judges.",
-        "6. Therefore I am ordering all of my cases dismissed and continuing in federal court only.",
+        "1. Judge stated they would side with police no matter what.",
+        "2. Therefore I allowed judge to dismiss case.",
+        "3. Case will contine in federal court when I have funds to hire server.",
         ]
     y_position -= .5*inch
     for line in intro_text:
