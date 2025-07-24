@@ -1,84 +1,56 @@
-import math
+import numpy as np
 
-class Material:
-    def __init__(self, name, molar_mass_g_mol, density_kg_m3, atomic_radius_m, atomic_number,
-                 cohesive_energy_ev, base_hvl_cm, material_energy_density_mj_per_cm):
-        self.name = name
-        self.molar_mass = molar_mass_g_mol
-        self.density = density_kg_m3
-        self.atomic_radius = atomic_radius_m
-        self.atomic_number = atomic_number
-        self.cohesive_energy_ev = cohesive_energy_ev
-        self.base_hvl_cm = base_hvl_cm
-        self.material_energy_density_mj_per_cm = material_energy_density_mj_per_cm
-        
-        
-        # Constants
-        self.avogadro = 6.022e23
-        self.ev_to_joule = 1.602e-19
-        self.k = 9e9  # Coulomb constant
-        self.elementary_charge = 1.6e-19
-        
-        # Precompute values
-        self.j_high_estimate = self.compute_high_estimate()
-        self.j_high_estimate=self.j_high_estimate**.5
-    
-        self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
-    
-    def compute_high_estimate(self):
-        ch = (self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
-        ch *= self.atomic_number
-        ac = self.avogadro * ch
-        moles = 1000 / self.molar_mass
-        re = moles * ac
-        return re
-    
-    def compute_cohesive_bond_energy(self):
-        mass_g = 1000  # for 1 kg iron
-        moles = mass_g / self.molar_mass
-        atoms = moles * self.avogadro
-        bond_energy_per_atom_j = self.cohesive_energy_ev * self.ev_to_joule
-        total_bond_energy_joules = atoms * bond_energy_per_atom_j
-        return total_bond_energy_joules
+# Constants
+G = 6.67430e-11  # gravitational constant (m^3 kg^-1 s^-2)
+mass_venus = 4.867e24  # kg
+mass_mercury = 3.301e23  # kg
+AU = 1.496e11  # meters
+year_days = 365.25
+century_days = 100 * year_days
+day_seconds = 86400  # seconds in a day
 
+# Orbital parameters (assuming circular orbits for simplicity)
+radius_mercury = 0.387 * AU  # average distance to sun
+radius_venus = 0.723 * AU
+omega_mercury = 2 * np.pi / (88 * day_seconds)  # rad/s
+omega_venus = 2 * np.pi / (225 * day_seconds)  # rad/s
 
-    def print_summary(self):
-        
-      print(f"2 GJ/kg consistent estimate (sqrt): {self.j_high_estimate:.4e}")
-      print(f"Cohesive bond energy total (J): {self.cohesive_bond_energy:.4e}")
-      print(f"Cohesive bond energy total (MJ): {self.cohesive_bond_energy / 1e6:.4f}")
-    
-    def penetration_depth(self, round_energy_mj, round_radius_cm, alpha=0.5):
-        """
-        Compute penetration depth (cm) using your MHD dynamic HVL model.
-        """
-        d0 = round_energy_mj / self.material_energy_density_mj_per_cm
-        n = round_radius_cm / self.base_hvl_cm
-        hvl = self.base_hvl_cm * max(0.01, (1 - alpha * n))  # prevent zero or negative HVL
-        n_eff = round_radius_cm / hvl
-        d = d0 * n_eff ** 2
-        return d, hvl
+# Time array: 1-day time steps for 100 years
+t = np.arange(0, century_days * day_seconds, day_seconds)
 
+# Mercury and Venus positions (initially on opposite sides of the Sun)
+theta_mercury = omega_mercury * t
+theta_venus = omega_venus * t + np.pi
 
-# Usage example:
-steel = Material(
-    name="Iron (Steel)",
-    molar_mass_g_mol=55.85,
-    density_kg_m3=7850,
-    atomic_radius_m=126e-12,
-    atomic_number=26,
-    cohesive_energy_ev=4.28,
-    base_hvl_cm=1.3,
-    material_energy_density_mj_per_cm=1
-)
+x_mercury = radius_mercury * np.cos(theta_mercury)
+y_mercury = radius_mercury * np.sin(theta_mercury)
+x_venus = radius_venus * np.cos(theta_venus)
+y_venus = radius_venus * np.sin(theta_venus)
 
-steel.print_summary()
+# Compute the gravitational force vector and its effect on Mercury's orbit
+dx = x_venus - x_mercury
+dy = y_venus - y_mercury
+distance = np.sqrt(dx**2 + dy**2)
 
-# Penetration example
-round_energy = 10  # MJ
-round_radius = 0.5  # cm
+# Gravitational force magnitude (not vector, just scalar influence)
+force = G * mass_mercury * mass_venus / distance**2
 
-steel.material_energy_density_mj_per_cm=(steel.j_high_estimate*steel.density)/1000000/1000000
-depth, effective_hvl = steel.penetration_depth(round_energy, round_radius)
-print(f"Penetration depth: {depth:.2f} cm")
-print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
+# Compute average perturbing acceleration on Mercury from Venus
+acceleration = force / mass_mercury  # m/s^2
+
+# Cumulative velocity perturbation over time (Euler integration)
+velocity_perturbation = np.cumsum(acceleration * day_seconds)
+
+# Position perturbation over time
+position_perturbation = np.cumsum(velocity_perturbation * day_seconds)
+
+# Approximate angular error: arcseconds per km of radial error
+# Mercury’s distance from Earth ~0.61 AU average
+avg_mercury_distance = 0.61 * AU  # meters
+arcsec_per_km = (1 / avg_mercury_distance) * (180 / np.pi) * 3600 * 1000
+
+# Final displacement in meters and arcseconds
+final_displacement_km = position_perturbation[-1] / 1000
+arcsec_error = final_displacement_km * arcsec_per_km
+
+print(arcsec_error, final_displacement_km)
