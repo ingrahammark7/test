@@ -2,191 +2,128 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>3/4 View Camera & Heat-Color Plasma</title>
+<title>Dynamic 3D Plasma Sphere + Plane</title>
 <style>
-  body { margin: 0; overflow: hidden; background: #000; }
+  body { margin: 0; overflow: hidden; background: black; color: white; }
+  canvas { display: block; }
+  #debug {
+    position: fixed;
+    top: 5px; left: 5px;
+    font-family: monospace;
+    background: rgba(0,0,0,0.7);
+    padding: 8px;
+    border-radius: 4px;
+    max-width: 300px;
+    max-height: 150px;
+    overflow: auto;
+    z-index: 1000;
+  }
 </style>
 </head>
 <body>
+<div id="debug">Debug console:<br></div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+
 <script>
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(15, 10, 20); // start at a 3/4 angle behind and above
+const debugDiv = document.getElementById('debug');
+function logDebug(msg) {
+  console.log(msg);
+  debugDiv.innerHTML += msg + '<br>';
+}
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+logDebug('Starting dynamic plasma setup...');
+if (typeof THREE !== 'undefined') {
+  logDebug('Three.js loaded successfully.');
+} else {
+  logDebug('Error: Three.js failed to load.');
+}
+
+// Scene setup
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.z = 3;
+
+const renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
+  logDebug('Window resized: ' + window.innerWidth + 'x' + window.innerHeight);
+});
 
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(10, 20, 10);
-  scene.add(light);
+// Shaders with dynamic vertex displacement & plasma coloring
+const vertexShader = `
+  varying vec2 vUv;
+  uniform float time;
 
-  // Aircraft geometry (cone)
-  const aircraftGeometry = new THREE.ConeGeometry(1, 3, 8);
-  const aircraftMaterial = new THREE.MeshStandardMaterial({ color: 0x0077ff, transparent: true, opacity: 1 });
-  const aircraft = new THREE.Mesh(aircraftGeometry, aircraftMaterial);
-  aircraft.rotation.x = Math.PI / 2;
-  scene.add(aircraft);
-
-  // Plasma effect group
-  const plasmaGroup = new THREE.Group();
-  scene.add(plasmaGroup);
-
-  const plasmaSpheres = [];
-  const plasmaCount = 4;
-  for(let i=0; i<plasmaCount; i++) {
-    const plasmaGeo = new THREE.SphereGeometry(1 + i*0.5, 32, 32);
-    const plasmaMat = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(0x33ccff),
-      transparent: true,
-      opacity: 0.3 / (i+1),
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    const plasmaSphere = new THREE.Mesh(plasmaGeo, plasmaMat);
-    plasmaGroup.add(plasmaSphere);
-    plasmaSpheres.push(plasmaSphere);
+  float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
   }
 
-  // Clouds
-  const cloudCountTarget = 100;
-  const clouds = [];
-  const cloudSpawnRadius = 50;
-  const cloudRemoveRadius = 60;
+  void main() {
+    vUv = uv;
 
-  function createCloud(position) {
-    const geometry = new THREE.SphereGeometry(0.5 + Math.random(), 16, 16);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.3 + Math.random() * 0.3
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.copy(position);
-    mesh.userData.velocity = new THREE.Vector3(
-      (Math.random() - 0.5) * 0.01,
-      (Math.random() - 0.5) * 0.005,
-      (Math.random() - 0.5) * 0.01
-    );
-    scene.add(mesh);
-    return mesh;
+    float displacement = 0.1 * sin(5.0 * position.x + time) 
+                       + 0.05 * sin(7.0 * position.y + time * 1.5) 
+                       + 0.03 * rand(uv + time);
+
+    vec3 newPosition = position + normal * displacement;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
   }
+`;
 
-  for (let i = 0; i < cloudCountTarget; i++) {
-    const pos = new THREE.Vector3(
-      (Math.random() - 0.5) * cloudSpawnRadius * 2,
-      (Math.random() - 0.5) * cloudSpawnRadius,
-      (Math.random() - 0.5) * cloudSpawnRadius * 2
-    );
-    clouds.push(createCloud(pos));
+const fragmentShader = `
+  precision highp float;
+  uniform float time;
+  varying vec2 vUv;
+
+  void main() {
+    float x = vUv.x * 15.0;
+    float y = vUv.y * 15.0;
+    float intensity = sin(x + time) + sin(y + time*1.2) + sin(x + y + time*1.5);
+    intensity = (intensity + 3.0) / 6.0;
+    vec3 color = mix(vec3(0.0, 0.2, 0.6), vec3(1.0, 0.6, 0.1), intensity);
+    gl_FragColor = vec4(color, 1.0);
   }
+`;
 
-  // Speed and heat parameters
-  let aircraftAngle = 0;
-  let speed = 0.1;
-  const maxSpeed = 1.0;
-  const acceleration = 0.002;
-  const relativisticSpeed = 0.9 * maxSpeed; // conceptual threshold
-
-  // Meltdown
-  let meltingDown = false;
-  let meltProgress = 0;
-
-  // Color helper function: interpolate from blue->yellow->orange->white based on heat (0..1)
-  function heatColor(t) {
-    if (t < 0.5) {
-      // blue to yellow
-      return new THREE.Color().lerpColors(new THREE.Color(0x33ccff), new THREE.Color(0xffff66), t * 2);
-    } else if (t < 0.8) {
-      // yellow to orange
-      return new THREE.Color().lerpColors(new THREE.Color(0xffff66), new THREE.Color(0xff6600), (t - 0.5) / 0.3);
-    } else {
-      // orange to white
-      return new THREE.Color().lerpColors(new THREE.Color(0xff6600), new THREE.Color(0xffffff), (t - 0.8) / 0.2);
-    }
-  }
-
-  function animate() {
-    requestAnimationFrame(animate);
-
-    if (!meltingDown) {
-      speed += acceleration;
-      if (speed > maxSpeed) {
-        meltingDown = true;
-        meltProgress = 0;
-      }
-    }
-
-    // Update aircraft position (fast circular path)
-    aircraftAngle += speed;
-    aircraft.position.set(Math.cos(aircraftAngle) * 20, 5, Math.sin(aircraftAngle) * 20);
-    aircraft.rotation.z = aircraftAngle + Math.PI / 2;
-
-    plasmaGroup.position.copy(aircraft.position);
-
-    // Calculate heat ratio for plasma color based on speed
-    let heatRatio = speed / maxSpeed;
-    if (heatRatio > 1) heatRatio = 1;
-
-    plasmaSpheres.forEach((sphere, idx) => {
-      const pulse = Math.sin(Date.now() * 0.005 + idx * 2) * 0.3 + 0.7;
-      const color = heatColor(heatRatio);
-      sphere.material.color.copy(color);
-      sphere.material.opacity = (0.3 / (idx + 1)) * pulse * (meltingDown ? (1 - meltProgress) : 1);
-      sphere.scale.setScalar(1 + 0.2 * pulse * (meltingDown ? (1 - meltProgress) : 1));
-    });
-
-    if (meltingDown) {
-      meltProgress += 0.01;
-      aircraft.material.opacity = 1 - meltProgress;
-      if (meltProgress >= 1) {
-        meltingDown = false;
-        speed = 0.1;
-        aircraft.material.opacity = 1;
-        aircraftAngle = 0;
-        aircraft.position.set(20, 5, 0);
-        plasmaGroup.position.copy(aircraft.position);
-      }
-    }
-
-    // Update clouds
-    for (let i = clouds.length - 1; i >= 0; i--) {
-      const cloud = clouds[i];
-      cloud.position.add(cloud.userData.velocity);
-      if (cloud.position.distanceTo(camera.position) > cloudRemoveRadius) {
-        scene.remove(cloud);
-        clouds.splice(i, 1);
-      }
-    }
-    while (clouds.length < cloudCountTarget) {
-      const direction = new THREE.Vector3(
-        (Math.random() - 0.5),
-        (Math.random() - 0.5) * 0.5,
-        (Math.random() - 0.5)
-      ).normalize();
-
-      const distance = cloudSpawnRadius * 0.9 + Math.random() * (cloudSpawnRadius * 0.2);
-      const spawnPos = camera.position.clone().add(direction.multiplyScalar(distance));
-      clouds.push(createCloud(spawnPos));
-    }
-
-    // Chase camera with fixed 3/4 offset (behind & above, slightly lateral)
-    const offset = new THREE.Vector3(-10, 7, 10);
-    const desiredPos = aircraft.position.clone().add(offset);
-    camera.position.lerp(desiredPos, 0.1);
-    camera.lookAt(aircraft.position);
-
-    renderer.render(scene, camera);
-  }
-
-  animate();
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+let material;
+try {
+  material = new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+    uniforms: { time: { value: 0 } },
+    side: THREE.DoubleSide
   });
+  logDebug('ShaderMaterial created successfully.');
+} catch(e) {
+  logDebug('ShaderMaterial creation error: ' + e);
+  material = new THREE.MeshBasicMaterial({color: 0xff0000});
+}
+
+const sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), material);
+scene.add(sphere);
+
+const plane = new THREE.Mesh(new THREE.PlaneGeometry(3, 3), material);
+plane.position.y = -2.2;
+scene.add(plane);
+
+scene.add(new THREE.AxesHelper(2));
+
+logDebug('Starting animation loop.');
+
+function animate(time) {
+  requestAnimationFrame(animate);
+  material.uniforms.time.value = time * 0.001;
+  sphere.rotation.y += 0.005;
+  renderer.render(scene, camera);
+}
+
+animate();
 </script>
 </body>
 </html>
