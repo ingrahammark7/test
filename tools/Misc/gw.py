@@ -1,56 +1,83 @@
 import numpy as np
 
 # Constants
-G = 6.67430e-11  # gravitational constant (m^3 kg^-1 s^-2)
+G = 6.67430e-11  # m^3 kg^-1 s^-2
 mass_venus = 4.867e24  # kg
 mass_mercury = 3.301e23  # kg
 AU = 1.496e11  # meters
-year_days = 365.25
-century_days = 100 * year_days
 day_seconds = 86400  # seconds in a day
 
-# Orbital parameters (assuming circular orbits for simplicity)
-radius_mercury = 0.387 * AU  # average distance to sun
+# Orbital parameters (circular orbits)
+radius_mercury = 0.387 * AU
 radius_venus = 0.723 * AU
 omega_mercury = 2 * np.pi / (88 * day_seconds)  # rad/s
-omega_venus = 2 * np.pi / (225 * day_seconds)  # rad/s
+omega_venus = 2 * np.pi / (225 * day_seconds)   # rad/s
 
-# Time array: 1-day time steps for 100 years
+# Time setup: 1 day steps for 100 years
+century_days = 100 * 365.25
 t = np.arange(0, century_days * day_seconds, day_seconds)
+n_steps = len(t)
 
-# Mercury and Venus positions (initially on opposite sides of the Sun)
-theta_mercury = omega_mercury * t
-theta_venus = omega_venus * t + np.pi
+# Initialize position arrays
+x_mercury = np.zeros(n_steps)
+y_mercury = np.zeros(n_steps)
+x_venus = radius_venus * np.cos(omega_venus * t + np.pi)  # Venus starts opposite Mercury
+y_venus = radius_venus * np.sin(omega_venus * t + np.pi)
 
-x_mercury = radius_mercury * np.cos(theta_mercury)
-y_mercury = radius_mercury * np.sin(theta_mercury)
-x_venus = radius_venus * np.cos(theta_venus)
-y_venus = radius_venus * np.sin(theta_venus)
+# Mercury initial position and velocity (circular orbit)
+x_mercury[0] = radius_mercury
+y_mercury[0] = 0
+v_mercury_x = 0
+v_mercury_y = radius_mercury * omega_mercury  # tangential velocity for circular orbit
 
-# Compute the gravitational force vector and its effect on Mercury's orbit
-dx = x_venus - x_mercury
-dy = y_venus - y_mercury
-distance = np.sqrt(dx**2 + dy**2)
+# We will store velocity perturbations relative to ideal circular velocity
+v_pert_x = 0
+v_pert_y = 0
 
-# Gravitational force magnitude (not vector, just scalar influence)
-force = G * mass_mercury * mass_venus / distance**2
+# To isolate perturbation, ideal Mercury orbit (no Venus) at each step:
+x_mercury_ideal = radius_mercury * np.cos(omega_mercury * t)
+y_mercury_ideal = radius_mercury * np.sin(omega_mercury * t)
 
-# Compute average perturbing acceleration on Mercury from Venus
-acceleration = force / mass_mercury  # m/s^2
+# Integration loop (Euler)
+for i in range(1, n_steps):
+    # Vector from Mercury to Venus
+    dx = x_venus[i-1] - x_mercury[i-1]
+    dy = y_venus[i-1] - y_mercury[i-1]
+    dist = np.sqrt(dx**2 + dy**2)
+    
+    # Gravitational acceleration vector due to Venus on Mercury
+    a_mag = G * mass_venus / dist**2
+    a_x = a_mag * dx / dist
+    a_y = a_mag * dy / dist
 
-# Cumulative velocity perturbation over time (Euler integration)
-velocity_perturbation = np.cumsum(acceleration * day_seconds)
+    # Update velocity perturbation
+    v_pert_x += a_x * day_seconds
+    v_pert_y += a_y * day_seconds
+    
+    # Update Mercury's position with velocity perturbation added to ideal velocity
+    # Ideal velocity components (circular orbit)
+    v_ideal_x = -radius_mercury * omega_mercury * np.sin(omega_mercury * t[i-1])
+    v_ideal_y = radius_mercury * omega_mercury * np.cos(omega_mercury * t[i-1])
+    
+    # Total velocity = ideal + perturbation
+    v_total_x = v_ideal_x + v_pert_x
+    v_total_y = v_ideal_y + v_pert_y
+    
+    # Euler position update
+    x_mercury[i] = x_mercury[i-1] + v_total_x * day_seconds
+    y_mercury[i] = y_mercury[i-1] + v_total_y * day_seconds
 
-# Position perturbation over time
-position_perturbation = np.cumsum(velocity_perturbation * day_seconds)
+# Calculate radial difference from ideal orbit (perturbation magnitude)
+radial_diff = np.sqrt((x_mercury - x_mercury_ideal)**2 + (y_mercury - y_mercury_ideal)**2)
 
-# Approximate angular error: arcseconds per km of radial error
-# Mercury’s distance from Earth ~0.61 AU average
+# Estimate angular displacement (precession) from Earth viewpoint
+# Average distance Mercury-Earth ~ 0.61 AU = 0.61 * AU meters
 avg_mercury_distance = 0.61 * AU  # meters
-arcsec_per_km = (1 / avg_mercury_distance) * (180 / np.pi) * 3600 * 1000
+arcsec_per_meter = (1 / avg_mercury_distance) * (180 / np.pi) * 3600
 
-# Final displacement in meters and arcseconds
-final_displacement_km = position_perturbation[-1] / 1000
-arcsec_error = final_displacement_km * arcsec_per_km
+# Take the final radial difference in meters and convert to arcseconds
+final_displacement_m = radial_diff[-1]
+arcsec_error = final_displacement_m * arcsec_per_meter
 
-print(arcsec_error, final_displacement_km)
+print(f"Final radial displacement (m): {final_displacement_m:.2f}")
+print(f"Approximate angular displacement from Earth (arcseconds): {arcsec_error:.2f}")
