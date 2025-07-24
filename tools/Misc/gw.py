@@ -75,24 +75,22 @@ for step in range(steps):
     acc = acc_new
     
     # Calculate Mercury’s perihelion angle approx:
-    # Mercury relative position vector from Sun (index 0)
     r_mercury_vec = positions[1] - positions[0]
     r_mercury_mag = np.linalg.norm(r_mercury_vec)
     
-    # Mercury relative velocity vector from Sun
     v_mercury_vec = velocities[1] - velocities[0]
     
-    # Specific angular momentum vector (2D: z-component)
+    # Angular momentum vector (3D)
     h_vec = np.cross(np.append(r_mercury_vec, 0), np.append(v_mercury_vec, 0))
-    h = h_vec[2]
     
-    # Eccentricity vector (2D)
-    e_vec = (np.cross(np.append(v_mercury_vec, 0), np.append(h_vec, 0))[:2] / (G * mass_sun)) - (r_mercury_vec / r_mercury_mag)
+    # Eccentricity vector (3D)
+    e_vec_3d = (np.cross(np.append(v_mercury_vec, 0), h_vec) / (G * mass_sun)) - (np.append(r_mercury_vec, 0) / r_mercury_mag)
+    e_vec = e_vec_3d[:2]
     
-    # Perihelion direction is direction of eccentricity vector
     peri_angle = np.arctan2(e_vec[1], e_vec[0])
     perihelion_angles.append(peri_angle)
 
+# Unwrap angle to prevent jumps at ±π
 perihelion_angles = np.unwrap(perihelion_angles)
 total_precession_rad = perihelion_angles[-1] - perihelion_angles[0]
 
