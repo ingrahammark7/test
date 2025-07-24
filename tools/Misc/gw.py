@@ -44,3 +44,4 @@ maxp=maxd/arcs
 minp=mind/arcs
 av=(maxp+minp)/2
 print(av)
+
