@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Sun-like Dynamic Plasma Axions</title>
+<title>Enhanced Sun-like Plasma Simulation</title>
 <style>
-  body { margin:0; overflow:hidden; background:#000; color:#fff; }
+  body { margin: 0; overflow: hidden; background: black; color: white; }
   #debug {
     position: fixed; top: 5px; left: 5px;
     font-family: monospace;
@@ -15,6 +15,7 @@
     max-height: 180px;
     overflow: auto;
     z-index: 1000;
+    user-select: none;
   }
 </style>
 </head>
@@ -22,13 +23,14 @@
 <div id="debug">Debug:<br></div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+
 <script>
 const debugDiv = document.getElementById('debug');
 function log(msg) {
   console.log(msg);
   debugDiv.innerHTML += msg + '<br>';
 }
-log('Initializing Sun-like Plasma Axion Simulation...');
+log('Initializing Enhanced Sun-like Plasma v2...');
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -45,7 +47,7 @@ window.addEventListener('resize', () => {
   log(`Resize: ${window.innerWidth} x ${window.innerHeight}`);
 });
 
-const triSize = 0.1;
+const triSize = 0.12;
 const triGeom = new THREE.BufferGeometry();
 const vertices = new Float32Array([
   0, triSize / Math.sqrt(3), 0,
@@ -55,17 +57,15 @@ const vertices = new Float32Array([
 triGeom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
 triGeom.computeVertexNormals();
 
-const AXION_COUNT = 1000;
+const AXION_COUNT = 400;
 const axions = [];
 
 const wavelength = 1.1;
 const angularFreq = 3.0;
 const interactionRadius = 3.0;
 
-// Simulate a rough magnetic dipole field (simplified)
+// Magnetic dipole field (Y axis)
 function magneticField(pos) {
-  // Simple dipole-like vector field around origin
-  // B = (3r(m·r)/r^5 - m/r^3), approximate with m along Y
   const m = new THREE.Vector3(0, 1, 0);
   const r = pos.clone();
   const rLen = r.length() + 0.001;
@@ -75,18 +75,15 @@ function magneticField(pos) {
   return B.normalize();
 }
 
-// Convection cell function - push up/down in latitudinal bands
+// Convection velocity function (slow cyclical latitudinal flow)
 function convectionVelocity(pos, time) {
-  // Bands along Y axis, sinusoidal up/down flows
-  const bandWidth = 2.0;
   let lat = pos.y;
   let cycle = Math.sin(time + lat * Math.PI) * 0.03;
   return new THREE.Vector3(0, cycle, 0);
 }
 
-// Color gradient from core (hot) to edge (cool)
+// Temperature gradient for color hue interpolation
 function tempHue(distance) {
-  // 0 at core => yellowish, 1 at edge => blueish
   return THREE.MathUtils.lerp(0.15, 0.6, THREE.MathUtils.clamp(distance / 7, 0, 1));
 }
 
@@ -104,6 +101,29 @@ function randomInSphere(radius) {
   );
 }
 
+// Axion class for lifetime, velocity, clustering, and phase
+class Axion {
+  constructor(mesh) {
+    this.mesh = mesh;
+    this.age = Math.random() * 10;
+    this.lifetime = 15 + Math.random() * 10;
+    this.phaseOffset = Math.random() * 2 * Math.PI;
+    this.wavelength = wavelength * (0.8 + 0.4 * Math.random());
+    this.rotAxis = new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize();
+    this.rotSpeed = 0.06 * (0.7 + Math.random());
+    this.velocity = new THREE.Vector3();
+    this.clustered = false;
+  }
+  reset() {
+    this.mesh.position.copy(randomInSphere(7));
+    this.age = 0;
+    this.phaseOffset = Math.random() * 2 * Math.PI;
+    this.clustered = false;
+    this.velocity.set(0, 0, 0);
+  }
+}
+
+// Create axions
 for(let i=0; i<AXION_COUNT; i++) {
   const mesh = new THREE.Mesh(triGeom, new THREE.MeshBasicMaterial({
     color: new THREE.Color(),
@@ -113,21 +133,17 @@ for(let i=0; i<AXION_COUNT; i++) {
     blending: THREE.AdditiveBlending
   }));
   mesh.position.copy(randomInSphere(7));
-  
-  mesh.userData.phaseOffset = Math.random() * 2 * Math.PI;
-  mesh.userData.wavelength = wavelength * (0.8 + 0.4 * Math.random());
-  mesh.userData.rotAxis = new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize();
-  mesh.userData.rotSpeed = 0.06 * (0.7 + Math.random());
-  
   scene.add(mesh);
-  axions.push(mesh);
+  axions.push(new Axion(mesh));
 }
 
+// Interaction & camera control variables
 let isDragging = false;
 let prevMouse = {x:0,y:0};
 let rotation = {x:0,y:0};
 let zoom = 25;
 
+// Pointer and touch events for rotation and zoom (pinch)
 function onPointerDown(e) {
   isDragging = true;
   prevMouse.x = e.clientX || e.touches[0].clientX;
@@ -174,119 +190,173 @@ renderer.domElement.addEventListener('pointerleave', onPointerUp);
 renderer.domElement.addEventListener('wheel', onWheel, {passive:false});
 renderer.domElement.addEventListener('touchmove', onTouchPinch, {passive:false});
 
-function distSq(a, b) {
-  return (a.x-b.x)**2 + (a.y-b.y)**2 + (a.z-b.z)**2;
+// Utility for clustering
+function clusterAxions(axions) {
+  const clusterDist = 0.9;
+  for(let i=0; i<AXION_COUNT; i++) {
+    const a = axions[i];
+    if(a.clustered) continue;
+    let clusterMembers = [a];
+    for(let j=i+1; j<AXION_COUNT; j++) {
+      const b = axions[j];
+      if(b.clustered) continue;
+      if(a.mesh.position.distanceTo(b.mesh.position) < clusterDist) {
+        clusterMembers.push(b);
+        b.clustered = true;
+      }
+    }
+    if(clusterMembers.length > 3) {
+      const avgPhase = clusterMembers.reduce((sum,x) => sum + x.phaseOffset, 0) / clusterMembers.length;
+      clusterMembers.forEach(x => {
+        x.phaseOffset = avgPhase;
+        x.rotSpeed *= 0.3; // slow spin in cluster
+      });
+      clusterMembers.forEach(x => {
+        x.mesh.material.opacity = 0.25; // dim cluster (sunspot-like)
+      });
+    } else {
+      clusterMembers.forEach(x => {
+        x.mesh.material.opacity = 0.75;
+      });
+    }
+  }
+}
+
+function createProminenceArc(axions) {
+  if(Math.random() > 0.05) return;
+
+  const arcLength = 4.5;
+  const arcHeight = 2.0;
+
+  let clusterCenter = new THREE.Vector3(
+    (Math.random()-0.5)*6,
+    (Math.random()*0.5)-0.25,
+    (Math.random()-0.5)*6
+  );
+
+  let closeAxions = axions.filter(ax => ax.mesh.position.distanceTo(clusterCenter) < 1.5);
+  if(closeAxions.length < 5) return;
+
+  closeAxions.forEach((ax, idx) => {
+    const t = idx / closeAxions.length;
+    const x = clusterCenter.x + (t - 0.5) * arcLength;
+    const y = clusterCenter.y + Math.sin(Math.PI * t) * arcHeight;
+    const z = clusterCenter.z;
+    let target = new THREE.Vector3(x, y, z);
+    let dir = target.clone().sub(ax.mesh.position).multiplyScalar(0.05);
+    ax.mesh.position.add(dir);
+  });
+}
+
+function radialEjections(axions, time) {
+  axions.forEach(ax => {
+    if(ax.age < ax.lifetime * 0.7 && Math.random() < 0.002) {
+      let dir = ax.mesh.position.clone().normalize();
+      let burst = dir.multiplyScalar(0.1 + 0.05 * Math.random());
+      ax.velocity.add(burst);
+      ax.phaseOffset += Math.random() * Math.PI * 0.8;
+    }
+  });
 }
 
 function animate(time=0) {
   requestAnimationFrame(animate);
   const t = time * 0.001;
 
-  for(let i=0; i<AXION_COUNT; i++) {
-    const ax = axions[i];
-    
-    const distToCenter = ax.position.length();
+  axions.forEach(ax => ax.clustered = false);
 
-    // Rotate with speed influenced by local "temperature" (hotter near center)
+  clusterAxions(axions);
+  createProminenceArc(axions);
+  radialEjections(axions, t);
+
+  axions.forEach(ax => {
+    const pos = ax.mesh.position;
+    const distToCenter = pos.length();
     let tempFactor = THREE.MathUtils.clamp(1 - distToCenter / 7, 0, 1);
-    ax.rotateOnAxis(ax.userData.rotAxis, ax.userData.rotSpeed * (1 + 3 * tempFactor));
 
-    // Phase sync fast, weighted by proximity (stronger near core)
+    ax.mesh.rotateOnAxis(ax.rotAxis, ax.rotSpeed * (1 + 3 * tempFactor));
+
     let phaseSum = 0;
     let phaseCount = 0;
-    for(let j=0; j<AXION_COUNT; j++) {
-      if(j === i) continue;
-      const dist = ax.position.distanceTo(axions[j].position);
+    for(let other of axions) {
+      if(other === ax) continue;
+      let dist = pos.distanceTo(other.mesh.position);
       if(dist > interactionRadius) continue;
-      const weight = 1 - dist / interactionRadius;
-      phaseSum += axions[j].userData.phaseOffset * weight;
+      let weight = 1 - dist / interactionRadius;
+      phaseSum += other.phaseOffset * weight;
       phaseCount += weight;
     }
     if(phaseCount > 0) {
-      const avgPhase = phaseSum / phaseCount;
-      ax.userData.phaseOffset += 0.12 * (avgPhase - ax.userData.phaseOffset);
+      let avgPhase = phaseSum / phaseCount;
+      ax.phaseOffset += 0.12 * (avgPhase - ax.phaseOffset);
     }
 
-    // Wave interference sum (same but smaller radius for better performance)
     let sumWave = 0;
-    const posA = ax.position;
-    const phaseOffset = ax.userData.phaseOffset;
-    const k = 2*Math.PI / ax.userData.wavelength;
+    const k = 2*Math.PI / ax.wavelength;
     const omega = angularFreq;
-    for(let j=0; j<AXION_COUNT; j++) {
-      if(j === i) continue;
-      const posB = axions[j].position;
-      const dSq = distSq(posA, posB);
-      if(dSq > interactionRadius*interactionRadius) continue;
-      const dist = Math.sqrt(dSq) + 0.0001;
-      const phase = k*dist - omega*t + axions[j].userData.phaseOffset;
-      sumWave += Math.cos(phase) / dist;
+    for(let other of axions) {
+      if(other === ax) continue;
+      let d = pos.distanceTo(other.mesh.position);
+      if(d > interactionRadius) continue;
+      let phase = k * d - omega * t + other.phaseOffset;
+      sumWave += Math.cos(phase) / (d + 0.0001);
     }
-    sumWave += Math.cos(- omega*t + phaseOffset);
+    sumWave += Math.cos(-omega * t + ax.phaseOffset);
 
     const intensity = THREE.MathUtils.clamp((sumWave + 3) / 6, 0, 1);
 
-    // Magnetic field swirling force (curl around Y axis dipole)
-    const B = magneticField(ax.position).multiplyScalar(0.03);
-    ax.position.add(B);
+    const B = magneticField(pos).multiplyScalar(0.03);
+    ax.velocity.add(B);
 
-    // Convection velocity pushes Y-axis cycling plasma flow
-    const conv = convectionVelocity(ax.position, t);
-    ax.position.add(conv);
+    const conv = convectionVelocity(pos, t);
+    ax.velocity.add(conv);
 
-    // Movement force from phase differences, stronger near center
-    let force = new THREE.Vector3(0,0,0);
-    for(let j=0; j<AXION_COUNT; j++) {
-      if(j === i) continue;
-      const other = axions[j];
-      const dist = ax.position.distanceTo(other.position);
-      if(dist > interactionRadius) continue;
-      let diffPhaseCos = Math.cos(ax.userData.phaseOffset) - Math.cos(other.userData.phaseOffset);
-      let dir = new THREE.Vector3().subVectors(other.position, ax.position).normalize();
+    let force = new THREE.Vector3(0, 0, 0);
+    for (let other of axions) {
+      if (other === ax) continue;
+      const dist = pos.distanceTo(other.mesh.position);
+      if (dist > interactionRadius) continue;
+      let diffPhaseCos = Math.cos(ax.phaseOffset) - Math.cos(other.phaseOffset);
+      let dir = other.mesh.position.clone().sub(pos).normalize();
       let distWeight = 1 - dist / interactionRadius;
       force.addScaledVector(dir, diffPhaseCos * distWeight / (dist * dist));
     }
-    force.multiplyScalar(0.04 * tempFactor); // hotter core stronger force
+    force.multiplyScalar(0.04 * tempFactor);
+    ax.velocity.add(force);
 
-    // Add some random noise bursts (flare-like events)
-    if(Math.random() < 0.001 * tempFactor) {
-      force.add(new THREE.Vector3(
-        (Math.random()-0.5)*0.02,
-        (Math.random()-0.5)*0.02,
-        (Math.random()-0.5)*0.02
-      ));
-      // Also boost phase for flare
-      ax.userData.phaseOffset += Math.random() * Math.PI * 0.5;
+    ax.mesh.position.add(ax.velocity);
+    ax.velocity.multiplyScalar(0.9);
+
+    ax.age += 0.02;
+    if (ax.age > ax.lifetime) {
+      ax.reset();
     }
 
-    ax.position.add(force);
-
-    // Boundary containment (radius ~7)
-    if(ax.position.length() > 7) {
-      ax.position.multiplyScalar(0.97);
+    if (ax.mesh.position.length() > 7) {
+      ax.mesh.position.multiplyScalar(0.97);
+      ax.velocity.multiplyScalar(-0.5);
     }
 
-    // Scale pulsing bigger near core to simulate hotter brightness
     let scale = 0.4 + 1.4 * intensity * tempFactor;
-    ax.scale.setScalar(scale);
+    ax.mesh.scale.setScalar(scale);
 
-    // Color gradient from yellow (core) to blue (edge), cycling hue and brightness with intensity
     let hueBase = tempHue(distToCenter);
-    let hue = (hueBase + t * 0.6 + ax.userData.phaseOffset / (2*Math.PI)) % 1.0;
+    let flicker = 0.1 * (Math.sin(t * 50 + ax.age * 10) + Math.random() * 0.5);
+    let hue = (hueBase + t * 0.6 + ax.phaseOffset / (2 * Math.PI)) % 1.0;
     let sat = 1.0;
-    let light = 0.4 + 0.7 * intensity * tempFactor;
-    ax.material.color.setHSL(hue, sat, light);
-  }
+    let light = THREE.MathUtils.clamp(0.4 + 0.7 * intensity * tempFactor + flicker, 0, 1);
+    ax.mesh.material.color.setHSL(hue, sat, light);
+  });
 
   camera.position.x = zoom * Math.sin(rotation.y) * Math.cos(rotation.x);
   camera.position.y = zoom * Math.sin(rotation.x);
   camera.position.z = zoom * Math.cos(rotation.y) * Math.cos(rotation.x);
-  camera.lookAt(0,0,0);
+  camera.lookAt(0, 0, 0);
 
   renderer.render(scene, camera);
 }
 
-log('Starting Sun-like plasma animation...');
+log('Starting animation...');
 animate();
 </script>
 </body>
