@@ -1,100 +1,66 @@
 import numpy as np
 
 # Constants
-G = 6.67430e-11  # m^3/kg/s^2
-AU = 1.496e11  # m
+G = 6.67430e-11  # gravitational constant (m^3 kg^-1 s^-2)
+AU = 1.496e11    # meters
 day_seconds = 86400
-year_seconds = 365.25 * day_seconds
+year_days = 365.25
+century_days = 100 * year_days
 
-# Masses (kg)
-mass_sun = 1.989e30
-mass_mercury = 3.301e23
-mass_venus = 4.867e24
+# Masses
+mass_venus = 4.867e24  # kg
+mass_mercury = 3.301e23  # kg
 
-# Initial orbital elements approx (heliocentric, J2000 simplified)
-# Positions (m) and velocities (m/s) for circular orbits in x-y plane
+# Orbits (assumed circular)
+radius_mercury = 0.387 * AU
+radius_venus = 0.723 * AU
+omega_mercury = 2 * np.pi / (88 * day_seconds)
+omega_venus = 2 * np.pi / (225 * day_seconds)
 
-# Mercury
-r_mercury = 0.387 * AU
-v_mercury = 47.36e3  # m/s orbital speed
+# Time steps: 1 day for 100 years
+t = np.arange(0, century_days * day_seconds, day_seconds)
+n = len(t)
 
-# Venus
-r_venus = 0.723 * AU
-v_venus = 35.02e3  # m/s orbital speed
+# Venus and Mercury positions (Venus starts opposite)
+theta_mercury = omega_mercury * t
+theta_venus = omega_venus * t + np.pi  # start opposite
 
-# Sun at origin
-pos_sun = np.array([0., 0.])
-vel_sun = np.array([0., 0.])
+x_mercury = radius_mercury * np.cos(theta_mercury)
+y_mercury = radius_mercury * np.sin(theta_mercury)
 
-# Initial states: positions and velocities
-pos_mercury = np.array([r_mercury, 0.])
-vel_mercury = np.array([0., v_mercury])
+x_venus = radius_venus * np.cos(theta_venus)
+y_venus = radius_venus * np.sin(theta_venus)
 
-pos_venus = np.array([-r_venus, 0.])  # Venus opposite side
-vel_venus = np.array([0., -v_venus])  # direction for circular orbit
+# Compute vector distances and unit vectors
+dx = x_venus - x_mercury
+dy = y_venus - y_mercury
+distance = np.sqrt(dx**2 + dy**2)
 
-# Pack into arrays for integration convenience
-positions = np.array([pos_sun, pos_mercury, pos_venus])
-velocities = np.array([vel_sun, vel_mercury, vel_venus])
-masses = np.array([mass_sun, mass_mercury, mass_venus])
+# Avoid divide by zero
+distance[distance == 0] = 1e-10
 
-def acceleration(positions, masses):
-    n = len(masses)
-    acc = np.zeros_like(positions)
-    for i in range(n):
-        for j in range(n):
-            if i != j:
-                r_vec = positions[j] - positions[i]
-                r_mag = np.linalg.norm(r_vec)
-                acc[i] += G * masses[j] * r_vec / r_mag**3
-    return acc
+# Gravitational acceleration vector on Mercury due to Venus
+a_x = G * mass_venus * dx / distance**3
+a_y = G * mass_venus * dy / distance**3
 
-# Simulation parameters
-total_time = 100 * year_seconds
-dt = day_seconds
-steps = int(total_time / dt)
+# Integrate acceleration to get velocity perturbation
+vpx = np.cumsum(a_x * day_seconds)
+vpy = np.cumsum(a_y * day_seconds)
 
-# Arrays to store Mercury perihelion angles over time
-perihelion_angles = []
+# Integrate velocity to get position perturbation
+ppx = np.cumsum(vpx * day_seconds)
+ppy = np.cumsum(vpy * day_seconds)
 
-# Initial acceleration
-acc = acceleration(positions, masses)
+# Net position perturbation vector (final drift)
+final_dx = ppx[-1]
+final_dy = ppy[-1]
+final_drift_magnitude = np.sqrt(final_dx**2 + final_dy**2)
 
-# Integration loop: Velocity Verlet
-for step in range(steps):
-    # Update positions
-    positions += velocities * dt + 0.5 * acc * dt**2
-    
-    # Compute new acceleration
-    acc_new = acceleration(positions, masses)
-    
-    # Update velocities
-    velocities += 0.5 * (acc + acc_new) * dt
-    
-    # Update acceleration for next step
-    acc = acc_new
-    
-    # Calculate Mercury’s perihelion angle approx:
-    r_mercury_vec = positions[1] - positions[0]
-    r_mercury_mag = np.linalg.norm(r_mercury_vec)
-    
-    v_mercury_vec = velocities[1] - velocities[0]
-    
-    # Angular momentum vector (3D)
-    h_vec = np.cross(np.append(r_mercury_vec, 0), np.append(v_mercury_vec, 0))
-    
-    # Eccentricity vector (3D)
-    e_vec_3d = (np.cross(np.append(v_mercury_vec, 0), h_vec) / (G * mass_sun)) - (np.append(r_mercury_vec, 0) / r_mercury_mag)
-    e_vec = e_vec_3d[:2]
-    
-    peri_angle = np.arctan2(e_vec[1], e_vec[0])
-    perihelion_angles.append(peri_angle)
+# Angular error from Earth at 0.61 AU (avg Mercury-Earth distance)
+earth_dist = 0.61 * AU
+arcsec_per_meter = (1 / earth_dist) * (180 / np.pi) * 3600
+angular_error_arcsec = final_drift_magnitude * arcsec_per_meter
 
-# Unwrap angle to prevent jumps at ±π
-perihelion_angles = np.unwrap(perihelion_angles)
-total_precession_rad = perihelion_angles[-1] - perihelion_angles[0]
-
-# Convert radians to arcseconds
-total_precession_arcsec = np.degrees(total_precession_rad) * 3600
-
-print(f"Mercury perihelion precession over 100 years (Newtonian Venus perturbation): {total_precession_arcsec:.2f} arcseconds")
+# Output
+print(f"Final Mercury position perturbation due to Venus: {final_drift_magnitude/1000:.2f} km")
+print(f"Approximate angular displacement (arcseconds): {angular_error_arcsec:.2f}")
