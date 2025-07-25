@@ -1,7 +1,6 @@
 import pandas as pd
-from scipy.stats import pearsonr
 
-# Monthly wastewater index data (2020–2025, simulated)
+# Wastewater data
 wastewater_data = [
     {"month": "2020-01", "index": 5.2},
     {"month": "2020-02", "index": 4.9},
@@ -72,88 +71,35 @@ wastewater_data = [
     {"month": "2025-07", "index": 79.5}
 ]
 
-# Monthly CDC COVID case counts (2020–2025, simulated)
-covid_data = [
-    {"month": "2020-01", "cases": 3000},
-    {"month": "2020-02", "cases": 8000},
-    {"month": "2020-03", "cases": 100000},
-    {"month": "2020-04", "cases": 750000},
-    {"month": "2020-05", "cases": 820000},
-    {"month": "2020-06", "cases": 1100000},
-    {"month": "2020-07", "cases": 1400000},
-    {"month": "2020-08", "cases": 1200000},
-    {"month": "2020-09", "cases": 950000},
-    {"month": "2020-10", "cases": 1050000},
-    {"month": "2020-11", "cases": 1700000},
-    {"month": "2020-12", "cases": 2400000},
-    {"month": "2021-01", "cases": 2500000},
-    {"month": "2021-02", "cases": 2000000},
-    {"month": "2021-03", "cases": 1300000},
-    {"month": "2021-04", "cases": 800000},
-    {"month": "2021-05", "cases": 500000},
-    {"month": "2021-06", "cases": 420000},
-    {"month": "2021-07", "cases": 700000},
-    {"month": "2021-08", "cases": 1100000},
-    {"month": "2021-09", "cases": 1300000},
-    {"month": "2021-10", "cases": 1050000},
-    {"month": "2021-11", "cases": 1500000},
-    {"month": "2021-12", "cases": 1800000},
-    {"month": "2022-01", "cases": 2600000},
-    {"month": "2022-02", "cases": 1800000},
-    {"month": "2022-03", "cases": 1000000},
-    {"month": "2022-04", "cases": 700000},
-    {"month": "2022-05", "cases": 500000},
-    {"month": "2022-06", "cases": 600000},
-    {"month": "2022-07", "cases": 900000},
-    {"month": "2022-08", "cases": 1100000},
-    {"month": "2022-09", "cases": 1300000},
-    {"month": "2022-10", "cases": 1400000},
-    {"month": "2022-11", "cases": 1550000},
-    {"month": "2022-12", "cases": 1620000},
-    {"month": "2023-01", "cases": 1200000},
-    {"month": "2023-02", "cases": 950000},
-    {"month": "2023-03", "cases": 870000},
-    {"month": "2023-04", "cases": 760000},
-    {"month": "2023-05", "cases": 650000},
-    {"month": "2023-06", "cases": 620000},
-    {"month": "2023-07", "cases": 690000},
-    {"month": "2023-08", "cases": 820000},
-    {"month": "2023-09", "cases": 970000},
-    {"month": "2023-10", "cases": 1040000},
-    {"month": "2023-11", "cases": 1130000},
-    {"month": "2023-12", "cases": 1090000},
-    {"month": "2024-01", "cases": 940000},
-    {"month": "2024-02", "cases": 860000},
-    {"month": "2024-03", "cases": 790000},
-    {"month": "2024-04", "cases": 700000},
-    {"month": "2024-05", "cases": 740000},
-    {"month": "2024-06", "cases": 810000},
-    {"month": "2024-07", "cases": 930000},
-    {"month": "2024-08", "cases": 970000},
-    {"month": "2024-09", "cases": 1060000},
-    {"month": "2024-10", "cases": 1130000},
-    {"month": "2024-11", "cases": 1200000},
-    {"month": "2024-12", "cases": 1250000},
-    {"month": "2025-01", "cases": 1090000},
-    {"month": "2025-02", "cases": 970000},
-    {"month": "2025-03", "cases": 920000},
-    {"month": "2025-04", "cases": 860000},
-    {"month": "2025-05", "cases": 810000},
-    {"month": "2025-06", "cases": 880000},
-    {"month": "2025-07", "cases": 960000}
-]
-
-# Load into DataFrames
+# Load data into DataFrame
 df_wastewater = pd.DataFrame(wastewater_data)
-df_covid = pd.DataFrame(covid_data)
 
-# Merge and calculate correlation
-df = pd.merge(df_wastewater, df_covid, on="month")
-correlation, p_value = pearsonr(df["index"], df["cases"])
+# Convert 'month' column to datetime
+df_wastewater["month"] = pd.to_datetime(df_wastewater["month"])
 
-# Output
-print("Merged Monthly Dataset (2020–2025):")
-print(df.tail())  # Show last few rows
-print(f"\nPearson correlation (wastewater vs COVID cases): {correlation:.4f}")
-print(f"P-value: {p_value:.4e}")
+# Define end date for extrapolation
+end_date = pd.to_datetime("2026-12-01")
 
+# Generate complete monthly date range
+full_months = pd.date_range(start=df_wastewater["month"].min(), end=end_date, freq="MS")
+
+# Extract 2024 index values as template (month -> index)
+template_2024 = df_wastewater[df_wastewater["month"].dt.year == 2024].set_index(df_wastewater[df_wastewater["month"].dt.year == 2024]["month"].dt.month)["index"]
+
+# Build extended data list (existing + extrapolated)
+extended_rows = []
+for month in full_months:
+    if month in df_wastewater["month"].values:
+        index_val = df_wastewater.loc[df_wastewater["month"] == month, "index"].values[0]
+    else:
+        index_val = template_2024.loc[month.month]
+    extended_rows.append({"month": month, "index": index_val})
+
+# Create extended DataFrame
+df_extended = pd.DataFrame(extended_rows)
+
+# Calculate estimated cases assuming 1 index = 26000 cases
+df_extended["estimated_cases"] = df_extended["index"] * 26000
+
+# Show last 12 months (all of 2026)
+print(df_extended.tail(12))
