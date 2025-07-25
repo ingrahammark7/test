@@ -1,6 +1,6 @@
 import pandas as pd
 
-# Wastewater data
+# Wastewater data (full data as given)
 wastewater_data = [
     {"month": "2020-01", "index": 5.2},
     {"month": "2020-02", "index": 4.9},
@@ -71,22 +71,22 @@ wastewater_data = [
     {"month": "2025-07", "index": 79.5}
 ]
 
-# Load data into DataFrame
+# Load into DataFrame
 df_wastewater = pd.DataFrame(wastewater_data)
 
-# Convert 'month' column to datetime
+# Convert month to datetime
 df_wastewater["month"] = pd.to_datetime(df_wastewater["month"])
 
-# Define end date for extrapolation
+# Define extrapolation end date
 end_date = pd.to_datetime("2026-12-01")
 
-# Generate complete monthly date range
+# Create full month range from earliest month to end_date
 full_months = pd.date_range(start=df_wastewater["month"].min(), end=end_date, freq="MS")
 
-# Extract 2024 index values as template (month -> index)
+# Extract 2024 months as template for extrapolation
 template_2024 = df_wastewater[df_wastewater["month"].dt.year == 2024].set_index(df_wastewater[df_wastewater["month"].dt.year == 2024]["month"].dt.month)["index"]
 
-# Build extended data list (existing + extrapolated)
+# Build extended data including extrapolated months
 extended_rows = []
 for month in full_months:
     if month in df_wastewater["month"].values:
@@ -95,11 +95,28 @@ for month in full_months:
         index_val = template_2024.loc[month.month]
     extended_rows.append({"month": month, "index": index_val})
 
-# Create extended DataFrame
 df_extended = pd.DataFrame(extended_rows)
 
-# Calculate estimated cases assuming 1 index = 26000 cases
+# Calculate estimated cases (1 index = 26000 cases)
 df_extended["estimated_cases"] = df_extended["index"] * 26000
 
-# Show last 12 months (all of 2026)
-print(df_extended.tail(12))
+# Fixed number of households
+households = 131_000_000
+
+# Calculate cumulative estimated cases
+df_extended["cumulative_cases"] = df_extended["estimated_cases"].cumsum()
+
+# Calculate cumulative cases ratio (cumulative_cases / households)
+df_extended["cumulative_ratio"] = df_extended["cumulative_cases"] / households
+
+# Calculate unaffected fraction as 1 / (1 + cumulative_ratio)
+df_extended["unaffected_fraction"] = 1 / (1 + df_extended["cumulative_ratio"])
+
+# Calculate number of unaffected households
+df_extended["unaffected_households"] = df_extended["unaffected_fraction"] * households
+
+# Show last 12 months with all calculated columns
+print(df_extended[[
+    "month", "index", "estimated_cases", "cumulative_cases", "cumulative_ratio", 
+    "unaffected_fraction", "unaffected_households"
+]].tail(12))
