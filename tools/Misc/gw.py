@@ -1,6 +1,8 @@
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Wastewater data (full data as given)
+# --- Wastewater data ---
 wastewater_data = [
     {"month": "2020-01", "index": 5.2},
     {"month": "2020-02", "index": 4.9},
@@ -72,51 +74,67 @@ wastewater_data = [
 ]
 
 # Load into DataFrame
-df_wastewater = pd.DataFrame(wastewater_data)
+df = pd.DataFrame(wastewater_data)
+df['month'] = pd.to_datetime(df['month'])
 
-# Convert month to datetime
-df_wastewater["month"] = pd.to_datetime(df_wastewater["month"])
-
-# Define extrapolation end date
-end_date = pd.to_datetime("2026-12-01")
-
-# Create full month range from earliest month to end_date
-full_months = pd.date_range(start=df_wastewater["month"].min(), end=end_date, freq="MS")
-
-# Extract 2024 months as template for extrapolation
-template_2024 = df_wastewater[df_wastewater["month"].dt.year == 2024].set_index(df_wastewater[df_wastewater["month"].dt.year == 2024]["month"].dt.month)["index"]
-
-# Build extended data including extrapolated months
-extended_rows = []
-for month in full_months:
-    if month in df_wastewater["month"].values:
-        index_val = df_wastewater.loc[df_wastewater["month"] == month, "index"].values[0]
-    else:
-        index_val = template_2024.loc[month.month]
-    extended_rows.append({"month": month, "index": index_val})
-
-df_extended = pd.DataFrame(extended_rows)
-
-# Calculate estimated cases (1 index = 26000 cases)
-df_extended["estimated_cases"] = df_extended["index"] * 26000
-
-# Fixed number of households
+# Constants for margin calculation
+cases_per_index = 26000
 households = 131_000_000
+gross_margin = 0.15
+baseline_loss = 0.075
+difficulty_rate = 0.20
+loss_per_case = 1.0
 
-# Calculate cumulative estimated cases
-df_extended["cumulative_cases"] = df_extended["estimated_cases"].cumsum()
+# Calculate estimated cases and cumulative ratio
+df['estimated_cases'] = df['index'] * cases_per_index
+df['cumulative_cases'] = df['estimated_cases'].cumsum()
+df['cumulative_ratio'] = df['cumulative_cases'] / households
 
-# Calculate cumulative cases ratio (cumulative_cases / households)
-df_extended["cumulative_ratio"] = df_extended["cumulative_cases"] / households
+# Calculate loss provision and net margin
+df['loss_provision'] = baseline_loss + loss_per_case * df['cumulative_ratio'] * difficulty_rate
+df['net_margin'] = gross_margin - df['loss_provision']
 
-# Calculate unaffected fraction as 1 / (1 + cumulative_ratio)
-df_extended["unaffected_fraction"] = 1 / (1 + df_extended["cumulative_ratio"])
+# --- Reset and extrapolate to zero after 2023-12 ---
 
-# Calculate number of unaffected households
-df_extended["unaffected_households"] = df_extended["unaffected_fraction"] * households
+reset_date = pd.Timestamp('2023-12-01')
+reset_idx = df.index[df['month'] == reset_date][0]
 
-# Show last 12 months with all calculated columns
-print(df_extended[[
-    "month", "index", "estimated_cases", "cumulative_cases", "cumulative_ratio", 
-    "unaffected_fraction", "unaffected_households"
-]].tail(12))
+# Reset baseline margin (e.g. original margin minus baseline loss)
+M0 = gross_margin - baseline_loss
+
+# Calculate pre-reset slope (monthly change in net margin)
+start_margin = df.loc[0, 'net_margin']
+months_before_reset = reset_idx
+slope = (df.loc[reset_idx, 'net_margin'] - start_margin) / months_before_reset
+
+# Calculate months to zero margin from reset baseline at the same decline rate
+months_to_zero = int(np.ceil(M0 / abs(slope)))
+
+# Create post-reset months timeline
+post_reset_months = pd.date_range(start=reset_date + pd.offsets.MonthBegin(1), periods=months_to_zero, freq='MS')
+
+# Linear decline from M0 to 0 over months_to_zero months
+post_reset_margins = np.linspace(M0, 0, months_to_zero)
+
+# Build DataFrame for post-reset extrapolation
+df_post_reset = pd.DataFrame({
+    'month': post_reset_months,
+    'net_margin': post_reset_margins
+})
+
+# Combine pre-reset data and post-reset extrapolation
+df_final = pd.concat([df.loc[:reset_idx, ['month', 'net_margin']], df_post_reset], ignore_index=True)
+
+# Plot result
+plt.figure(figsize=(14,7))
+plt.plot(df_final['month'], df_final['net_margin'] * 100, label='Net Margin with 2023 Reset & Linear Extrap to Zero')
+plt.axvline(reset_date, color='orange', linestyle='--', label='2023 Reset')
+plt.axhline(0, color='red', linestyle='--', label='Break-even')
+plt.title('Credit Card Net Margin with 2023 Reset and Linear Extrapolation to Zero')
+plt.xlabel('Month')
+plt.ylabel('Net Margin (%)')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+print(f"Net margin reaches zero approximately in {df_post_reset['month'].iloc[-1].strftime('%Y-%m')}")
