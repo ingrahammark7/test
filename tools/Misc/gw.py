@@ -1,74 +1,159 @@
-import time
-import numpy as np
+import pandas as pd
+from scipy.stats import pearsonr
 
-def autocorr(series, lag):
-    n = len(series)
-    mean = np.mean(series)
-    c0 = np.sum((series - mean)**2) / n
-    return np.sum((series[:n-lag] - mean) * (series[lag:] - mean)) / ((n - lag) * c0)
+# Monthly wastewater index data (2020–2025, simulated)
+wastewater_data = [
+    {"month": "2020-01", "index": 5.2},
+    {"month": "2020-02", "index": 4.9},
+    {"month": "2020-03", "index": 12.5},
+    {"month": "2020-04", "index": 28.3},
+    {"month": "2020-05", "index": 35.1},
+    {"month": "2020-06", "index": 42.7},
+    {"month": "2020-07", "index": 58.4},
+    {"month": "2020-08", "index": 61.2},
+    {"month": "2020-09", "index": 48.7},
+    {"month": "2020-10", "index": 52.9},
+    {"month": "2020-11", "index": 73.5},
+    {"month": "2020-12", "index": 89.1},
+    {"month": "2021-01", "index": 95.8},
+    {"month": "2021-02", "index": 84.3},
+    {"month": "2021-03", "index": 70.1},
+    {"month": "2021-04", "index": 56.6},
+    {"month": "2021-05", "index": 42.9},
+    {"month": "2021-06", "index": 37.5},
+    {"month": "2021-07", "index": 50.2},
+    {"month": "2021-08", "index": 63.8},
+    {"month": "2021-09", "index": 71.4},
+    {"month": "2021-10", "index": 65.9},
+    {"month": "2021-11", "index": 78.6},
+    {"month": "2021-12", "index": 92.3},
+    {"month": "2022-01", "index": 99.4},
+    {"month": "2022-02", "index": 87.6},
+    {"month": "2022-03", "index": 72.0},
+    {"month": "2022-04", "index": 58.7},
+    {"month": "2022-05", "index": 46.5},
+    {"month": "2022-06", "index": 51.2},
+    {"month": "2022-07", "index": 60.1},
+    {"month": "2022-08", "index": 67.3},
+    {"month": "2022-09", "index": 74.5},
+    {"month": "2022-10", "index": 80.2},
+    {"month": "2022-11", "index": 85.7},
+    {"month": "2022-12", "index": 89.6},
+    {"month": "2023-01", "index": 78.2},
+    {"month": "2023-02", "index": 85.3},
+    {"month": "2023-03", "index": 90.1},
+    {"month": "2023-04", "index": 76.8},
+    {"month": "2023-05", "index": 64.5},
+    {"month": "2023-06", "index": 58.2},
+    {"month": "2023-07", "index": 62.7},
+    {"month": "2023-08", "index": 71.1},
+    {"month": "2023-09", "index": 80.4},
+    {"month": "2023-10", "index": 85.9},
+    {"month": "2023-11", "index": 91.0},
+    {"month": "2023-12", "index": 87.6},
+    {"month": "2024-01", "index": 73.8},
+    {"month": "2024-02", "index": 68.5},
+    {"month": "2024-03", "index": 61.4},
+    {"month": "2024-04", "index": 57.0},
+    {"month": "2024-05", "index": 63.2},
+    {"month": "2024-06", "index": 69.7},
+    {"month": "2024-07", "index": 77.1},
+    {"month": "2024-08", "index": 80.9},
+    {"month": "2024-09", "index": 84.4},
+    {"month": "2024-10", "index": 89.2},
+    {"month": "2024-11", "index": 94.6},
+    {"month": "2024-12", "index": 98.3},
+    {"month": "2025-01", "index": 88.1},
+    {"month": "2025-02", "index": 81.3},
+    {"month": "2025-03", "index": 77.4},
+    {"month": "2025-04", "index": 74.0},
+    {"month": "2025-05", "index": 68.8},
+    {"month": "2025-06", "index": 72.1},
+    {"month": "2025-07", "index": 79.5}
+]
 
-def ar1_analysis(data, label="Data"):
-    x = np.array(data).flatten()
-    x_lag = x[:-1]
-    y = x[1:]
+# Monthly CDC COVID case counts (2020–2025, simulated)
+covid_data = [
+    {"month": "2020-01", "cases": 3000},
+    {"month": "2020-02", "cases": 8000},
+    {"month": "2020-03", "cases": 100000},
+    {"month": "2020-04", "cases": 750000},
+    {"month": "2020-05", "cases": 820000},
+    {"month": "2020-06", "cases": 1100000},
+    {"month": "2020-07", "cases": 1400000},
+    {"month": "2020-08", "cases": 1200000},
+    {"month": "2020-09", "cases": 950000},
+    {"month": "2020-10", "cases": 1050000},
+    {"month": "2020-11", "cases": 1700000},
+    {"month": "2020-12", "cases": 2400000},
+    {"month": "2021-01", "cases": 2500000},
+    {"month": "2021-02", "cases": 2000000},
+    {"month": "2021-03", "cases": 1300000},
+    {"month": "2021-04", "cases": 800000},
+    {"month": "2021-05", "cases": 500000},
+    {"month": "2021-06", "cases": 420000},
+    {"month": "2021-07", "cases": 700000},
+    {"month": "2021-08", "cases": 1100000},
+    {"month": "2021-09", "cases": 1300000},
+    {"month": "2021-10", "cases": 1050000},
+    {"month": "2021-11", "cases": 1500000},
+    {"month": "2021-12", "cases": 1800000},
+    {"month": "2022-01", "cases": 2600000},
+    {"month": "2022-02", "cases": 1800000},
+    {"month": "2022-03", "cases": 1000000},
+    {"month": "2022-04", "cases": 700000},
+    {"month": "2022-05", "cases": 500000},
+    {"month": "2022-06", "cases": 600000},
+    {"month": "2022-07", "cases": 900000},
+    {"month": "2022-08", "cases": 1100000},
+    {"month": "2022-09", "cases": 1300000},
+    {"month": "2022-10", "cases": 1400000},
+    {"month": "2022-11", "cases": 1550000},
+    {"month": "2022-12", "cases": 1620000},
+    {"month": "2023-01", "cases": 1200000},
+    {"month": "2023-02", "cases": 950000},
+    {"month": "2023-03", "cases": 870000},
+    {"month": "2023-04", "cases": 760000},
+    {"month": "2023-05", "cases": 650000},
+    {"month": "2023-06", "cases": 620000},
+    {"month": "2023-07", "cases": 690000},
+    {"month": "2023-08", "cases": 820000},
+    {"month": "2023-09", "cases": 970000},
+    {"month": "2023-10", "cases": 1040000},
+    {"month": "2023-11", "cases": 1130000},
+    {"month": "2023-12", "cases": 1090000},
+    {"month": "2024-01", "cases": 940000},
+    {"month": "2024-02", "cases": 860000},
+    {"month": "2024-03", "cases": 790000},
+    {"month": "2024-04", "cases": 700000},
+    {"month": "2024-05", "cases": 740000},
+    {"month": "2024-06", "cases": 810000},
+    {"month": "2024-07", "cases": 930000},
+    {"month": "2024-08", "cases": 970000},
+    {"month": "2024-09", "cases": 1060000},
+    {"month": "2024-10", "cases": 1130000},
+    {"month": "2024-11", "cases": 1200000},
+    {"month": "2024-12", "cases": 1250000},
+    {"month": "2025-01", "cases": 1090000},
+    {"month": "2025-02", "cases": 970000},
+    {"month": "2025-03", "cases": 920000},
+    {"month": "2025-04", "cases": 860000},
+    {"month": "2025-05", "cases": 810000},
+    {"month": "2025-06", "cases": 880000},
+    {"month": "2025-07", "cases": 960000}
+]
 
-    beta = np.sum(x_lag * y) / np.sum(x_lag * x_lag)
-    y_pred = beta * x_lag
-    residuals = y - y_pred
+# Load into DataFrames
+df_wastewater = pd.DataFrame(wastewater_data)
+df_covid = pd.DataFrame(covid_data)
 
-    ss_res = np.sum(residuals**2)
-    ss_tot = np.sum((y - np.mean(y))**2)
-    r2 = 1 - ss_res / ss_tot
+# Merge and calculate correlation
+df = pd.merge(df_wastewater, df_covid, on="month")
+correlation, p_value = pearsonr(df["index"], df["cases"])
 
-    print(f"\n{label} AR(1) Analysis:")
-    print(f"  Fitted AR(1) coefficient: {beta:.6f}")
-    print(f"  AR(1) model R²: {r2:.4f}")
-    print(f"  Residuals mean: {np.mean(residuals):.8e}")
-    print(f"  Residuals std:  {np.std(residuals):.8e}")
+# Output
+print("Merged Monthly Dataset (2020–2025):")
+print(df.tail())  # Show last few rows
+print(f"\nPearson correlation (wastewater vs COVID cases): {correlation:.4f}")
+print(f"P-value: {p_value:.4e}")
 
-    print("  Residual autocorrelation (lags 1 to 10):")
-    for lag in range(1, 11):
-        acf_val = autocorr(residuals, lag)
-        print(f"    lag {lag}: {acf_val:.6f}")
-
-    last_val = x[-1]
-    next_pred = beta * last_val
-    print(f"  Predicted next value: {next_pred:.8e}")
-    print(f"  Last observed value:  {last_val:.8e}")
-
-# 1. Collect timing jitter RNG data
-N = 300
-timing_randoms = []
-for _ in range(N):
-    start = time.perf_counter()
-    for _ in range(1000): pass
-    delay = time.perf_counter() - start
-    timing_randoms.append(delay % 1e-6)
-
-# 2. Generate Middle Square RNG data
-def middle_square_rng(seed, n):
-    results = []
-    x = seed
-    for _ in range(n):
-        x = (x * x) % 10**8  # 8-digit number
-        mid = (x // 10**2) % 10**4  # middle 4 digits
-        results.append(mid / 10**4)  # normalize to [0,1)
-    return results
-
-ms_seed = 67524891
-middle_square_randoms = middle_square_rng(ms_seed, N)
-
-# 3. Run AR(1) analysis on both RNGs
-ar1_analysis(timing_randoms, "Timing Jitter RNG")
-ar1_analysis(middle_square_randoms, "Middle Square RNG")
-
-# 4. Correlate RNG sequences
-timing_array = np.array(timing_randoms)
-ms_array = np.array(middle_square_randoms)
-
-min_len = min(len(timing_array), len(ms_array))
-timing_array = timing_array[:min_len]
-ms_array = ms_array[:min_len]
-
-corr = np.corrcoef(timing_array, ms_array)[0,1]
-print(f"\nPearson correlation coefficient between Timing Jitter RNG and Middle Square RNG: {corr:.6f}")
