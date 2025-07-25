@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 # --- Wastewater data ---
 wastewater_data = [
@@ -78,11 +78,12 @@ df = pd.DataFrame(wastewater_data)
 df['month'] = pd.to_datetime(df['month'])
 
 # Constants for margin calculation
-cases_per_index = 26000
-households = 131_000_000
-gross_margin = 0.15
-baseline_loss = 0.075
-difficulty_rate = 0.20
+cases_per_index = 195215
+households = 132_216_000
+gross_margin = 0.154
+baseline_loss = 0.073
+difficulty_rate = 0.085*0.23*1.12*1.2
+#long civid times diff rate times 65 plus card balance times 65 plus share
 loss_per_case = 1.0
 
 # Calculate estimated cases and cumulative ratio
@@ -96,7 +97,7 @@ df['net_margin'] = gross_margin - df['loss_provision']
 
 # --- Reset and extrapolate to zero after 2023-12 ---
 
-reset_date = pd.Timestamp('2023-12-01')
+reset_date = pd.Timestamp('2023-09-01')
 reset_idx = df.index[df['month'] == reset_date][0]
 
 # Reset baseline margin (e.g. original margin minus baseline loss)
@@ -125,16 +126,6 @@ df_post_reset = pd.DataFrame({
 # Combine pre-reset data and post-reset extrapolation
 df_final = pd.concat([df.loc[:reset_idx, ['month', 'net_margin']], df_post_reset], ignore_index=True)
 
-# Plot result
-plt.figure(figsize=(14,7))
-plt.plot(df_final['month'], df_final['net_margin'] * 100, label='Net Margin with 2023 Reset & Linear Extrap to Zero')
-plt.axvline(reset_date, color='orange', linestyle='--', label='2023 Reset')
-plt.axhline(0, color='red', linestyle='--', label='Break-even')
-plt.title('Credit Card Net Margin with 2023 Reset and Linear Extrapolation to Zero')
-plt.xlabel('Month')
-plt.ylabel('Net Margin (%)')
-plt.legend()
-plt.grid(True)
-plt.show()
 
-print(f"Net margin reaches zero approximately in {df_post_reset['month'].iloc[-1].strftime('%Y-%m')}")
+
+print(f"Net margin reaches zero approximately in {df_final}")
