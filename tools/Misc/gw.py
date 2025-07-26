@@ -1,131 +1,114 @@
-import pandas as pd
 import numpy as np
+import random
+import matplotlib.pyplot as plt
 
+# Constants
+c = 3e8
+k = 1.38e-23
+T0 = 290
+NF = 5
 
-# --- Wastewater data ---
-wastewater_data = [
-    {"month": "2020-01", "index": 5.2},
-    {"month": "2020-02", "index": 4.9},
-    {"month": "2020-03", "index": 12.5},
-    {"month": "2020-04", "index": 28.3},
-    {"month": "2020-05", "index": 35.1},
-    {"month": "2020-06", "index": 42.7},
-    {"month": "2020-07", "index": 58.4},
-    {"month": "2020-08", "index": 61.2},
-    {"month": "2020-09", "index": 48.7},
-    {"month": "2020-10", "index": 52.9},
-    {"month": "2020-11", "index": 73.5},
-    {"month": "2020-12", "index": 89.1},
-    {"month": "2021-01", "index": 95.8},
-    {"month": "2021-02", "index": 84.3},
-    {"month": "2021-03", "index": 70.1},
-    {"month": "2021-04", "index": 56.6},
-    {"month": "2021-05", "index": 42.9},
-    {"month": "2021-06", "index": 37.5},
-    {"month": "2021-07", "index": 50.2},
-    {"month": "2021-08", "index": 63.8},
-    {"month": "2021-09", "index": 71.4},
-    {"month": "2021-10", "index": 65.9},
-    {"month": "2021-11", "index": 78.6},
-    {"month": "2021-12", "index": 92.3},
-    {"month": "2022-01", "index": 99.4},
-    {"month": "2022-02", "index": 87.6},
-    {"month": "2022-03", "index": 72.0},
-    {"month": "2022-04", "index": 58.7},
-    {"month": "2022-05", "index": 46.5},
-    {"month": "2022-06", "index": 51.2},
-    {"month": "2022-07", "index": 60.1},
-    {"month": "2022-08", "index": 67.3},
-    {"month": "2022-09", "index": 74.5},
-    {"month": "2022-10", "index": 80.2},
-    {"month": "2022-11", "index": 85.7},
-    {"month": "2022-12", "index": 89.6},
-    {"month": "2023-01", "index": 78.2},
-    {"month": "2023-02", "index": 85.3},
-    {"month": "2023-03", "index": 90.1},
-    {"month": "2023-04", "index": 76.8},
-    {"month": "2023-05", "index": 64.5},
-    {"month": "2023-06", "index": 58.2},
-    {"month": "2023-07", "index": 62.7},
-    {"month": "2023-08", "index": 71.1},
-    {"month": "2023-09", "index": 80.4},
-    {"month": "2023-10", "index": 85.9},
-    {"month": "2023-11", "index": 91.0},
-    {"month": "2023-12", "index": 87.6},
-    {"month": "2024-01", "index": 73.8},
-    {"month": "2024-02", "index": 68.5},
-    {"month": "2024-03", "index": 61.4},
-    {"month": "2024-04", "index": 57.0},
-    {"month": "2024-05", "index": 63.2},
-    {"month": "2024-06", "index": 69.7},
-    {"month": "2024-07", "index": 77.1},
-    {"month": "2024-08", "index": 80.9},
-    {"month": "2024-09", "index": 84.4},
-    {"month": "2024-10", "index": 89.2},
-    {"month": "2024-11", "index": 94.6},
-    {"month": "2024-12", "index": 98.3},
-    {"month": "2025-01", "index": 88.1},
-    {"month": "2025-02", "index": 81.3},
-    {"month": "2025-03", "index": 77.4},
-    {"month": "2025-04", "index": 74.0},
-    {"month": "2025-05", "index": 68.8},
-    {"month": "2025-06", "index": 72.1},
-    {"month": "2025-07", "index": 79.5}
-]
+def noise_power(B, T=T0, NF_db=NF):
+    NF = 10 ** (NF_db / 10)
+    return k * T * B * NF
 
-# Load into DataFrame
-df = pd.DataFrame(wastewater_data)
-df['month'] = pd.to_datetime(df['month'])
+def received_power(Pt, Gt, Gr, wavelength, RCS, R):
+    return (Pt * Gt * Gr * wavelength**2 * RCS) / ((4 * np.pi)**3 * R**4)
 
-# Constants for margin calculation
-cases_per_index = 195215
-households = 132_216_000
-gross_margin = 0.154
-baseline_loss = 0.073
-difficulty_rate = 0.085*0.23*1.12*1.2
-#long civid times diff rate times 65 plus card balance times 65 plus share
-loss_per_case = 1.0
+def detection_probability(SNR_db):
+    return 1 / (1 + np.exp(-1.5 * (SNR_db - 5)))
 
-# Calculate estimated cases and cumulative ratio
-df['estimated_cases'] = df['index'] * cases_per_index
-df['cumulative_cases'] = df['estimated_cases'].cumsum()
-df['cumulative_ratio'] = df['cumulative_cases'] / households
+def hit_probability(SNR_db):
+    return 0.1 + 0.8 * (1 / (1 + np.exp(-0.5 * (SNR_db - 7))))
 
-# Calculate loss provision and net margin
-df['loss_provision'] = baseline_loss + loss_per_case * df['cumulative_ratio'] * difficulty_rate
-df['net_margin'] = gross_margin - df['loss_provision']
+def simulate_engagement(num_missiles, jammer_power, jammer_bandwidth,
+                        radar_hop_bandwidth, jammer_prediction_prob,
+                        num_radar_hops=10):
+    Pt = 1e3
+    Gt = Gr = 500
+    freq = 10e9
+    wavelength = c / freq
+    RCS = 0.5
+    max_range = 100000
+    noise_floor_base = noise_power(radar_hop_bandwidth)
 
-# --- Reset and extrapolate to zero after 2023-12 ---
+    hits = 0
 
-reset_date = pd.Timestamp('2023-09-01')
-reset_idx = df.index[df['month'] == reset_date][0]
+    # Number of radar hops jammer bandwidth overlaps (rounded up)
+    hops_covered = max(1, int(np.ceil(jammer_bandwidth / radar_hop_bandwidth)))
 
-# Reset baseline margin (e.g. original margin minus baseline loss)
-M0 = gross_margin - baseline_loss
+    for _ in range(num_missiles):
+        # Missile range skewed to longer distances
+        R = random.triangular(30000, max_range, max_range)
+        Pr = received_power(Pt, Gt, Gr, wavelength, RCS, R)
 
-# Calculate pre-reset slope (monthly change in net margin)
-start_margin = df.loc[0, 'net_margin']
-months_before_reset = reset_idx
-slope = (df.loc[reset_idx, 'net_margin'] - start_margin) / months_before_reset
+        # Radar hop sequence (random)
+        hop_sequence = list(range(num_radar_hops))
+        random.shuffle(hop_sequence)
 
-# Calculate months to zero margin from reset baseline at the same decline rate
-months_to_zero = int(np.ceil(M0 / abs(slope)))
+        detection_probs = []
 
-# Create post-reset months timeline
-post_reset_months = pd.date_range(start=reset_date + pd.offsets.MonthBegin(1), periods=months_to_zero, freq='MS')
+        for hop_index in hop_sequence:
+            if random.random() < jammer_prediction_prob:
+                # Jammer predicts hop, concentrates power on this hop
+                jammer_power_on_hop = jammer_power
+            else:
+                # Jammer power spread across all hops it covers
+                jammer_power_on_hop = jammer_power / hops_covered
 
-# Linear decline from M0 to 0 over months_to_zero months
-post_reset_margins = np.linspace(M0, 0, months_to_zero)
+            # Jammer PSD on this hop (W/Hz)
+            jammer_psd = jammer_power_on_hop / radar_hop_bandwidth
 
-# Build DataFrame for post-reset extrapolation
-df_post_reset = pd.DataFrame({
-    'month': post_reset_months,
-    'net_margin': post_reset_margins
-})
+            noise_power_total = noise_floor_base + jammer_psd * radar_hop_bandwidth
 
-# Combine pre-reset data and post-reset extrapolation
-df_final = pd.concat([df.loc[:reset_idx, ['month', 'net_margin']], df_post_reset], ignore_index=True)
+            SNR = Pr / noise_power_total
+            SNR_db = 10 * np.log10(SNR) if SNR > 0 else -100
+            detect_prob = detection_probability(SNR_db)
+            detection_probs.append(detect_prob)
 
+        # Aggregate detection over hops (max)
+        overall_detection_prob = max(detection_probs)
 
+        tracked = random.random() < overall_detection_prob
+        hp = hit_probability(10 * np.log10(Pr / noise_floor_base)) if tracked else 0.05
+        if random.random() < hp:
+            hits += 1
 
-print(f"Net margin reaches zero approximately in {df_final}")
+    return hits
+
+def run_sweep(simulations=50, num_missiles=20,
+              jammer_power=1e-7, radar_hop_bandwidth=200e3,
+              jammer_bandwidths=None, prediction_probs=None):
+    if jammer_bandwidths is None:
+        jammer_bandwidths = np.logspace(np.log10(2e4), np.log10(5e6), 10)  # 20 kHz to 5 MHz
+    if prediction_probs is None:
+        prediction_probs = np.linspace(0, 1, 11)
+
+    results = np.zeros((len(jammer_bandwidths), len(prediction_probs)))
+
+    for i, jb in enumerate(jammer_bandwidths):
+        print(f"Testing jammer bandwidth {jb/1e3:.1f} kHz...")
+        for j, p in enumerate(prediction_probs):
+            hits_accum = 0
+            for _ in range(simulations):
+                hits_accum += simulate_engagement(num_missiles, jammer_power, jb,
+                                                  radar_hop_bandwidth, p)
+            avg_hits = hits_accum / simulations
+            results[i, j] = avg_hits
+
+    return jammer_bandwidths, prediction_probs, results
+
+if __name__ == "__main__":
+    jammer_bandwidths, prediction_probs, results = run_sweep()
+
+    import matplotlib.pyplot as plt
+
+    # Plot heatmap of avg hits (lighter=more hits, worse EW)
+    plt.figure(figsize=(10, 6))
+    X, Y = np.meshgrid(prediction_probs, jammer_bandwidths / 1e3)
+    cp = plt.contourf(X, Y, results, levels=20, cmap='viridis_r')
+    plt.colorbar(cp, label='Average Missile Hits out of 20')
+    plt.xlabel('Jammer Prediction Probability')
+    plt.ylabel('Jammer Instantaneous Bandwidth (kHz)')
+    plt.title('Missile Hits vs Jammer Bandwidth and Prediction')
+    plt.show()
