@@ -2,7 +2,7 @@ import math
 
 class Material:
     def __init__(self, name, molar_mass_g_mol, density_kg_m3, atomic_radius_m, atomic_number,
-                 cohesive_energy_ev, base_hvl_cm, material_energy_density_mj_per_cm):
+                 cohesive_energy_ev, base_hvl_cm, material_energy_density_mj_per_cm,weak_factor):
         self.name = name
         self.molar_mass = molar_mass_g_mol
         self.density = density_kg_m3
@@ -11,6 +11,7 @@ class Material:
         self.cohesive_energy_ev = cohesive_energy_ev
         self.base_hvl_cm = base_hvl_cm
         self.material_energy_density_mj_per_cm = material_energy_density_mj_per_cm
+        self.weak_factor=weak_factor
         
         
         # Constants
@@ -40,7 +41,7 @@ class Material:
         atoms = moles * self.avogadro
         bond_energy_per_atom_j = self.cohesive_energy_ev * self.ev_to_joule
         total_bond_energy_joules = atoms * bond_energy_per_atom_j
-        return total_bond_energy_joules
+        return total_bond_energy_joules/self.weak_factor
 
 
     def print_summary(self):
@@ -100,8 +101,29 @@ steel = Material(
     atomic_number=26,
     cohesive_energy_ev=4.28,
     base_hvl_cm=1.3,
-    material_energy_density_mj_per_cm=1
+    material_energy_density_mj_per_cm=1,
+    weak_factor=1
 )
+
+du=Material(
+    name="Uranium",
+    molar_mass_g_mol=238,
+    density_kg_m3=1950,
+    atomic_radius_m=126e-12,
+    atomic_number=92,
+    cohesive_energy_ev=4.28,
+    base_hvl_cm=0.03,
+    material_energy_density_mj_per_cm=1,
+    weak_factor=3
+)
+
+def estfix(self):
+	return (self.j_high_estimate*self.density)/1000000/1000000
+
+steel.material_energy_density_mj_per_cm=estfix(steel)
+
+du.material_energy_density_mj_per_cm=estfix(du)
+
 
 steel.print_summary()
 
@@ -109,7 +131,6 @@ steel.print_summary()
 round_energy = 10  # MJ
 round_diameter = 2.2# cm
 
-steel.material_energy_density_mj_per_cm=(steel.j_high_estimate*steel.density)/1000000/1000000
 depth, effective_hvl = steel.penetration_depth(round_energy, round_diameter,70)
 print(f"Penetration depth: {depth:.2f} cm")
 print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
