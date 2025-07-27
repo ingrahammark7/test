@@ -2,7 +2,7 @@ import math
 
 class Material:
     def __init__(self, name, molar_mass_g_mol, density_kg_m3, atomic_radius_m, atomic_number,
-                 cohesive_energy_ev, base_hvl_cm, material_energy_density_mj_per_cm, weak_factor=1):
+                 cohesive_energy_ev, base_hvl_cm, material_energy_density_mj_per_hvl, weak_factor=1):
         self.name = name
         self.molar_mass = molar_mass_g_mol
         self.density = density_kg_m3
@@ -10,7 +10,7 @@ class Material:
         self.atomic_number = atomic_number
         self.cohesive_energy_ev = cohesive_energy_ev
         self.base_hvl_cm = base_hvl_cm
-        self.material_energy_density_mj_per_cm = material_energy_density_mj_per_cm
+        self.material_energy_density_mj_per_hvl = material_energy_density_mj_per_hvl
         self.weak_factor = weak_factor
         
         # Constants
@@ -77,7 +77,9 @@ class Material:
     	f=self.melt_one_hvl()
     	r=(round_energy_mj*(10**6))/(f*self.base_hvl_cm)
     	if(d>r):
+    		print("A ", d, "cm penetration was thermally bound to ", r,"cm.")
     		return r
+    	print("A ", d,"cm penetration did not reach thermal bound ", r,"cm.")
     	return d
 
     def penetration_depth(self, round_energy_mj, round_diameter_cm, angle1, angle2, honeycomb_layers, alpha=0.5):
@@ -86,9 +88,7 @@ class Material:
         with two slope angles (angle1, angle2) in degrees.
         """
         effective_angle = self.combine_angles(angle1, angle2)
-        
-
-        d0 = round_energy_mj / self.material_energy_density_mj_per_cm
+        d0 = (round_energy_mj / self.material_energy_density_mj_per_hvl)*self.base_hvl_cm
         n = round_diameter_cm / self.base_hvl_cm
         hvl = self.base_hvl_cm * max(0.01, (1 - alpha * n))
         n_eff = round_diameter_cm / hvl
@@ -125,10 +125,8 @@ class Material:
 
     def base_pen(self, d, round_energy_mj, round_diameter_cm):
         e = self.sectional_energy_density(round_energy_mj, round_diameter_cm)
-        h = self.base_hvl_cm
-        m = self.material_energy_density_mj_per_cm
-        m = m * h
-        m= e/m
+        m = self.material_energy_density_mj_per_hvl
+        m= (e/m)*self.base_hvl_cm
         if(m>d):
         	return m
         return d
@@ -136,7 +134,7 @@ class Material:
     def sectional_energy_density(self, round_energy_mj, round_diameter_cm):
         if round_diameter_cm < self.base_hvl_cm:
             return round_energy_mj / (self.base_hvl_cm ** 2)
-        return round_energy_mj / (round_diameter_cm ** 2)
+        return round_energy_mj / ((round_diameter_cm/self.base_hvl_cm) ** 2)
 
 
 # Example usage:
@@ -149,7 +147,7 @@ if __name__ == "__main__":
         atomic_number=26,
         cohesive_energy_ev=4.28,
         base_hvl_cm=1.3,
-        material_energy_density_mj_per_cm=1,
+        material_energy_density_mj_per_hvl=1,
         weak_factor=1
     )
 
@@ -161,20 +159,20 @@ if __name__ == "__main__":
     atomic_number=92,
     cohesive_energy_ev=5.06,
     base_hvl_cm=0.03,
-    material_energy_density_mj_per_cm=1,
+    material_energy_density_mj_per_hvl=1,
     weak_factor=3
     )
     
     def estfix(self):
-    	return (self.j_high_estimate*self.density)/1000000/1000000
+    	return (self.j_high_estimate*self.hvl_mass_kg()/(10**6))
     	
-    steel.material_energy_density_mj_per_cm=estfix(steel)
-    du.material_energy_density_mj_per_cm=estfix(du)
+    steel.material_energy_density_mj_per_hvl=estfix(steel)
+    du.material_energy_density_mj_per_hvl=estfix(du)
     steel.print_summary()
     round_energy = 10  # MJ
     round_diameter = 2.2  # cm
-    angle_vert = 60
-    angle_horz = 30
+    angle_vert = 90
+    angle_horz = 90
 
     depth, effective_hvl = steel.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
     print(f"Penetration depth: {depth:.2f} cm")
