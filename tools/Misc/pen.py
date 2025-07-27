@@ -49,7 +49,8 @@ class Material:
       print(f"Cohesive bond energy total (J): {self.cohesive_bond_energy:.4e}")
       print(f"Cohesive bond energy total (MJ): {self.cohesive_bond_energy / 1e6:.4f}")
     
-    def penetration_depth(self, round_energy_mj, round_diameter_cm, alpha=0.5):
+    def penetration_depth(self, round_energy_mj, round_diameter_cm, angle, alpha=0.5):
+        angle=self.clean_angle(angle)
         """
         Compute penetration depth (cm) using your MHD dynamic HVL model.
         """
@@ -58,7 +59,36 @@ class Material:
         hvl = self.base_hvl_cm * max(0.01, (1 - alpha * n))  # prevent zero or negative HVL
         n_eff = round_diameter_cm / hvl
         d = d0 * n_eff ** 2
+        d=self.pen_angle(d,angle,round_energy_mj,round_diameter_cm)
         return d, hvl
+        
+    def pen_angle(self,d,angle,round_energy_mj,round_diameter_cm):
+     	b=self.base_pen(d,round_energy_mj,round_diameter_cm)   	
+     	r=90/angle
+     	r=r**4**self.phi
+     	d=d/r
+     	if(d<b):
+     		return b
+     	return d
+    
+    def clean_angle(self,angle):
+        if(angle>180):
+            angle=angle-180
+        if(angle>90):
+            angle=angle-90
+        return angle
+    
+    def base_pen(self,d,round_energy_mj,round_diameter_cm):
+    	e=self.sectional_energy_density(round_energy_mj,round_diameter_cm)
+    	h=self.base_hvl_cm
+    	m=self.material_energy_density_mj_per_cm
+    	m=m*h
+    	return e/m
+    
+    def sectional_energy_density(self,round_energy_mj,round_diameter_cm):
+    	if(round_diameter_cm<self.base_hvl_cm):
+    		return round_energy_mj/self.base_hvl_cm/self.base_hvl_cm
+    	return round_energy_mj/round_diameter_cm/round_diameter_cm
 
 
 # Usage example:
@@ -77,9 +107,9 @@ steel.print_summary()
 
 # Penetration example
 round_energy = 10  # MJ
-round_diameter = 2 # cm
+round_diameter = 2.2# cm
 
 steel.material_energy_density_mj_per_cm=(steel.j_high_estimate*steel.density)/1000000/1000000
-depth, effective_hvl = steel.penetration_depth(round_energy, round_diameter)
+depth, effective_hvl = steel.penetration_depth(round_energy, round_diameter,70)
 print(f"Penetration depth: {depth:.2f} cm")
 print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
