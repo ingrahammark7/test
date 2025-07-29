@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Motion to Vacate Dismissal"  # Title of the paper
+        footer_text = "Appellant Statement"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -63,8 +63,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "NINTH CIRCUIT")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -72,8 +72,8 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and petitioner,",
         "vs",
-        "Los Angeles Police Department",
-        "respondent and defendant.",        
+        "Office of the Comptroller of the Currency of the United States Department of the Treasury",
+        "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
     counter=0
@@ -88,7 +88,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
+    c.drawString(space, top_margin - 4* inch, "Docket Number: 25-4338")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -105,13 +105,11 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Motion to Vacate Dismissal")
+    c.drawString(left_margin, y_position - 0.25* inch, "APPELLANT STATEMENT")
     c.setFont("Times-Roman",12)
     intro_text = [
-        "1. City Attorney Office nonresponse seems to imply defendant counsel is unauthorized to represent LAPD.",
-        "2. If unauthorized charges are recommened against counsel.",
-        "3. Judge should grant default against LAPD in absence of defendant counsel.",
-        "4. Case should be reopened if necessary to dispose of defendant counsel.",
+        "1. This is a response to court request for statement appeal is valid.",
+        "2. Appeal is valid because defendant has defaulted and default judgment should be granted.",
         ]
     y_position -= .5*inch
     for line in intro_text:
@@ -122,7 +120,7 @@ def create_pdf(output_filename):
 
     # Signature Block
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 7/22/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 7/29/2025")
 
  # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
