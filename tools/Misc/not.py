@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Notice of Outcome"  # Title of the paper
+        footer_text = "Motion to Vacate Dismissal"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -73,7 +73,7 @@ def create_pdf(output_filename):
         "Plaintiff and petitioner,",
         "vs",
         "Los Angeles Police Department",
-        "respondent and defendant",        
+        "respondent and defendant.",        
     ]
     y_position = top_margin - 4.75* inch
     counter=0
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.5* inch, "Notice of Outcome")
+    c.drawString(space, top_margin - 4.5* inch, "")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
@@ -105,12 +105,13 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "NOTICE")
+    c.drawString(left_margin, y_position - 0.25* inch, "Motion to Vacate Dismissal")
     c.setFont("Times-Roman",12)
     intro_text = [
-        "1. Judge stated they would side with police no matter what.",
-        "2. Therefore I allowed judge to dismiss case.",
-        "3. Case will contine in federal court when I have funds to hire server.",
+        "1. City Attorney Office nonresponse seems to imply defendant counsel is unauthorized to represent LAPD.",
+        "2. If unauthorized charges are recommened against counsel.",
+        "3. Judge should grant default against LAPD in absence of defendant counsel.",
+        "4. Case should be reopened if necessary to dispose of defendant counsel.",
         ]
     y_position -= .5*inch
     for line in intro_text:
