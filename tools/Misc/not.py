@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Appellant Statement"  # Title of the paper
+        footer_text = "Notice of Proposed Order"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -63,8 +63,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES COURT OF APPEALS")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "NINTH CIRCUIT")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -72,7 +72,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and petitioner,",
         "vs",
-        "Office of the Comptroller of the Currency of the United States Department of the Treasury",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -88,7 +88,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Docket Number: 25-4338")
+    c.drawString(space, top_margin - 4* inch, "Casd Number: 25STCP00742")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -105,11 +105,16 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "APPELLANT STATEMENT")
+    c.drawString(left_margin, y_position - 0.25* inch, "NOTICE OF PROPOSED ORDER")
     c.setFont("Times-Roman",12)
     intro_text = [
-        "1. This is a response to court request for statement appeal is valid.",
-        "2. Appeal is valid because defendant has defaulted and default judgment should be granted.",
+        "1. An order is requested to prevent destruction of evidence.",
+        "2. The following measures are requested.",
+        "3. My requests in the ExtraSpace Storage case should be granted.",
+        "4. My access to the storage unit should be guaranteed.",
+       "5. All services should be provided for free and all objections to my access should be quashed.",
+       "6. Those obstructing the order are recommended for arrest and deportation.",
+       "7. Same order as above for mailbox at address on complaint.",
         ]
     y_position -= .5*inch
     for line in intro_text:
