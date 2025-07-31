@@ -1,60 +1,105 @@
-You already did and gw obviously fails because it requires heat to move at light speed as radiation. Anyone can see radiation doesn't reach skin and ir heater doesn't use. The scientific consensus is convection not ir. By your own quote
+import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
 
+# === Updated Simulation Parameters ===
 
-Awesome! Here are some concrete references and explanations to back up the points we discussed about radiation, IR heating, and the greenhouse effect:
+# Start from current date: July 31, 2025
+start_date = datetime(2025, 7, 31)
+simulation_days = 365
+end_date = start_date + timedelta(days=simulation_days - 1)
 
+# Corn data (same assumptions)
+initial_corn_inventory = 2e9  # bushels carryover on July 31 (assumed)
+annual_corn_production = 15e9  # bushels/year
+harvest_start = datetime(2025, 10, 1)
+harvest_end = datetime(2025, 11, 15)
+harvest_days = (harvest_end - harvest_start).days + 1
+daily_harvest = annual_corn_production / harvest_days
 
----
+# Ethanol data
+ethanol_per_bushel = 2.8
+initial_ethanol_inventory = 1.2e9  # gallons on July 31 (assumed)
+annual_corn_for_ethanol = 5e9
+daily_corn_for_ethanol = annual_corn_for_ethanol / 365
+annual_ethanol_prod = annual_corn_for_ethanol * ethanol_per_bushel
+daily_ethanol_consumption = annual_ethanol_prod / 365
 
-1. Infrared Radiation and Heat Transfer
+# Crop loss event: let's say it just happened or will happen soon
+crop_loss_date = datetime(2025, 8, 15)  # example: two weeks from start date
+crop_loss_percent = 100 # 70% crop loss
 
-Book: Introduction to Heat Transfer by Frank P. Incropera and David P. DeWitt (Wiley)
-This textbook is a standard in engineering and covers the three modes of heat transfer — conduction, convection, and radiation — with detailed chapters on radiative heat transfer, including how infrared radiation travels and heats objects.
-You can find it in many university libraries or as an ebook.
+# === Initialize arrays ===
 
-IR Heater Product Specs & Experiments:
-Many infrared heaters (like ceramic or quartz heaters) specify that they emit infrared radiation in the 2–10 micron wavelength range, directly heating objects and people.
-For example, this infrared heater manufacturer’s page explains how their heaters work by radiating IR energy.
+dates = [start_date + timedelta(days=i) for i in range(simulation_days)]
+corn_inventory = np.zeros(simulation_days)
+ethanol_inventory = np.zeros(simulation_days)
+corn_supply_for_ethanol = np.zeros(simulation_days)
 
-Experiment: If you have a thermal camera app or device, you can see IR radiation emitted by warm objects, including your skin and heaters. IR heaters warm you without significantly warming the air.
+corn_inventory[0] = initial_corn_inventory
+ethanol_inventory[0] = initial_ethanol_inventory
 
+crop_loss_occurred = False
+harvested_corn_total = 0
 
+for i in range(1, simulation_days):
+    today = dates[i]
 
----
+    # Harvest period - add daily harvest to inventory, adjusted if crop loss occurred
+    if harvest_start <= today <= harvest_end:
+        daily_harvest_adjusted = daily_harvest
+        if crop_loss_occurred:
+            daily_harvest_adjusted *= (1 - crop_loss_percent / 100)
+        corn_inventory[i] = corn_inventory[i-1] + daily_harvest_adjusted
+        harvested_corn_total += daily_harvest_adjusted
+    else:
+        corn_inventory[i] = corn_inventory[i-1]
 
-2. Greenhouse Effect and Atmospheric Radiation
+    # Trigger crop loss event
+    if (not crop_loss_occurred) and (today >= crop_loss_date):
+        crop_loss_occurred = True
 
-NASA Climate Explained:
-NASA’s page on the greenhouse effect (https://climate.nasa.gov/causes/) clearly explains that sunlight passes through the atmosphere, warms Earth’s surface, and Earth emits infrared radiation, which greenhouse gases absorb and re-emit, trapping heat. This is the fundamental mechanism of global warming.
+    # Corn available for ethanol production
+    corn_available = min(corn_inventory[i], daily_corn_for_ethanol)
+    corn_supply_for_ethanol[i] = corn_available
+    corn_inventory[i] -= corn_available
 
-IPCC Reports:
-The Intergovernmental Panel on Climate Change (IPCC) assessment reports (https://www.ipcc.ch/reports/) are comprehensive scientific reviews of climate science. They discuss radiative forcing, greenhouse gases, and the role of infrared radiation in detail.
+    # Ethanol produced
+    ethanol_produced = corn_available * ethanol_per_bushel
 
-NASA CERES Satellite Data:
-CERES (Clouds and the Earth’s Radiant Energy System) instruments measure Earth’s energy budget by tracking incoming solar radiation and outgoing infrared radiation. This satellite data confirms the greenhouse effect in real-time.
+    # Update ethanol inventory
+    ethanol_inventory[i] = ethanol_inventory[i-1] + ethanol_produced - daily_ethanol_consumption
+    if ethanol_inventory[i] < 0:
+        ethanol_inventory[i] = 0
 
+# Detect when ethanol inventory falls below threshold
+threshold = 1e7  # 10 million gallons
+zero_day_index = next((i for i, inv in enumerate(ethanol_inventory) if inv <= threshold), None)
 
+if zero_day_index is not None:
+    zero_date = dates[zero_day_index]
+    print(f"Ethanol inventory falls below {threshold} gallons on {zero_date.strftime('%Y-%m-%d')}")
+else:
+    print("Ethanol inventory stays above threshold during simulation.")
 
----
+# === Plot results ===
+plt.figure(figsize=(14,8))
 
-3. Radiation vs. Convection
+plt.subplot(2,1,1)
+plt.plot(dates, corn_inventory/1e9, label='Corn Inventory (billion bushels)')
+plt.axvline(crop_loss_date, color='red', linestyle='--', label='Crop Loss Event')
+plt.title('Corn Inventory Starting July 31, 2025')
+plt.ylabel('Inventory (billion bushels)')
+plt.legend()
+plt.grid(True)
 
-Fundamentals of Physics by Halliday, Resnick, and Walker:
-This physics textbook describes the mechanisms of heat transfer and explains why radiation is the only way energy can leave Earth’s atmosphere into space (since space is a vacuum and convection requires a medium).
+plt.subplot(2,1,2)
+plt.plot(dates, ethanol_inventory/1e9, label='Ethanol Inventory (billion gallons)', color='orange')
+plt.axvline(crop_loss_date, color='red', linestyle='--', label='Crop Loss Event')
+plt.title('Ethanol Inventory Starting July 31, 2025')
+plt.ylabel('Inventory (billion gallons)')
+plt.legend()
+plt.grid(True)
 
-Scientific Articles:
-Look for review papers on atmospheric physics or climate science, such as:
-
-Goody, R.M., Y.L. Yung, Atmospheric Radiation: Theoretical Basis (Oxford University Press, 1989) — a foundational text explaining how radiation interacts with the atmosphere.
-
-Ramanathan et al., “Greenhouse Effect and Climate Change,” Reviews of Geophysics, 1985.
-
-
-
-
----
-
-If you want, I can help you get excerpts or summaries from any of these, or guide you on how to access them. Let me know what interests you most!
-
-
-All of these confirm that global warming requires heat transfered by radiation at light speed.  So science confirms global warming requires heat to move at light speed and everywhere on earth to instantly be the same. You failed to find any quote on my sources you dispute. 
+plt.tight_layout()
+plt.show()
