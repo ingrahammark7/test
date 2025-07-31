@@ -1,105 +1,44 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
+import math
 
-# === Updated Simulation Parameters ===
+def naval_energy_scaling_model(trip_km, beam_m, grain_cm):
+    # Constants
+    sea_energy_density = 1000  # W/m²
+    water_density = 1000  # kg/m³
+    hvl_thickness_m = grain_cm / 100  # grain size in meters (vertical thickness)
 
-# Start from current date: July 31, 2025
-start_date = datetime(2025, 7, 31)
-simulation_days = 365
-end_date = start_date + timedelta(days=simulation_days - 1)
+    # 1. Total interaction area
+    trip_m = trip_km * 1000
+    area_m2 = trip_m * beam_m
 
-# Corn data (same assumptions)
-initial_corn_inventory = 2e9  # bushels carryover on July 31 (assumed)
-annual_corn_production = 15e9  # bushels/year
-harvest_start = datetime(2025, 10, 1)
-harvest_end = datetime(2025, 11, 15)
-harvest_days = (harvest_end - harvest_start).days + 1
-daily_harvest = annual_corn_production / harvest_days
+    # 2. Total energy intercepted (in Joules, over 1 second)
+    total_energy_j = area_m2 * sea_energy_density  # since energy rate is per second
 
-# Ethanol data
-ethanol_per_bushel = 2.8
-initial_ethanol_inventory = 1.2e9  # gallons on July 31 (assumed)
-annual_corn_for_ethanol = 5e9
-daily_corn_for_ethanol = annual_corn_for_ethanol / 365
-annual_ethanol_prod = annual_corn_for_ethanol * ethanol_per_bushel
-daily_ethanol_consumption = annual_ethanol_prod / 365
+    # 3. Mass of water interacting in the HVL
+    volume_m3 = area_m2 * hvl_thickness_m
+    mass_kg = volume_m3 * water_density
 
-# Crop loss event: let's say it just happened or will happen soon
-crop_loss_date = datetime(2025, 8, 15)  # example: two weeks from start date
-crop_loss_percent = 100 # 70% crop loss
+    # 4. Grain-based base velocity (v ∝ 1/√grain_size)
+    # Assume 10 m/s at 1 cm grain size
+    v_base = 10 * math.sqrt(1 / grain_cm)
 
-# === Initialize arrays ===
+    # 5. Resulting energy-concentrated velocity
+    # KE = 0.5 * m * v² → solve for v:
+    concentrated_velocity = math.sqrt(2 * total_energy_j)/(water_density*hvl_thickness_m)
+    if(concentrated_velocity>200):
+    	maxen=(hvl_thickness_m*water_density*200*200*.5)
+    	per_m=total_energy_j/maxen
+    	print("speed capped at 200m/s")    	
+    	print("over ", per_m,"m2")
 
-dates = [start_date + timedelta(days=i) for i in range(simulation_days)]
-corn_inventory = np.zeros(simulation_days)
-ethanol_inventory = np.zeros(simulation_days)
-corn_supply_for_ethanol = np.zeros(simulation_days)
+    print("Trip distance:", trip_km, "km")
+    print("Beam width:", beam_m, "m")
+    print("Grain size:", grain_cm, "cm")
+    print("Water layer (HVL):", round(hvl_thickness_m, 4), "m")
+    print("Total area:", f"{area_m2:,.0f}", "m²")
+    print("Interacting mass:", f"{mass_kg:,.0f}", "kg")
+    print("Total intercepted energy:", f"{total_energy_j:,.0f}", "J")
+    print("Base wave velocity (at grain scale):", round(v_base, 2), "m/s")
+    print("Concentrated wave velocity (energy-equivalent):", round(concentrated_velocity, 2), "m/s")
 
-corn_inventory[0] = initial_corn_inventory
-ethanol_inventory[0] = initial_ethanol_inventory
-
-crop_loss_occurred = False
-harvested_corn_total = 0
-
-for i in range(1, simulation_days):
-    today = dates[i]
-
-    # Harvest period - add daily harvest to inventory, adjusted if crop loss occurred
-    if harvest_start <= today <= harvest_end:
-        daily_harvest_adjusted = daily_harvest
-        if crop_loss_occurred:
-            daily_harvest_adjusted *= (1 - crop_loss_percent / 100)
-        corn_inventory[i] = corn_inventory[i-1] + daily_harvest_adjusted
-        harvested_corn_total += daily_harvest_adjusted
-    else:
-        corn_inventory[i] = corn_inventory[i-1]
-
-    # Trigger crop loss event
-    if (not crop_loss_occurred) and (today >= crop_loss_date):
-        crop_loss_occurred = True
-
-    # Corn available for ethanol production
-    corn_available = min(corn_inventory[i], daily_corn_for_ethanol)
-    corn_supply_for_ethanol[i] = corn_available
-    corn_inventory[i] -= corn_available
-
-    # Ethanol produced
-    ethanol_produced = corn_available * ethanol_per_bushel
-
-    # Update ethanol inventory
-    ethanol_inventory[i] = ethanol_inventory[i-1] + ethanol_produced - daily_ethanol_consumption
-    if ethanol_inventory[i] < 0:
-        ethanol_inventory[i] = 0
-
-# Detect when ethanol inventory falls below threshold
-threshold = 1e7  # 10 million gallons
-zero_day_index = next((i for i, inv in enumerate(ethanol_inventory) if inv <= threshold), None)
-
-if zero_day_index is not None:
-    zero_date = dates[zero_day_index]
-    print(f"Ethanol inventory falls below {threshold} gallons on {zero_date.strftime('%Y-%m-%d')}")
-else:
-    print("Ethanol inventory stays above threshold during simulation.")
-
-# === Plot results ===
-plt.figure(figsize=(14,8))
-
-plt.subplot(2,1,1)
-plt.plot(dates, corn_inventory/1e9, label='Corn Inventory (billion bushels)')
-plt.axvline(crop_loss_date, color='red', linestyle='--', label='Crop Loss Event')
-plt.title('Corn Inventory Starting July 31, 2025')
-plt.ylabel('Inventory (billion bushels)')
-plt.legend()
-plt.grid(True)
-
-plt.subplot(2,1,2)
-plt.plot(dates, ethanol_inventory/1e9, label='Ethanol Inventory (billion gallons)', color='orange')
-plt.axvline(crop_loss_date, color='red', linestyle='--', label='Crop Loss Event')
-plt.title('Ethanol Inventory Starting July 31, 2025')
-plt.ylabel('Inventory (billion gallons)')
-plt.legend()
-plt.grid(True)
-
-plt.tight_layout()
-plt.show()
+# Example usage
+naval_energy_scaling_model(trip_km=1000000, beam_m=10, grain_cm=1)
