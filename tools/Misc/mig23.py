@@ -11,7 +11,7 @@ def angle_diff(a, b):
     diff = (a - b + 180) % 360 - 180
     return diff
 
-maxtime = 600
+maxtime = 400
 
 # --- Radar class ---
 class Radar:
@@ -34,7 +34,7 @@ class Radar:
         rcs_factor = target_rcs / 5.0
         detection_chance *= min(2.0, rcs_factor)
         detection_chance *= (1 - self.jamming_level)
-        detection_chance = max(0.0, min(1.0, detection_chance))
+        detection_chance = max(1.0, min(1.0, detection_chance))
         return random.random() < detection_chance
 
 class EnemyAircraft:
@@ -111,7 +111,7 @@ class Missile:
 
         # Check for hit (within 0.2 km)
         if self._distance_to_point(self.target.position) < 0.2:
-            hit_chance = 0.8
+            hit_chance = 1
             if random.random() < hit_chance:
                 print(f"Missile from {self.launcher.name} hit {self.target.id}!")
                 deadtargets.setdefault(self.target.id)
@@ -146,10 +146,10 @@ class MiG25:
         self.command_failure_chance = 0.1
         self.current_missile = None
         self.evasive = False
-        self.evasive_time = 0
+        self.evasive_time = 10
         self.alive=1
 
-        self.radar = Radar(max_range_km=60, base_detection_prob=0.95)
+        self.radar = Radar(max_range_km=60, base_detection_prob=0.8)
 
     def set_jamming(self, level):
         self.radar.set_jamming_level(level)
@@ -204,7 +204,7 @@ class MiG25:
         self.current_missile = Missile(self, target)
         print(f"{self.name} launched missile at {target.id}")
         self.evasive = True
-        self.evasive_time = 10
+        self.evasive_time = 0
         self.fuel -= 500
         return True
 
@@ -346,6 +346,15 @@ class GlideBomb:
                          self.position[1] + dy / dist * move_dist)
 
 
+
+def heading_east_zero(x1, y1, x2, y2):
+    dx = x2 - x1
+    dy = y2 - y1
+    angle_rad = math.atan2(dy, dx)  # atan2 gives 0° = East
+    angle_deg = math.degrees(angle_rad)
+    heading = (angle_deg + 360) % 360
+    return heading
+    
 class MiG27:
     def __init__(self, name):
         self.name = name
@@ -370,16 +379,31 @@ class MiG27:
         if alive_targets:
             self.target_ground = random.choice(alive_targets)
             print(f"{self.name} selected ground target {self.target_ground.id}")
+        else:
+         	self.rtb_mode=True
+         	return
+
 
     def attack_ground_target(self):
-        if self.target_ground and self.fuel > 0:
+        
+        
+        if self.target_ground and self.fuel > 0 and len(self.glide_bombs)<1:
             bomb = GlideBomb(position=self.position, target=self.target_ground)
             self.glide_bombs.append(bomb)
             print(f"{self.name} launched glide bomb at {self.target_ground.id}")
-            self.fuel -= 100  # bomb launch fuel cost
+            self.fuel -= 100 # bomb launch fuel cost
             self.weapons_fired += 1
 
     def update(self, time_sec=1):
+        targx=self.target_ground.position[0]
+        targy=self.target_ground.position[1]
+        
+        px=self.position[0]
+        py=self.position[1]
+        
+        self.heading=heading_east_zero(px,py,targx,targy)
+       
+
         if self.fuel <= 0:
             self.speed = 0
             self.rtb_mode = True
@@ -409,12 +433,12 @@ def generate_debrief(migs, enemies, ground_targets, starten,sams):
     total_weapons_fired = sum(m.weapons_fired for m in migs)
     total_rtb = sum(1 for m in migs if m.rtb_mode or m.fuel <= 0 or m.speed == 0)
 
-    enemy_kills = sum(1 for e in enemies if not e.alive)
+    
     ground_kills = sum(1 for g in ground_targets if not g.alive)
 
     print(f"Total Sorties: {total_sorties}")
     print(f"Enemy Aircraft Destroyed: {starten-len(enemies)} / {starten}")
-    print(f"Ground Targets Destroyed: {ground_kills} / {len(ground_targets) + ground_kills}")
+    print(f"Ground Targets Destroyed: {ground_kills} / {len(ground_targets)}")
     print(f"Total Weapons Fired: {total_weapons_fired}")
     print(f"Sorties that Returned to Base or Landed: {total_rtb} / {total_sorties}")
 
@@ -441,7 +465,7 @@ def generate_debrief(migs, enemies, ground_targets, starten,sams):
     print("\n=== END OF DEBRIEF ===")
 
 class GroundDefense:
-    def __init__(self, name, position, detection_range_km, fire_range_km, cooldown_time, hit_chance=0.5):
+    def __init__(self, name, position, detection_range_km, fire_range_km, cooldown_time, hit_chance=0.1):
         self.name = name
         self.position = position
         self.detection_range_km = detection_range_km
@@ -482,8 +506,8 @@ def main():
 
     # Initialize SAM ground defenses
     sams = [
-        GroundDefense("SAM1", (25, 5), detection_range_km=40, fire_range_km=10, cooldown_time=100, hit_chance=0.65),
-        GroundDefense("SAM2", (35, -10), detection_range_km=35, fire_range_km=8, cooldown_time=80, hit_chance=0.6),
+        GroundDefense("SAM1", (25, 5), detection_range_km=40, fire_range_km=10, cooldown_time=100, hit_chance=0),
+        GroundDefense("SAM2", (35, -10), detection_range_km=35, fire_range_km=8, cooldown_time=80, hit_chance=0),
     ]
 
     max_time = maxtime  # seconds
