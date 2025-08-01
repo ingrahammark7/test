@@ -1,44 +1,53 @@
-import math
+import numpy as np
+import pandas as pd
 
-def naval_energy_scaling_model(trip_km, beam_m, grain_cm):
-    # Constants
-    sea_energy_density = 1000  # W/m²
-    water_density = 1000  # kg/m³
-    hvl_thickness_m = grain_cm / 100  # grain size in meters (vertical thickness)
+# Parameters
+starting_inventory = 600e6  # bushels at Jan 2025
+acres_planted = 34.1e6
+average_yield = 50  # bushels per acre
+good_condition_pct = 0.54
+annual_demand = 1_150e6
+monthly_demand = annual_demand / 12
+loss_factors = [0.1, 0.2, 0.3]  # yield loss scenarios
+storage_loss_pct = 0.005  # 0.5% monthly storage loss (example)
 
-    # 1. Total interaction area
-    trip_m = trip_km * 1000
-    area_m2 = trip_m * beam_m
+# Months from Jan 2025 to Dec 2026
+months = pd.date_range(start='2025-01-01', end='2026-12-31', freq='MS')
 
-    # 2. Total energy intercepted (in Joules, over 1 second)
-    total_energy_j = area_m2 * sea_energy_density  # since energy rate is per second
+# Distribute production across harvest months (Jun, Jul, Aug)
+harvest_months = [6, 7, 8]
+production_total = acres_planted * average_yield * good_condition_pct
 
-    # 3. Mass of water interacting in the HVL
-    volume_m3 = area_m2 * hvl_thickness_m
-    mass_kg = volume_m3 * water_density
+# Production split fraction for harvest months
+production_per_month_fraction = 1 / len(harvest_months)
 
-    # 4. Grain-based base velocity (v ∝ 1/√grain_size)
-    # Assume 10 m/s at 1 cm grain size
-    v_base = 10 * math.sqrt(1 / grain_cm)
+# Function to run monthly inventory model for a given loss factor
+def run_monthly_model(loss_factor):
+    production_after_loss = production_total * (1 - loss_factor)
+    monthly_production = {month: 0 for month in months}
+    
+    for month in months:
+        if month.month in harvest_months:
+            monthly_production[month] = production_after_loss * production_per_month_fraction
+    
+    inventory = starting_inventory
+    records = []
+    
+    for month in months:
+        inventory += monthly_production[month]      # Add production if any
+        inventory -= monthly_demand                  # Subtract monthly demand
+        inventory -= inventory * storage_loss_pct   # Subtract storage loss
+        inventory = max(inventory, 0)                # Prevent negative inventory
+        
+        records.append({'Month': month.strftime('%Y-%m'),
+                        'Inventory (Million Bushels)': inventory / 1e6,
+                        'Production (Million Bushels)': monthly_production[month] / 1e6,
+                        'Demand (Million Bushels)': monthly_demand / 1e6})
+    
+    return pd.DataFrame(records)
 
-    # 5. Resulting energy-concentrated velocity
-    # KE = 0.5 * m * v² → solve for v:
-    concentrated_velocity = math.sqrt(2 * total_energy_j)/(water_density*hvl_thickness_m)
-    if(concentrated_velocity>200):
-    	maxen=(hvl_thickness_m*water_density*200*200*.5)
-    	per_m=total_energy_j/maxen
-    	print("speed capped at 200m/s")    	
-    	print("over ", per_m,"m2")
-
-    print("Trip distance:", trip_km, "km")
-    print("Beam width:", beam_m, "m")
-    print("Grain size:", grain_cm, "cm")
-    print("Water layer (HVL):", round(hvl_thickness_m, 4), "m")
-    print("Total area:", f"{area_m2:,.0f}", "m²")
-    print("Interacting mass:", f"{mass_kg:,.0f}", "kg")
-    print("Total intercepted energy:", f"{total_energy_j:,.0f}", "J")
-    print("Base wave velocity (at grain scale):", round(v_base, 2), "m/s")
-    print("Concentrated wave velocity (energy-equivalent):", round(concentrated_velocity, 2), "m/s")
-
-# Example usage
-naval_energy_scaling_model(trip_km=1000000, beam_m=10, grain_cm=1)
+# Run model and print results for each loss factor
+for lf in loss_factors:
+    print(f"\n--- Inventory Projection with {int(lf*100)}% Yield Loss ---")
+    df = run_monthly_model(lf)
+    print(df.to_string(index=False))
