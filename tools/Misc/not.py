@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Notice of Proposed Order"  # Title of the paper
+        footer_text = "Request for Order"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -70,7 +70,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     case_title = [
         "Mark Ingraham,",
-        "Plaintiff and petitioner,",
+        "Plaintiff and Petitioner,",
         "vs",
         "Los Angeles Police Department",
         "Respondent and Defendant.",        
@@ -105,16 +105,17 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "NOTICE OF PROPOSED ORDER")
+    c.drawString(left_margin, y_position - 0.25* inch, "REQUEST FOR ORDER")
     c.setFont("Times-Roman",12)
     intro_text = [
-        "1. An order is requested to prevent destruction of evidence.",
-        "2. The following measures are requested.",
-        "3. My requests in the ExtraSpace Storage case should be granted.",
-        "4. My access to the storage unit should be guaranteed.",
-       "5. All services should be provided for free and all objections to my access should be quashed.",
-       "6. Those obstructing the order are recommended for arrest and deportation.",
-       "7. Same order as above for mailbox at address on complaint.",
+        "1. I requested an order to prohibit defendant from arresting me.",
+        "2. Judge denied order.",
+        "3. In that case I can order defendant deported.",
+        "4. Most of the LAPD is illegal immigrants.",
+        "5. Most officers of the LAPD are eligible for deportation.",
+        "6. The remaining officers are bereft of citizenship by treason and also eligible for deportation.",
+        "7. All officers of the LAPD are excellent candidates for deportation.",
+        "8. Judge should issue order confirming that LAPD is eligible for deportation.",
         ]
     y_position -= .5*inch
     for line in intro_text:
