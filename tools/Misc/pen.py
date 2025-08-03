@@ -155,7 +155,7 @@ def getdu():
     du=Material(
     name="Uranium",
     molar_mass_g_mol=238,
-    density_kg_m3=1950,
+    density_kg_m3=19500,
     atomic_radius_m=175e-12,
     atomic_number=92,
     cohesive_energy_ev=5.06,
