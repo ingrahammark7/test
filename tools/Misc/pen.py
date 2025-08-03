@@ -136,9 +136,7 @@ class Material:
             return round_energy_mj / (self.base_hvl_cm ** 2)
         return round_energy_mj / ((round_diameter_cm/self.base_hvl_cm) ** 2)
 
-
-# Example usage:
-if __name__ == "__main__":
+def getsteel():
     steel = Material(
         name="Iron (Steel)",
         molar_mass_g_mol=55.85,
@@ -150,7 +148,10 @@ if __name__ == "__main__":
         material_energy_density_mj_per_hvl=1,
         weak_factor=1
     )
-
+    steel.material_energy_density_mj_per_hvl=estfix(steel)
+    return steel
+    
+def getdu():
     du=Material(
     name="Uranium",
     molar_mass_g_mol=238,
@@ -162,12 +163,22 @@ if __name__ == "__main__":
     material_energy_density_mj_per_hvl=1,
     weak_factor=3
     )
-    
-    def estfix(self):
-    	return (self.j_high_estimate*self.hvl_mass_kg()/(10**6))
-    	
-    steel.material_energy_density_mj_per_hvl=estfix(steel)
     du.material_energy_density_mj_per_hvl=estfix(du)
+    return du
+
+    	
+
+def estfix(self):
+    	return (self.j_high_estimate*self.hvl_mass_kg()/(10**6))	
+
+# Example usage:
+if __name__ == "__main__":
+
+
+    
+    
+    steel=getsteel()
+    du=getdu()	
     steel.print_summary()
     round_energy = 10  # MJ
     round_diameter = 2.2  # cm
