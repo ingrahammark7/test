@@ -27,7 +27,7 @@ dr = r[1] - r[0]
 def woods_saxon(r):
     return -V0 / (1 + np.exp((r - R) / a))
 
-# Numerical derivative of Woods-Saxon for spin-orbit term
+# Numerical derivative of Woods–Saxon for spin-orbit term
 def dV_dr(r):
     delta = 1e-3
     return (woods_saxon(r + delta) - woods_saxon(r - delta)) / (2 * delta)
@@ -57,92 +57,142 @@ def radial_hamiltonian(l, j):
     
     return diag, offdiag
 
-# Solve radial equation for given l,j: eigenenergies and wavefunctions
-def solve_radial(l, j, n_levels=5):
+# Coulomb potential for protons (uniform charged sphere approx)
+def coulomb_potential(r, Z):
+    e2 = 1.44  # MeV·fm (elementary charge squared)
+    Rc = R  # charge radius approx nuclear radius
+    Vc = np.zeros_like(r)
+    inside = r < Rc
+    outside = ~inside
+    Vc[inside] = (e2 * Z / (2*Rc)) * (3 - (r[inside]/Rc)**2)
+    Vc[outside] = e2 * Z / r[outside]
+    return Vc
+
+# Proton radial Hamiltonian includes Coulomb potential
+def radial_hamiltonian_proton(l, j, Z):
+    diag, offdiag = radial_hamiltonian(l, j)
+    Vc = coulomb_potential(r, Z)
+    diag += Vc
+    return diag, offdiag
+
+# Solve radial eq for neutrons
+def solve_radial_neutron(l, j, n_levels=5):
     diag, offdiag = radial_hamiltonian(l, j)
     energies, vecs = eigh_tridiagonal(diag, offdiag)
     bound_idx = np.where(energies < 0)[0]
     bound_idx = bound_idx[:n_levels]
     return energies[bound_idx], vecs[:, bound_idx]
 
-# Calculate and collect energy levels for l=0..4 and corresponding j
-def compute_levels(max_l=4):
+# Solve radial eq for protons
+def solve_radial_proton(l, j, Z, n_levels=5):
+    diag, offdiag = radial_hamiltonian_proton(l, j, Z)
+    energies, vecs = eigh_tridiagonal(diag, offdiag)
+    bound_idx = np.where(energies < 0)[0]
+    bound_idx = bound_idx[:n_levels]
+    return energies[bound_idx], vecs[:, bound_idx]
+
+# Compute neutron levels
+def compute_levels_neutrons(max_l=4):
     levels = []
     for l in range(max_l+1):
         js = [l + 0.5]
         if l > 0:
             js.append(l - 0.5)
         for j in js:
-            energies, _ = solve_radial(l, j, n_levels=5)
+            energies, _ = solve_radial_neutron(l, j, n_levels=5)
             for e in energies:
                 levels.append({'E': e, 'l': l, 'j': j})
     levels.sort(key=lambda x: x['E'])
     return levels
 
-# Pauli filling: 2 nucleons per level
+# Compute proton levels with Coulomb
+def compute_levels_protons(Z, max_l=4):
+    levels = []
+    for l in range(max_l+1):
+        js = [l + 0.5]
+        if l > 0:
+            js.append(l - 0.5)
+        for j in js:
+            energies, _ = solve_radial_proton(l, j, Z, n_levels=5)
+            for e in energies:
+                levels.append({'E': e, 'l': l, 'j': j})
+    levels.sort(key=lambda x: x['E'])
+    return levels
+
+# Automatic magic number detection based on gaps > threshold (MeV)
+def find_magic_numbers(levels, threshold=3.0):
+    energies = np.array([lvl['E'] for lvl in levels])
+    gaps = energies[1:] - energies[:-1]
+    magic_idxs = np.where(gaps > threshold)[0]
+    magic_numbers = [2*(i+1) for i in magic_idxs]  # 2 nucleons per level (spin degeneracy)
+    print("Detected magic numbers and gap sizes (MeV):")
+    for n, g in zip(magic_numbers, gaps[magic_idxs]):
+        print(f"Magic number: {n}, gap: {g:.2f} MeV")
+    return magic_numbers, gaps[magic_idxs]
+
+# Fill levels applying Pauli principle (2 nucleons max per level)
 def fill_levels(levels, N_nucleons):
-    filled_levels = []
     remaining = N_nucleons
-    for level in levels:
-        capacity = 2  # spin degeneracy
+    for lvl in levels:
+        capacity = 2
         if remaining <= 0:
-            level['occupied'] = 0
+            lvl['occupied'] = 0
         elif remaining >= capacity:
-            level['occupied'] = capacity
+            lvl['occupied'] = capacity
             remaining -= capacity
         else:
-            level['occupied'] = remaining
+            lvl['occupied'] = remaining
             remaining = 0
-        filled_levels.append(level)
-    return filled_levels
+    return levels
 
-# Simple pairing correction (BCS-like): lowers energy by pairing gap Δ for pairs occupied
-def pairing_correction(levels, delta=1.0):  # MeV, typical pairing gap
-    corrected_levels = []
-    for lvl in levels:
-        pairs = lvl['occupied'] // 2
-        corr_E = lvl['E'] - pairs * delta
-        lvl_corr = lvl.copy()
-        lvl_corr['E_corr'] = corr_E
-        corrected_levels.append(lvl_corr)
-    return corrected_levels
-
-# Plot levels and occupation
-def plot_levels(levels, title="Nuclear Single Particle Levels"):
+# Plotting single particle levels with occupation
+def plot_levels(levels, title="Single Particle Levels"):
     plt.figure(figsize=(10, 8))
     y_vals = [lvl['E'] for lvl in levels]
     occ = [lvl.get('occupied', 0) for lvl in levels]
     labels = [f"l={lvl['l']} j={lvl['j']:.1f}" for lvl in levels]
     
     for i, (y, o) in enumerate(zip(y_vals, occ)):
-        color = 'C0' if o == 0 else ('C1' if o == 1 else 'C2')
+        color = 'gray'
+        if o == 2:
+            color = 'blue'
+        elif o == 1:
+            color = 'orange'
         plt.hlines(y, 0, 1, colors=color, linewidth=2)
         plt.text(1.05, y, labels[i], verticalalignment='center')
         if o > 0:
-            plt.scatter([0.5]*o, [y]*o, color=color, s=30)
+            plt.scatter([0.5]*o, [y]*o, color=color, s=40, zorder=5)
     
     plt.xlabel("")
     plt.xticks([])
     plt.ylabel("Energy (MeV)")
     plt.title(title)
     plt.grid(True, axis='y')
+    plt.xlim(-0.1, 1.5)
     plt.show()
 
-# Main run for a nucleus
-N_protons = 20
-N_neutrons = 20
+# --- Main Program ---
 
-# Compute single-particle levels
-levels = compute_levels(max_l=4)
+# Example: Ca-40 (Z=20 protons, N=20 neutrons)
+Z = 20
+N_n = 20
 
-# Fill levels with neutrons and protons separately (same spectrum assumed)
-filled_levels_neutrons = fill_levels(levels, N_neutrons)
-filled_levels_protons = fill_levels(levels, N_protons)
+print("Computing neutron levels...")
+levels_n = compute_levels_neutrons()
 
-# Apply pairing corrections
-paired_neutrons = pairing_correction(filled_levels_neutrons, delta=1.2)
-paired_protons = pairing_correction(filled_levels_protons, delta=1.0)
+print("Computing proton levels (with Coulomb)...")
+levels_p = compute_levels_protons(Z)
 
-# Plot neutron and proton levels side by side
-plot_levels(paired_neutrons, title="Neutron Single Particle Levels (Ca-40)")
-plot_levels(paired_protons, title="Proton Single Particle Levels (Ca-40)")
+print("\nNeutron magic numbers:")
+find_magic_numbers(levels_n)
+
+print("\nProton magic numbers:")
+find_magic_numbers(levels_p)
+
+# Fill levels
+levels_n = fill_levels(levels_n, N_n)
+levels_p = fill_levels(levels_p, Z)
+
+# Plot
+plot_levels(levels_n, title="Neutron Single Particle Levels (Ca-40)")
+plot_levels(levels_p, title="Proton Single Particle Levels (Ca-40)")
