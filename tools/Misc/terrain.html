@@ -1,412 +1,111 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Three.js Aircraft Simulation Expanded Area</title>
-<style>
-  body { margin: 0; overflow: hidden; background: #202025; color: #eee; font-family: sans-serif; }
-  #info {
-    position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5);
-    padding: 10px; border-radius: 5px; max-width: 300px; font-size: 14px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Nuclear Physics Simulator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #0a0a0a;
+      color: #eee;
+      padding: 1em;
+    }
+    button {
+      padding: 1em;
+      font-size: 1.1em;
+      margin: 1em 0;
+      background-color: #00c853;
+      color: white;
+      border: none;
+      border-radius: 6px;
+    }
+    pre {
+      white-space: pre-wrap;
+      background: #1e1e1e;
+      padding: 1em;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
 </head>
 <body>
-<div id="info">
-  <div>Active Friendlies: <span id="friendlyCount">0</span></div>
-  <div>Active Enemies: <span id="enemyCount">0</span></div>
-  <div>Missiles Launched: <span id="missileCount">0</span></div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script>
-// === Setup ===
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x202025, 0.007);
+  <h1>Maximal Nuclear Physics Engine</h1>
+  <button onclick="runSimulation()">Run Simulation</button>
+  <pre id="output">Results will appear here...</pre>  <script>
+    function runSimulation() {
+      const output = document.getElementById("output");
+      output.textContent = "Running advanced simulation...\n";
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(80, 40, 80);
+      try {
+        const Z = 92; // Uranium
+        const N = 146; // Neutrons
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x202025);
-document.body.appendChild(renderer.domElement);
+        function bindingEnergy(Z, N) {
+          const A = Z + N;
+          const volumeTerm = 15.8 * A;
+          const surfaceTerm = -18.3 * Math.pow(A, 2/3);
+          const coulombTerm = -0.714 * Z * (Z - 1) / Math.pow(A, 1/3);
+          const asymmetryTerm = -23.2 * Math.pow(N - Z, 2) / A;
+          const pairingTerm = (Z % 2 === 0 && N % 2 === 0) ? 12 / Math.sqrt(A) : (Z % 2 === 1 && N % 2 === 1) ? -12 / Math.sqrt(A) : 0;
+          return volumeTerm + surfaceTerm + coulombTerm + asymmetryTerm + pairingTerm;
+        }
 
-// Lights
-const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-dirLight.position.set(50, 100, 50);
-dirLight.castShadow = true;
-scene.add(dirLight);
+        function shellCorrection(Z, N) {
+          return 5 * Math.sin(0.1 * Z) + 5 * Math.sin(0.1 * N);
+        }
 
-const ambLight = new THREE.AmbientLight(0x404040);
-scene.add(ambLight);
+        function pairingBCS(N, Z) {
+          const delta = 12 / Math.sqrt(N + Z);
+          return delta * Math.cos((N - Z) * 0.1);
+        }
 
-// === Terrain ===
-const terrainGeo = new THREE.PlaneGeometry(400, 400, 40, 40);
-terrainGeo.rotateX(-Math.PI/2);
-for (let i=0; i < terrainGeo.attributes.position.count; i++) {
-  const y = (Math.sin(i*0.2)*Math.cos(i*0.4)) * 1.5;
-  terrainGeo.attributes.position.setY(i, y);
-}
-terrainGeo.computeVertexNormals();
+        function betaDecayHalfLife(Z, N) {
+          const Q = 0.782 - (Z - N) * 0.01;
+          return Q > 0 ? Math.exp(5 / Q) : Infinity;
+        }
 
-const terrainMat = new THREE.MeshStandardMaterial({color:0x283030, flatShading:true});
-const terrain = new THREE.Mesh(terrainGeo, terrainMat);
-terrain.receiveShadow = true;
-scene.add(terrain);
+        function rmfPotential(Z, N) {
+          return 40 + 10 * Math.sin(Z * 0.2) - 5 * Math.cos(N * 0.15);
+        }
 
-// === Helpers ===
-function dist2D(a, b) {
-  return Math.sqrt( (a.x - b.x)**2 + (a.z - b.z)**2 );
-}
+        function skyrmeEnergyDensity(Z, N) {
+          const A = Z + N;
+          return (Z * N) / A * (1 - Math.exp(-A / 100));
+        }
 
-function lerp(a,b,t){ return a + (b - a)*t; }
+        function simulateDecayChain(Z, N, steps) {
+          let result = [];
+          for (let i = 0; i < steps; i++) {
+            const be = bindingEnergy(Z, N).toFixed(2);
+            const beta = betaDecayHalfLife(Z, N).toFixed(2);
+            result.push(`Z=${Z} N=${N} BE=${be} BetaHalfLife=${beta}s`);
+            if (Z > 1) Z--;
+            N++;
+          }
+          return result;
+        }
 
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
+        const be = bindingEnergy(Z, N);
+        const shell = shellCorrection(Z, N);
+        const pairing = pairingBCS(N, Z);
+        const halfLife = betaDecayHalfLife(Z, N);
+        const rmf = rmfPotential(Z, N);
+        const skyrme = skyrmeEnergyDensity(Z, N);
+        const decayChain = simulateDecayChain(Z, N, 5);
 
-// === Models === (same as before)
-function createAircraftModel(isFriendly) {
-  const group = new THREE.Group();
-  const fuselageGeo = new THREE.CylinderGeometry(0.5, 0.7, 6, 8);
-  const fuselageMat = new THREE.MeshStandardMaterial({color: isFriendly ? 0x3399ff : 0xff3333});
-  const fuselage = new THREE.Mesh(fuselageGeo, fuselageMat);
-  fuselage.castShadow = true;
-  fuselage.rotation.z = Math.PI/2;
-  group.add(fuselage);
-
-  const wingGeo = new THREE.BoxGeometry(6, 0.1, 1.5);
-  const wingMat = new THREE.MeshStandardMaterial({color: 0x222222});
-  const wings = new THREE.Mesh(wingGeo, wingMat);
-  wings.position.set(0, 0, 0);
-  wings.castShadow = true;
-  group.add(wings);
-
-  const tailGeo = new THREE.BoxGeometry(1, 2, 0.1);
-  const tail = new THREE.Mesh(tailGeo, wingMat);
-  tail.position.set(-2.5, 1.3, 0);
-  tail.castShadow = true;
-  group.add(tail);
-
-  const noseGeo = new THREE.ConeGeometry(0.5, 1, 8);
-  const nose = new THREE.Mesh(noseGeo, fuselageMat);
-  nose.position.set(3, 0, 0);
-  nose.rotation.z = Math.PI/2;
-  nose.castShadow = true;
-  group.add(nose);
-
-  return group;
-}
-
-function createMissileModel() {
-  const group = new THREE.Group();
-
-  const bodyGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.5, 6);
-  const bodyMat = new THREE.MeshStandardMaterial({color: 0xffaa00});
-  const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.rotation.z = Math.PI/2;
-  group.add(body);
-
-  const noseGeo = new THREE.ConeGeometry(0.15, 0.3, 6);
-  const nose = new THREE.Mesh(noseGeo, bodyMat);
-  nose.position.set(0.9, 0, 0);
-  nose.rotation.z = Math.PI/2;
-  group.add(nose);
-
-  return group;
-}
-
-// === Entities ===
-const PLAY_AREA_LIMIT = 180; // +/- X,Z bounds from center (0,0)
-
-class Aircraft {
-  constructor(name, isFriendly, position) {
-    this.name = name;
-    this.isFriendly = isFriendly;
-    this.position = position.clone();
-    this.heading = Math.random()*360; // degrees
-    this.speed = isFriendly ? 120 : 100; // units/sec approx
-
-    this.mesh = createAircraftModel(isFriendly);
-    this.mesh.position.copy(this.position);
-    scene.add(this.mesh);
-
-    this.weaponsFired = 0;
-    this.alive = true;
-    this.currentTarget = null;
-    this.missiles = [];
-
-    this.turnSpeed = 60; // deg/sec max turning rate
-  }
-
-  update(delta) {
-    if (!this.alive) return;
-
-    // Boundary avoidance: steer gently back if near edge
-    const margin = 20;
-    if (this.position.x > PLAY_AREA_LIMIT - margin) this.heading = this.turnToward(this.heading, 180, delta);
-    else if (this.position.x < -PLAY_AREA_LIMIT + margin) this.heading = this.turnToward(this.heading, 0, delta);
-    if (this.position.z > PLAY_AREA_LIMIT - margin) this.heading = this.turnToward(this.heading, 270, delta);
-    else if (this.position.z < -PLAY_AREA_LIMIT + margin) this.heading = this.turnToward(this.heading, 90, delta);
-
-    // Movement: turn toward target if any and alive
-    if (this.currentTarget && this.currentTarget.alive) {
-      const targetDir = new THREE.Vector3().subVectors(this.currentTarget.position, this.position);
-      targetDir.y = 0;
-      const desiredHeading = THREE.MathUtils.radToDeg(Math.atan2(targetDir.z, targetDir.x));
-      this.heading = this.turnToward(this.heading, desiredHeading, delta);
-
-      // Fire missile if in range and none active
-      const dist = dist2D(this.position, this.currentTarget.position);
-      if (dist < 30 && this.missiles.length === 0) {
-        this.launchMissile();
+        output.textContent += `Z=${Z} N=${N}\n`;
+        output.textContent += `Binding Energy: ${be.toFixed(2)} MeV\n`;
+        output.textContent += `Shell Correction: ${shell.toFixed(2)} MeV\n`;
+        output.textContent += `Pairing (BCS): ${pairing.toFixed(2)} MeV\n`;
+        output.textContent += `Beta Decay Half-Life: ${halfLife.toFixed(2)} s\n`;
+        output.textContent += `RMF Potential: ${rmf.toFixed(2)} MeV\n`;
+        output.textContent += `Skyrme Energy Density: ${skyrme.toFixed(2)} MeV\n\n`;
+        output.textContent += `Decay Chain Simulation:\n${decayChain.join("\n")}\n`;
+      } catch (err) {
+        output.textContent += `Error: ${err.message}`;
       }
     }
 
-    // Move forward
-    const rad = THREE.MathUtils.degToRad(this.heading);
-    this.position.x += Math.cos(rad) * this.speed * delta;
-    this.position.z += Math.sin(rad) * this.speed * delta;
-    this.mesh.position.copy(this.position);
-    this.mesh.rotation.y = -rad + Math.PI/2;
-
-    // Update missiles
-    this.missiles = this.missiles.filter(m => m.alive);
-    this.missiles.forEach(m => m.update(delta));
-  }
-
-  turnToward(current, target, delta) {
-    let diff = target - current;
-    diff = ((diff + 180) % 360) - 180; // clamp -180 to 180
-    const maxTurn = this.turnSpeed * delta;
-    if (Math.abs(diff) > maxTurn) {
-      current += maxTurn * Math.sign(diff);
-    } else {
-      current = target;
-    }
-    return (current + 360) % 360;
-  }
-
-  launchMissile() {
-    if (!this.currentTarget || !this.currentTarget.alive) return;
-    const missile = new Missile(this, this.currentTarget);
-    this.missiles.push(missile);
-    this.weaponsFired++;
-  }
-
-  destroy() {
-    this.alive = false;
-    scene.remove(this.mesh);
-    this.missiles.forEach(m => m.destroy());
-  }
-}
-
-class Missile {
-  constructor(launcher, target) {
-    this.launcher = launcher;
-    this.target = target;
-    this.position = launcher.position.clone();
-    this.speed = 250;
-    this.alive = true;
-
-    this.mesh = createMissileModel();
-    this.mesh.position.copy(this.position);
-    scene.add(this.mesh);
-
-    this.heading = launcher.heading;
-    this.turnSpeed = 180;
-  }
-
-  update(delta) {
-    if (!this.alive || !this.target.alive) {
-      this.destroy();
-      return;
-    }
-
-    const targetDir = new THREE.Vector3().subVectors(this.target.position, this.position);
-    targetDir.y = 0;
-    const desiredHeading = THREE.MathUtils.radToDeg(Math.atan2(targetDir.z, targetDir.x));
-    this.heading = this.turnToward(this.heading, desiredHeading, delta);
-
-    const rad = THREE.MathUtils.degToRad(this.heading);
-    this.position.x += Math.cos(rad) * this.speed * delta;
-    this.position.z += Math.sin(rad) * this.speed * delta;
-    this.mesh.position.copy(this.position);
-    this.mesh.rotation.y = -rad + Math.PI/2;
-
-    if (dist2D(this.position, this.target.position) < 1) {
-      if (Math.random() < 0.8) {
-        this.target.destroy();
-      }
-      this.destroy();
-    }
-  }
-
-  turnToward(current, target, delta) {
-    let diff = target - current;
-    diff = ((diff + 180) % 360) - 180;
-    const maxTurn = this.turnSpeed * delta;
-    if (Math.abs(diff) > maxTurn) {
-      current += maxTurn * Math.sign(diff);
-    } else {
-      current = target;
-    }
-    return (current + 360) % 360;
-  }
-
-  destroy() {
-    this.alive = false;
-    scene.remove(this.mesh);
-  }
-}
-
-// === Scenario Setup ===
-
-const friendlies = [];
-const enemies = [];
-const allAircraft = [];
-
-// Spawn friendlies spread out within larger zone
-for (let i=0; i<4; i++) {
-  const pos = new THREE.Vector3(
-    THREE.MathUtils.randFloat(-PLAY_AREA_LIMIT * 0.5, -PLAY_AREA_LIMIT * 0.3),
-    0,
-    THREE.MathUtils.randFloat(-PLAY_AREA_LIMIT * 0.7, PLAY_AREA_LIMIT * 0.7)
-  );
-  const ac = new Aircraft(`Friend_${i+1}`, true, pos);
-  friendlies.push(ac);
-  allAircraft.push(ac);
-}
-
-// Spawn enemies in mirrored zone
-for (let i=0; i<5; i++) {
-  const pos = new THREE.Vector3(
-    THREE.MathUtils.randFloat(PLAY_AREA_LIMIT * 0.3, PLAY_AREA_LIMIT * 0.5),
-    0,
-    THREE.MathUtils.randFloat(-PLAY_AREA_LIMIT * 0.7, PLAY_AREA_LIMIT * 0.7)
-  );
-  const ac = new Aircraft(`Enemy_${i+1}`, false, pos);
-  enemies.push(ac);
-  allAircraft.push(ac);
-}
-
-// Target assignment
-function assignTargets() {
-  friendlies.forEach(f => {
-    let closest = null, minDist = Infinity;
-    enemies.forEach(e => {
-      if (e.alive) {
-        const d = dist2D(f.position, e.position);
-        if (d < minDist) { minDist = d; closest = e; }
-      }
-    });
-    f.currentTarget = closest;
-  });
-  enemies.forEach(e => {
-    let closest = null, minDist = Infinity;
-    friendlies.forEach(f => {
-      if (f.alive) {
-        const d = dist2D(e.position, f.position);
-        if (d < minDist) { minDist = d; closest = f; }
-      }
-    });
-    e.currentTarget = closest;
-  });
-}
-
-// === Camera Logic ===
-
-let currentFocus = null;
-let focusHoldEndTime = 0;
-const FOCUS_HOLD_DURATION = 7000; // now 7 seconds
-const CAMERA_DISTANCE = 40;
-const CAMERA_HEIGHT = 15;
-const CAMERA_LERP = 0.06;
-
-function chooseFocus() {
-  const engaged = allAircraft.filter(ac =>
-    ac.alive && ac.currentTarget && ac.currentTarget.alive
-  );
-  if (engaged.length === 0) {
-    currentFocus = null;
-    return;
-  }
-  currentFocus = engaged[Math.floor(Math.random() * engaged.length)];
-  focusHoldEndTime = performance.now() + FOCUS_HOLD_DURATION;
-}
-
-function updateCamera(delta) {
-  if (!currentFocus || !currentFocus.alive || !currentFocus.currentTarget.alive || performance.now() > focusHoldEndTime) {
-    chooseFocus();
-  }
-  if (!currentFocus) {
-    // default slow orbit
-    const t = performance.now() * 0.00005;
-    camera.position.set(Math.sin(t)*90, 50, Math.cos(t)*90);
-    camera.lookAt(0,0,0);
-    return;
-  }
-  const attacker = currentFocus;
-  const target = currentFocus.currentTarget;
-
-  const attackerPos = attacker.position;
-  const targetPos = target.position;
-
-  const dir = new THREE.Vector3().subVectors(targetPos, attackerPos).normalize();
-  const behindPos = new THREE.Vector3().copy(attackerPos).addScaledVector(dir, -CAMERA_DISTANCE);
-  behindPos.y += CAMERA_HEIGHT;
-
-  // Lerp camera position smoothly
-  camera.position.lerp(behindPos, CAMERA_LERP);
-
-  // Look at midpoint between attacker and target, slightly elevated
-  const midpoint = new THREE.Vector3().addVectors(attackerPos, targetPos).multiplyScalar(0.5);
-  midpoint.y += 6;
-  camera.lookAt(midpoint);
-}
-
-// === UI ===
-const ui = {
-  friendlyCount: document.getElementById('friendlyCount'),
-  enemyCount: document.getElementById('enemyCount'),
-  missileCount: document.getElementById('missileCount')
-};
-
-// === Main loop ===
-let lastTime = performance.now();
-
-function animate() {
-  requestAnimationFrame(animate);
-  const now = performance.now();
-  const delta = (now - lastTime)/1000;
-  lastTime = now;
-
-  assignTargets();
-
-  allAircraft.forEach(ac => {
-    ac.update(delta);
-  });
-
-  updateCamera(delta);
-
-  // Update UI
-  ui.friendlyCount.textContent = friendlies.filter(f => f.alive).length;
-  ui.enemyCount.textContent = enemies.filter(e => e.alive).length;
-  let missilesTotal = 0;
-  allAircraft.forEach(a => missilesTotal += a.missiles.length);
-  ui.missileCount.textContent = missilesTotal;
-
-  renderer.render(scene, camera);
-}
-
-animate();
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-</script>
-</body>
+    window.onload = runSimulation;
+  </script></body>
 </html>
