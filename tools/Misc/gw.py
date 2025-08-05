@@ -1,203 +1,143 @@
-import math
+import numpy as np
 
-def estimate_max_speed(
-    rho_air,
-    t_flight,
-    T_ambient,
-    T_max,
-    C_h,
-    rho_mat,
-    c_mat,
-    thickness,
-    v_guess_low=100,
-    v_guess_high=2000,
-    tol=1e-2,
-    max_iter=100
-):
-    def delta_T(v):
-        q = C_h * (rho_air ** 0.5) * (v ** 3)
-        heat_capacity_area = rho_mat * c_mat * thickness
-        return q * t_flight / heat_capacity_area
+# Constants
+dt = 0.01  # timestep (s)
+rho = 1.225  # air density (kg/m3)
+g0 = 9.81  # gravity (m/s^2)
 
-    low, high = v_guess_low, v_guess_high
-    for _ in range(max_iter):
-        mid = (low + high) / 2
-        T_surface = T_ambient + delta_T(mid)
-        if abs(T_surface - T_max) < 0.1:
-            return mid
-        if T_surface > T_max:
-            high = mid
-        else:
-            low = mid
-        if high - low < tol:
-            break
-    return (low + high) / 2
+# Missile parameters
+missile_mass0 = 150  # kg initial
+missile_mass_fuel = 30  # kg fuel
+missile_mass = missile_mass0
+missile_area = 0.018  # m^2
+missile_cd = 0.3
+missile_thrust = 4000  # N
+burn_time = 5.0  # seconds
+max_g = 30
+Isp = 250  # s
 
-def missile_range_with_speed_limit(
-    m0, mp, thrust, burn_time, Cd, A, speed_limit, rho=1.225, v0=0
-):
-    mdot = mp / burn_time
-    m1 = m0 - mp
-    dt = 0.05  # timestep
-    t = 0
-    v = v0
-    x = 0
-    m = m0
+# Aircraft parameters
+aircraft_speed = 200  # m/s
+aircraft_g = 4  # lateral g-load for turn
+aircraft_mass = 10000  # kg (only for info)
+aircraft_cd = 0.02
+aircraft_area = 5.0  # m^2
 
-    max_burn_iter = int(burn_time / dt) + 10
-    for _ in range(max_burn_iter):
-        if t >= burn_time:
-            break
-        drag = 0.5 * rho * Cd * A * v ** 2
-        a = (thrust - drag) / m
-        v_new = v + a * dt
-        if v_new > speed_limit:
-            v_new = speed_limit
-            a = 0
-        v = v_new
-        x += v * dt
-        m -= mdot * dt
-        t += dt
+# Guidance parameters
+N_pn = 3.0
 
-    max_coast_iter = 2000
-    for _ in range(max_coast_iter):
-        if v <= 0:
-            break
-        drag = 0.5 * rho * Cd * A * v ** 2
-        a = -drag / m1
-        v_new = v + a * dt
-        if v_new < 0:
-            v_new = 0
-        if abs(v_new - v) < 1e-4:
-            break
-        v = v_new
-        x += v * dt
+# Initial conditions
+missile_pos = np.array([0.0, 0.0])
+missile_speed = 1360  # m/s (Mach ~4)
+missile_heading = 0.0
 
-    return x
+aircraft_pos = np.array([2000.0, 0.0])
+# Initialize aircraft velocity vector pointing north
+aircraft_vel = np.array([0.0, aircraft_speed])
 
-def air_density(altitude_m):
-    # Simplified barometric formula for troposphere (up to ~11 km)
-    if altitude_m < 11000:
-        T0 = 288.15  # sea level temp K
-        P0 = 101325  # sea level pressure Pa
-        L = 0.0065    # lapse rate K/m
-        R = 8.31447   # gas constant J/(mol·K)
-        M = 0.0289644 # molar mass air kg/mol
-        g = 9.80665   # gravity m/s^2
+time = 0.0
+max_time = 20.0
+intercept_radius = 10
 
-        T = T0 - L * altitude_m
-        P = P0 * (T / T0) ** (g * M / (R * L))
-        rho = P * M / (R * T)
-        return rho
+# Fuel consumption rate
+mdot = missile_thrust / (Isp * g0)
+
+# Accumulated energy and fuel
+total_thrust_work = 0.0
+total_drag_work = 0.0
+total_fuel_used = 0.0
+
+def unit_vector(v):
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        return v
+    return v / norm
+
+def rotate_vector(v, angle):
+    c, s = np.cos(angle), np.sin(angle)
+    return np.array([c * v[0] - s * v[1], s * v[0] + c * v[1]])
+
+def drag_force(rho, v, cd, area):
+    speed = np.linalg.norm(v)
+    return 0.5 * rho * speed**2 * cd * area
+
+# Calculate aircraft turn rate omega (rad/s)
+aircraft_omega = (aircraft_g * g0) / aircraft_speed
+aircraft_omega_deg = np.degrees(aircraft_omega)
+print(f"Aircraft turn rate ω = {aircraft_omega:.4f} rad/s = {aircraft_omega_deg:.2f} °/s")
+
+# Missile initial velocity vector
+missile_vel = np.array([missile_speed, 0.0])
+missile_mass_fuel_remain = missile_mass_fuel
+missile_mass_curr = missile_mass0
+
+while time < max_time:
+    rel_pos = aircraft_pos - missile_pos
+    distance = np.linalg.norm(rel_pos)
+    if distance < intercept_radius:
+        print(f"Intercept at time {time:.2f}s, distance {distance:.2f} m")
+        break
+
+    rel_vel = aircraft_vel - missile_vel
+    los_rate = (rel_pos[0]*rel_vel[1] - rel_pos[1]*rel_vel[0]) / (distance**2)
+    closing_vel = -np.dot(rel_vel, unit_vector(rel_pos))
+
+    # Proportional Navigation acceleration command
+    a_n = N_pn * closing_vel * los_rate
+    max_lat_accel = max_g * g0
+    a_n = np.clip(a_n, -max_lat_accel, max_lat_accel)
+
+    v_hat = unit_vector(missile_vel)
+    lat_dir = np.array([-v_hat[1], v_hat[0]])
+
+    # Thrust and fuel
+    if time < burn_time and missile_mass_fuel_remain > 0:
+        thrust_acc = missile_thrust / missile_mass_curr
+        fuel_used = mdot * dt
+        missile_mass_fuel_remain -= fuel_used
+        missile_mass_curr -= fuel_used
+        total_fuel_used += fuel_used
     else:
-        return 0.15  # approximate for stratosphere
+        thrust_acc = 0
 
-def run_varied_scenarios():
-    T_ambient_sea_level = 288
+    # Drag force and acceleration
+    D = drag_force(rho, missile_vel, missile_cd, missile_area)
+    drag_acc = D / missile_mass_curr
+    drag_acc_vec = -drag_acc * v_hat
 
-    scenarios = {
-        "R-23 Apex sea level": {
-            "altitude": 0,
-            "m0": 222,
-            "mp": 140,
-            "thrust": 5000,
-            "burn_time": 6,
-            "Cd": 0.5,
-            "A": 0.025,
-            "v0": 250,
-            "T_max": 600,
-            "rho_mat": 1900,
-            "c_mat": 900,
-            "thickness": 0.005,
-            "C_h": 1.5e-4,
-            "jam_effective": False,
-        },
-        "AIM-7 Sparrow medium altitude": {
-            "altitude": 10000,
-            "m0": 190,
-            "mp": 110,
-            "thrust": 4000,
-            "burn_time": 5,
-            "Cd": 0.45,
-            "A": 0.02,
-            "v0": 250,
-            "T_max": 450,
-            "rho_mat": 2200,
-            "c_mat": 1400,
-            "thickness": 0.002,
-            "C_h": 1.5e-4,
-            "jam_effective": True,
-        },
-        "AMRAAM AIM-120 high altitude": {
-            "altitude": 15000,
-            "m0": 150,
-            "mp": 85,
-            "thrust": 3500,
-            "burn_time": 5,
-            "Cd": 0.40,
-            "A": 0.018,
-            "v0": 250,
-            "T_max": 350,
-            "rho_mat": 1800,
-            "c_mat": 1200,
-            "thickness": 0.0015,
-            "C_h": 1.5e-4,
-            "jam_effective": True,
-        },
-        "AMRAAM AIM-120 multi-stage low altitude": {
-            "altitude": 0,
-            "m0": 150,
-            "mp": 85 * 1.8,
-            "thrust": 3500,
-            "burn_time": 5 * 1.8,
-            "Cd": 0.40,
-            "A": 0.018,
-            "v0": 250,
-            "T_max": 350,
-            "rho_mat": 1800,
-            "c_mat": 1200,
-            "thickness": 0.0015,
-            "C_h": 1.5e-4,
-            "jam_effective": True,
-        },
-    }
+    # Total acceleration vector on missile
+    acc = thrust_acc * v_hat + a_n * lat_dir + drag_acc_vec
 
-    for name, params in scenarios.items():
-        altitude = params["altitude"]
-        rho_air = air_density(altitude)
-        T_ambient = T_ambient_sea_level - 0.0065 * altitude  # temp lapse approx
-        t_flight_est = params["burn_time"] * 2
+    # Work done (energy)
+    speed = np.linalg.norm(missile_vel)
+    thrust_power = missile_thrust * speed  # thrust * velocity magnitude (assume aligned)
+    thrust_work = thrust_power * dt
+    drag_power = D * speed
+    drag_work = drag_power * dt
 
-        max_speed = estimate_max_speed(
-            rho_air=rho_air,
-            t_flight=t_flight_est,
-            T_ambient=T_ambient,
-            T_max=params["T_max"],
-            C_h=params["C_h"],
-            rho_mat=params["rho_mat"],
-            c_mat=params["c_mat"],
-            thickness=params["thickness"],
-            v_guess_high=2000,
-        )
+    total_thrust_work += thrust_work
+    total_drag_work += drag_work
 
-        range_m = missile_range_with_speed_limit(
-            m0=params["m0"],
-            mp=params["mp"],
-            thrust=params["thrust"],
-            burn_time=params["burn_time"],
-            Cd=params["Cd"],
-            A=params["A"],
-            speed_limit=max_speed,
-            rho=rho_air,
-            v0=params["v0"],
-        )
+    # Update missile state
+    missile_vel += acc * dt
+    missile_pos += missile_vel * dt
 
-        jam_status = "Effective" if params["jam_effective"] else "Jammed (no function)"
-        print(f"{name} @ {altitude} m:")
-        print(f"  Air density = {rho_air:.3f} kg/m³")
-        print(f"  Max radome-limited speed = {max_speed:.1f} m/s ({max_speed*3.6:.1f} km/h)")
-        print(f"  Estimated max range = {range_m:.1f} m ({range_m/1000:.2f} km)")
-        print(f"  Jamming status: {jam_status}\n")
+    # Update aircraft state by rotating velocity vector
+    theta = aircraft_omega * dt
+    aircraft_vel = rotate_vector(aircraft_vel, theta)
+    aircraft_pos += aircraft_vel * dt
 
-if __name__ == "__main__":
-    run_varied_scenarios()
+    time += dt
+
+else:
+    print("Missile missed target.")
+
+# Final accelerations in g
+missile_accel_g = np.linalg.norm(acc) / g0
+
+print(f"Simulation time: {time:.2f} s")
+print(f"Missile fuel used: {total_fuel_used:.3f} kg")
+print(f"Missile energy from thrust: {total_thrust_work / 1e6:.3f} MJ")
+print(f"Missile energy lost to drag: {total_drag_work / 1e6:.3f} MJ")
+print(f"Missile final g-load: {missile_accel_g:.2f} g")
+print(f"Aircraft turn g-load: {aircraft_g:.2f} g")
