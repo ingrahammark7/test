@@ -2,732 +2,160 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Ultimate Air Combat Spectacle</title>
+<title>Basic Three.js Spawn Calibration</title>
 <style>
-  html, body {
-    margin: 0; padding: 0; overflow: hidden;
-    background: linear-gradient(to bottom, #001122, #000000);
-    color: #eee;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    user-select: none;
+  body, html {
+    margin: 0; padding: 0; overflow: hidden; background: #000;
+    color: #0f0; font-family: monospace; user-select: none;
   }
   #info {
-    position: absolute; top: 10px; left: 10px;
-    z-index: 10;
-    background: rgba(0,0,0,0.4);
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 14px;
-    line-height: 1.3;
+    position: fixed; top: 10px; left: 10px; z-index: 10;
+    background: rgba(0,0,0,0.7); padding: 8px; border-radius: 5px;
+    font-size: 14px; line-height: 1.2em;
   }
-  #buttons {
-    position: absolute; top: 10px; right: 10px;
-    z-index: 10;
-  }
-  button {
-    background: #003355;
-    border: none;
-    color: #aaddff;
-    font-weight: 600;
-    font-size: 14px;
-    padding: 8px 16px;
-    margin-left: 8px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-  button:hover {
-    background: #005599;
-  }
-  #minimap {
-    position: absolute; bottom: 10px; right: 10px;
-    width: 150px; height: 150px;
-    background: rgba(0,0,0,0.6);
-    border-radius: 12px;
-    border: 2px solid #0066cc;
-    z-index: 10;
-  }
+  canvas { display: block; }
 </style>
 </head>
 <body>
-<div id="info">Score: <span id="score">0</span><br>Difficulty: <span id="difficulty">1</span><br>FPS: <span id="fps">0</span></div>
-<div id="buttons">
-  <button id="pauseBtn">Pause</button>
-  <button id="muteBtn">Mute</button>
+<div id="info">
+  Cubes: <span id="cubeCount">0</span><br />
+  Points: <span id="pointCount">0</span><br />
+  FPS: <span id="fps">0</span>
 </div>
-<canvas id="minimap"></canvas>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/postprocessing/EffectComposer.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/postprocessing/RenderPass.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.154/build/three.min.js"></script>
 
 <script>
-// ==== GLOBALS ====
-let paused = false;
-let muted = false;
-let score = 0;
-let difficulty = 1;
-
-const scoreEl = document.getElementById('score');
-const difficultyEl = document.getElementById('difficulty');
-const fpsEl = document.getElementById('fps');
-const pauseBtn = document.getElementById('pauseBtn');
-const muteBtn = document.getElementById('muteBtn');
-const minimapCanvas = document.getElementById('minimap');
-const minimapCtx = minimapCanvas.getContext('2d');
-minimapCanvas.width = 150;
-minimapCanvas.height = 150;
-
-pauseBtn.onclick = () => {
-  paused = !paused;
-  pauseBtn.textContent = paused ? 'Resume' : 'Pause';
-};
-muteBtn.onclick = () => {
-  muted = !muted;
-  muteBtn.textContent = muted ? 'Unmute' : 'Mute';
-  if (muted) audioListener.setMasterVolume(0);
-  else audioListener.setMasterVolume(1);
-};
-
-// ==== THREE.JS SETUP ====
-const scene = new THREE.Scene();
-
-// Camera setup
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0, 15, 40);
-camera.lookAt(0,0,0);
-
-// Renderer
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x000011);
-document.body.appendChild(renderer.domElement);
-
-// POSTPROCESSING SETUP
-const composer = new THREE.EffectComposer(renderer);
-const renderPass = new THREE.RenderPass(scene, camera);
-composer.addPass(renderPass);
-const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-composer.addPass(bloomPass);
-
-// LIGHTS
-const dirLight = new THREE.DirectionalLight(0x66ccff, 1.3);
-dirLight.position.set(10, 20, 20);
-scene.add(dirLight);
-
-const ambientLight = new THREE.AmbientLight(0x222244);
-scene.add(ambientLight);
-
-// SKY GRADIENT with large sphere
-const skyGeo = new THREE.SphereGeometry(400, 32, 15);
-const skyMat = new THREE.ShaderMaterial({
-  side: THREE.BackSide,
-  uniforms: {
-    topColor: { value: new THREE.Color(0x001144) },
-    bottomColor: { value: new THREE.Color(0x000000) },
-  },
-  vertexShader: `
-    varying vec3 vWorldPosition;
-    void main() {
-      vec4 worldPos = modelMatrix * vec4(position, 1.0);
-      vWorldPosition = worldPos.xyz;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }`,
-  fragmentShader: `
-    uniform vec3 topColor;
-    uniform vec3 bottomColor;
-    varying vec3 vWorldPosition;
-    void main() {
-      float h = normalize(vWorldPosition).y * 0.5 + 0.5;
-      gl_FragColor = vec4(mix(bottomColor, topColor, h), 1.0);
-    }`,
-  depthWrite: false,
-  depthTest: false
-});
-const sky = new THREE.Mesh(skyGeo, skyMat);
-scene.add(sky);
-
-// STAR FIELD
-function createStars() {
-  const starGeo = new THREE.BufferGeometry();
-  const starCount = 8000;
-  const positions = new Float32Array(starCount * 3);
-  for(let i=0; i<starCount; i++) {
-    positions[i*3] = (Math.random() - 0.5) * 800;
-    positions[i*3+1] = (Math.random() - 0.5) * 600;
-    positions[i*3+2] = (Math.random() - 0.5) * 800;
-  }
-  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const starMat = new THREE.PointsMaterial({color: 0x99ccff, size: 0.7, sizeAttenuation: true, transparent: true});
-  const stars = new THREE.Points(starGeo, starMat);
-  scene.add(stars);
-}
-createStars();
-
-// ==== AUDIO SETUP ====
-const audioListener = new THREE.AudioListener();
-camera.add(audioListener);
-
-// Sound loader helper
-const audioLoader = new THREE.AudioLoader();
-
-function createSound(url, loop = false, volume = 0.3) {
-  const sound = new THREE.PositionalAudio(audioListener);
-  audioLoader.load(url, buffer => {
-    sound.setBuffer(buffer);
-    sound.setLoop(loop);
-    sound.setVolume(volume);
-  });
-  return sound;
-}
-
-// Load sounds (hosted on public CDN)
-const fireSoundURL = 'https://cdn.jsdelivr.net/gh/jbrown2/sounds/gunshot.wav';
-const explosionSoundURL = 'https://cdn.jsdelivr.net/gh/jbrown2/sounds/explosion.wav';
-
-// ==== PLANE MODEL ====
-function createPlane(color) {
-  const group = new THREE.Group();
-
-  const bodyMat = new THREE.MeshPhongMaterial({
-    color,
-    emissive: color,
-    emissiveIntensity: 0.7,
-    shininess: 100
-  });
-
-  const wingMat = new THREE.MeshPhongMaterial({
-    color: 0xffffff,
-    emissive: color,
-    emissiveIntensity: 1.2,
-    shininess: 150
-  });
-
-  // Body
-  const body = new THREE.Mesh(new THREE.BoxGeometry(3, 0.7, 7), bodyMat);
-  body.castShadow = true;
-  body.receiveShadow = true;
-  group.add(body);
-
-  // Wings
-  const wingShape = new THREE.Shape();
-  wingShape.moveTo(-5, 0);
-  wingShape.lineTo(0, 1.5);
-  wingShape.lineTo(5, 0);
-  wingShape.lineTo(0, -1.5);
-  wingShape.lineTo(-5, 0);
-  const extrudeSettings = { depth: 0.15, bevelEnabled: false };
-  const wingGeom = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
-  const wing = new THREE.Mesh(wingGeom, wingMat);
-  wing.rotation.x = Math.PI / 2;
-  wing.position.z = 0;
-  group.add(wing);
-
-  // Tail fin
-  const tailGeom = new THREE.BoxGeometry(0.4, 1.5, 1);
-  const tail = new THREE.Mesh(tailGeom, wingMat);
-  tail.position.set(0, 0.7, -3);
-  group.add(tail);
-
-  // Add engine glow spheres (will animate)
-  const engineGlowMat = new THREE.MeshBasicMaterial({color: 0xffaa33, transparent: true, opacity: 0.7});
-  const engineGlowLeft = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), engineGlowMat);
-  engineGlowLeft.position.set(-1.7, -0.3, 2);
-  group.add(engineGlowLeft);
-
-  const engineGlowRight = engineGlowLeft.clone();
-  engineGlowRight.position.x = 1.7;
-  group.add(engineGlowRight);
-
-  group.userData.engineGlowLeft = engineGlowLeft;
-  group.userData.engineGlowRight = engineGlowRight;
-
-  return group;
-}
-
-// ==== PARTICLES ====
-class ParticleSystem {
-  constructor(color, size, count, speedRange, lifespan) {
-    this.count = count;
-    this.lifespan = lifespan;
-    this.elapsed = 0;
-    this.geometry = new THREE.BufferGeometry();
-    this.positions = new Float32Array(count * 3);
-    this.velocities = new Array(count);
-    this.alphas = new Float32Array(count);
-    for(let i=0; i<count; i++) {
-      this.positions[i*3] = 0;
-      this.positions[i*3+1] = 0;
-      this.positions[i*3+2] = 0;
-      this.velocities[i] = new THREE.Vector3(
-        (Math.random()-0.5)*speedRange,
-        Math.random()*speedRange,
-        (Math.random()-0.5)*speedRange
-      );
-      this.alphas[i] = 1;
-    }
-    this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
-    this.geometry.setAttribute('alpha', new THREE.BufferAttribute(this.alphas, 1));
-
-    this.material = new THREE.PointsMaterial({
-      color,
-      size,
-      transparent: true,
-      opacity: 1,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending
-    });
-    this.points = new THREE.Points(this.geometry, this.material);
-    scene.add(this.points);
-  }
-
-  setPosition(x,y,z) {
-    for(let i=0; i<this.count; i++) {
-      this.positions[i*3] = x;
-      this.positions[i*3+1] = y;
-      this.positions[i*3+2] = z;
-    }
-    this.geometry.attributes.position.needsUpdate = true;
-  }
-
-  update(delta) {
-    this.elapsed += delta;
-    for(let i=0; i<this.count; i++) {
-      this.positions[i*3] += this.velocities[i].x * delta * 30;
-      this.positions[i*3+1] += this.velocities[i].y * delta * 30;
-      this.positions[i*3+2] += this.velocities[i].z * delta * 30;
-      this.alphas[i] = Math.max(1 - this.elapsed / this.lifespan, 0);
-    }
-    this.geometry.attributes.position.needsUpdate = true;
-    this.material.opacity = Math.max(1 - this.elapsed / this.lifespan, 0);
-    if(this.material.opacity <= 0) {
-      scene.remove(this.points);
-      this.geometry.dispose();
-      this.material.dispose();
-      return true; // dead
-    }
-    return false;
-  }
-}
-
-// ==== BULLET CLASS ====
-class Bullet {
-  constructor(position, velocity, color) {
-    this.color = color;
-    this.mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.15, 8, 8),
-      new THREE.MeshBasicMaterial({color, emissive: color, emissiveIntensity: 1})
-    );
-    this.mesh.position.copy(position);
-    this.velocity = velocity;
-
-    // Trail
-    this.trailGeometry = new THREE.BufferGeometry();
-    this.trailPositions = new Float32Array(20 * 3);
-    this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(this.trailPositions, 3));
-    this.trailMaterial = new THREE.PointsMaterial({
-      color,
-      size: 0.18,
-      transparent: true,
-      opacity: 0.6,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    this.trail = new THREE.Points(this.trailGeometry, this.trailMaterial);
-    this.trailIndex = 0;
-
-    scene.add(this.mesh);
-    scene.add(this.trail);
-
-    // Sound
-    if(!muted) {
-      fireSound.play();
-    }
-  }
-
-  update() {
-    this.mesh.position.add(this.velocity);
-
-    // Update trail (shift positions)
-    for(let i=0; i < this.trailPositions.length - 3; i++) {
-      this.trailPositions[i] = this.trailPositions[i + 3];
-    }
-    // Add current position
-    this.trailPositions[this.trailPositions.length - 3] = this.mesh.position.x;
-    this.trailPositions[this.trailPositions.length - 2] = this.mesh.position.y;
-    this.trailPositions[this.trailPositions.length - 1] = this.mesh.position.z;
-
-    this.trail.geometry.attributes.position.needsUpdate = true;
-  }
-
-  dispose() {
-    scene.remove(this.mesh);
-    scene.remove(this.trail);
-    this.mesh.geometry.dispose();
-    this.mesh.material.dispose();
-    this.trail.geometry.dispose();
-    this.trail.material.dispose();
-  }
-}
-
-// ==== EXPLOSION CLASS ====
-class Explosion {
-  constructor(position) {
-    this.position = position.clone();
-    this.particles = [];
-
-    for(let i=0; i<30; i++) {
-      const particle = {
-        position: position.clone(),
-        velocity: new THREE.Vector3(
-          (Math.random() - 0.5) * 3,
-          (Math.random() - 0.5) * 3,
-          (Math.random() - 0.5) * 3
-        ),
-        life: 1 + Math.random() * 0.5,
-        age: 0
-      };
-      this.particles.push(particle);
-    }
-
-    const positions = new Float32Array(this.particles.length * 3);
-    this.geometry = new THREE.BufferGeometry();
-    this.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    this.material = new THREE.PointsMaterial({
-      color: 0xff6600,
-      size: 0.6,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    this.points = new THREE.Points(this.geometry, this.material);
-    scene.add(this.points);
-    this.done = false;
-
-    if(!muted) explosionSound.play();
-  }
-
-  update(delta) {
-    let positions = this.geometry.attributes.position.array;
-    for(let i=0; i<this.particles.length; i++) {
-      let p = this.particles[i];
-      p.age += delta;
-      if(p.age >= p.life) continue;
-
-      p.position.addScaledVector(p.velocity, delta * 30);
-      // simple gravity down
-      p.velocity.y -= delta * 9.8 * 0.3;
-
-      positions[i*3] = p.position.x;
-      positions[i*3+1] = p.position.y;
-      positions[i*3+2] = p.position.z;
-    }
-    this.geometry.attributes.position.needsUpdate = true;
-
-    this.material.opacity -= delta * 1.0;
-    if(this.material.opacity <= 0) {
-      scene.remove(this.points);
-      this.geometry.dispose();
-      this.material.dispose();
-      this.done = true;
-    }
-  }
-}
-
-// ==== FLARE CLASS ====
-class Flare {
-  constructor() {
-    this.position = new THREE.Vector3(
-      (Math.random() - 0.5) * 50,
-      Math.random() * 20 + 10,
-      (Math.random() - 0.5) * 50
-    );
-    this.life = 3 + Math.random() * 2;
-    this.age = 0;
-    this.geometry = new THREE.SphereGeometry(0.5, 8, 8);
-    this.material = new THREE.MeshBasicMaterial({
-      color: 0xffaa00,
-      transparent: true,
-      opacity: 0.7,
-      blending: THREE.AdditiveBlending
-    });
-    this.mesh = new THREE.Mesh(this.geometry, this.material);
-    this.mesh.position.copy(this.position);
-    scene.add(this.mesh);
-    this.done = false;
-  }
-
-  update() {
-    this.age += 0.02;
-    this.material.opacity = 0.7 * (1 - this.age / this.life);
-    if(this.material.opacity <= 0) {
-      scene.remove(this.mesh);
-      this.geometry.dispose();
-      this.material.dispose();
-      this.done = true;
-    }
-  }
-}
-
-// ==== HELPERS ====
-function detectCollision(mesh1, mesh2, threshold=3.5) {
-  return mesh1.position.distanceTo(mesh2.position) < threshold;
-}
-
-// ==== GAME OBJECTS ====
-const playerPlane = createPlane(0x00ffff);
-scene.add(playerPlane);
-playerPlane.position.set(0, 0, 0);
-
-const enemyPlane = createPlane(0xff4400);
-scene.add(enemyPlane);
-enemyPlane.position.set(0, 0, -20);
-
-const bullets = [];
-const explosions = [];
-const flares = [];
-
-let playerTargetX = 0;
-let playerTargetZ = 0;
-let enemyTargetX = 0;
-let enemyTargetZ = -20;
-
-// Fire cooldown timers
-let enemyFireCooldown = 0;
-
-// Audio objects
-const fireSound = createSound(fireSoundURL, false, 0.25);
-const explosionSound = createSound(explosionSoundURL, false, 0.5);
-
-// Clock for delta time
-const clock = new THREE.Clock();
-
-// Camera shake variables
-let shakeIntensity = 0;
-const shakeDecay = 0.02;
-
-// Difficulty scaling variables
-let difficultyTimer = 0;
-const difficultyIncreaseInterval = 15; // seconds
-
-// FPS calculation variables
-let fpsLastTime = performance.now();
-let fpsFrames = 0;
-
-// Animate Loop
-function animate() {
-  if (!paused) {
-    const delta = clock.getDelta();
-    difficultyTimer += delta;
-    fpsFrames++;
-
-    // Update FPS display once a second
-    if (performance.now() - fpsLastTime > 1000) {
-      fpsEl.textContent = fpsFrames.toString();
-      fpsFrames = 0;
-      fpsLastTime = performance.now();
-    }
-
-    // Increase difficulty every interval
-    if (difficultyTimer > difficultyIncreaseInterval) {
-      difficulty = Math.min(difficulty + 0.3, 5);
-      difficultyEl.textContent = difficulty.toFixed(1);
-      difficultyTimer = 0;
-    }
-
-    // Autonomous AI Target update (smooth random)
-    if (Math.random() < 0.01) {
-      playerTargetX = (Math.random() - 0.5) * 20;
-      playerTargetZ = (Math.random() - 0.5) * 12;
-      enemyTargetX = (Math.random() - 0.5) * 20;
-      enemyTargetZ = -20 + (Math.random() - 0.5) * 12;
-    }
-
-    // Smoothly move planes toward targets
-    playerPlane.position.x += (playerTargetX - playerPlane.position.x) * delta * 2 * difficulty;
-    playerPlane.position.z += (playerTargetZ - playerPlane.position.z) * delta * 2 * difficulty;
-    enemyPlane.position.x += (enemyTargetX - enemyPlane.position.x) * delta * 1.8 * difficulty;
-    enemyPlane.position.z += (enemyTargetZ - enemyPlane.position.z) * delta * 1.8 * difficulty;
-
-    // Rotate planes to face movement direction
-    playerPlane.rotation.y = -Math.atan2(
-      playerTargetZ - playerPlane.position.z,
-      playerTargetX - playerPlane.position.x
-    ) + Math.PI / 2;
-
-    enemyPlane.rotation.y = -Math.atan2(
-      enemyTargetZ - enemyPlane.position.z,
-      enemyTargetX - enemyPlane.position.x
-    ) + Math.PI / 2;
-
-    // Animate engine glow pulsing
-    let glowPulse = 0.6 + Math.sin(clock.elapsedTime * 10) * 0.4;
-    playerPlane.userData.engineGlowLeft.material.opacity = glowPulse;
-    playerPlane.userData.engineGlowRight.material.opacity = glowPulse;
-    enemyPlane.userData.engineGlowLeft.material.opacity = glowPulse;
-    enemyPlane.userData.engineGlowRight.material.opacity = glowPulse;
-
-    // Fire bullets with cooldown logic scaled by difficulty
-    playerFireCooldown -= delta * 60;
-    enemyFireCooldown -= delta * 60;
-
-    if (playerFireCooldown <= 0) {
-      fireBullet(playerPlane, 0x00ffff, -1);
-      playerFireCooldown = 40 / difficulty + Math.random() * 30;
-    }
-    if (enemyFireCooldown <= 0) {
-      fireBullet(enemyPlane, 0xff4400, 1);
-      enemyFireCooldown = 50 / difficulty + Math.random() * 40;
-    }
-
-    // Update bullets and check collisions
-    for (let i = bullets.length - 1; i >= 0; i--) {
-      const b = bullets[i];
-      b.update();
-
-      // Remove bullets out of bounds
-      if (b.mesh.position.z < -60 || b.mesh.position.z > 60) {
-        b.dispose();
-        bullets.splice(i, 1);
-        continue;
-      }
-
-      // Collision detection
-      if (b.color === 0x00ffff && detectCollision(b.mesh, enemyPlane)) {
-        explosions.push(new Explosion(enemyPlane.position.clone()));
-        enemyPlane.position.set(1000, 1000, 1000); // Temporarily remove enemy plane
-        b.dispose();
-        bullets.splice(i, 1);
-        shakeIntensity = 2;
-
-        // Respawn enemy after delay
-        setTimeout(() => {
-          enemyPlane.position.set(0, 0, -20);
-        }, 3500);
-
-        score++;
-        scoreEl.textContent = score.toString();
-      }
-      if (b.color === 0xff4400 && detectCollision(b.mesh, playerPlane)) {
-        explosions.push(new Explosion(playerPlane.position.clone()));
-        playerPlane.position.set(1000, 1000, 1000);
-        b.dispose();
-        bullets.splice(i, 1);
-        shakeIntensity = 2;
-
-        setTimeout(() => {
-          playerPlane.position.set(0, 0, 0);
-        }, 3500);
-      }
-    }
-
-    // Update explosions and remove done ones
-    for (let i = explosions.length - 1; i >= 0; i--) {
-      explosions[i].update(delta);
-      if (explosions[i].done) explosions.splice(i, 1);
-    }
-
-    // Update flares and remove done ones
-    for (let i = flares.length - 1; i >= 0; i--) {
-      flares[i].update();
-      if (flares[i].done) flares.splice(i, 1);
-    }
-
-    // Random flare spawn occasionally
-    if (Math.random() < 0.005) {
-      flares.push(new Flare());
-    }
-
-    // Camera follows midpoint of planes
-    const midpoint = new THREE.Vector3().addVectors(playerPlane.position, enemyPlane.position).multiplyScalar(0.5);
-    const camTarget = midpoint.clone().add(new THREE.Vector3(0, 15, 40));
-    camera.position.lerp(camTarget, delta * 2);
-    camera.lookAt(midpoint);
-
-    // Camera shake effect
-    if (shakeIntensity > 0) {
-      camera.position.x += (Math.random() - 0.5) * shakeIntensity;
-      camera.position.y += (Math.random() - 0.5) * shakeIntensity;
-      shakeIntensity -= shakeDecay;
-      if (shakeIntensity < 0) shakeIntensity = 0;
-    }
-
-    // Draw minimap
-    drawMinimap();
-
-  }
-
-  composer.render();
-
-  requestAnimationFrame(animate);
-}
-
-// Fire bullet helper function
-function fireBullet(plane, color, dirZ) {
-  const startPos = plane.position.clone();
-  startPos.z += dirZ * 4;
-  const velocity = new THREE.Vector3(0, 0, dirZ * 1.6);
-  const bullet = new Bullet(startPos, velocity, color);
-  bullets.push(bullet);
-}
-
-// Draw minimap function
-function drawMinimap() {
-  const w = minimapCanvas.width;
-  const h = minimapCanvas.height;
-
-  minimapCtx.clearRect(0, 0, w, h);
-  minimapCtx.fillStyle = '#001122';
-  minimapCtx.fillRect(0, 0, w, h);
-
-  // Draw bounds
-  minimapCtx.strokeStyle = '#0066cc';
-  minimapCtx.lineWidth = 2;
-  minimapCtx.strokeRect(2, 2, w - 4, h - 4);
-
-  // Helper to convert world to minimap coords
-  function mapPos(v) {
-    return {
-      x: (v.x + 30) / 60 * w,
-      y: h - ((v.z + 40) / 80 * h)
-    };
-  }
-
-  // Draw player plane (cyan)
-  const pPos = mapPos(playerPlane.position);
-  minimapCtx.fillStyle = '#00ffff';
-  minimapCtx.beginPath();
-  minimapCtx.arc(pPos.x, pPos.y, 6, 0, Math.PI * 2);
-  minimapCtx.fill();
-
-  // Draw enemy plane (orange)
-  const ePos = mapPos(enemyPlane.position);
-  minimapCtx.fillStyle = '#ff6600';
-  minimapCtx.beginPath();
-  minimapCtx.arc(ePos.x, ePos.y, 6, 0, Math.PI * 2);
-  minimapCtx.fill();
-
-  // Draw bullets (small dots)
-  minimapCtx.fillStyle = '#88ccff';
-  bullets.forEach(b => {
-    const bPos = mapPos(b.mesh.position);
-    minimapCtx.beginPath();
-    minimapCtx.arc(bPos.x, bPos.y, 2, 0, Math.PI * 2);
-    minimapCtx.fill();
-  });
-}
-
-// Handle resize
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
+  // Setup scene, camera, renderer
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 500);
+  camera.position.set(0, 20, 50);
+  camera.lookAt(0,0,0);
+
+  const renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight);
-});
+  document.body.appendChild(renderer.domElement);
 
-// Start animation
-animate();
+  // Cube geometry & material (instanced)
+  const maxCubes = 5000;
+  const cubeGeo = new THREE.BoxGeometry(1,1,1);
+  const cubeMat = new THREE.MeshNormalMaterial();
+  const cubes = new THREE.InstancedMesh(cubeGeo, cubeMat, maxCubes);
+  scene.add(cubes);
+
+  // Points geometry & material
+  const maxPoints = 10000;
+  const positions = new Float32Array(maxPoints*3);
+  for(let i=0; i<maxPoints*3; i++) positions[i] = 0; // init
+  const pointGeo = new THREE.BufferGeometry();
+  pointGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const pointMat = new THREE.PointsMaterial({color: 0xffff00, size: 0.15});
+  const points = new THREE.Points(pointGeo, pointMat);
+  scene.add(points);
+
+  // Dummy for cube transforms
+  const dummy = new THREE.Object3D();
+
+  // Variables to track current counts
+  let cubeCount = 10;
+  let pointCount = 100;
+
+  // HTML elements
+  const cubeCountElem = document.getElementById('cubeCount');
+  const pointCountElem = document.getElementById('pointCount');
+  const fpsElem = document.getElementById('fps');
+
+  // FPS tracking
+  let lastTime = performance.now();
+  let frames = 0;
+  let fps = 0;
+
+  // Function to update cubes positions & scales
+  function updateCubes(count, time) {
+    const grid = Math.ceil(Math.sqrt(count));
+    for(let i=0; i<count; i++) {
+      const x = (i % grid) - grid/2;
+      const z = Math.floor(i / grid) - grid/2;
+      const y = 1 + Math.sin(time*3 + x*0.5 + z*0.3) * 0.5;
+      dummy.position.set(x*2, y/2, z*2);
+      dummy.scale.set(1, y, 1);
+      dummy.updateMatrix();
+      cubes.setMatrixAt(i, dummy.matrix);
+    }
+    cubes.instanceMatrix.needsUpdate = true;
+  }
+
+  // Function to update points positions (falling down)
+  function updatePoints(count) {
+    const pos = pointGeo.attributes.position.array;
+    for(let i=0; i<count; i++) {
+      pos[i*3 + 1] -= 0.02;
+      if(pos[i*3 + 1] < -10) pos[i*3 + 1] = 20;
+    }
+    pointGeo.attributes.position.needsUpdate = true;
+  }
+
+  // Increment counts gradually every 2 seconds if FPS > 30
+  let lastIncrement = 0;
+  const incrementInterval = 2000;
+
+  function animate(time=0) {
+    requestAnimationFrame(animate);
+
+    frames++;
+    const now = performance.now();
+    if(now - lastTime > 1000) {
+      fps = Math.round((frames*1000)/(now - lastTime));
+      frames = 0;
+      lastTime = now;
+      fpsElem.textContent = fps;
+    }
+
+    updateCubes(cubeCount, time*0.001);
+    updatePoints(pointCount);
+
+    // Orbit camera slowly
+    camera.position.x = Math.cos(time*0.0003) * 50;
+    camera.position.z = Math.sin(time*0.0003) * 50;
+    camera.position.y = 20 + Math.sin(time*0.001) * 5;
+    camera.lookAt(0,0,0);
+
+    renderer.render(scene, camera);
+
+    // Increase counts if FPS > 30, otherwise stop
+    if(now - lastIncrement > incrementInterval && fps > 30) {
+      lastIncrement = now;
+      if(cubeCount < maxCubes) {
+        cubeCount += 100;
+        cubeCountElem.textContent = cubeCount;
+      }
+      if(pointCount < maxPoints) {
+        pointCount += 200;
+        pointCountElem.textContent = pointCount;
+      }
+    }
+  }
+
+  // Initialize point Y positions randomly so they fall
+  for(let i=0; i<maxPoints; i++) {
+    positions[i*3] = (Math.random()-0.5)*100;
+    positions[i*3 + 1] = Math.random()*30;
+    positions[i*3 + 2] = (Math.random()-0.5)*100;
+  }
+  pointGeo.attributes.position.needsUpdate = true;
+
+  // Initial info update
+  cubeCountElem.textContent = cubeCount;
+  pointCountElem.textContent = pointCount;
+
+  animate();
+
+  // Handle resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
 </script>
 </body>
 </html>
