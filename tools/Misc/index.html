@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Simple Air Combat Mali/Mobile</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #000011; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+<script>
+  // Scene setup
+  const scene = new THREE.Scene();
+
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 15, 40);
+
+  const renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  // Starfield with fewer stars
+  function createStars() {
+    const geometry = new THREE.BufferGeometry();
+    const starCount = 500;
+    const positions = new Float32Array(starCount * 3);
+    for(let i=0; i<starCount; i++) {
+      positions[i*3] = (Math.random() - 0.5) * 200;
+      positions[i*3+1] = (Math.random() - 0.5) * 200;
+      positions[i*3+2] = (Math.random() - 0.5) * 200;
+    }
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const material = new THREE.PointsMaterial({ color: 0x88ccff, size: 0.5 });
+    const stars = new THREE.Points(geometry, material);
+    scene.add(stars);
+  }
+  createStars();
+
+  // Simple plane model with MeshBasicMaterial
+  function createPlane(color) {
+    const group = new THREE.Group();
+
+    const bodyMat = new THREE.MeshBasicMaterial({ color });
+    const wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 6), bodyMat);
+    group.add(body);
+
+    // Flat box wings
+    const wingLeft = new THREE.Mesh(new THREE.BoxGeometry(3, 0.1, 1), wingMat);
+    wingLeft.position.set(-2.5, 0, 0);
+    wingLeft.rotation.y = Math.PI / 10;
+    group.add(wingLeft);
+
+    const wingRight = new THREE.Mesh(new THREE.BoxGeometry(3, 0.1, 1), wingMat);
+    wingRight.position.set(2.5, 0, 0);
+    wingRight.rotation.y = -Math.PI / 10;
+    group.add(wingRight);
+
+    return group;
+  }
+
+  const playerPlane = createPlane(0x00ffff);
+  playerPlane.position.set(0, 0, 0);
+  scene.add(playerPlane);
+
+  const enemyPlane = createPlane(0xff4400);
+  enemyPlane.position.set(0, 0, -20);
+  scene.add(enemyPlane);
+
+  // Bullet class
+  class Bullet {
+    constructor(position, velocity, color) {
+      const geom = new THREE.SphereGeometry(0.15, 8, 8);
+      const mat = new THREE.MeshBasicMaterial({ color });
+      this.mesh = new THREE.Mesh(geom, mat);
+      this.mesh.position.copy(position);
+      this.velocity = velocity;
+      scene.add(this.mesh);
+    }
+    update() {
+      this.mesh.position.add(this.velocity);
+    }
+    dispose() {
+      scene.remove(this.mesh);
+      this.mesh.geometry.dispose();
+      this.mesh.material.dispose();
+    }
+  }
+  const bullets = [];
+
+  // Simple explosion as expanding sphere that fades
+  class Explosion {
+    constructor(position) {
+      const geom = new THREE.SphereGeometry(0.5, 8, 8);
+      const mat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 1 });
+      this.mesh = new THREE.Mesh(geom, mat);
+      this.mesh.position.copy(position);
+      this.elapsed = 0;
+      this.duration = 1.0; // seconds
+      scene.add(this.mesh);
+      this.done = false;
+    }
+    update(delta) {
+      this.elapsed += delta;
+      this.mesh.scale.setScalar(1 + this.elapsed * 3);
+      this.mesh.material.opacity = 1 - this.elapsed / this.duration;
+      if(this.elapsed >= this.duration) {
+        scene.remove(this.mesh);
+        this.mesh.geometry.dispose();
+        this.mesh.material.dispose();
+        this.done = true;
+      }
+    }
+  }
+  const explosions = [];
+
+  // Collision detection helper
+  function detectCollision(obj1, obj2, threshold=2) {
+    return obj1.position.distanceTo(obj2.position) < threshold;
+  }
+
+  // Autonomous target positions
+  let playerTargetX = 0;
+  let enemyTargetX = 0;
+  let playerTargetZ = -10;
+  let enemyTargetZ = -20;
+
+  const clock = new THREE.Clock();
+
+  // Cooldowns in frames
+  let playerFireCooldown = 0;
+  let enemyFireCooldown = 0;
+
+  // Fire bullet function
+  function fireBullet(plane, color, dirZ) {
+    const pos = plane.position.clone();
+    pos.z += dirZ * 3;
+    const velocity = new THREE.Vector3(0, 0, dirZ * 1.5);
+    bullets.push(new Bullet(pos, velocity, color));
+  }
+
+  // Camera shake variables
+  let shakeIntensity = 0;
+  const shakeDecay = 0.02;
+
+  function animate() {
+    const delta = clock.getDelta();
+    const elapsed = clock.elapsedTime;
+    requestAnimationFrame(animate);
+
+    // Every 4 seconds, choose new targets
+    if(elapsed % 4 < delta) {
+      playerTargetX = (Math.random() - 0.5) * 12;
+      enemyTargetX = (Math.random() - 0.5) * 12;
+      playerTargetZ = -10 + (Math.random() - 0.5) * 4;
+      enemyTargetZ = -20 + (Math.random() - 0.5) * 4;
+    }
+
+    // Move planes toward targets smoothly
+    playerPlane.position.x += (playerTargetX - playerPlane.position.x) * delta * 1.5;
+    playerPlane.position.z += (playerTargetZ - playerPlane.position.z) * delta * 1.5;
+
+    enemyPlane.position.x += (enemyTargetX - enemyPlane.position.x) * delta * 1.2;
+    enemyPlane.position.z += (enemyTargetZ - enemyPlane.position.z) * delta * 1.2;
+
+    // Rotate planes to face movement direction
+    playerPlane.rotation.y = -Math.atan2(
+      playerTargetZ - playerPlane.position.z,
+      playerTargetX - playerPlane.position.x
+    ) + Math.PI / 2;
+    enemyPlane.rotation.y = -Math.atan2(
+      enemyTargetZ - enemyPlane.position.z,
+      enemyTargetX - enemyPlane.position.x
+    ) + Math.PI / 2;
+
+    // Cooldowns (frames)
+    playerFireCooldown -= delta * 60;
+    enemyFireCooldown -= delta * 60;
+
+    if(playerFireCooldown <= 0) {
+      fireBullet(playerPlane, 0x00ffff, -1);
+      playerFireCooldown = 50 + Math.random() * 60;
+    }
+    if(enemyFireCooldown <= 0) {
+      fireBullet(enemyPlane, 0xff4400, 1);
+      enemyFireCooldown = 40 + Math.random() * 70;
+    }
+
+    // Update bullets and handle collisions
+    for(let i = bullets.length -1; i >= 0; i--) {
+      const b = bullets[i];
+      b.update();
+
+      // Remove bullets out of bounds
+      if(b.mesh.position.z < -60 || b.mesh.position.z > 60) {
+        b.dispose();
+        bullets.splice(i, 1);
+        continue;
+      }
+
+      // Collisions
+      if(b.mesh.material.color.getHex() === 0x00ffff && detectCollision(b.mesh, enemyPlane)) {
+        explosions.push(new Explosion(enemyPlane.position.clone()));
+        enemyPlane.position.set(100, 100, 100);
+        b.dispose();
+        bullets.splice(i, 1);
+        shakeIntensity = 1.5;
+        setTimeout(() => {
+          enemyPlane.position.set(0, 0, -30);
+        }, 4000);
+      }
+
+      if(b.mesh.material.color.getHex() === 0xff4400 && detectCollision(b.mesh, playerPlane)) {
+        explosions.push(new Explosion(playerPlane.position.clone()));
+        playerPlane.position.set(100, 100, 100);
+        b.dispose();
+        bullets.splice(i, 1);
+        shakeIntensity = 1.5;
+        setTimeout(() => {
+          playerPlane.position.set(0, 0, 0);
+        }, 4000);
+      }
+    }
+
+    // Update explosions
+    for(let i = explosions.length -1; i >= 0; i--) {
+      explosions[i].update(delta);
+      if(explosions[i].done) explosions.splice(i, 1);
+    }
+
+    // Camera follows midpoint smoothly
+    const midPoint = new THREE.Vector3().addVectors(playerPlane.position, enemyPlane.position).multiplyScalar(0.5);
+    const camTarget = midPoint.clone().add(new THREE.Vector3(0, 15, 40));
+    camera.position.lerp(camTarget, delta * 2);
+    camera.lookAt(midPoint);
+
+    // Camera shake
+    if(shakeIntensity > 0) {
+      camera.position.x += (Math.random() - 0.5) * shakeIntensity;
+      camera.position.y += (Math.random() - 0.5) * shakeIntensity;
+      shakeIntensity -= shakeDecay;
+      if(shakeIntensity < 0) shakeIntensity = 0;
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  // Resize handler
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+</body>
+</html>
