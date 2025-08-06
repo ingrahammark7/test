@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Request for Order"  # Title of the paper
+        footer_text = "Request for Judgement"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -108,14 +108,11 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.25* inch, "REQUEST FOR ORDER")
     c.setFont("Times-Roman",12)
     intro_text = [
-        "1. I requested an order to prohibit defendant from arresting me.",
-        "2. Judge denied order.",
-        "3. In that case I can order defendant deported.",
-        "4. Most of the LAPD is illegal immigrants.",
-        "5. Most officers of the LAPD are eligible for deportation.",
-        "6. The remaining officers are bereft of citizenship by treason and also eligible for deportation.",
-        "7. All officers of the LAPD are excellent candidates for deportation.",
-        "8. Judge should issue order confirming that LAPD is eligible for deportation.",
+        "1. Judge already said they would side with police no matter what.",
+        "2. Judge should make a decision as soon as possible.",
+        "3. Judge should have just rejected case instead of delaying outcome by waiting for hearings and then awarding",
+        "judgement to defendant on trivial grounds.",
+        "4. Defendant has no reply whatsoever and no outcome is possible besides default.",
         ]
     y_position -= .5*inch
     for line in intro_text:
