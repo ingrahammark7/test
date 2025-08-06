@@ -2,104 +2,100 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Basic Three.js Spawn Calibration</title>
+<title>Minimal Large Point Cloud Test</title>
 <style>
-  body, html {
-    margin: 0; padding: 0; overflow: hidden; background: #000;
-    color: #0f0; font-family: monospace; user-select: none;
-  }
+  body, html { margin:0; padding:0; overflow:hidden; background:#000; }
   #info {
-    position: fixed; top: 10px; left: 10px; z-index: 10;
-    background: rgba(0,0,0,0.7); padding: 8px; border-radius: 5px;
-    font-size: 14px; line-height: 1.2em;
+    position: fixed; top: 10px; left: 10px; color: #0f0; font-family: monospace; background: rgba(0,0,0,0.6);
+    padding: 6px 10px; border-radius: 5px; z-index: 10;
   }
-  canvas { display: block; }
 </style>
 </head>
 <body>
+
 <div id="info">
-  Cubes: <span id="cubeCount">0</span><br />
   Points: <span id="pointCount">0</span><br />
-  FPS: <span id="fps">0</span>
+  FPS: <span id="fps">0</span><br />
+  Status: <span id="status">Starting...</span>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.154/build/three.min.js"></script>
 
 <script>
-  // Setup scene, camera, renderer
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 500);
-  camera.position.set(0, 20, 50);
-  camera.lookAt(0,0,0);
 
-  const renderer = new THREE.WebGLRenderer({antialias:true});
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+  camera.position.z = 100;
+
+  const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // Cube geometry & material (instanced)
-  const maxCubes = 5000;
-  const cubeGeo = new THREE.BoxGeometry(1,1,1);
-  const cubeMat = new THREE.MeshNormalMaterial();
-  const cubes = new THREE.InstancedMesh(cubeGeo, cubeMat, maxCubes);
-  scene.add(cubes);
+  const infoPointCount = document.getElementById('pointCount');
+  const infoFPS = document.getElementById('fps');
+  const infoStatus = document.getElementById('status');
 
-  // Points geometry & material
-  const maxPoints = 10000;
-  const positions = new Float32Array(maxPoints*3);
-  for(let i=0; i<maxPoints*3; i++) positions[i] = 0; // init
-  const pointGeo = new THREE.BufferGeometry();
-  pointGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const pointMat = new THREE.PointsMaterial({color: 0xffff00, size: 0.15});
-  const points = new THREE.Points(pointGeo, pointMat);
-  scene.add(points);
+  let count = 10000;
+  const maxCount = 50000000; // 50 million max
 
-  // Dummy for cube transforms
-  const dummy = new THREE.Object3D();
+  let geometry, material, points;
 
-  // Variables to track current counts
-  let cubeCount = 10;
-  let pointCount = 100;
-
-  // HTML elements
-  const cubeCountElem = document.getElementById('cubeCount');
-  const pointCountElem = document.getElementById('pointCount');
-  const fpsElem = document.getElementById('fps');
-
-  // FPS tracking
   let lastTime = performance.now();
   let frames = 0;
   let fps = 0;
 
-  // Function to update cubes positions & scales
-  function updateCubes(count, time) {
-    const grid = Math.ceil(Math.sqrt(count));
-    for(let i=0; i<count; i++) {
-      const x = (i % grid) - grid/2;
-      const z = Math.floor(i / grid) - grid/2;
-      const y = 1 + Math.sin(time*3 + x*0.5 + z*0.3) * 0.5;
-      dummy.position.set(x*2, y/2, z*2);
-      dummy.scale.set(1, y, 1);
-      dummy.updateMatrix();
-      cubes.setMatrixAt(i, dummy.matrix);
+  let growing = true;
+  let lastGrowthTime = performance.now();
+
+  function createPoints(n) {
+    // Generate random positions inside a cube -50 to +50
+    const positions = new Float32Array(n * 3);
+    for(let i = 0; i < n * 3; i++) {
+      positions[i] = (Math.random() - 0.5) * 100;
     }
-    cubes.instanceMatrix.needsUpdate = true;
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    // Use basic PointsMaterial for max compatibility
+    const mat = new THREE.PointsMaterial({
+      color: 0x88ccff,
+      size: 1.0,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.8
+    });
+
+    return { geo, mat };
   }
 
-  // Function to update points positions (falling down)
-  function updatePoints(count) {
-    const pos = pointGeo.attributes.position.array;
-    for(let i=0; i<count; i++) {
-      pos[i*3 + 1] -= 0.02;
-      if(pos[i*3 + 1] < -10) pos[i*3 + 1] = 20;
+  function initPoints(n) {
+    if(points) {
+      scene.remove(points);
+      geometry.dispose();
+      material.dispose();
     }
-    pointGeo.attributes.position.needsUpdate = true;
+    try {
+      const { geo, mat } = createPoints(n);
+      geometry = geo;
+      material = mat;
+      points = new THREE.Points(geometry, material);
+      scene.add(points);
+      infoStatus.textContent = 'Rendering';
+      return true;
+    } catch(e) {
+      infoStatus.textContent = 'Failed at ' + n.toLocaleString();
+      console.warn('Failed to create points:', e);
+      return false;
+    }
   }
 
-  // Increment counts gradually every 2 seconds if FPS > 30
-  let lastIncrement = 0;
-  const incrementInterval = 2000;
+  let created = initPoints(count);
+  if(!created) infoStatus.textContent = 'Initial creation failed';
 
-  function animate(time=0) {
+  const clock = new THREE.Clock();
+
+  function animate() {
     requestAnimationFrame(animate);
 
     frames++;
@@ -108,54 +104,51 @@
       fps = Math.round((frames*1000)/(now - lastTime));
       frames = 0;
       lastTime = now;
-      fpsElem.textContent = fps;
+      infoFPS.textContent = fps;
     }
 
-    updateCubes(cubeCount, time*0.001);
-    updatePoints(pointCount);
-
-    // Orbit camera slowly
-    camera.position.x = Math.cos(time*0.0003) * 50;
-    camera.position.z = Math.sin(time*0.0003) * 50;
-    camera.position.y = 20 + Math.sin(time*0.001) * 5;
-    camera.lookAt(0,0,0);
+    // Slowly orbit camera around center
+    const t = clock.elapsedTime * 0.1;
+    const radius = 120 + Math.log10(count) * 20;
+    camera.position.x = Math.sin(t) * radius;
+    camera.position.z = Math.cos(t) * radius;
+    camera.position.y = 50 + Math.sin(t * 0.5) * 20;
+    camera.lookAt(0, 0, 0);
 
     renderer.render(scene, camera);
 
-    // Increase counts if FPS > 30, otherwise stop
-    if(now - lastIncrement > incrementInterval && fps > 30) {
-      lastIncrement = now;
-      if(cubeCount < maxCubes) {
-        cubeCount += 100;
-        cubeCountElem.textContent = cubeCount;
+    // Grow points count exponentially every 1.5s if FPS > 30 and growing
+    if(growing && now - lastGrowthTime > 1500) {
+      if(fps > 30) {
+        const newCount = Math.floor(count * 1.7);
+        if(newCount <= maxCount) {
+          const success = initPoints(newCount);
+          if(success) {
+            count = newCount;
+            infoPointCount.textContent = count.toLocaleString();
+          } else {
+            growing = false;
+          }
+        } else {
+          infoStatus.textContent = 'Reached max count ' + maxCount.toLocaleString();
+          growing = false;
+        }
+      } else {
+        infoStatus.textContent = 'FPS dropped below 30, stopping growth';
+        growing = false;
       }
-      if(pointCount < maxPoints) {
-        pointCount += 200;
-        pointCountElem.textContent = pointCount;
-      }
+      lastGrowthTime = now;
     }
   }
 
-  // Initialize point Y positions randomly so they fall
-  for(let i=0; i<maxPoints; i++) {
-    positions[i*3] = (Math.random()-0.5)*100;
-    positions[i*3 + 1] = Math.random()*30;
-    positions[i*3 + 2] = (Math.random()-0.5)*100;
-  }
-  pointGeo.attributes.position.needsUpdate = true;
-
-  // Initial info update
-  cubeCountElem.textContent = cubeCount;
-  pointCountElem.textContent = pointCount;
-
   animate();
 
-  // Handle resize
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 </script>
+
 </body>
 </html>
