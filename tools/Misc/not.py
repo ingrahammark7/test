@@ -27,7 +27,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Request for Judgement"  # Title of the paper
+        footer_text = "Declaration of No Oral Dismissal Made"  # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -105,14 +105,14 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "REQUEST FOR ORDER")
+    c.drawString(left_margin, y_position - 0.25* inch, "DECLARATION OF NO ORAL DISMISSAL MADE")
     c.setFont("Times-Roman",12)
     intro_text = [
-        "1. Judge already said they would side with police no matter what.",
-        "2. Judge should make a decision as soon as possible.",
-        "3. Judge should have just rejected case instead of delaying outcome by waiting for hearings and then awarding",
-        "judgement to defendant on trivial grounds.",
-        "4. Defendant has no reply whatsoever and no outcome is possible besides default.",
+        "1. As stated in notice filed immediately affer 7/22 hearing, I never ordered dismissal.",
+        "2. Judge lied and tried to get of case.",
+        "3. Since defendant has no actual counsel the only outcome this case can have is default.",
+        "4. I made an additonal filing mentioning most LAPD officers are illegal immigrants and this illegalizes ","the LAPD regardless.",
+        "5. LAPD report 24101590029 is relevant.",
         ]
     y_position -= .5*inch
     for line in intro_text:
