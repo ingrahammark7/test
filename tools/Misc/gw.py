@@ -1,91 +1,227 @@
-import numpy as np
-import matplotlib.pyplot as plt
+#!/bin/bash
 
-# Parameters
-grid_size = 100
-p_collapse = 0.05      # Base collapse spread probability per neighbor
-p_recovery = 0.01      # Recovery probability per collapsed cell
-rho = 0.1              # Refugees generated per collapsed cell per timestep
-alpha = 1.0            # Refugee absorption capacity per stable cell
-beta = 0.02            # Increase in collapse chance per excess refugee unit
-timesteps = 200
+root_dir="teen_diaries"
+mkdir -p "$root_dir"
 
-# Initialize grid: start mostly stable with a small collapsed region in center
-grid = np.zeros((grid_size, grid_size), dtype=int)
-center = grid_size // 2
-grid[center-2:center+3, center-2:center+3] = 1  # initial collapsed zone
+# Common CSS for all sites
+read -r -d '' COMMON_CSS <<'EOF'
+body {
+  background-color: #000022;
+  color: #eeeeff;
+  font-family: 'Comic Sans MS', cursive, sans-serif;
+  margin: 0; padding: 10px;
+}
+a { color: #88aaff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+header {
+  text-align: center;
+  padding: 20px;
+  font-size: 2.5em;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+nav {
+  margin: 20px auto;
+  text-align: center;
+}
+nav a {
+  margin: 0 15px;
+  font-size: 1.2em;
+}
+.content {
+  max-width: 700px;
+  margin: 0 auto;
+  background: #111144;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px #224488;
+}
+footer {
+  margin-top: 40px;
+  text-align: center;
+  font-size: 0.9em;
+  color: #666699;
+}
+.visitor-counter {
+  font-size: 0.8em;
+  margin-top: 10px;
+  color: #8888bb;
+}
+.entry-title {
+  font-size: 2em;
+  margin-bottom: 10px;
+  text-align: center;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #222266;
+}
+.date {
+  font-size: 1em;
+  text-align: center;
+  color: #9999cc;
+  margin-bottom: 20px;
+}
+.entry-content {
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6em;
+}
+.song-lyrics {
+  font-style: italic;
+  color: #aaaaee;
+  margin-top: 30px;
+  border-top: 1px solid #444488;
+  padding-top: 15px;
+}
+EOF
 
-refugees = 0.0
-refugee_history = []
-stable_history = []
-collapsed_history = []
+# Create common CSS file
+echo "$COMMON_CSS" > "$root_dir/style.css"
 
-def get_neighbors(x, y, size):
-    neighbors = []
-    for dx in [-1, 0, 1]:
-        for dy in [-1, 0, 1]:
-            if dx == 0 and dy == 0:
-                continue
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < size and 0 <= ny < size:
-                neighbors.append((nx, ny))
-    return neighbors
+# Function to create a site
+create_site () {
+  site_name=$1
+  site_title=$2
+  author_name=$3
+  entry1_title=$4
+  entry1_date=$5
+  entry1_content=$6
+  entry2_title=$7
+  entry2_date=$8
+  entry2_content=$9
+  entry3_title=${10}
+  entry3_date=${11}
+  entry3_content=${12}
 
-for t in range(timesteps):
-    new_grid = grid.copy()
-    stable_cells = np.sum(grid == 0)
-    collapsed_cells = np.sum(grid == 1)
+  site_dir="$root_dir/$site_name"
+  mkdir -p "$site_dir/entries"
+
+  # index.html
+  cat > "$site_dir/index.html" <<EOF
+<!DOCTYPE html>
+<html>
+<head>
+  <title>$site_title</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header>$site_title</header>
+  <nav>
+    <a href="index.html">Home</a> | 
+    <a href="entries/${entry1_date}.html">Diary</a> | 
+    <a href="about.html">About Me</a> | 
+    <a href="guestbook.html">Guestbook</a>
+  </nav>
+  <div class="content">
+    <h2>Welcome</h2>
+    <p>Hi! I'm $author_name. This is my personal diary and creative space. Thanks for visiting!</p>
     
-    # Update refugee count
-    refugees += rho * collapsed_cells
-    absorption_capacity = alpha * stable_cells
-    excess_refugees = max(0, refugees - absorption_capacity)
+    <h3>Latest Diary Entries</h3>
+    <ul>
+      <li><a href="entries/${entry1_date}.html">$entry1_date — $entry1_title</a></li>
+      <li><a href="entries/${entry2_date}.html">$entry2_date — $entry2_title</a></li>
+      <li><a href="entries/${entry3_date}.html">$entry3_date — $entry3_title</a></li>
+    </ul>
     
-    for x in range(grid_size):
-        for y in range(grid_size):
-            if grid[x, y] == 0:  # stable cell
-                # Check neighbors for collapse influence
-                neighbors = get_neighbors(x, y, grid_size)
-                collapsed_neighbors = sum(grid[nx, ny] for (nx, ny) in neighbors)
-                # Base collapse chance from neighbors
-                collapse_chance = 1 - (1 - p_collapse) ** collapsed_neighbors
-                # Increase collapse chance if refugee pressure exists
-                collapse_chance += beta * excess_refugees
-                collapse_chance = min(1.0, collapse_chance)
-                
-                if np.random.rand() < collapse_chance:
-                    new_grid[x, y] = 1
-                    
-            else:  # collapsed cell
-                if np.random.rand() < p_recovery:
-                    new_grid[x, y] = 0
-    
-    # Some refugees are resettled proportional to recovered area
-    recovered_cells = np.sum((grid == 1) & (new_grid == 0))
-    refugees = max(0, refugees - recovered_cells * alpha * 0.1)
-    
-    grid = new_grid
-    
-    stable_history.append(np.sum(grid == 0))
-    collapsed_history.append(np.sum(grid == 1))
-    refugee_history.append(refugees)
+    <div class="visitor-counter">
+      You are visitor #1,234
+    </div>
+  </div>
+  <footer>
+    &copy; 2003 $author_name. Site designed by me with lots of love and glitter gifs.
+  </footer>
+</body>
+</html>
+EOF
 
-# Plot results
-plt.figure(figsize=(12, 6))
+  # diary entries
+  for i in 1 2 3; do
+    eval title=\${entry${i}_title}
+    eval date=\${entry${i}_date}
+    eval content=\${entry${i}_content}
 
-plt.subplot(1, 2, 1)
-plt.plot(stable_history, label='Stable cells')
-plt.plot(collapsed_history, label='Collapsed cells')
-plt.xlabel('Time step')
-plt.ylabel('Number of cells')
-plt.legend()
-plt.title('Stable vs Collapsed Zones Over Time')
+    cat > "$site_dir/entries/$date.html" <<EOF
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Diary Entry: $date — $title</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="entry-title">$title</div>
+  <div class="date">$date</div>
+  <div class="entry-content">
+    $content
+  </div>
+  <p><a href="../index.html">Back to home</a></p>
+</body>
+</html>
+EOF
+  done
 
-plt.subplot(1, 2, 2)
-plt.plot(refugee_history, color='orange')
-plt.xlabel('Time step')
-plt.ylabel('Refugees (arbitrary units)')
-plt.title('Refugee Population Over Time')
+  # about.html
+  cat > "$site_dir/about.html" <<EOF
+<!DOCTYPE html>
+<html>
+<head>
+  <title>About Me — $site_title</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>About Me</header>
+  <div class="content">
+    <p>Hi, I'm $author_name, a 16-year-old who loves writing, music, and dreaming big.</p>
+    <p>This site is my little corner of the internet where I share my thoughts and feelings.</p>
+  </div>
+  <p><a href="index.html">Back to home</a></p>
+</body>
+</html>
+EOF
 
-plt.tight_layout()
-plt.show()
+  # guestbook.html placeholder
+  cat > "$site_dir/guestbook.html" <<EOF
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Guestbook — $site_title</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>Guestbook</header>
+  <div class="content">
+    <p>This is a guestbook placeholder — imagine visitors leaving heartfelt messages here!</p>
+  </div>
+  <p><a href="index.html">Back to home</a></p>
+</body>
+</html>
+EOF
+}
+
+# Create 5 example sites:
+
+create_site "midnightskies.com" "Midnight Skies" "Luna" \
+  "Rainy days and lost dreams" "march10_2003" "<p>It's been raining all day, and everything feels so gray. School is such a drag lately — like I’m stuck in a loop I can’t break out of.</p><p>Sometimes I wonder if anyone really gets me or if I’m just talking to myself through these pages.</p><p>Mom’s been on my case about grades again, and I’m so tired of pretending I care.</p><p>I wish I could just run away — maybe to the beach where no one knows my name.</p>" \
+  "School blues" "march05_2003" "<p>School's just so hard right now. I feel invisible in all my classes.</p><p>Everyone seems to have their lives together but me.</p>" \
+  "Sometimes I just want to disappear" "feb28_2003" "<p>Some days I just want to disappear and be forgotten.</p><p>Maybe someday things will get better, but right now it feels hopeless.</p>"
+
+create_site "awkwardgirl.net" "Awkward Girl" "Emily" \
+  "First day of school" "sept01_2002" "<p>Today was my first day at the new high school. I felt so out of place.</p><p>Everyone looked like they already had their groups, and I was just lost.</p>" \
+  "Crush confessions" "aug15_2002" "<p>I think I like Jason from my math class. But I’m too shy to talk to him.</p><p>Why is liking someone so hard?</p>" \
+  "Lonely nights" "aug01_2002" "<p>It’s hard being lonely, but sometimes it feels like no one understands me.</p><p>I write here to feel less alone.</p>"
+
+create_site "starcrossedlover.org" "Starcrossed Lover" "Jade" \
+  "Broken hearts and poetry" "oct20_2003" "<p>My heart hurts, but poetry helps me cope.</p><p>Here’s a poem I wrote tonight about lost love.</p>" \
+  "Waiting for you" "oct10_2003" "<p>Waiting feels endless when you don’t know if someone cares.</p><p>Maybe one day you’ll read this and understand.</p>" \
+  "Midnight thoughts" "sept30_2003" "<p>When the world sleeps, my mind races with a thousand thoughts.</p><p>I wish I could turn them all into songs.</p>"
+
+create_site "emoheart.net" "Emo Heart" "Kelsey" \
+  "Dark days and heavy hearts" "nov15_2002" "<p>Some days are darker than others, and I feel like no one notices.</p><p>Music is the only thing that gets me through.</p>" \
+  "Lost in the crowd" "nov01_2002" "<p>Sometimes I feel invisible, like I’m lost in a crowd of strangers.</p><p>Is anyone out there really listening?</p>" \
+  "Finding light" "oct20_2002" "<p>Today I found a song that made me feel less alone.</p><p>Maybe there’s hope after all.</p>"
+
+create_site "lonelydaydreamer.com" "Lonely Daydreamer" "Mia" \
+  "Quiet afternoons" "dec10_2003" "<p>Sometimes I just sit and watch the world go by.</p><p>It’s peaceful but lonely.</p>" \
+  "Dreams of escape" "dec01_2003" "<p>I dream of escaping to somewhere new, somewhere free.</p><p>Will I ever get there?</p>" \
+  "Lost in thought" "nov20_2003" "<p>My mind wanders to places I can’t reach.</p><p>I hope someday I find where I belong.</p>"
+
+echo "Sites generated in '$root_dir'."
+echo "Run: cd $root_dir && python3 -m http.server"
