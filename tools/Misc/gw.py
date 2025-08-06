@@ -1,10 +1,20 @@
 #!/bin/bash
 
-root_dir="teen_diaries"
+root_dir="teen_diary_time_capsule"
 mkdir -p "$root_dir"
 
-# Common CSS for all sites
+# Common CSS with blinking text and typical styles
 read -r -d '' COMMON_CSS <<'EOF'
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.blink {
+  animation: blink 1.5s infinite;
+  color: #ff66cc;
+  font-weight: bold;
+}
 body {
   background-color: #000022;
   color: #eeeeff;
@@ -72,12 +82,27 @@ footer {
   border-top: 1px solid #444488;
   padding-top: 15px;
 }
+.under-construction {
+  color: #ff6666;
+  font-weight: bold;
+  font-size: 1.2em;
+  text-align: center;
+  margin: 20px 0;
+}
+.glitter {
+  font-weight: bold;
+  color: #ff66cc;
+  text-shadow: 0 0 8px #ff66cc;
+}
 EOF
 
-# Create common CSS file
 echo "$COMMON_CSS" > "$root_dir/style.css"
 
-# Function to create a site
+# Animated GIF placeholder (static image for simplicity)
+read -r -d '' GLITTER_GIF <<'EOF'
+<img src="https://upload.wikimedia.org/wikipedia/commons/6/65/Animated_glitter_stars.gif" alt="glitter" style="width:40px;vertical-align:middle;">
+EOF
+
 create_site () {
   site_name=$1
   site_title=$2
@@ -95,7 +120,7 @@ create_site () {
   site_dir="$root_dir/$site_name"
   mkdir -p "$site_dir/entries"
 
-  # index.html
+  # index.html with blinking welcome and glitter gifs
   cat > "$site_dir/index.html" <<EOF
 <!DOCTYPE html>
 <html>
@@ -104,7 +129,7 @@ create_site () {
   <link rel="stylesheet" href="../style.css">
 </head>
 <body>
-  <header>$site_title</header>
+  <header>$site_title $GLITTER_GIF</header>
   <nav>
     <a href="index.html">Home</a> | 
     <a href="entries/${entry1_date}.html">Diary</a> | 
@@ -112,8 +137,8 @@ create_site () {
     <a href="guestbook.html">Guestbook</a>
   </nav>
   <div class="content">
-    <h2>Welcome</h2>
-    <p>Hi! I'm $author_name. This is my personal diary and creative space. Thanks for visiting!</p>
+    <h2 class="blink">Welcome to my site!</h2>
+    <p>Hi! I'm $author_name. This is my personal diary and creative space. Thanks for visiting! $GLITTER_GIF</p>
     
     <h3>Latest Diary Entries</h3>
     <ul>
@@ -127,17 +152,22 @@ create_site () {
     </div>
   </div>
   <footer>
-    &copy; 2003 $author_name. Site designed by me with lots of love and glitter gifs.
+    &copy; 2003 $author_name. Site designed by me with lots of love and glitter gifs. $GLITTER_GIF
   </footer>
 </body>
 </html>
 EOF
 
-  # diary entries
+  # diary entries with under construction note on second entry for nostalgia
   for i in 1 2 3; do
     eval title=\${entry${i}_title}
     eval date=\${entry${i}_date}
     eval content=\${entry${i}_content}
+
+    under_construction=""
+    if [ $i -eq 2 ]; then
+      under_construction="<div class='under-construction'>Page under construction! Please check back soon.</div>"
+    fi
 
     cat > "$site_dir/entries/$date.html" <<EOF
 <!DOCTYPE html>
@@ -151,6 +181,7 @@ EOF
   <div class="date">$date</div>
   <div class="entry-content">
     $content
+    $under_construction
   </div>
   <p><a href="../index.html">Back to home</a></p>
 </body>
@@ -158,7 +189,7 @@ EOF
 EOF
   done
 
-  # about.html
+  # about.html with blinking text
   cat > "$site_dir/about.html" <<EOF
 <!DOCTYPE html>
 <html>
@@ -169,7 +200,7 @@ EOF
 <body>
   <header>About Me</header>
   <div class="content">
-    <p>Hi, I'm $author_name, a 16-year-old who loves writing, music, and dreaming big.</p>
+    <p>Hi, I'm <span class="glitter">$author_name</span>, a 16-year-old who loves writing, music, and dreaming big.</p>
     <p>This site is my little corner of the internet where I share my thoughts and feelings.</p>
   </div>
   <p><a href="index.html">Back to home</a></p>
@@ -177,7 +208,7 @@ EOF
 </html>
 EOF
 
-  # guestbook.html placeholder
+  # guestbook.html placeholder with blinking warning
   cat > "$site_dir/guestbook.html" <<EOF
 <!DOCTYPE html>
 <html>
@@ -188,6 +219,7 @@ EOF
 <body>
   <header>Guestbook</header>
   <div class="content">
+    <p class="blink">Guestbook under construction. Please leave a message!</p>
     <p>This is a guestbook placeholder — imagine visitors leaving heartfelt messages here!</p>
   </div>
   <p><a href="index.html">Back to home</a></p>
@@ -196,7 +228,7 @@ EOF
 EOF
 }
 
-# Create 5 example sites:
+# Sites data
 
 create_site "midnightskies.com" "Midnight Skies" "Luna" \
   "Rainy days and lost dreams" "march10_2003" "<p>It's been raining all day, and everything feels so gray. School is such a drag lately — like I’m stuck in a loop I can’t break out of.</p><p>Sometimes I wonder if anyone really gets me or if I’m just talking to myself through these pages.</p><p>Mom’s been on my case about grades again, and I’m so tired of pretending I care.</p><p>I wish I could just run away — maybe to the beach where no one knows my name.</p>" \
@@ -223,5 +255,5 @@ create_site "lonelydaydreamer.com" "Lonely Daydreamer" "Mia" \
   "Dreams of escape" "dec01_2003" "<p>I dream of escaping to somewhere new, somewhere free.</p><p>Will I ever get there?</p>" \
   "Lost in thought" "nov20_2003" "<p>My mind wanders to places I can’t reach.</p><p>I hope someday I find where I belong.</p>"
 
-echo "Sites generated in '$root_dir'."
+echo "Time capsule sites generated in '$root_dir'."
 echo "Run: cd $root_dir && python3 -m http.server"
