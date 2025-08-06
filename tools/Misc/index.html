@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Simple Air Combat Mali/Mobile</title>
+<title>Enhanced Air Combat Mali/Mobile</title>
 <style>
   body { margin: 0; overflow: hidden; background: #000011; }
   canvas { display: block; }
 </style>
 </head>
 <body>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+
 <script>
-  // Scene setup
+  // --- Basic Setup ---
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -21,7 +23,7 @@
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // Starfield with fewer stars
+  // --- Starfield ---
   function createStars() {
     const geometry = new THREE.BufferGeometry();
     const starCount = 500;
@@ -38,17 +40,17 @@
   }
   createStars();
 
-  // Simple plane model with MeshBasicMaterial
+  // --- Plane Model ---
   function createPlane(color) {
     const group = new THREE.Group();
 
+    // Use MeshBasicMaterial with pulsation effect
     const bodyMat = new THREE.MeshBasicMaterial({ color });
     const wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
     const body = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 6), bodyMat);
     group.add(body);
 
-    // Flat box wings
     const wingLeft = new THREE.Mesh(new THREE.BoxGeometry(3, 0.1, 1), wingMat);
     wingLeft.position.set(-2.5, 0, 0);
     wingLeft.rotation.y = Math.PI / 10;
@@ -58,6 +60,9 @@
     wingRight.position.set(2.5, 0, 0);
     wingRight.rotation.y = -Math.PI / 10;
     group.add(wingRight);
+
+    // Store materials for pulsation
+    group.userData = { bodyMat, wingMat };
 
     return group;
   }
@@ -70,44 +75,155 @@
   enemyPlane.position.set(0, 0, -20);
   scene.add(enemyPlane);
 
-  // Bullet class
+  // --- Bullets with trails ---
   class Bullet {
     constructor(position, velocity, color) {
+      // Mesh sphere bullet
       const geom = new THREE.SphereGeometry(0.15, 8, 8);
-      const mat = new THREE.MeshBasicMaterial({ color });
-      this.mesh = new THREE.Mesh(geom, mat);
+      this.color = color;
+      this.mat = new THREE.MeshBasicMaterial({ color });
+      this.mesh = new THREE.Mesh(geom, this.mat);
       this.mesh.position.copy(position);
       this.velocity = velocity;
+
+      // Trail setup: use small points, max 8 points trail
+      this.trailPositions = new Float32Array(8 * 3);
+      this.trailGeometry = new THREE.BufferGeometry();
+      this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(this.trailPositions, 3));
+      this.trailMaterial = new THREE.PointsMaterial({
+        color,
+        size: 0.25,
+        transparent: true,
+        opacity: 0.7,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      this.trail = new THREE.Points(this.trailGeometry, this.trailMaterial);
+
+      this.trailIndex = 0;
+
       scene.add(this.mesh);
+      scene.add(this.trail);
     }
+
     update() {
       this.mesh.position.add(this.velocity);
+
+      // Update trail positions (circular buffer)
+      for(let i=0; i < this.trailPositions.length - 3; i++) {
+        this.trailPositions[i] = this.trailPositions[i+3];
+      }
+      this.trailPositions[this.trailPositions.length - 3] = this.mesh.position.x;
+      this.trailPositions[this.trailPositions.length - 2] = this.mesh.position.y;
+      this.trailPositions[this.trailPositions.length - 1] = this.mesh.position.z;
+
+      this.trail.geometry.attributes.position.needsUpdate = true;
     }
+
     dispose() {
       scene.remove(this.mesh);
+      scene.remove(this.trail);
       this.mesh.geometry.dispose();
       this.mesh.material.dispose();
+      this.trail.geometry.dispose();
+      this.trail.material.dispose();
     }
   }
+
   const bullets = [];
 
-  // Simple explosion as expanding sphere that fades
+  // --- Explosions with glow halos ---
   class Explosion {
     constructor(position) {
+      // Expanding sphere
       const geom = new THREE.SphereGeometry(0.5, 8, 8);
-      const mat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 1 });
-      this.mesh = new THREE.Mesh(geom, mat);
-      this.mesh.position.copy(position);
+      this.sphereMat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 1 });
+      this.sphere = new THREE.Mesh(geom, this.sphereMat);
+      this.sphere.position.copy(position);
+      scene.add(this.sphere);
+
+      // Glow halo: transparent circle sprite
+      const spriteMap = createGlowTexture();
+      const spriteMat = new THREE.SpriteMaterial({ map: spriteMap, color: 0xff5500, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false });
+      this.halo = new THREE.Sprite(spriteMat);
+      this.halo.position.copy(position);
+      this.halo.scale.set(3,3,1);
+      scene.add(this.halo);
+
       this.elapsed = 0;
-      this.duration = 1.0; // seconds
+      this.duration = 1.2;
+      this.done = false;
+    }
+
+    update(delta) {
+      this.elapsed += delta;
+      const progress = this.elapsed / this.duration;
+
+      this.sphere.scale.setScalar(1 + progress * 3);
+      this.sphere.material.opacity = 1 - progress;
+
+      this.halo.material.opacity = 0.6 * (1 - progress);
+      this.halo.scale.setScalar(3 + progress * 5);
+
+      if(this.elapsed >= this.duration) {
+        scene.remove(this.sphere);
+        scene.remove(this.halo);
+        this.sphere.geometry.dispose();
+        this.sphere.material.dispose();
+        this.halo.material.map.dispose();
+        this.halo.material.dispose();
+        this.done = true;
+      }
+    }
+  }
+
+  // Helper: create a circular gradient texture for glow halo sprite
+  function createGlowTexture() {
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Draw radial gradient circle
+    const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+    gradient.addColorStop(0, 'rgba(255, 150, 0, 0.8)');
+    gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.3)');
+    gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+
+  const explosions = [];
+
+  // --- Collision detection ---
+  function detectCollision(obj1, obj2, threshold=2) {
+    return obj1.position.distanceTo(obj2.position) < threshold;
+  }
+
+  // --- Background flare planes (small fast dots) ---
+  class Flare {
+    constructor() {
+      const geom = new THREE.SphereGeometry(0.15, 6, 6);
+      const mat = new THREE.MeshBasicMaterial({ color: 0xffffaa });
+      this.mesh = new THREE.Mesh(geom, mat);
+      this.mesh.position.set(
+        (Math.random() - 0.5) * 180,
+        (Math.random() - 0.5) * 100 + 20,
+        -100
+      );
+      this.velocity = new THREE.Vector3(0, 0, 0.5 + Math.random() * 1.5);
       scene.add(this.mesh);
       this.done = false;
     }
-    update(delta) {
-      this.elapsed += delta;
-      this.mesh.scale.setScalar(1 + this.elapsed * 3);
-      this.mesh.material.opacity = 1 - this.elapsed / this.duration;
-      if(this.elapsed >= this.duration) {
+
+    update() {
+      this.mesh.position.add(this.velocity);
+      if(this.mesh.position.z > 20) {
         scene.remove(this.mesh);
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
@@ -115,14 +231,58 @@
       }
     }
   }
-  const explosions = [];
+  const flares = [];
 
-  // Collision detection helper
-  function detectCollision(obj1, obj2, threshold=2) {
-    return obj1.position.distanceTo(obj2.position) < threshold;
+  // --- Planes pulsation variables ---
+  let pulseTime = 0;
+
+  // --- Audio Setup ---
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioContext();
+
+  // Play a short beep sound for firing
+  function playFireSound() {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.05);
   }
 
-  // Autonomous target positions
+  // Play explosion sound
+  function playExplosionSound() {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+
+    oscillator.start();
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    oscillator.stop(audioCtx.currentTime + 0.2);
+  }
+
+  // --- Bullets ---
+  function fireBullet(plane, color, dirZ) {
+    const pos = plane.position.clone();
+    pos.z += dirZ * 3;
+    const velocity = new THREE.Vector3(0, 0, dirZ * 1.5);
+    bullets.push(new Bullet(pos, velocity, color));
+    playFireSound();
+  }
+
+  // --- Targets ---
   let playerTargetX = 0;
   let enemyTargetX = 0;
   let playerTargetZ = -10;
@@ -130,28 +290,30 @@
 
   const clock = new THREE.Clock();
 
-  // Cooldowns in frames
+  // Fire cooldowns
   let playerFireCooldown = 0;
   let enemyFireCooldown = 0;
 
-  // Fire bullet function
-  function fireBullet(plane, color, dirZ) {
-    const pos = plane.position.clone();
-    pos.z += dirZ * 3;
-    const velocity = new THREE.Vector3(0, 0, dirZ * 1.5);
-    bullets.push(new Bullet(pos, velocity, color));
-  }
-
-  // Camera shake variables
-  let shakeIntensity = 0;
-  const shakeDecay = 0.02;
+  // Flare spawn timer
+  let flareSpawnTimer = 0;
 
   function animate() {
     const delta = clock.getDelta();
     const elapsed = clock.elapsedTime;
     requestAnimationFrame(animate);
 
-    // Every 4 seconds, choose new targets
+    pulseTime += delta * 6;
+
+    // Pulsate plane colors (sinusoidal)
+    const pulseFactor = 0.6 + 0.4 * Math.sin(pulseTime);
+    // Player plane pulsate
+    playerPlane.userData.bodyMat.color.setRGB(0, pulseFactor, pulseFactor);
+    playerPlane.userData.wingMat.color.setRGB(pulseFactor, pulseFactor, pulseFactor);
+    // Enemy plane pulsate
+    enemyPlane.userData.bodyMat.color.setRGB(pulseFactor, pulseFactor * 0.27, 0);
+    enemyPlane.userData.wingMat.color.setRGB(pulseFactor, pulseFactor, pulseFactor);
+
+    // New targets every 4 seconds
     if(elapsed % 4 < delta) {
       playerTargetX = (Math.random() - 0.5) * 12;
       enemyTargetX = (Math.random() - 0.5) * 12;
@@ -159,24 +321,25 @@
       enemyTargetZ = -20 + (Math.random() - 0.5) * 4;
     }
 
-    // Move planes toward targets smoothly
+    // Move planes
     playerPlane.position.x += (playerTargetX - playerPlane.position.x) * delta * 1.5;
     playerPlane.position.z += (playerTargetZ - playerPlane.position.z) * delta * 1.5;
 
     enemyPlane.position.x += (enemyTargetX - enemyPlane.position.x) * delta * 1.2;
     enemyPlane.position.z += (enemyTargetZ - enemyPlane.position.z) * delta * 1.2;
 
-    // Rotate planes to face movement direction
+    // Rotate planes
     playerPlane.rotation.y = -Math.atan2(
       playerTargetZ - playerPlane.position.z,
       playerTargetX - playerPlane.position.x
     ) + Math.PI / 2;
+
     enemyPlane.rotation.y = -Math.atan2(
       enemyTargetZ - enemyPlane.position.z,
       enemyTargetX - enemyPlane.position.x
     ) + Math.PI / 2;
 
-    // Cooldowns (frames)
+    // Fire cooldowns
     playerFireCooldown -= delta * 60;
     enemyFireCooldown -= delta * 60;
 
@@ -189,12 +352,11 @@
       enemyFireCooldown = 40 + Math.random() * 70;
     }
 
-    // Update bullets and handle collisions
-    for(let i = bullets.length -1; i >= 0; i--) {
+    // Update bullets
+    for(let i=bullets.length -1; i>=0; i--) {
       const b = bullets[i];
       b.update();
 
-      // Remove bullets out of bounds
       if(b.mesh.position.z < -60 || b.mesh.position.z > 60) {
         b.dispose();
         bullets.splice(i, 1);
@@ -202,9 +364,10 @@
       }
 
       // Collisions
-      if(b.mesh.material.color.getHex() === 0x00ffff && detectCollision(b.mesh, enemyPlane)) {
+      if(b.color === 0x00ffff && detectCollision(b.mesh, enemyPlane)) {
         explosions.push(new Explosion(enemyPlane.position.clone()));
         enemyPlane.position.set(100, 100, 100);
+        playExplosionSound();
         b.dispose();
         bullets.splice(i, 1);
         shakeIntensity = 1.5;
@@ -213,9 +376,10 @@
         }, 4000);
       }
 
-      if(b.mesh.material.color.getHex() === 0xff4400 && detectCollision(b.mesh, playerPlane)) {
+      if(b.color === 0xff4400 && detectCollision(b.mesh, playerPlane)) {
         explosions.push(new Explosion(playerPlane.position.clone()));
         playerPlane.position.set(100, 100, 100);
+        playExplosionSound();
         b.dispose();
         bullets.splice(i, 1);
         shakeIntensity = 1.5;
@@ -226,18 +390,33 @@
     }
 
     // Update explosions
-    for(let i = explosions.length -1; i >= 0; i--) {
+    for(let i=explosions.length -1; i>=0; i--) {
       explosions[i].update(delta);
       if(explosions[i].done) explosions.splice(i, 1);
     }
 
-    // Camera follows midpoint smoothly
+    // Spawn flares occasionally
+    flareSpawnTimer -= delta;
+    if(flareSpawnTimer <= 0) {
+      flares.push(new Flare());
+      flareSpawnTimer = 1 + Math.random() * 2; // every 1-3 sec
+    }
+
+    // Update flares
+    for(let i=flares.length -1; i>=0; i--) {
+      flares[i].update();
+      if(flares[i].done) flares.splice(i, 1);
+    }
+
+    // Camera midpoint between planes
     const midPoint = new THREE.Vector3().addVectors(playerPlane.position, enemyPlane.position).multiplyScalar(0.5);
-    const camTarget = midPoint.clone().add(new THREE.Vector3(0, 15, 40));
-    camera.position.lerp(camTarget, delta * 2);
+    const camTargetPos = midPoint.clone().add(new THREE.Vector3(0, 15, 40));
+
+    // Smooth camera movement
+    camera.position.lerp(camTargetPos, delta * 2);
     camera.lookAt(midPoint);
 
-    // Camera shake
+    // Camera shake effect
     if(shakeIntensity > 0) {
       camera.position.x += (Math.random() - 0.5) * shakeIntensity;
       camera.position.y += (Math.random() - 0.5) * shakeIntensity;
@@ -247,6 +426,10 @@
 
     renderer.render(scene, camera);
   }
+
+  // Shake variables
+  let shakeIntensity = 0;
+  const shakeDecay = 0.03;
 
   animate();
 
