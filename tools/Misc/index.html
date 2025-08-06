@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Minimal Large Point Cloud Test</title>
+<title>Colored Large Point Cloud</title>
 <style>
   body, html { margin:0; padding:0; overflow:hidden; background:#000; }
   #info {
@@ -25,7 +25,7 @@
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
-  camera.position.z = 100;
+  camera.position.z = 120;
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -35,65 +35,78 @@
   const infoFPS = document.getElementById('fps');
   const infoStatus = document.getElementById('status');
 
-  let count = 10000;
-  const maxCount = 50000000; // 50 million max
+  const count = 5_000_000; // stable 5 million
 
-  let geometry, material, points;
+  // Generate positions
+  const positions = new Float32Array(count * 3);
+  for(let i = 0; i < count * 3; i++) {
+    positions[i] = (Math.random() - 0.5) * 100;
+  }
+
+  // Generate an "index" attribute for hue cycling
+  const indices = new Float32Array(count);
+  for(let i = 0; i < count; i++) {
+    indices[i] = i;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('index', new THREE.BufferAttribute(indices, 1));
+
+  // ShaderMaterial for color cycling
+  const vertexShader = `
+    attribute float index;
+    uniform float time;
+    varying vec3 vColor;
+
+    void main() {
+      vec3 pos = position;
+
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+
+      gl_PointSize = 1.5;
+
+      float hue = mod(time * 0.1 + index / ${count.toFixed(1)}, 1.0);
+
+      // HSV to RGB approximation
+      float r = abs(sin(6.2831 * hue));
+      float g = abs(sin(6.2831 * (hue + 0.333)));
+      float b = abs(sin(6.2831 * (hue + 0.666)));
+
+      vColor = vec3(r, g, b);
+    }
+  `;
+
+  const fragmentShader = `
+    varying vec3 vColor;
+
+    void main() {
+      float dist = length(gl_PointCoord - vec2(0.5));
+      if(dist > 0.5) discard;
+      gl_FragColor = vec4(vColor, 0.8);
+    }
+  `;
+
+  const material = new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+    uniforms: { time: { value: 0 } },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+
+  const points = new THREE.Points(geometry, material);
+  scene.add(points);
+
+  infoPointCount.textContent = count.toLocaleString();
+  infoStatus.textContent = 'Rendering colored points';
+
+  const clock = new THREE.Clock();
 
   let lastTime = performance.now();
   let frames = 0;
   let fps = 0;
-
-  let growing = true;
-  let lastGrowthTime = performance.now();
-
-  function createPoints(n) {
-    // Generate random positions inside a cube -50 to +50
-    const positions = new Float32Array(n * 3);
-    for(let i = 0; i < n * 3; i++) {
-      positions[i] = (Math.random() - 0.5) * 100;
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-    // Use basic PointsMaterial for max compatibility
-    const mat = new THREE.PointsMaterial({
-      color: 0x88ccff,
-      size: 1.0,
-      sizeAttenuation: true,
-      transparent: true,
-      opacity: 0.8
-    });
-
-    return { geo, mat };
-  }
-
-  function initPoints(n) {
-    if(points) {
-      scene.remove(points);
-      geometry.dispose();
-      material.dispose();
-    }
-    try {
-      const { geo, mat } = createPoints(n);
-      geometry = geo;
-      material = mat;
-      points = new THREE.Points(geometry, material);
-      scene.add(points);
-      infoStatus.textContent = 'Rendering';
-      return true;
-    } catch(e) {
-      infoStatus.textContent = 'Failed at ' + n.toLocaleString();
-      console.warn('Failed to create points:', e);
-      return false;
-    }
-  }
-
-  let created = initPoints(count);
-  if(!created) infoStatus.textContent = 'Initial creation failed';
-
-  const clock = new THREE.Clock();
 
   function animate() {
     requestAnimationFrame(animate);
@@ -101,44 +114,23 @@
     frames++;
     const now = performance.now();
     if(now - lastTime > 1000) {
-      fps = Math.round((frames*1000)/(now - lastTime));
+      fps = Math.round((frames * 1000) / (now - lastTime));
       frames = 0;
       lastTime = now;
       infoFPS.textContent = fps;
     }
 
-    // Slowly orbit camera around center
-    const t = clock.elapsedTime * 0.1;
-    const radius = 120 + Math.log10(count) * 20;
+    material.uniforms.time.value = clock.getElapsedTime();
+
+    // Slow camera orbit
+    const t = clock.elapsedTime * 0.05;
+    const radius = 120;
     camera.position.x = Math.sin(t) * radius;
     camera.position.z = Math.cos(t) * radius;
     camera.position.y = 50 + Math.sin(t * 0.5) * 20;
     camera.lookAt(0, 0, 0);
 
     renderer.render(scene, camera);
-
-    // Grow points count exponentially every 1.5s if FPS > 30 and growing
-    if(growing && now - lastGrowthTime > 1500) {
-      if(fps > 30) {
-        const newCount = Math.floor(count * 1.7);
-        if(newCount <= maxCount) {
-          const success = initPoints(newCount);
-          if(success) {
-            count = newCount;
-            infoPointCount.textContent = count.toLocaleString();
-          } else {
-            growing = false;
-          }
-        } else {
-          infoStatus.textContent = 'Reached max count ' + maxCount.toLocaleString();
-          growing = false;
-        }
-      } else {
-        infoStatus.textContent = 'FPS dropped below 30, stopping growth';
-        growing = false;
-      }
-      lastGrowthTime = now;
-    }
   }
 
   animate();
