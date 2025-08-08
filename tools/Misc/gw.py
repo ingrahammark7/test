@@ -1,104 +1,63 @@
-#!/bin/bash
+import math
 
-mkdir -p hyperborea_site
-cd hyperborea_site
+# Constants
+G = 6.67430e-11         # gravitational constant (m^3 kg^-1 s^-2)
+e_mass = 9.10938356e-31 # electron mass (kg)
+e_charge = 1.602176634e-19 # electron charge (C)
+atomic_radius = 1.26e-10  # approximate atomic radius (meters, e.g. for Iron)
+electron_velocity_thermal = 1e5  # rough thermal velocity of electron in m/s (order of magnitude)
 
-# Index
-cat <<EOF > index.html
-<!DOCTYPE html>
-<html>
-<head><title>Hyperborean Mysticism</title></head>
-<body>
-<h1>The Frozen Wisdom of Hyperborea</h1>
-<p>Welcome to a reconstructed archive of the lost Thulian Mysticism site, last seen in 2003.</p>
-<ul>
-  <li><a href="origin.html">The Origin of Hyperborea</a></li>
-  <li><a href="glyphs.html">Glyphs of the Cold Gods</a></li>
-  <li><a href="rituals.html">Rituals of Ice</a></li>
-  <li><a href="theory.html">Polar Vibrational Science</a></li>
-  <li><a href="links.html">Ancient Hyperlinks</a></li>
-</ul>
-</body>
-</html>
-EOF
+# Planck mass roughly 2.176e-8 kg, you got about 2.39e-8 kg, so use yours:
+planck_mass_grain = 2.39e-8  # kg
 
-# Origin
-cat <<EOF > origin.html
-<!DOCTYPE html>
-<html>
-<head><title>The Origin of Hyperborea</title></head>
-<body>
-<h1>Origin of Hyperborea</h1>
-<p>Hyperborea, the land beyond the North Wind, was said to be home to radiant beings of immense intelligence. Plato hinted at it. Pythagoras learned from its emissaries.</p>
-<p>They encoded their history in crystalline scrolls lost beneath the polar caps, allegedly buried in 12 concentric domes beneath what is now Greenland.</p>
-<a href="index.html">Back</a>
-</body>
-</html>
-EOF
+# Calculate gravitational acceleration on electron at atomic radius distance from mass grain
+def gravitational_acceleration(mass, distance):
+    return G * mass / (distance ** 2)
 
-# Glyphs
-cat <<EOF > glyphs.html
-<!DOCTYPE html>
-<html>
-<head><title>Glyphs of the Cold Gods</title></head>
-<body>
-<h1>Glyphs of the Cold Gods</h1>
-<p>The language of Hyperborea was composed of interlocking ice glyphs, visual mantras channeled into reality through trance-inscription.</p>
-<ul>
-  <li>𐰆 - Voice of Polar Eternity</li>
-  <li>ᛉ - Seal of the Moonroot</li>
-  <li>𐍃 - Spiral of Ice Thought</li>
-</ul>
-<p>Only three remain decoded in known manuscripts. The rest were lost in the burning of the Riga Archive in 1912.</p>
-<a href="index.html">Back</a>
-</body>
-</html>
-EOF
+# Calculate time for electron to move one atomic radius under gravity alone
+def time_to_cross_distance(accel, distance):
+    # s = 0.5 * a * t^2  => t = sqrt(2s/a)
+    if accel == 0:
+        return float('inf')
+    return math.sqrt(2 * distance / accel)
 
-# Rituals
-cat <<EOF > rituals.html
-<!DOCTYPE html>
-<html>
-<head><title>Rituals of Ice</title></head>
-<body>
-<h1>Rituals of Ice</h1>
-<p>Practitioners of the Hyperborean path underwent cryoshamanic trance, wherein body temperature was lowered through breathwork to receive ancestral broadcasts.</p>
-<p>They carved frost-temples from glaciers and aligned their prayers with magnetic anomalies once mapped in Soviet esoteric research logs (now classified).</p>
-<a href="index.html">Back</a>
-</body>
-</html>
-EOF
+# Calculate displacement of electron over time given initial velocity and acceleration
+def displacement(initial_velocity, acceleration, time):
+    # s = vt + 0.5 * a * t^2
+    return initial_velocity * time + 0.5 * acceleration * time ** 2
 
-# Theory
-cat <<EOF > theory.html
-<!DOCTYPE html>
-<html>
-<head><title>Polar Vibrational Science</title></head>
-<body>
-<h1>Polar Vibrational Science</h1>
-<p>Hyperborean science involved “geomelonic resonance,” a field concept believed to allow mental projection across ice lattices.</p>
-<p>Discredited in the West, the concept appeared in early Tesla notes and in suppressed pages from Wilhelm Reich’s journals.</p>
-<a href="index.html">Back</a>
-</body>
-</html>
-EOF
+def main():
+    distance = atomic_radius  # m
+    mass = planck_mass_grain  # kg
+    
+    # Gravitational acceleration at atomic radius distance
+    g_accel = gravitational_acceleration(mass, distance)
+    print(f"Gravitational acceleration at {distance:.3e} m from {mass:.3e} kg mass: {g_accel:.3e} m/s²")
 
-# Links
-cat <<EOF > links.html
-<!DOCTYPE html>
-<html>
-<head><title>Ancient Hyperlinks</title></head>
-<body>
-<h1>Dead Links of the Old Net</h1>
-<ul>
-  <li><a href="http://geocities.com/thulewave" target="_blank">Thulewave Geocities (404)</a></li>
-  <li><a href="http://members.tripod.com/~polar_gate" target="_blank">The Polar Gate Archive (deleted)</a></li>
-  <li><a href="http://frostpath.angelfire.com" target="_blank">Frostpath Index (vanished)</a></li>
-</ul>
-<p>Preserved only in memory.</p>
-<a href="index.html">Back</a>
-</body>
-</html>
-EOF
+    # Time for electron to cross one atomic radius under gravity alone (starting from rest)
+    t_cross = time_to_cross_distance(g_accel, distance)
+    print(f"Time to cross one atomic radius under gravity alone: {t_cross:.3e} s")
 
-echo "Hyperborean site written to ./hyperborea_site/"
+    # Electron displacement due to thermal velocity only (ignore gravity)
+    disp_thermal = displacement(electron_velocity_thermal, 0, t_cross)
+    print(f"Electron displacement due to thermal velocity alone in that time: {disp_thermal:.3e} m")
+
+    # Electron displacement including gravity acceleration
+    disp_with_gravity = displacement(electron_velocity_thermal, g_accel, t_cross)
+    print(f"Electron displacement with gravity acceleration included: {disp_with_gravity:.3e} m")
+
+    # Calculate approximate thermal acceleration magnitude for comparison
+    # a_thermal ~ v / t_cross (assuming linear acceleration for rough estimate)
+    a_thermal = electron_velocity_thermal / t_cross
+    print(f"Approximate electron thermal acceleration: {a_thermal:.3e} m/s²")
+
+    print(g_accel)
+    print(a_thermal**(1/6))
+    # Compare gravity acceleration to thermal acceleration to decide dominance
+    if g_accel > a_thermal**(1/6):
+        print("Gravity dominates electron motion at this scale!")
+    else:
+        print("Electron motion dominated by other forces; gravity negligible at this scale.")
+
+if __name__ == "__main__":
+    main()
