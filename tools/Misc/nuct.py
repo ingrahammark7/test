@@ -32,12 +32,10 @@ class NuclearPenetrationModel:
         self.compt=self.brem*2
         self.evperj=pen.getsteel().ev_to_joule
         self.pm=self.alpha**self.phi**4.55
-        print(self.pm)
         self.ac=self.pm       
         self.prma=1/(self.alpha**self.phi**5)
         self.prma=self.prma/1000
         self.pm=self.pm*self.prma
-        print(self.pm.evalf())
         self.ec=material.elementary_charge
        
 
@@ -49,7 +47,23 @@ class NuclearPenetrationModel:
     	loss = (Z ** exponent) * n_e * self.alpha_fs * 		math.log(E_mev + 1)
     	return loss
     
-    def mhd_bolus(self,E_mev,round_energy_mj,round_diameter_cm,round_mas):
+    def emf(self,mass1,mass2,r):
+    	c1=mass1/self.prma*self.ec
+    	c2=mass2/self.prma*self.ec
+    	top=pen.getsteel().k*c1*c2
+    	return top/r
+    	
+    def velfromen(self,mass,en):
+    	return (2*(en/mass))**(1/2)
+    
+    def emvf(self,mass1,mass2,r):
+    	emff=self.emf(mass1,mass2,r)
+    	v1=self.velfromen(mass1,emff)
+    	v2=self.velfromen(mass2,emff)
+    	return v1+v2
+    	
+    
+    def mhd_bolus(self,E_mev,round_energy_mj,round_diameter_cm,round_mas,round_ld):
     	numpm=round_mas/self.pm
     	perpm=round_energy_mj/numpm
     	numpm=math.sqrt(numpm)
@@ -57,20 +71,29 @@ class NuclearPenetrationModel:
     	charger=(peaken/numpm)/pen.getsteel().ch1
     	if(charger>1):
     		print("ionization achieved")
-    	print(charger.evalf())
+    	else:
+    		return 0
+    	length=round_ld*round_diameter_cm/100
+    	length=length/2
+    	en=round_energy_mj*1_000_000
+    	roundspeed=self.velfromen(round_mas,en)
+    	print("speed ",roundspeed)
     	return 1#placeholder
 
     def honeycomb_dissipation_factor(self, layers):
-        return (1 + layers)**3
+        return (1 + layers)**3 
         
     def mjtomev(self,num):
     	return num*6.242e12
+    	
+    def roundld(self,round_diameter_cm,round_mas):
+    	round_front_vol=round_diameter_cm*round_diameter_cm/1000000
+    	round_front_mass=round_front_vol*self.material.density
+    	return round_mas/round_front_mass
 
     def penetration(self, round_energy_mj, round_diameter_cm, honeycomb_layers, round_mas):
         # Convert MJ to MeV (approx 1 MJ = 6.242e12 MeV)
-        round_front_vol=round_diameter_cm*round_diameter_cm/1000000
-        round_front_mass=round_front_vol*self.material.density        
-        round_ld=round_mas/round_front_mass
+        round_ld=self.roundld(round_diameter_cm,round_mas)
         print("round ld ",round_ld)
         E_mev_val = self.mjtomev(round_energy_mj)
 
@@ -89,7 +112,7 @@ class NuclearPenetrationModel:
 
         if(brems_loss_val>E_mev_val):
         	brems_loss_val=0 #entire energy dissipated
-        mhd_var=self.mhd_bolus(E_mev_val,round_energy_mj,round_diameter_cm,round_mas)
+        mhd_var=self.mhd_bolus(E_mev_val,round_energy_mj,round_diameter_cm,round_mas,round_ld)
         adjusted_penetration = mhd_var+base_penetration / (1 + brems_loss_val * dissipation)
         # Ensure penetration not below 1 HVL physically
         if adjusted_penetration < self.material.base_hvl_cm:
@@ -133,7 +156,7 @@ if __name__ == "__main__":
     # Test/demo
     print("Testing nuclear penetration model...")
 
-    round_energy = 10e-5 # MJ
+    round_energy = 10# MJ
     round_diameter = 2.2  # cm
     round_mass=2
     honeycomb = 0
