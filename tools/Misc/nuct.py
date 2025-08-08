@@ -40,9 +40,7 @@ class NuclearPenetrationModel:
         E_mev = math.sqrt(E_mev)
         frac = E_mev / (self.compt)
         exponent = frac * self.osc
-        # avoid insane exponent blow-ups
-        if exponent < 0:
-            exponent = 0.0
+        
         # this is your original expression (numeric)
         loss = (Z ** exponent) * n_e * self.alpha_fs * math.log(E_mev + 1)
         return loss
@@ -98,7 +96,7 @@ class NuclearPenetrationModel:
         round_front_mass = round_front_vol * self.material.density
         # avoid division by zero
         if round_front_mass == 0:
-            return float('inf')
+            return 1
         return round_mas / round_front_mass
 
     def penetration(self, round_energy_mj, round_diameter_cm, honeycomb_layers, round_mas):
