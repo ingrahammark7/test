@@ -1,117 +1,68 @@
-# integrity_physical.py
 import math
+eps0 = 8.8541878128e-12
+mu0  = 4*math.pi*1e-7
+e = 1.602176634e-19
+me = 9.10938356e-31
+kB = 1.380649e-23
 
-# Example Material dataclass (extend your pen.Material or adapt)
-class MaterialPhysical:
-    def __init__(self, name, density, youngs_modulus, yield_strength,
-                 specific_heat, melting_point, thermal_conductivity,
-                 strain_rate_C=0.02, ref_strain_rate=1.0, thermal_softening_coeff=0.001):
-        self.name = name
-        self.density = density
-        self.E = youngs_modulus
-        self.yield_strength = yield_strength
-        self.specific_heat = specific_heat
-        self.melting_point = melting_point
-        self.thermal_conductivity = thermal_conductivity
-        # simple dynamic strengthening coefficient (log form)
-        self.strain_rate_C = strain_rate_C
-        self.ref_strain_rate = ref_strain_rate
-        # simple linear thermal softening % per K (or use Johnson-Cook)
-        self.thermal_softening_coeff = thermal_softening_coeff
+# --- utility functions ---
+def plasma_freq(ne):
+    return math.sqrt(ne * e*e / (eps0 * me))
 
-# Helper: velocity from kinetic energy (MJ->J)
-def velocity_from_energy_mj(E_mj, mass_kg):
-    E_j = E_mj * 1e6
-    if mass_kg <= 0:
+def debye_length(ne, Te):   # Te in K
+    return math.sqrt(eps0 * kB * Te / (ne * e*e))
+
+def skin_depth(sigma, omega):
+    return math.sqrt(2.0 / (mu0 * sigma * max(omega, 1e-30)))
+
+def temp_rise(E_dep_J, mass_kg, cp):
+    if mass_kg <= 0 or cp <= 0:
         return 0.0
-    return math.sqrt(2.0 * E_j / mass_kg)
+    return E_dep_J / (mass_kg * cp)
 
-# Impedance-match pressure estimate (simple)
-def impact_pressure_rho_v(rho_p, rho_t, v):
-    # symmetric formula: ~ (rho_p * rho_t / (rho_p + rho_t)) * v^2
-    denom = (rho_p + rho_t)
-    if denom == 0:
-        return 0.0
-    return (rho_p * rho_t / denom) * v * v
+# crude spitzer conductivity (order of magnitude) - Te in eV:
+def spitzer_sigma(Te_eV, Z=1, lnLambda=10):
+    # Te_eV -> J
+    Te = Te_eV * 1.602e-19
+    # simplified prefactor (units check approximate)
+    return ( (4*math.pi*eps0)**2 * (Te**1.5) ) / ( e*e * math.sqrt(me) * Z * lnLambda + 1e-30 )
 
-# Dynamic yield (log-strain-rate boost)
-def dynamic_yield(yield_strength, strain_rate_C, ref_strain_rate, strain_rate):
-    if strain_rate <= 0:
-        return yield_strength
-    return yield_strength * (1.0 + strain_rate_C * math.log(max(strain_rate / ref_strain_rate, 1e-12)))
+# confinement factor heuristic:
+def confinement_from_B(B, rho, v):
+    pB = B*B / (2*mu0)
+    pdyn = rho * v*v
+    # if pB comparable to pdyn, strong pinch
+    return max(0.0, pB / (pdyn + 1e-30))
 
-# Estimate strain rate approx from impact: v / characteristic_length
-def estimate_strain_rate(v, length_m):
-    if length_m <= 0:
-        return 1.0
-    return abs(v) / length_m
+# simple step update (very compact)
+def flux_step(E_remain_J, area_m2, dx_m, material, proj, hvl_cm, omega, Te_guess=1.0):
+    # material: must give rho, cp, ionization_energy_eV, atomic_mass_kg
+    vol = area_m2 * dx_m
+    mass = vol * material.rho
+    # energy deposited in step (using HVL)
+    hvl_m = hvl_cm / 100.0
+    frac_deposited = 1 - 2**(-dx_m / hvl_m)   # small-step approx
+    E_dep = E_remain_J * frac_deposited
+    # temperature and ionization proxy
+    dT = temp_rise(E_dep, mass, material.cp)
+    Te = max(Te_guess + dT, 0.1)  # K
+    # electron density proxy (assume solid -> n_free ~ Z * atom_density)
+    atom_density = material.rho / material.atomic_mass_kg   # atoms per m3
+    ne = atom_density * material.Z_free  # free electrons per atom
+    # conductivity: if ionized use spitzer else metallic sigma
+    if E_dep / (mass+1e-30) > material.ionization_energy_eV * 1.602e-19:
+        sigma = spitzer_sigma(max(Te/11600.0, 1.0), Z=material.atomic_number)
+    else:
+        sigma = material.sigma_solid  # ~1e7 S/m
 
-# Temperature rise from deposited energy in zone mass
-def temperature_rise(energy_j, mass_zone_kg, specific_heat):
-    if mass_zone_kg <= 0 or specific_heat <= 0:
-        return 0.0
-    return energy_j / (mass_zone_kg * specific_heat)
-
-# Compute integrity (0..1)
-def integrity_from_pressure(P, sigma_dyn, temp_increase, material: MaterialPhysical):
-    # thermal softening: simple multiplicative factor (1 - k * dT)
-    softening = 1.0 - material.thermal_softening_coeff * temp_increase
-    softening = max(0.01, softening)  # floor to avoid negative
-    sigma_effective = sigma_dyn * softening
-
-    # if P <= sigma_effective -> intact (integrity ~1)
-    if P <= sigma_effective:
-        return 1.0, sigma_effective
-
-    # otherwise integrity decays exponentially with overload ratio
-    overload = (P - sigma_effective) / sigma_effective
-    integrity = math.exp(-overload)  # can tune base
-    integrity = max(0.0, min(1.0, integrity))
-    return integrity, sigma_effective
-
-# Example wrapper using the above:
-def compute_penetrator_integrity(material_tgt: MaterialPhysical,
-                                 projectile_mass_kg, projectile_diameter_m, projectile_energy_mj,
-                                 interaction_zone_radius_m = 1e-4):
-    """
-    - material_tgt: MaterialPhysical object for target
-    - projectile_mass_kg, projectile_diameter_m, projectile_energy_mj: projectile params
-    - interaction_zone_radius_m: radius of local zone for energy deposition (tunable)
-    Returns (integrity, diagnostics dict)
-    """
-
-    # 1) Compute impact velocity
-    v = velocity_from_energy_mj(projectile_energy_mj, projectile_mass_kg)
-
-    # 2) Estimate peak pressure using impedance-like formula
-    rho_p = projectile_mass_kg / (math.pi * (projectile_diameter_m/2)**2 * 1.0)  # crude rod density per meter length
-    rho_t = material_tgt.density
-    P = impact_pressure_rho_v(rho_p, rho_t, v)
-
-    # 3) estimate strain rate using interaction_zone size
-    strain_rate = estimate_strain_rate(v, interaction_zone_radius_m)
-
-    # 4) dynamic yield
-    sigma_dyn = dynamic_yield(material_tgt.yield_strength, material_tgt.strain_rate_C, material_tgt.ref_strain_rate, strain_rate)
-
-    # 5) temperature rise (assume fraction f_deposited of energy deposited in zone)
-    energy_j = projectile_energy_mj * 1e6
-    f_deposited = 0.2  # default fraction of energy locally deposited — you can compute more precisely later
-    mass_zone = (4/3) * math.pi * (interaction_zone_radius_m**3) * rho_t
-    dT = temperature_rise(energy_j * f_deposited, mass_zone, material_tgt.specific_heat)
-
-    # 6) integrity from pressure and thermal softening
-    integrity, sigma_effective = integrity_from_pressure(P, sigma_dyn, dT, material_tgt)
-
-    diagnostics = {
-        "v_m_s": v,
-        "P_Pa": P,
-        "strain_rate_1_s": strain_rate,
-        "sigma_dyn_Pa": sigma_dyn,
-        "sigma_effective_Pa": sigma_effective,
-        "temp_rise_K": dT,
-        "integrity": integrity,
-        "mass_zone_kg": mass_zone
-    }
-
-    return integrity, diagnostics
+    delta = skin_depth(sigma, omega)
+    # guess current & B (very heuristic)
+    I = (E_dep / 1e3) * 1e3  # placeholder mapping energy -> current amplitude
+    r = math.sqrt(area_m2/math.pi)
+    B = mu0 * I / (2*math.pi*max(r,1e-12))
+    conf = confinement_from_B(B, material.rho, proj.v)
+    # apply confinement to hvl
+    hvl_eff_cm = hvl_cm / max(1.0, 1.0 + conf*material.hvl_confinement_coeff)
+    # return diagnostics and leftover energy
+    E_remain_J -= E_dep
+    return E_remain_J, hvl_eff_cm, {'E_dep':E_dep,'dT':dT,'sigma':sigma,'delta_m':delta,'B':B,'conf':conf}
