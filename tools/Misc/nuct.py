@@ -33,6 +33,7 @@ class NuclearPenetrationModel:
         self.prma = self.prma / 1000
         self.pm = self.pm * self.prma
         self.ec = material.elementary_charge
+        self.c=3e8
 
     def bremsstrahlung_loss(self, E_mev, n_e):
         # Keep your original numeric form (returns a float)
@@ -59,7 +60,7 @@ class NuclearPenetrationModel:
         emff = self.emf(mass1, mass2, r)
         v1 = self.velfromen(mass1, emff)
         v2 = self.velfromen(mass2, emff)
-        return v1 + v2
+        return min(v1,v2)
 
     def mhd_bolus(self, E_mev, round_energy_mj, round_diameter_cm, round_mas, round_ld):
         # Keep your original structure; small safety for ch1
@@ -81,6 +82,10 @@ class NuclearPenetrationModel:
         en = round_energy_mj * 1_000_000.0
         roundspeed = self.velfromen(round_mas, en)
         print("speed ", roundspeed)
+        em=self.emvf(round_mas,self.pm,length)
+        print("flux flies at c% ",em/self.c)
+        em1=em**(1/3)
+        print("round speed % of flux",roundspeed/(em1))
         # placeholder return (preserve your placeholder behavior)
         return 1
 
