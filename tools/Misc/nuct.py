@@ -31,10 +31,11 @@ class NuclearPenetrationModel:
         self.shellt=self.brem/3
         self.compt=self.brem*2
         self.evperj=pen.getsteel().ev_to_joule
-        self.pm=self.alpha**self.phi**4.2
+        self.pm=self.alpha**self.phi**4.55
+        print(self.pm)
         self.ac=self.pm       
         self.prma=1/(self.alpha**self.phi**5)
-        self.prma=self.prma
+        self.prma=self.prma/1000
         self.pm=self.pm*self.prma
         print(self.pm.evalf())
         self.ec=material.elementary_charge
