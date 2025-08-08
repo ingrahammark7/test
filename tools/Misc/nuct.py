@@ -66,7 +66,7 @@ class NuclearPenetrationModel:
         # Keep your original structure; small safety for ch1
         numpm = round_mas / self.pm
         perpm = round_energy_mj / numpm if numpm != 0 else 0
-        numpm = math.sqrt(max(numpm, 1e-12))
+        numpm = math.sqrt(numpm)
         peaken = numpm * perpm
         ch1 = getattr(pen.getsteel(), "ch1", None)
         if ch1 is None:
