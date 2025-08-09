@@ -167,13 +167,15 @@ if __name__ == "__main__":
     # Test/demo with your original numbers
     print("Testing nuclear penetration model...")
 
-    round_energy = 0.00010  # MJ
-    round_diameter = .5 # cm
-    round_mass = 0.02
+    round_energy = 10# MJ
+    round_diameter = 4 # cm
+    round_mass = 2
     honeycomb = 0
 
     pen_steel = nuclear_penetration(round_energy, round_diameter, honeycomb, round_mass, "steel")
     pen_du = nuclear_penetration(round_energy, round_diameter, honeycomb, round_mass, "du")
+    pen_cf=nuclear_penetration(round_energy,round_diameter,honeycomb,round_mass,"cf")
 
     print(f"Estimated penetration in Steel: {pen_steel:.3f} cm")
     print(f"Estimated penetration in Depleted Uranium: {pen_du:.3f} cm")
+    print("cf ",pen_cf)
