@@ -7,8 +7,8 @@ dt = 1       # time step in years
 time = np.arange(0, years + dt, dt)
 
 # Model parameters (example values, can be adjusted)
-A = 1e14 # surface area affected (m²), e.g. 10 km x 10 km
-R0 = 1e6  # baseline dissolution rate (m³/year)
+A = 1e8# surface area affected (m²), e.g. 10 km x 10 km
+R0 = 1e7  # baseline dissolution rate (m³/year)
 k = 4.0   # human activity sensitivity coefficient
 E0 = 0.001  # baseline erosion rate (m/year)
 S0 = 0.05   # baseline slope (dimensionless)
@@ -34,7 +34,7 @@ for i in range(1, len(time)):
     Rd = R0 * Hd  # m³/year
 
     # Increase void volume
-    V[i] = V[i-1] +(Rd * dt)**2
+    V[i] = V[i-1] +(Rd * dt)
 
     # Subsidence depth (volume / area)
     D[i] =V[i] / A
