@@ -4,6 +4,8 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
+footer_text = "Declaration in Support of Motion to Disquality Counsel" 
+
 def create_pdf(output_filename):
     # Create a PDF document
     c = canvas.Canvas(output_filename, pagesize=letter)
@@ -27,7 +29,7 @@ def create_pdf(output_filename):
     # Add footer
     def add_footer(page_num):
         footer_y = 0.4 * inch  # Position for footer
-        footer_text = "Declaration of No Oral Dismissal Made"  # Title of the paper
+         # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
@@ -105,14 +107,12 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "DECLARATION OF NO ORAL DISMISSAL MADE")
+    c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
     intro_text = [
-        "1. As stated in notice filed immediately affer 7/22 hearing, I never ordered dismissal.",
-        "2. Judge lied and tried to get of case.",
-        "3. Since defendant has no actual counsel the only outcome this case can have is default.",
-        "4. I made an additonal filing mentioning most LAPD officers are illegal immigrants and this illegalizes ","the LAPD regardless.",
-        "5. LAPD report 24101590029 is relevant.",
+        "1. I called the LAPD personnel office at 213-486-4630.",
+        "2. Office confirmed no Felix Lebron is authorized to represent LAPD or is affiliated wirh LAPD.",
+        "3. In total absence of any defendant counsel, default should be granted.",
         ]
     y_position -= .5*inch
     for line in intro_text:
@@ -123,7 +123,7 @@ def create_pdf(output_filename):
 
     # Signature Block
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 7/29/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/5/2025")
 
  # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
