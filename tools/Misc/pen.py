@@ -19,13 +19,15 @@ class Material:
         self.k = 9e9  # Coulomb constant
         self.elementary_charge = 1.6e-19
         self.phi = 1.61803398875
+        self.ch=(self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
+        self.ch1=self.ch*self.atomic_radius
         
         # Precompute values
         self.j_high_estimate = self.compute_high_estimate() ** 0.5
         self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
     
     def compute_high_estimate(self):
-        ch = (self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
+        ch = self.ch
         ch *= self.atomic_number
         ac = self.avogadro * ch
         moles = 1000 / self.molar_mass
@@ -90,7 +92,7 @@ class Material:
         effective_angle = self.combine_angles(angle1, angle2)
         d0 = (round_energy_mj / self.material_energy_density_mj_per_hvl)*self.base_hvl_cm
         n = round_diameter_cm / self.base_hvl_cm
-        hvl = self.base_hvl_cm * max(0.01, (1 - alpha * n))
+        hvl = self.base_hvl_cm *(1 - alpha * n)
         n_eff = round_diameter_cm / hvl
         d = d0 * n_eff ** 2
         d = self.pen_angle(d, effective_angle, round_energy_mj, round_diameter_cm)
@@ -165,8 +167,31 @@ def getdu():
     )
     du.material_energy_density_mj_per_hvl=estfix(du)
     return du
+    
+def getcf():
+	cf=Material(
+	name="CF",
+	molar_mass_g_mol=12,
+	density_kg_m3=1.93,
+	atomic_radius_m=77e-12,
+	atomic_number=6,
+	cohesive_energy_ev=cohfrommp(600),
+	base_hvl_cm=3.54,
+	material_energy_density_mj_per_hvl=1,
+	weak_factor=(2/7)
+	)
+	cf.material_energy_density_mj_per_hvl=estfix(cf)
+	return cf
 
     	
+def cohfrommp(mp):
+	base=getsteel().cohesive_energy_ev
+	b1=cohmult(mp)
+	return base*b1
+	
+def cohmult(mp):
+	return mp/1530
+	
 
 def estfix(self):
     	return (self.j_high_estimate*self.hvl_mass_kg()/(10**6))	
@@ -178,14 +203,15 @@ if __name__ == "__main__":
     
     
     steel=getsteel()
-    du=getdu()	
+    du=getdu()
+    cf=getcf()	
     steel.print_summary()
     round_energy = 10  # MJ
     round_diameter = 2.2  # cm
     angle_vert = 90
     angle_horz = 90
 
-    depth, effective_hvl = steel.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
+    depth, effective_hvl = cf.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
     print(f"Penetration depth: {depth:.2f} cm")
     print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
 
