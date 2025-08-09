@@ -1,4 +1,5 @@
 import math
+import nuct
 
 class Material:
     def __init__(self, name, molar_mass_g_mol, density_kg_m3, atomic_radius_m, atomic_number,
@@ -95,6 +96,8 @@ class Material:
         hvl = self.base_hvl_cm *(1 - alpha * n)
         n_eff = round_diameter_cm / hvl
         d = d0 * n_eff ** 2
+        pm = nuct.NuclearPenetrationModel(self)
+        d=nuct.nuclear_penetration(round_energy_mj,round_diameter_cm,honeycomb_layers,2,pm.material)
         d = self.pen_angle(d, effective_angle, round_energy_mj, round_diameter_cm)
         d=self.honeycomb_pen(d,round_energy_mj,round_diameter_cm,honeycomb_layers)
         d=self.thermal_max_pen(d,round_energy_mj)
@@ -211,7 +214,7 @@ if __name__ == "__main__":
     angle_vert = 90
     angle_horz = 90
 
-    depth, effective_hvl = cf.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
+    depth, effective_hvl = steel.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
     print(f"Penetration depth: {depth:.2f} cm")
     print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
 

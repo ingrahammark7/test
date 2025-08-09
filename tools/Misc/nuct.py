@@ -144,21 +144,11 @@ class NuclearPenetrationModel:
         return float(adjusted_penetration)
 
 
-def nuclear_penetration(round_energy_mj, round_diameter_cm, honeycomb_layers, round_mas, material_name="steel"):
+def nuclear_penetration(round_energy_mj, round_diameter_cm, honeycomb_layers, round_mas, material):
     """
     Compute nuclear-effect-adjusted penetration depth (cm) for given round and armor.
     """
-    if isinstance(material_name, Material):
-        material = material_name
-    else:
-        mat_name = material_name.lower()
-        if mat_name == "steel":
-            material = pen.getsteel()
-        elif mat_name == "du":
-            material = pen.getdu()
-        else:
-            material = pen.getsteel()
-
+    
     model = NuclearPenetrationModel(material)
     return model.penetration(round_energy_mj, round_diameter_cm, honeycomb_layers, round_mas)
 
