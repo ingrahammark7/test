@@ -1,4 +1,4 @@
-# nuct_restore.py
+# nuct.py
 import sympy as sp
 import math
 
@@ -167,9 +167,9 @@ if __name__ == "__main__":
     # Test/demo with your original numbers
     print("Testing nuclear penetration model...")
 
-    round_energy = 10  # MJ
-    round_diameter = 2.2  # cm
-    round_mass = 2
+    round_energy = 0.00010  # MJ
+    round_diameter = .5 # cm
+    round_mass = 0.02
     honeycomb = 0
 
     pen_steel = nuclear_penetration(round_energy, round_diameter, honeycomb, round_mass, "steel")
