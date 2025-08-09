@@ -111,8 +111,12 @@ class Material:
         d = d / r
         d= self.base_pen(d, round_energy_mj, round_diameter_cm)
         return d
-        
+       
+    def gettemp(self):
+    	 print("f")
+    
     def honeycomb_pen(self,d,round_energy_mj,round_diameter_cm,layers):
+    	self.gettemp()
     	if(layers==0):
     		return d
     	l=(layers*2)**2
@@ -178,8 +182,8 @@ def getcf():
 	density_kg_m3=1.93,
 	atomic_radius_m=77e-12,
 	atomic_number=6,
-	cohesive_energy_ev=cohfrommp(600),
-	base_hvl_cm=3.54,
+	cohesive_energy_ev=7.37,
+	base_hvl_cm=7.33,
 	material_energy_density_mj_per_hvl=1,
 	weak_factor=(2/7)
 	)
@@ -214,7 +218,7 @@ if __name__ == "__main__":
     angle_vert = 90
     angle_horz = 90
 
-    depth, effective_hvl = steel.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
+    depth, effective_hvl = cf.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
     print(f"Penetration depth: {depth:.2f} cm")
     print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
 
