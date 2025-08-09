@@ -62,12 +62,12 @@ class NuclearPenetrationModel:
         v2 = self.velfromen(mass2, emff)
         return min(v1,v2)
 
-    def mhd_bolus(self, E_mev, round_energy_mj, round_diameter_cm, round_mas, round_ld):
+    def mhd_bolus(self, round_energy_mj, round_diameter_cm, round_mas, round_ld):
         # Keep your original structure; small safety for ch1
         numpm = round_mas / self.pm
         perpm = round_energy_mj / numpm if numpm != 0 else 0
         numpm = math.sqrt(numpm)
-        peaken = numpm * perpm
+        peaken = numpm * perpm*10e6
         ch1 = getattr(pen.getsteel(), "ch1", None)
         if ch1 is None:
             # fallback constant if your pen.getsteel() doesn't define ch1
@@ -79,15 +79,24 @@ class NuclearPenetrationModel:
             return 0
         length = round_ld * round_diameter_cm / 100.0
         length = length / 2.0
+        cov=self.pm*charger
+        cov=cov**(1/6)*(math.sqrt(self.material.atomic_number)**(1/6))
+        print("ionized zone generates x round power ",cov.evalf())
+        cov=cov/round_mas
         en = round_energy_mj * 1_000_000.0
         roundspeed = self.velfromen(round_mas, en)
         print("speed ", roundspeed)
         em=self.emvf(round_mas,self.pm,length)
         print("flux flies at c% ",em/self.c)
         em1=em**(1/3)
-        print("round speed % of flux",roundspeed/(em1))
+        print("round speed % of flux ",roundspeed/(em1))
+        vdif=math.sqrt(roundspeed+em1)-math.sqrt(roundspeed)
+        roundspeed=roundspeed+vdif
+        c2=.5*round_mas*roundspeed/1_000_000
+        round_energy_mj=max(round_energy_mj,c2)
+        p=(round_energy_mj/self.material.material_energy_density_mj_per_hvl)*self.material.base_hvl_cm
         # placeholder return (preserve your placeholder behavior)
-        return 1
+        return (p*cov)**self.phi
 
     def honeycomb_dissipation_factor(self, layers):
         return (1 + layers) ** 3
@@ -123,7 +132,7 @@ class NuclearPenetrationModel:
         if brems_loss_val > E_mev_val:
             brems_loss_val = 0  # entire energy dissipated (your rule)
 
-        mhd_var = self.mhd_bolus(E_mev_val, round_energy_mj, round_diameter_cm, round_mas, round_ld)
+        mhd_var = self.mhd_bolus( round_energy_mj, round_diameter_cm, round_mas, round_ld)
 
         # original precedence from your version: mhd_var + base / (1 + brems * dissipation)
         adjusted_penetration = mhd_var + base_penetration / (1 + brems_loss_val * dissipation)
