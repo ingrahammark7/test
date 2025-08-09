@@ -1,73 +1,57 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Simulation parameters
-years = 5000
-dt = 1
-time = np.arange(0, years + dt, dt)
+# Time parameters
+years = 15000  # simulate 15,000 years ago to present
+dt = 1        # time step in years
+time = np.arange(years, -1, -dt)  # from 15,000 years ago down to 0 (present)
 
-# Model parameters
-A = 1e8          # Surface area affected (m^2), e.g. 10 km x 10 km
-H = 50           # Compressible sediment thickness (m)
-Mv = 1e7         # Sediment constrained modulus (Pa)
-kd = 1e-5        # Karst dissolution rate coefficient (m/year)
-c = 0.1          # Isostatic uplift coefficient (m uplift per kg/m^2 mass loss)
-rock_density = 2700  # kg/m^3
+# Rates (m/year)
+s1 = 0.001   # PGIA rapid phase subsidence (1 mm/yr) 15,000-4,000 ya
+s2 = 0.0005  # PGIA slow phase subsidence (0.5 mm/yr) 4,000-0 ya
+cs = 0.0007  # Sediment compaction subsidence (0.7 mm/yr) from 8,000 ya
+ch = 0.004   # Human-induced subsidence (4 mm/yr) last 500 years
 
-# Human activity function I(t), ramps from 0 to 1 starting 3000 years ago
-I = np.zeros_like(time)
-start_activity = 3000
-I[years - start_activity:] = np.linspace(0, 1, start_activity + 1)
+# Initialize subsidence array
+D_PGIA = np.zeros_like(time, dtype=float)
+D_sediment = np.zeros_like(time, dtype=float)
+D_human = np.zeros_like(time, dtype=float)
 
-# Initialize arrays
-subsidence_compaction = np.zeros_like(time)
-subsidence_karst = np.zeros_like(time)
-isostatic_uplift = np.zeros_like(time)
-mass_loss = np.zeros_like(time)
-net_subsidence = np.zeros_like(time)
+T0 = 15000
 
-# Assume hydraulic head drop proportional to human activity (scaled to 10 m max)
-hydraulic_head_drop = I * 10  # meters
+for i, t in enumerate(time):
+    # PGIA subsidence
+    if t > 4000:
+        D_PGIA[i] = s1 * (T0 - t)
+    else:
+        D_PGIA[i] = s1 * (T0 - 4000) + s2 * (4000 - t)
 
-for i in range(1, len(time)):
-    # Change in effective stress from hydraulic head change (Pa)
-    d_sigma_prime_dt = (hydraulic_head_drop[i] - hydraulic_head_drop[i - 1]) * 9800  # Pa (approx. 9.8 kN/m^3)
+    # Sediment compaction subsidence
+    if t <= 8000:
+        D_sediment[i] = cs * (8000 - t)
+    else:
+        D_sediment[i] = 0
 
-    # Volumetric strain rate due to compaction
-    d_epsilon_v_dt = d_sigma_prime_dt / Mv
+    # Human-induced subsidence
+    if t <= 500:
+        D_human[i] = ch * (500 - t)
+    else:
+        D_human[i] = 0
 
-    # Compaction subsidence rate (m/year)
-    dD_s_dt = -d_epsilon_v_dt * H
+# Total subsidence
+D_total = D_PGIA + D_sediment + D_human
 
-    # Karst dissolution volume rate (m^3/year), scaled by human activity intensity
-    Rd = kd * A * (0.1 + 0.9 * I[i])  # Base rate + human-enhanced dissolution
+# Plotting
+plt.figure(figsize=(12, 7))
+plt.plot(time, D_PGIA, label='PGIA Subsidence (Natural)')
+plt.plot(time, D_sediment, label='Sediment Compaction')
+plt.plot(time, D_human, label='Human-Induced Subsidence')
+plt.plot(time, D_total, label='Total Subsidence', linewidth=2, color='black')
 
-    # Increment karst subsidence (m)
-    subsidence_karst[i] = subsidence_karst[i - 1] + (Rd / A) * dt
-
-    # Mass loss rate (kg/m^2/year)
-    dM_dt = (dD_s_dt + (Rd / A)) * rock_density
-
-    # Isostatic uplift (m/year)
-    U = c * abs(dM_dt)
-    isostatic_uplift[i] = U
-
-    # Update compaction subsidence
-    subsidence_compaction[i] = subsidence_compaction[i - 1] + dD_s_dt * dt
-
-    # Calculate net subsidence = compaction + karst - uplift
-    net_subsidence[i] = net_subsidence[i - 1] + (dD_s_dt + (Rd / A) - U) * dt
-
-# Plot results
-plt.figure(figsize=(12, 8))
-plt.plot(time, subsidence_compaction, label='Compaction Subsidence (m)')
-plt.plot(time, subsidence_karst, label='Karst Dissolution Subsidence (m)')
-plt.plot(time, isostatic_uplift.cumsum(), label='Cumulative Isostatic Uplift (m)')
-plt.plot(time, net_subsidence, label='Net Subsidence (m)', linewidth=2, color='black')
-plt.gca().invert_xaxis()  # Show years ago from left to right
-plt.title('Simulated Subsidence over 5000 Years with Human Activity Influence')
-plt.xlabel('Years Before Present')
-plt.ylabel('Cumulative Vertical Displacement (m)')
+plt.xlabel('Years Ago')
+plt.ylabel('Cumulative Subsidence (m)')
+plt.title('Baltic Region Recent Subsidence Model Including Human Impact')
+plt.gca().invert_xaxis()  # Show time from past (left) to present (right)
 plt.legend()
 plt.grid(True)
 plt.show()
