@@ -1,28 +1,69 @@
-import random
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
+import matplotlib.pyplot as plt
 
-def prepare_data(data, p):
-    X, Y = [], []
-    for i in range(p, len(data)):
-        X.append(data[i-p:i])
-        Y.append(data[i])
-    return np.array(X), np.array(Y)
+# Time parameters
+years = 5000  # simulate 5000 years
+dt = 1       # time step in years
+time = np.arange(0, years + dt, dt)
 
-def main():
-    n = 1000
-    p = 10
-    data = [random.random() for _ in range(n)]
+# Model parameters (example values, can be adjusted)
+A = 1e14 # surface area affected (m²), e.g. 10 km x 10 km
+R0 = 1e6  # baseline dissolution rate (m³/year)
+k = 4.0   # human activity sensitivity coefficient
+E0 = 0.001  # baseline erosion rate (m/year)
+S0 = 0.05   # baseline slope (dimensionless)
+alpha = 0.001 # slope change coefficient per m subsidence
+beta = 1.5  # erosion slope exponent
+c = 1   # isostatic response coefficient (m uplift per m surface mass loss)
 
-    X, Y = prepare_data(data, p)
+# Human activity intensity over time (0 before agriculture, ramps up after 3000 years ago)
+I = np.zeros_like(time)
+start_human_activity = 20000  # years ago when significant human activity starts
+for i, t in enumerate(time):
+    if t >= years - start_human_activity:
+        I[i] = min(1.0, (t - (years - start_human_activity)) / 1000)  # ramp from 0 to 1 over 1000 years
 
-    model = RandomForestRegressor(n_estimators=50, max_depth=10, n_jobs=-1)
-    model.fit(X, Y)
+# Initialize arrays
+V = np.zeros_like(time)  # void volume dissolved (m³)
+D = np.zeros_like(time)  # subsidence depth (m)
+M = np.ones_like(time) * 2500  # surface mass density (kg/m²), typical rock density * thickness
 
-    Y_pred = model.predict(X)
-    r2 = r2_score(Y, Y_pred)
-    print(f"Random Forest nonlinear model R²: {r2:.10f}")
+for i in range(1, len(time)):
+    # Dissolution rate with human influence
+    Hd = 1 + k * I[i]
+    Rd = R0 * Hd  # m³/year
 
-if __name__ == "__main__":
-    main()
+    # Increase void volume
+    V[i] = V[i-1] +(Rd * dt)**2
+
+    # Subsidence depth (volume / area)
+    D[i] =V[i] / A
+
+    # Slope changes with subsidence
+    S = S0 + alpha * D[i]
+
+    # Erosion rate depends on slope
+    E = E0 * S**beta
+
+    # Surface mass change due to erosion (assume 2700 kg/m³ density, convert m erosion to kg/m²)
+    dM_dt = -2700 * E
+
+    # Isostatic uplift proportional to mass loss
+    U = c * abs(dM_dt)
+
+    # Net subsidence rate adjusted for uplift
+    dD_dt = (Rd / A) - U
+
+    # Update subsidence depth with uplift effect
+    D[i] = D[i-1] + dD_dt* dt
+
+# Plot results
+plt.figure(figsize=(10,6))
+plt.plot(time, D, label='Subsidence Depth (m)')
+plt.xlabel('Years (from present)')
+plt.ylabel('Cumulative Surface Subsidence (m)')
+plt.title('Simulated Karst Subsidence with Human Activity and Isostatic Response')
+plt.gca().invert_xaxis()  # show years ago from left to right
+plt.legend()
+plt.grid(True)
+plt.show()
