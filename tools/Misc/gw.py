@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 
 # Parameters
 months = np.arange(1, 25)  # Model for 2 years, month by month
-initial_inventory = 100  # Arbitrary starting inventory (e.g., million bushels)
-monthly_consumption = 5  # Average monthly consumption/drawdown
-harvest_month = 9  # Month of harvest (September)
-harvest_addition = 120  # Inventory added by harvest
+initial_inventory = 570  # Arbitrary starting inventory (e.g., million bushels)
+monthly_consumption = 100  # Average monthly consumption/drawdown
+harvest_month = 5  # Month of harvest (September)
+harvest_addition = 1000  # Inventory added by harvest
 
 # Varying loss scenarios as percentage reductions in harvest_addition
 loss_scenarios = {
