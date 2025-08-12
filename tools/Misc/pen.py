@@ -126,7 +126,6 @@ class Material:
     def getvel(self,round_diameter):
     	 mp=getmp(self)
     	 ht=getmht(self)
-    	 h1=ht
     	 n=getn()
     	 round_diameter=round_diameter/100
     	 ra=round_diameter**2
@@ -134,13 +133,34 @@ class Material:
     	 aireng=airperhit*getsh(n)*mp
     	 airvol=self.velfromen(airperhit,aireng)
     	 airenpers=aireng*airvol
-    	 print(airenpers)
     	 ht=airenpers/(ht*mp)
     	 ba=ht/airvol
     	 roundside=ra*4
     	 ba=ba/roundside
-    	 print(ba,"dd")
-    	 return mp
+    	 return ba,airvol
+    	 
+    def getmass(self,round_diameter):
+     	ld,s=self.getvel(round_diameter)
+     	round_diameter/=100
+     	round_diameter*=round_diameter/100
+     	d=self.density
+     	ff=round_diameter*ld*d
+     	return ff
+     
+    def getdam(self):
+     	maxd=self.base_hvl_cm
+     	doh=self.material_energy_density_mj_per_hvl*1_000_000
+     	self.damiter(maxd,doh)
+
+    def damiter(self,maxd,doh):
+     	basevel=self.getmass(maxd)
+     	ff,bases=self.getvel(maxd)
+     	en=self.enfromvel(basevel,bases)
+     	print(doh/en)
+     	print("dds",en)
+    
+    def enfromvel(self,mass,vel):
+    	return .5*mass*vel*vel
     
     def velfromen(self,mass,en):
     	 return math.sqrt(2 * (en / mass))
@@ -300,7 +320,8 @@ if __name__ == "__main__":
     depth, effective_hvl = cf.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
     print(f"Penetration depth: {depth:.2f} cm")
     print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
-    f=steel.getvel(round_diameter)
+    steel.getdam()
+ 
     
     
     
