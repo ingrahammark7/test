@@ -150,14 +150,16 @@ class Material:
     def getdam(self):
         maxd=self.base_hvl_cm
         doh=self.material_energy_density_mj_per_hvl*1_000_000
-        self.damiter(maxd,doh)
+        return self.damiter(maxd,doh)
 
     def damiter(self,maxd,doh):
         basevel=self.getmass(maxd)
         ff,bases=self.getvel(maxd)
         en=self.enfromvel(basevel,bases)
-        print(doh/en)
-        print("dds",en)
+        r=doh/en
+        r=r**.5
+        return r*maxd
+        
     
     def enfromvel(self,mass,vel):
         return .5*mass*vel*vel
