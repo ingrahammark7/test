@@ -123,11 +123,30 @@ class Material:
         d= self.base_pen(d, round_energy_mj, round_diameter_cm)
         return d
        
-    def gettemp(self):
-    	 print("f")
+    def getvel(self,round_diameter):
+    	 mp=getmp(self)
+    	 ht=getmht(self)
+    	 h1=ht
+    	 n=getn()
+    	 round_diameter=round_diameter/100
+    	 ra=round_diameter**2
+    	 airperhit=n.density*ra
+    	 aireng=airperhit*getsh(n)*mp
+    	 airvol=self.velfromen(airperhit,aireng)
+    	 airenpers=aireng*airvol
+    	 print(airenpers)
+    	 ht=airenpers/(ht*mp)
+    	 ba=ht/airvol
+    	 roundside=ra*4
+    	 ba=ba/roundside
+    	 print(ba,"dd")
+    	 return mp
+    
+    def velfromen(self,mass,en):
+    	 return math.sqrt(2 * (en / mass))
+    
     
     def honeycomb_pen(self,d,round_energy_mj,round_diameter_cm,layers):
-    	self.gettemp()
     	if(layers==0):
     		return d
     	l=(layers*2)**2
@@ -281,7 +300,8 @@ if __name__ == "__main__":
     depth, effective_hvl = cf.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
     print(f"Penetration depth: {depth:.2f} cm")
     print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
-    f=getmht(cf)
-    print(f)
+    f=steel.getvel(round_diameter)
+    
+    
     
 
