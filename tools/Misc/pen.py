@@ -15,17 +15,24 @@ class Material:
         self.weak_factor = weak_factor
         
         # Constants
-        self.avogadro = 6.022e23
+        self.avogadro = 6.02214076e23
         self.ev_to_joule = 1.602e-19
         self.k = 9e9  # Coulomb constant
-        self.elementary_charge = 1.6e-19
+        self.elementary_charge = 1.60217663e-19
         self.phi = 1.61803398875
         self.ch=(self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
         self.ch1=self.ch*self.atomic_radius
+        self.bol=1.38e-23
+        self.db=24.94
         
         # Precompute values
         self.j_high_estimate = self.compute_high_estimate() ** 0.5
         self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
+        self.elmol=self.elementary_charge*self.avogadro
+        self.elmol=self.elmol**(1/4)
+        self.elmol*=self.phi
+        self.te=1-(1/(8))
+        self.elmol*=self.te
     
     def compute_high_estimate(self):
         ch = self.ch
@@ -179,13 +186,13 @@ def getcf():
 	cf=Material(
 	name="CF",
 	molar_mass_g_mol=12,
-	density_kg_m3=1.93,
+	density_kg_m3=1930,
 	atomic_radius_m=77e-12,
 	atomic_number=6,
 	cohesive_energy_ev=7.37,
 	base_hvl_cm=7.33,
 	material_energy_density_mj_per_hvl=1,
-	weak_factor=(2/7)
+	weak_factor=1
 	)
 	cf.material_energy_density_mj_per_hvl=estfix(cf)
 	return cf
@@ -199,7 +206,26 @@ def cohfrommp(mp):
 def cohmult(mp):
 	return mp/1530
 	
+def getht(self):
+	molv=self.density*self.molar_mass/1_000_000
+	molv=molv*self.avogadro
+	molv=molv**(2/3)
+	ar=self.atomic_radius
+	print(molv)
+	print(self.elmol,"h")
+	return self
 
+def getmp(self):
+	ce=self.cohesive_bond_energy
+	ce=ce/8
+	getht(self)
+	print(ce)
+
+def getsh(self):
+	sh=self.db/self.molar_mass
+	return sh*1000
+	
+	
 def estfix(self):
     	return (self.j_high_estimate*self.hvl_mass_kg()/(10**6))	
 
@@ -221,4 +247,6 @@ if __name__ == "__main__":
     depth, effective_hvl = cf.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
     print(f"Penetration depth: {depth:.2f} cm")
     print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
+    f=getmp(cf)
+    
 
