@@ -25,6 +25,9 @@ class Material:
         self.bol=1.380649e-23
         self.db=24.94
         self.zc=273.15
+        self.pmas=nuct.prma/2
+        self.emr=nuct.alpha**nuct.phi
+        self.emr=self.emr/nuct.phi
         
         # Precompute values
         self.j_high_estimate = self.compute_high_estimate() ** 0.5
@@ -153,6 +156,10 @@ class Material:
             return round_energy_mj / (self.base_hvl_cm ** 2)
         return round_energy_mj / ((round_diameter_cm/self.base_hvl_cm) ** 2)
 
+def estfix(self):
+    	return (self.j_high_estimate*self.hvl_mass_kg()/(10**6))	
+
+
 def getsteel():
     steel = Material(
         name="Iron (Steel)",
@@ -198,6 +205,26 @@ def getcf():
 	cf.material_energy_density_mj_per_hvl=estfix(cf)
 	return cf
 
+dn=1.25
+
+def getn():
+	n=Material(
+	name="N",
+	molar_mass_g_mol=14,
+	density_kg_m3=dn,
+	atomic_radius_m=7e-11,
+	atomic_number=7,
+	cohesive_energy_ev=1,
+	base_hvl_cm=((getsteel().density/dn))*getsteel().base_hvl_cm,
+	material_energy_density_mj_per_hvl=1,
+	weak_factor=1
+	)
+	return n
+	
+def getmht(self):
+	ht=getht(self)
+	n=getn()
+	return ht/n.density
 	
 def getht(self):
 	molv=self.density*self.molar_mass/1_000_000
@@ -211,10 +238,8 @@ def getht(self):
 	am=amass(self)*molv
 	ke=.5*(v*v)*am
 	w=t*ke
-	
-	
-	print(w,"h")
-	return self
+	w=math.sqrt(self.emr)*w
+	return w
 	
 def amass(self):
 	return (self.molar_mass/1000)/self.avogadro
@@ -228,7 +253,6 @@ def getmp(self):
 	ce=self.cohesive_bond_energy
 	ce=ce/6
 	sh=getsh(self)
-	print(ce/sh)
 	return ce/sh
 
 def getsh(self):
@@ -238,8 +262,6 @@ def getsh(self):
 	return sh
 	
 	
-def estfix(self):
-    	return (self.j_high_estimate*self.hvl_mass_kg()/(10**6))	
 
 # Example usage:
 if __name__ == "__main__":
@@ -259,6 +281,6 @@ if __name__ == "__main__":
     depth, effective_hvl = cf.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
     print(f"Penetration depth: {depth:.2f} cm")
     print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
-    f=getht(cf)
+    f=getmht(cf)
     
 
