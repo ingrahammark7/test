@@ -224,7 +224,7 @@ def getn():
 def getmht(self):
 	ht=getht(self)
 	n=getn()
-	return ht/n.density
+	return ht*(n.density/getsteel().density)
 	
 def getht(self):
 	molv=self.density*self.molar_mass/1_000_000
@@ -282,5 +282,6 @@ if __name__ == "__main__":
     print(f"Penetration depth: {depth:.2f} cm")
     print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
     f=getmht(cf)
+    print(f)
     
 
