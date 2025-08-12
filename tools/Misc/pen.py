@@ -22,8 +22,9 @@ class Material:
         self.phi = 1.61803398875
         self.ch=(self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
         self.ch1=self.ch*self.atomic_radius
-        self.bol=1.38e-23
+        self.bol=1.380649e-23
         self.db=24.94
+        self.zc=273.15
         
         # Precompute values
         self.j_high_estimate = self.compute_high_estimate() ** 0.5
@@ -33,6 +34,7 @@ class Material:
         self.elmol*=self.phi
         self.te=1-(1/(8))
         self.elmol*=self.te
+        self.db=self.elmol
     
     def compute_high_estimate(self):
         ch = self.ch
@@ -52,7 +54,6 @@ class Material:
         return total_bond_energy_joules
 
     def print_summary(self):
-        print(f"2 GJ/kg consistent estimate (sqrt): {self.j_high_estimate:.4e}")
         print(f"Cohesive bond energy total (J): {self.cohesive_bond_energy:.4e}")
         print(f"Cohesive bond energy total (MJ): {self.cohesive_bond_energy / 1e6:.4f}")
 
@@ -197,33 +198,44 @@ def getcf():
 	cf.material_energy_density_mj_per_hvl=estfix(cf)
 	return cf
 
-    	
-def cohfrommp(mp):
-	base=getsteel().cohesive_energy_ev
-	b1=cohmult(mp)
-	return base*b1
-	
-def cohmult(mp):
-	return mp/1530
 	
 def getht(self):
 	molv=self.density*self.molar_mass/1_000_000
 	molv=molv*self.avogadro
 	molv=molv**(2/3)
 	ar=self.atomic_radius
-	print(molv)
-	print(self.elmol,"h")
+	mp=getmp(self)
+	v=getvel(self,mp)
+	v=v**(1/3)
+	t=v/ar
+	am=amass(self)*molv
+	ke=.5*(v*v)*am
+	w=t*ke
+	
+	
+	print(w,"h")
 	return self
+	
+def amass(self):
+	return (self.molar_mass/1000)/self.avogadro
+
+def getvel(self,t):
+	s=3*self.bol*t
+	m=(self.molar_mass/1000)/self.avogadro
+	return math.sqrt(s/m)
 
 def getmp(self):
 	ce=self.cohesive_bond_energy
-	ce=ce/8
-	getht(self)
-	print(ce)
+	ce=ce/6
+	sh=getsh(self)
+	print(ce/sh)
+	return ce/sh
 
 def getsh(self):
-	sh=self.db/self.molar_mass
-	return sh*1000
+	sh=self.db
+	ker=1000/self.molar_mass
+	sh=ker*sh
+	return sh
 	
 	
 def estfix(self):
@@ -247,6 +259,6 @@ if __name__ == "__main__":
     depth, effective_hvl = cf.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
     print(f"Penetration depth: {depth:.2f} cm")
     print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
-    f=getmp(cf)
+    f=getht(cf)
     
 

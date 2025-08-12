@@ -6,6 +6,18 @@ import math
 from pen import Material  # expects your pen.py to provide getsteel/getdu and Material
 import pen
 
+phi = sp.GoldenRatio
+        # Physical constants (kept your original expressions)
+alpha_fs = 1/((((4*sp.pi)-6)**phi)**phi)  # fine-structure-like proxy
+alpha = 1 / alpha_fs
+pm = alpha ** phi ** 4.55
+ac = pm       
+prma = 1 / (alpha ** phi ** 5)
+prma = prma / 1000
+pm = pm * prma
+c=3e8
+
+
 class NuclearPenetrationModel:
     def __init__(self, material):
         self.material = material
@@ -13,28 +25,18 @@ class NuclearPenetrationModel:
         # Symbolic variables (kept for compatibility with older code)
         self.E = sp.symbols('E')        # Particle energy in MeV
         self.n_e = sp.symbols('n_e')    # Electron density proxy
+        self.ec = material.elementary_charge
         
-        self.phi = sp.GoldenRatio
-        # Physical constants (kept your original expressions)
-        self.alpha_fs = 1/((((4*sp.pi)-6)**self.phi)**self.phi)  # fine-structure-like proxy
-        self.alpha = 1 / self.alpha_fs
-        self.am = self.alpha ** self.phi
+        self.am = alpha ** phi
         self.osc = 6
-        self.brem = self.am * (self.alpha ** (1 + ((1/((self.osc-1)*(self.osc-2))))))
+        self.brem = self.am * (alpha ** (1 + ((1/((self.osc-1)*(self.osc-2))))))
         self.disc = self.brem * 16
         self.shellt = self.brem / 3
         self.compt = self.brem * 2
         self.evperj = pen.getsteel().ev_to_joule
 
         # Planck-ish proxy values (kept your formula)
-        self.pm = self.alpha ** self.phi ** 4.55
-        self.ac = self.pm       
-        self.prma = 1 / (self.alpha ** self.phi ** 5)
-        self.prma = self.prma / 1000
-        self.pm = self.pm * self.prma
-        self.ec = material.elementary_charge
-        self.c=3e8
-
+        
     def bremsstrahlung_loss(self, E_mev, n_e):
         # Keep your original numeric form (returns a float)
         Z = self.material.atomic_number
@@ -43,12 +45,12 @@ class NuclearPenetrationModel:
         exponent = frac * self.osc
         
         # this is your original expression (numeric)
-        loss = (Z ** exponent) * n_e * self.alpha_fs * math.log(E_mev + 1)
+        loss = (Z ** exponent) * n_e * alpha_fs * math.log(E_mev + 1)
         return loss
 
     def emf(self, mass1, mass2, r):
-        c1 = mass1 / self.prma * self.ec
-        c2 = mass2 / self.prma * self.ec
+        c1 = mass1 / prma * self.ec
+        c2 = mass2 / prma * self.ec
         top = pen.getsteel().k * c1 * c2
         return top / r
 
@@ -64,7 +66,7 @@ class NuclearPenetrationModel:
 
     def mhd_bolus(self, round_energy_mj, round_diameter_cm, round_mas, round_ld):
         # Keep your original structure; small safety for ch1
-        numpm = round_mas / self.pm
+        numpm = round_mas / pm
         perpm = round_energy_mj / numpm if numpm != 0 else 0
         numpm = math.sqrt(numpm)
         peaken = numpm * perpm*10e6
@@ -79,15 +81,15 @@ class NuclearPenetrationModel:
             return 0
         length = round_ld * round_diameter_cm / 100.0
         length = length / 2.0
-        cov=self.pm*charger
+        cov=pm*charger
         cov=cov**(1/6)*(math.sqrt(self.material.atomic_number)**(1/6))
         print("ionized zone generates x round power ",cov.evalf())
         cov=cov/round_mas
         en = round_energy_mj * 1_000_000.0
         roundspeed = self.velfromen(round_mas, en)
         print("speed ", roundspeed)
-        em=self.emvf(round_mas,self.pm,length)
-        print("flux flies at c% ",em/self.c)
+        em=self.emvf(round_mas,pm,length)
+        print("flux flies at c% ",em/c)
         em1=em**(1/3)
         print("round speed % of flux ",roundspeed/(em1))
         vdif=math.sqrt(roundspeed+em1)-math.sqrt(roundspeed)
@@ -96,7 +98,7 @@ class NuclearPenetrationModel:
         round_energy_mj=max(round_energy_mj,c2)
         p=(round_energy_mj/self.material.material_energy_density_mj_per_hvl)*self.material.base_hvl_cm
         # placeholder return (preserve your placeholder behavior)
-        return (p*cov)**self.phi
+        return (p*cov)**phi
 
     def honeycomb_dissipation_factor(self, layers):
         return (1 + layers) ** 3
