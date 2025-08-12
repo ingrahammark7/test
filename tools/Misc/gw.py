@@ -1,84 +1,48 @@
-import numpy as np
+import math
 
-# Parameters
-num_investors = 1000
-num_steps = 5000
-pair_size = 20
+# Constants
+c = 3e8  # speed of light, m/s
+v_target = 0.5 * c  # target velocity
+m_payload = 1.0  # kg
+sigma_sail = 1.0  # kg/m^2 sail areal mass density
 
-# Initial moves: alternating +1 and -1 deterministically
-moves = np.array([1 if i % 2 == 0 else -1 for i in range(num_investors)])
+# Atomic radius (distance between sheets)
+atomic_radius = 1e-10  # meters
 
-# Track pair inversion states
-pair_inverted = np.zeros(num_investors // pair_size, dtype=bool)
+# Power density from electrostatic repulsion (Joules / seconds per m^2)
+U = 36  # joules per event (energy between sheets)
+t_event = 4.5e-15  # seconds per event
+power_density = U / t_event  # W/m^2
 
-# Shift offset for pair groupings
-pair_offset = 0
+def relativistic_ke(m, v):
+    gamma = 1 / math.sqrt(1 - (v / c) ** 2)
+    return m * c ** 2 * (gamma - 1)
 
-# Store market totals over time
-market_totals = []
+def time_to_accelerate(A):
+    total_mass = m_payload + sigma_sail * A
+    KE = relativistic_ke(total_mass, v_target)
+    total_power = power_density * A
+    t = KE / total_power
+    return t, total_mass, KE, total_power
 
-for t in range(num_steps):
-    new_moves = moves.copy()
+# We'll find A that minimizes time t by scanning over a range of A
+areas = [1e-12 * 2**i for i in range(60)]  # from 1 pm^2 up to ~1 m^2 exponentially
 
-    # Get current pair groupings with offset
-    pairs = [
-        ((i + pair_offset) % num_investors,
-         (i + 1 + pair_offset) % num_investors)
-        for i in range(0, num_investors, pair_size)
-    ]
+min_time = None
+best_A = None
+best_result = None
 
-    new_pair_inverted = np.zeros_like(pair_inverted)
+for A in areas:
+    t, m_tot, KE, P_tot = time_to_accelerate(A)
+    if (min_time is None) or (t < min_time):
+        min_time = t
+        best_A = A
+        best_result = (t, m_tot, KE, P_tot)
 
-    for p_idx, (i1, i2) in enumerate(pairs):
-        if i1 % 2 == 1:
-            new_moves[i1] = moves[(i1 - 1) % num_investors]
-        else:
-            new_moves[i1] = -moves[(i1 - 1) % num_investors]
+t, m_tot, KE, P_tot = best_result
 
-        if i2 % 2 == 0:
-            new_moves[i2] = -moves[(i2 - 1) % num_investors]
-        else:
-            new_moves[i2] = moves[(i2 - 1) % num_investors]
-
-        prev_inverted = pair_inverted[p_idx - 1] if p_idx > 0 else pair_inverted[-1]
-        if prev_inverted:
-            new_moves[i1] *= -1
-            new_moves[i2] *= -1
-            new_pair_inverted[p_idx] = True
-
-    moves = new_moves
-    pair_inverted = new_pair_inverted
-
-    # Invert all moves every 3rd step (step 3, 6, 9, ...)
-    if (t + 1) % 3 == 0:
-        moves *= -1
-
-    mt = moves.sum()
-    market_totals.append(mt)
-
-    pair_offset = (pair_offset + 1) % num_investors
-
-market_totals = np.array(market_totals)
-
-def autocorrelation(x, lag):
-    n = len(x)
-    if lag == 0:
-        return 1.0
-    x_mean = np.mean(x)
-    numerator = np.sum((x[:n - lag] - x_mean) * (x[lag:] - x_mean))
-    denominator = np.sum((x - x_mean) ** 2)
-    if denominator == 0:
-        return 0
-    return numerator / denominator
-
-max_lag = min(20, len(market_totals) - 1)
-autocorr_vals = [autocorrelation(market_totals, lag) for lag in range(max_lag + 1)]
-
-# Print autocorrelation values for each lag
-print("Lag\tAutocorrelation")
-for lag, val in enumerate(autocorr_vals):
-    print(f"{lag}\t{val:.4f}")
-
-# Compute overall autocorrelation: average of all non-zero lags
-overall_autocorr = np.mean(autocorr_vals[1:])
-print(f"\nOverall autocorrelation (average over lags 1 to {max_lag}): {overall_autocorr:.4f}")
+print(f"Best sail area: {best_A:.3e} m^2")
+print(f"Total mass (payload + sail): {m_tot:.3f} kg")
+print(f"Power available: {P_tot:.3e} W")
+print(f"Kinetic energy needed: {KE:.3e} J")
+print(f"Time to accelerate to 0.5c: {t:.3e} seconds ≈ {t / (3600 * 24 * 365):.2f} years")
