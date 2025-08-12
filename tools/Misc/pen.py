@@ -3,7 +3,7 @@ import nuct
 
 class Material:
     def __init__(self, name, molar_mass_g_mol, density_kg_m3, atomic_radius_m, atomic_number,
-                 cohesive_energy_ev, base_hvl_cm, material_energy_density_mj_per_hvl, weak_factor=1):
+                cohesive_energy_ev, base_hvl_cm, material_energy_density_mj_per_hvl, weak_factor=1):
         self.name = name
         self.molar_mass = molar_mass_g_mol
         self.density = density_kg_m3
@@ -74,27 +74,27 @@ class Material:
         return min(r, 90)
     
     def hvl_mass_kg(self):
-    	h=self.base_hvl_cm
-    	dens=self.density
-    	h=h/100
-    	v=h**3
-    	m=v*dens
-    	return m
+        h=self.base_hvl_cm
+        dens=self.density
+        h=h/100
+        v=h**3
+        m=v*dens
+        return m
     
     def melt_one_hvl(self):
-    	h=self.hvl_mass_kg()
-    	bo=self.cohesive_bond_energy
-    	bo=h*bo
-    	return bo
-    	
+        h=self.hvl_mass_kg()
+        bo=self.cohesive_bond_energy
+        bo=h*bo
+        return bo
+        
     def thermal_max_pen(self,d,round_energy_mj):
-    	f=self.melt_one_hvl()
-    	r=(round_energy_mj*(10**6))/(f*self.base_hvl_cm)
-    	if(d>r):
-    		print("A ", d, "cm penetration was thermally bound to ", r,"cm.")
-    		return r
-    	print("A ", d,"cm penetration did not reach thermal bound ", r,"cm.")
-    	return d
+        f=self.melt_one_hvl()
+        r=(round_energy_mj*(10**6))/(f*self.base_hvl_cm)
+        if(d>r):
+            print("A ", d, "cm penetration was thermally bound to ", r,"cm.")
+            return r
+        print("A ", d,"cm penetration did not reach thermal bound ", r,"cm.")
+        return d
 
     def penetration_depth(self, round_energy_mj, round_diameter_cm, angle1, angle2, honeycomb_layers, alpha=0.5):
         """
@@ -116,65 +116,65 @@ class Material:
 
     def pen_angle(self, d, angle, round_energy_mj, round_diameter_cm):
         if(angle==0):
-        	return 0
+            return 0
         r = 90 / angle
         r = r ** (4 ** self.phi)
         d = d / r
         d= self.base_pen(d, round_energy_mj, round_diameter_cm)
         return d
-       
+        
     def getvel(self,round_diameter):
-    	 mp=getmp(self)
-    	 ht=getmht(self)
-    	 n=getn()
-    	 round_diameter=round_diameter/100
-    	 ra=round_diameter**2
-    	 airperhit=n.density*ra
-    	 aireng=airperhit*getsh(n)*mp
-    	 airvol=self.velfromen(airperhit,aireng)
-    	 airenpers=aireng*airvol
-    	 ht=airenpers/(ht*mp)
-    	 ba=ht/airvol
-    	 roundside=ra*4
-    	 ba=ba/roundside
-    	 return ba,airvol
-    	 
+        mp=getmp(self)
+        ht=getmht(self)
+        n=getn()
+        round_diameter=round_diameter/100
+        ra=round_diameter**2
+        airperhit=n.density*ra
+        aireng=airperhit*getsh(n)*mp
+        airvol=self.velfromen(airperhit,aireng)
+        airenpers=aireng*airvol
+        ht=airenpers/(ht*mp)
+        ba=ht/airvol
+        roundside=ra*4
+        ba=ba/roundside
+        return ba,airvol
+        
     def getmass(self,round_diameter):
-     	ld,s=self.getvel(round_diameter)
-     	round_diameter/=100
-     	round_diameter*=round_diameter/100
-     	d=self.density
-     	ff=round_diameter*ld*d
-     	return ff
-     
+        ld,s=self.getvel(round_diameter)
+        round_diameter/=100
+        round_diameter*=round_diameter/100
+        d=self.density
+        ff=round_diameter*ld*d
+        return ff
+    
     def getdam(self):
-     	maxd=self.base_hvl_cm
-     	doh=self.material_energy_density_mj_per_hvl*1_000_000
-     	self.damiter(maxd,doh)
+        maxd=self.base_hvl_cm
+        doh=self.material_energy_density_mj_per_hvl*1_000_000
+        self.damiter(maxd,doh)
 
     def damiter(self,maxd,doh):
-     	basevel=self.getmass(maxd)
-     	ff,bases=self.getvel(maxd)
-     	en=self.enfromvel(basevel,bases)
-     	print(doh/en)
-     	print("dds",en)
+        basevel=self.getmass(maxd)
+        ff,bases=self.getvel(maxd)
+        en=self.enfromvel(basevel,bases)
+        print(doh/en)
+        print("dds",en)
     
     def enfromvel(self,mass,vel):
-    	return .5*mass*vel*vel
+        return .5*mass*vel*vel
     
     def velfromen(self,mass,en):
-    	 return math.sqrt(2 * (en / mass))
+        return math.sqrt(2 * (en / mass))
     
     
     def honeycomb_pen(self,d,round_energy_mj,round_diameter_cm,layers):
-    	if(layers==0):
-    		return d
-    	l=(layers*2)**2
-    	r=90/l
-    	d=self.pen_angle(d,r,round_energy_mj,round_diameter_cm)
-    	d=self.base_pen(d,round_energy_mj,round_diameter_cm)
-    	return d
-    		
+        if(layers==0):
+            return d
+        l=(layers*2)**2
+        r=90/l
+        d=self.pen_angle(d,r,round_energy_mj,round_diameter_cm)
+        d=self.base_pen(d,round_energy_mj,round_diameter_cm)
+        return d
+            
     def clean_angle(self, angle):
         if angle > 180:
             angle -= 180
@@ -187,7 +187,7 @@ class Material:
         m = self.material_energy_density_mj_per_hvl
         m= (e/m)*self.base_hvl_cm
         if(m>d):
-        	return m
+            return m
         return d
 
     def sectional_energy_density(self, round_energy_mj, round_diameter_cm):
@@ -196,7 +196,7 @@ class Material:
         return round_energy_mj / ((round_diameter_cm/self.base_hvl_cm) ** 2)
 
 def estfix(self):
-    	return (self.j_high_estimate*self.hvl_mass_kg()/(10**6))	
+        return (self.j_high_estimate*self.hvl_mass_kg()/(10**6))	
 
 
 def getsteel():
@@ -230,77 +230,77 @@ def getdu():
     return du
     
 def getcf():
-	cf=Material(
-	name="CF",
-	molar_mass_g_mol=12,
-	density_kg_m3=1930,
-	atomic_radius_m=77e-12,
-	atomic_number=6,
-	cohesive_energy_ev=7.37,
-	base_hvl_cm=7.33,
-	material_energy_density_mj_per_hvl=1,
-	weak_factor=1
-	)
-	cf.material_energy_density_mj_per_hvl=estfix(cf)
-	return cf
+    cf=Material(
+    name="CF",
+    molar_mass_g_mol=12,
+    density_kg_m3=1930,
+    atomic_radius_m=77e-12,
+    atomic_number=6,
+    cohesive_energy_ev=7.37,
+    base_hvl_cm=7.33,
+    material_energy_density_mj_per_hvl=1,
+    weak_factor=1
+    )
+    cf.material_energy_density_mj_per_hvl=estfix(cf)
+    return cf
 
 dn=1.25
 
 def getn():
-	n=Material(
-	name="N",
-	molar_mass_g_mol=14,
-	density_kg_m3=dn,
-	atomic_radius_m=7e-11,
-	atomic_number=7,
-	cohesive_energy_ev=1,
-	base_hvl_cm=((getsteel().density/dn))*getsteel().base_hvl_cm,
-	material_energy_density_mj_per_hvl=1,
-	weak_factor=1
-	)
-	return n
-	
+    n=Material(
+    name="N",
+    molar_mass_g_mol=14,
+    density_kg_m3=dn,
+    atomic_radius_m=7e-11,
+    atomic_number=7,
+    cohesive_energy_ev=1,
+    base_hvl_cm=((getsteel().density/dn))*getsteel().base_hvl_cm,
+    material_energy_density_mj_per_hvl=1,
+    weak_factor=1
+    )
+    return n
+    
 def getmht(self):
-	ht=getht(self)
-	n=getn()
-	return ht*(n.density/getsteel().density)
-	
+    ht=getht(self)
+    n=getn()
+    return ht*(n.density/getsteel().density)
+    
 def getht(self):
-	molv=self.density*self.molar_mass/1_000_000
-	molv=molv*self.avogadro
-	molv=molv**(2/3)
-	ar=self.atomic_radius
-	mp=getmp(self)
-	v=getvel(self,mp)
-	v=v**(1/3)
-	t=v/ar
-	am=amass(self)*molv
-	ke=.5*(v*v)*am
-	w=t*ke
-	w=math.sqrt(self.emr)*w
-	return w
-	
+    molv=self.density*self.molar_mass/1_000_000
+    molv=molv*self.avogadro
+    molv=molv**(2/3)
+    ar=self.atomic_radius
+    mp=getmp(self)
+    v=getvel(self,mp)
+    v=v**(1/3)
+    t=v/ar
+    am=amass(self)*molv
+    ke=.5*(v*v)*am
+    w=t*ke
+    w=math.sqrt(self.emr)*w
+    return w
+    
 def amass(self):
-	return (self.molar_mass/1000)/self.avogadro
+    return (self.molar_mass/1000)/self.avogadro
 
 def getvel(self,t):
-	s=3*self.bol*t
-	m=(self.molar_mass/1000)/self.avogadro
-	return math.sqrt(s/m)
+    s=3*self.bol*t
+    m=(self.molar_mass/1000)/self.avogadro
+    return math.sqrt(s/m)
 
 def getmp(self):
-	ce=self.cohesive_bond_energy
-	ce=ce/6
-	sh=getsh(self)
-	return ce/sh
+    ce=self.cohesive_bond_energy
+    ce=ce/6
+    sh=getsh(self)
+    return ce/sh
 
 def getsh(self):
-	sh=self.db
-	ker=1000/self.molar_mass
-	sh=ker*sh
-	return sh
-	
-	
+    sh=self.db
+    ker=1000/self.molar_mass
+    sh=ker*sh
+    return sh
+    
+    
 
 # Example usage:
 if __name__ == "__main__":
@@ -321,7 +321,7 @@ if __name__ == "__main__":
     print(f"Penetration depth: {depth:.2f} cm")
     print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
     steel.getdam()
- 
+
     
     
     
