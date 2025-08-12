@@ -111,7 +111,7 @@ class Missile:
 
         # Check for hit (within 0.2 km)
         if self._distance_to_point(self.target.position) < 0.2:
-            hit_chance = 1
+            hit_chance = 0.8
             if random.random() < hit_chance:
                 print(f"Missile from {self.launcher.name} hit {self.target.id}!")
                 deadtargets.setdefault(self.target.id)
@@ -336,7 +336,8 @@ class GlideBomb:
         dx = self.target.position[0] - self.position[0]
         dy = self.target.position[1] - self.position[1]
         dist = math.hypot(dx, dy)
-        if dist < 0.1:
+        move_dist = (self.speed * time_sec) / 3600
+        if dist <= move_dist*2:
             print(f"Glide bomb hit {self.target.id}!")
             self.target.take_damage(50)
             self.alive = False
@@ -506,8 +507,8 @@ def main():
 
     # Initialize SAM ground defenses
     sams = [
-        GroundDefense("SAM1", (25, 5), detection_range_km=40, fire_range_km=10, cooldown_time=100, hit_chance=0.6),
-        GroundDefense("SAM2", (35, -10), detection_range_km=35, fire_range_km=8, cooldown_time=80, hit_chance=0.6),
+        GroundDefense("SAM1", (25, 5), detection_range_km=40, fire_range_km=10, cooldown_time=100, hit_chance=0),
+        GroundDefense("SAM2", (35, -10), detection_range_km=35, fire_range_km=8, cooldown_time=80, hit_chance=0),
     ]
 
     max_time = maxtime  # seconds
@@ -561,7 +562,10 @@ def main():
                 mig.rtb_mode = True
                 print(f"{mig.name} RTB: All targets destroyed")
                 continue
-            target = min(live_targets, key=lambda e: mig._distance_to_point(e.position))
+            if(len(live_targets)>1):
+            	target = live_targets[random.randrange(1,len(live_targets))]
+            else:
+            	target = live_targets[0]
             mig.receive_gci_command(target)
             if mig._distance_to_point(target.position) < 5:
                 mig.dogfight_mode = True
@@ -580,6 +584,8 @@ def main():
         for mig in mig27s:
             if mig.fuel <= 0 or not mig.alive:
                 continue
+            if mig.rtb_mode==True:
+            	continue
             if mig.target_ground is None or not mig.target_ground.alive:
                 mig.select_ground_target(ground_targets)
             if mig.target_ground and mig._distance_to_point(mig.target_ground.position) < 25:
