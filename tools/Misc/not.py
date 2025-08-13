@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Declaration in Support of Motion to Disquality Counsel" 
+footer_text = "Request for Order" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -110,9 +110,9 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
     intro_text = [
-        "1. I called the LAPD personnel office at 213-486-4630.",
-        "2. Office confirmed no Felix Lebron is authorized to represent LAPD or is affiliated wirh LAPD.",
-        "3. In total absence of any defendant counsel, default should be granted.",
+        "1. The only reason I have not filed this fsse in federal court is I cant afford a process server.",
+        "2. Court should issue order to ABC Legal, Oje Legal or other servers I have damages on to compel them to"," serve my cases.",
+        "3. Until this is done I will have to use the state court appeals when judge rejects my orders.",
         ]
     y_position -= .5*inch
     for line in intro_text:
