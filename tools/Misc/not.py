@@ -90,7 +90,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Casd Number: 25STCP00742")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -110,8 +110,8 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
     intro_text = [
-        "1. The only reason I have not filed this fsse in federal court is I cant afford a process server.",
-        "2. Court should issue order to ABC Legal, Oje Legal or other servers I have damages on to compel them to"," serve my cases.",
+        "1. The only reason I have not filed this case in federal court is I cant afford a process server.",
+        "2. Court should issue order to ABC Legal, One Legal or other servers I have damages on to compel them to"," serve my cases.",
         "3. Until this is done I will have to use the state court appeals when judge rejects my orders.",
         ]
     y_position -= .5*inch
