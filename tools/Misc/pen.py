@@ -120,7 +120,6 @@ class Material:
         
     def getvel(self,round_diameter):
         mp=getmp(self)
-        print("mp of ", self.name, " is ", mp)
         ht=getmht(self)
         n=getn()
         round_diameter=round_diameter/100
@@ -128,7 +127,6 @@ class Material:
         airperhit=n.density*ra
         aireng=airperhit*getsh(n)*mp
         airvol=self.velfromen(airperhit,aireng)
-        print("max vel is ",airvol, " for ", self.name)
         airenpers=aireng*airvol
         ht=airenpers/(ht*mp)
         ba=ht/airvol
@@ -315,6 +313,7 @@ if __name__ == "__main__":
     rspeed=cf.gets()
     round_diameter = cf.getdam() # cm
     round_mas=cf.getmass(round_diameter)
+    print("mass",round_mas)
     round_energy = (.5*round_mas*(rspeed**2))/1_000_000 # MJ
     print("energy mj ",round_energy)
     angle_vert = 90
