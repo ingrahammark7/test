@@ -96,23 +96,18 @@ class Material:
         print("A ", d,"cm penetration did not reach thermal bound ", r,"cm.")
         return d
 
-    def penetration_depth(self, round_energy_mj, round_diameter_cm, angle1, angle2, honeycomb_layers, alpha=0.5):
+    def penetration_depth(self, round_energy_mj, round_diameter_cm, angle1, angle2, honeycomb_layers,round_mas):
         """
         Compute penetration depth (cm) using your MHD dynamic HVL model,
         with two slope angles (angle1, angle2) in degrees.
         """
         effective_angle = self.combine_angles(angle1, angle2)
-        d0 = (round_energy_mj / self.material_energy_density_mj_per_hvl)*self.base_hvl_cm
-        n = round_diameter_cm / self.base_hvl_cm
-        hvl = self.base_hvl_cm *(1 - alpha * n)
-        n_eff = round_diameter_cm / hvl
-        d = d0 * n_eff ** 2
         pm = nuct.NuclearPenetrationModel(self)
-        d=nuct.nuclear_penetration(round_energy_mj,round_diameter_cm,honeycomb_layers,2,pm.material)
+        d=nuct.nuclear_penetration(round_energy_mj,round_diameter_cm,honeycomb_layers,round_mas,pm.material)
         d = self.pen_angle(d, effective_angle, round_energy_mj, round_diameter_cm)
         d=self.honeycomb_pen(d,round_energy_mj,round_diameter_cm,honeycomb_layers)
         d=self.thermal_max_pen(d,round_energy_mj)
-        return d, hvl
+        return d
 
     def pen_angle(self, d, angle, round_energy_mj, round_diameter_cm):
         if(angle==0):
@@ -125,6 +120,7 @@ class Material:
         
     def getvel(self,round_diameter):
         mp=getmp(self)
+        print("mp of ", self.name, " is ", mp)
         ht=getmht(self)
         n=getn()
         round_diameter=round_diameter/100
@@ -132,12 +128,18 @@ class Material:
         airperhit=n.density*ra
         aireng=airperhit*getsh(n)*mp
         airvol=self.velfromen(airperhit,aireng)
+        print("max vel is ",airvol, " for ", self.name)
         airenpers=aireng*airvol
         ht=airenpers/(ht*mp)
         ba=ht/airvol
         roundside=ra*4
         ba=ba/roundside
         return ba,airvol
+
+    def gets(self):
+        round_diameter=self.getdam()
+        f,d=self.getvel(round_diameter)
+        return d
         
     def getmass(self,round_diameter):
         ld,s=self.getvel(round_diameter)
@@ -305,24 +307,23 @@ def getsh(self):
     
 
 # Example usage:
-if __name__ == "__main__":
-
-
-    
-    
+if __name__ == "__main__":    
     steel=getsteel()
     du=getdu()
     cf=getcf()	
     steel.print_summary()
-    round_energy = 10  # MJ
-    round_diameter = 2.2  # cm
+    rspeed=cf.gets()
+    round_diameter = cf.getdam() # cm
+    round_mas=cf.getmass(round_diameter)
+    round_energy = (.5*round_mas*(rspeed**2))/1_000_000 # MJ
+    print("energy mj ",round_energy)
     angle_vert = 90
     angle_horz = 90
 
-    depth, effective_hvl = cf.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0)
+    depth= steel.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas)
     print(f"Penetration depth: {depth:.2f} cm")
-    print(f"Effective HVL after MHD effect: {effective_hvl:.2f} cm")
-    steel.getdam()
+  
+    
 
     
     
