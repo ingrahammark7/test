@@ -1,35 +1,47 @@
-import math
+import numpy as np
 
-# Barrel parameters
-L = 1.5           # Barrel length (m)
-r = 0.05          # Inner radius (m)
-t = 0.01          # Barrel thickness (m)
-rho = 7850        # Steel density (kg/m^3)
-c = 470           # Specific heat J/(kg*K)
-T_plastic = 1000 + 273.15  # K
-T_ambient = 300  # K
+# Constants
+mu0 = 4 * np.pi * 1e-7  # Vacuum permeability
+dt = 0.001              # Time step (s)
+steps = 100             # Reduced for readability
 
-# Fraction of energy absorbed by barrel
-f_barrel = 0.3  # 30% absorbed by barrel, 70% into mount/airframe
+class Magnet:
+    def __init__(self, position, moment, mass=0.01):
+        self.position = position  # 1D position
+        self.moment = moment
+        self.mass = mass
+        self.velocity = 0.0
 
-# Gun parameters: (name, total_energy_J, num_rounds)
-guns = [
-    ("MiG-21 GSh-6", 1.2e9, 500),
-    ("F-4 SUU-16", 6e8, 1200),
-    ("Su-15 GSh-6 x2", 2.4e9, 1000),  # 2 barrels combined
-]
+def dipole_force(m1, m2, r):
+    if r == 0:
+        return 0
+    return (3 * mu0 / (4 * np.pi * r**4)) * m1.moment * m2.moment
 
-# Barrel mass
-V = math.pi * L * ((r+t)**2 - r**2)
-m_barrel = V * rho
+def dipole_energy(m1, m2, r):
+    if r == 0:
+        return 0
+    return -(mu0 / (4 * np.pi * r**3)) * m1.moment * m2.moment
 
-print(f"Barrel mass: {m_barrel:.2f} kg\n")
+# Initialize magnets
+magnet1 = Magnet(position=0.0, moment=1.0)
+magnet2 = Magnet(position=0.05, moment=1.0)
 
-for name, E_total, num_rounds in guns:
-    E_round = E_total / num_rounds
-    delta_T_round = E_round * f_barrel / (m_barrel * c)
-    N_max = (T_plastic - T_ambient) / delta_T_round
-    print(f"{name}:")
-    print(f"  Energy per round: {E_round:.2e} J")
-    print(f"  Temp rise per round: {delta_T_round:.2f} K")
-    print(f"  Max rounds before plastic temp: {N_max:.1f}\n")
+# Simulation
+for step in range(steps):
+    r = magnet2.position - magnet1.position
+    F = dipole_force(magnet1, magnet2, r)
+    
+    # Update velocities
+    magnet1.velocity -= F * dt / magnet1.mass
+    magnet2.velocity += F * dt / magnet2.mass
+    
+    # Update positions
+    magnet1.position += magnet1.velocity * dt
+    magnet2.position += magnet2.velocity * dt
+    
+    # Energies
+    kinetic = 0.5*magnet1.mass*magnet1.velocity**2 + 0.5*magnet2.mass*magnet2.velocity**2
+    potential = dipole_energy(magnet1, magnet2, r)
+    total = kinetic + potential
+    
+    print(f"Step {step}: KE={kinetic:.6e} J, PE={potential:.6e} J, Total={total:.6e} J")
