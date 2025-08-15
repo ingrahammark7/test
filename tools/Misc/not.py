@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order" 
+footer_text = "Notice of Order" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -74,7 +74,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Police Department",
+        "Google",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -109,13 +109,26 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = [
-        "1. The only reason I have not filed this case in federal court is I cant afford a process server.",
-        "2. Court should issue order to ABC Legal, One Legal or other servers I have damages on to compel them to"," serve my cases.",
-        "3. Until this is done I will have to use the state court appeals when judge rejects my orders.",
-        ]
+    intro_text = "There is a Pixel 8 login that cannot be logged out of that I didnt authorize. In other words Indians are trying to get into my account. /n Please identify and refresh whatever token the 'Pixel 8' login is using to access my account. If you deny my access to the account (currently logged in on the fully named 'Google Pixel 8' and other phones) I will sue Google. /n "
+        
     y_position -= .5*inch
-    for line in intro_text:
+    spr=intro_text.split(" ")
+    intro_text1=[""]
+    cc=0
+    tt=""
+    for s in spr:
+    	ll=len(s)
+    	cc+=ll
+    	if(s=="/n"):
+    		cc=81
+    		s=""
+    	if(cc>80):
+    		cc=0
+    		intro_text1.append(tt)
+    		tt=""    	
+    	tt+=" "
+    	tt+=s
+    for line in intro_text1:
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25* inch
 
@@ -123,7 +136,7 @@ def create_pdf(output_filename):
 
     # Signature Block
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/5/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/14/2025")
 
  # Add line numbers to the first page
     line_height = 0.25 * inch  # Adjusted to match text spacing
