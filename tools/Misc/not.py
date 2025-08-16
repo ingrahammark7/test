@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Order" 
+footer_text = "Request For Order" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -74,7 +74,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Google",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -109,7 +109,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "There is a Pixel 8 login that cannot be logged out of that I didnt authorize. In other words Indians are trying to get into my account. /n Please identify and refresh whatever token the 'Pixel 8' login is using to access my account. If you deny my access to the account (currently logged in on the fully named 'Google Pixel 8' and other phones) I will sue Google. /n "
+    intro_text = "The following orders are requested. Google is helping indians hack my account. Google should delete permanent token hackers are using. Google case filed on my account. Judge should order Google to resolve situation. /n Secondly, the Department of Public Social Services is embezzling my GR benefits. Stop embezzling the GR. /n Lastly, judge should read my other cases and issue orders therein. /n"
         
     y_position -= .5*inch
     spr=intro_text.split(" ")
