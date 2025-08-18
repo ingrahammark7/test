@@ -1,111 +1,125 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Nuclear Physics Simulator</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #0a0a0a;
-      color: #eee;
-      padding: 1em;
-    }
-    button {
-      padding: 1em;
-      font-size: 1.1em;
-      margin: 1em 0;
-      background-color: #00c853;
-      color: white;
-      border: none;
-      border-radius: 6px;
-    }
-    pre {
-      white-space: pre-wrap;
-      background: #1e1e1e;
-      padding: 1em;
-      border-radius: 5px;
-      overflow-x: auto;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Rod Magnetization Simulation</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #000; }
+</style>
 </head>
 <body>
-  <h1>Maximal Nuclear Physics Engine</h1>
-  <button onclick="runSimulation()">Run Simulation</button>
-  <pre id="output">Results will appear here...</pre>  <script>
-    function runSimulation() {
-      const output = document.getElementById("output");
-      output.textContent = "Running advanced simulation...\n";
+<script src="https://cdn.jsdelivr.net/npm/three@0.158/build/three.min.js"></script>
+<script>
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-      try {
-        const Z = 92; // Uranium
-        const N = 146; // Neutrons
+// Rod parameters
+const rodLength = 10; // in arbitrary units
+const rodWidth = 0.5;
+const rodDepth = 0.5;
+const Nx = 20, Ny = 4, Nz = 4; // discretization
+let dt = 0.01;
 
-        function bindingEnergy(Z, N) {
-          const A = Z + N;
-          const volumeTerm = 15.8 * A;
-          const surfaceTerm = -18.3 * Math.pow(A, 2/3);
-          const coulombTerm = -0.714 * Z * (Z - 1) / Math.pow(A, 1/3);
-          const asymmetryTerm = -23.2 * Math.pow(N - Z, 2) / A;
-          const pairingTerm = (Z % 2 === 0 && N % 2 === 0) ? 12 / Math.sqrt(A) : (Z % 2 === 1 && N % 2 === 1) ? -12 / Math.sqrt(A) : 0;
-          return volumeTerm + surfaceTerm + coulombTerm + asymmetryTerm + pairingTerm;
+// Create rod mesh
+let rodGeom = new THREE.BoxGeometry(rodWidth, rodDepth, rodLength);
+let rodMat = new THREE.MeshBasicMaterial({color: 0xaaaaaa, wireframe: true});
+let rodMesh = new THREE.Mesh(rodGeom, rodMat);
+scene.add(rodMesh);
+rodMesh.position.z = rodLength/2;
+
+// Camera position
+camera.position.set(5,5,15);
+camera.lookAt(0,0,rodLength/2);
+
+// B-field grid
+let Bz = [];
+for(let i=0;i<Nx;i++){
+    Bz[i] = [];
+    for(let j=0;j<Ny;j++){
+        Bz[i][j] = [];
+        for(let k=0;k<Nz;k++){
+            Bz[i][j][k] = 0;
         }
+    }
+}
 
-        function shellCorrection(Z, N) {
-          return 5 * Math.sin(0.1 * Z) + 5 * Math.sin(0.1 * N);
+// Simulation parameters
+const B0 = 1; // base field
+const alpha_growth = 0.05;
+const spike_chance = 0.02;
+const spike_amplitude = 0.05;
+const omega = 20; // oscillation frequency
+let frame = 0;
+
+// Visualization: create small cubes for B-field
+let cubes = [];
+const cubeSize = rodLength/Nz * 0.8;
+for(let i=0;i<Nx;i++){
+    cubes[i]=[];
+    for(let j=0;j<Ny;j++){
+        cubes[i][j]=[];
+        for(let k=0;k<Nz;k++){
+            let geom = new THREE.BoxGeometry(cubeSize,cubeSize,cubeSize);
+            let mat = new THREE.MeshBasicMaterial({color:0x0000ff});
+            let mesh = new THREE.Mesh(geom, mat);
+            mesh.position.set(
+                (i-Nx/2)*cubeSize,
+                (j-Ny/2)*cubeSize,
+                (k-Nz/2)*cubeSize + rodLength/2
+            );
+            scene.add(mesh);
+            cubes[i][j][k] = mesh;
         }
+    }
+}
 
-        function pairingBCS(N, Z) {
-          const delta = 12 / Math.sqrt(N + Z);
-          return delta * Math.cos((N - Z) * 0.1);
+// Simulation loop
+function animate(){
+    requestAnimationFrame(animate);
+    frame++;
+
+    let E_total = 0;
+    let E_max = 0;
+
+    for(let i=0;i<Nx;i++){
+        for(let j=0;j<Ny;j++){
+            for(let k=0;k<Nz;k++){
+                // Random spike
+                if(Math.random()<spike_chance){
+                    Bz[i][j][k] += spike_amplitude;
+                }
+
+                // Oscillation
+                Bz[i][j][k] += spike_amplitude * Math.sin(omega*frame*dt);
+
+                // Feedback growth
+                Bz[i][j][k] += alpha_growth * Math.pow(Bz[i][j][k]/B0,2) * dt;
+
+                // Cap at unphysical extremes
+                if(Bz[i][j][k]>10) Bz[i][j][k]=10;
+
+                // Update color based on B-field
+                let colorVal = Math.min(Bz[i][j][k]/10,1);
+                cubes[i][j][k].material.color.setRGB(colorVal,0,1-colorVal);
+
+                // Track energy
+                let e = 0.5*Bz[i][j][k]*Bz[i][j][k];
+                E_total += e;
+                if(e>E_max) E_max = e;
+            }
         }
-
-        function betaDecayHalfLife(Z, N) {
-          const Q = 0.782 - (Z - N) * 0.01;
-          return Q > 0 ? Math.exp(5 / Q) : Infinity;
-        }
-
-        function rmfPotential(Z, N) {
-          return 40 + 10 * Math.sin(Z * 0.2) - 5 * Math.cos(N * 0.15);
-        }
-
-        function skyrmeEnergyDensity(Z, N) {
-          const A = Z + N;
-          return (Z * N) / A * (1 - Math.exp(-A / 100));
-        }
-
-        function simulateDecayChain(Z, N, steps) {
-          let result = [];
-          for (let i = 0; i < steps; i++) {
-            const be = bindingEnergy(Z, N).toFixed(2);
-            const beta = betaDecayHalfLife(Z, N).toFixed(2);
-            result.push(`Z=${Z} N=${N} BE=${be} BetaHalfLife=${beta}s`);
-            if (Z > 1) Z--;
-            N++;
-          }
-          return result;
-        }
-
-        const be = bindingEnergy(Z, N);
-        const shell = shellCorrection(Z, N);
-        const pairing = pairingBCS(N, Z);
-        const halfLife = betaDecayHalfLife(Z, N);
-        const rmf = rmfPotential(Z, N);
-        const skyrme = skyrmeEnergyDensity(Z, N);
-        const decayChain = simulateDecayChain(Z, N, 5);
-
-        output.textContent += `Z=${Z} N=${N}\n`;
-        output.textContent += `Binding Energy: ${be.toFixed(2)} MeV\n`;
-        output.textContent += `Shell Correction: ${shell.toFixed(2)} MeV\n`;
-        output.textContent += `Pairing (BCS): ${pairing.toFixed(2)} MeV\n`;
-        output.textContent += `Beta Decay Half-Life: ${halfLife.toFixed(2)} s\n`;
-        output.textContent += `RMF Potential: ${rmf.toFixed(2)} MeV\n`;
-        output.textContent += `Skyrme Energy Density: ${skyrme.toFixed(2)} MeV\n\n`;
-        output.textContent += `Decay Chain Simulation:\n${decayChain.join("\n")}\n`;
-      } catch (err) {
-        output.textContent += `Error: ${err.message}`;
-      }
     }
 
-    window.onload = runSimulation;
-  </script></body>
+    // Rotate rod slightly for visualization
+    rodMesh.rotation.y += 0.002;
+
+    renderer.render(scene, camera);
+}
+
+animate();
+</script>
+</body>
 </html>
