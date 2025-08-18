@@ -106,17 +106,17 @@ class NuclearPenetrationModel:
     def jtomev(self, num):
         return num * 6.242e6
 
-    def roundld(self, round_diameter_cm, round_mas):
+    def roundld(self, round_diameter_cm, round_mas,roundmaterial):
         # Keep your older (square area) method as you originally had it
-        round_front_vol = round_diameter_cm * round_diameter_cm / 1000000.0
-        round_front_mass = round_front_vol * self.material.density
+        round_front_vol = round_diameter_cm * round_diameter_cm *round_diameter_cm / 1000000.0
+        round_front_mass = round_front_vol * roundmaterial.density
         # avoid division by zero
         if round_front_mass == 0:
             return 1
         return round_mas / round_front_mass
 
-    def penetration(self, round_energy_j, round_diameter_cm, honeycomb_layers, round_mas):
-        round_ld = self.roundld(round_diameter_cm, round_mas)
+    def penetration(self, round_energy_j, round_diameter_cm, honeycomb_layers, round_mas,roundmaterial):
+        round_ld = self.roundld(round_diameter_cm, round_mas,roundmaterial)
         print("round ld ", round_ld)
         E_mev_val = self.jtomev(round_energy_j)
 
@@ -146,13 +146,13 @@ class NuclearPenetrationModel:
         return float(adjusted_penetration)
 
 
-def nuclear_penetration(round_energy_j, round_diameter_cm, honeycomb_layers, round_mas, material):
+def nuclear_penetration(round_energy_j, round_diameter_cm, honeycomb_layers, round_mas, material,roundmaterial):
     """
     Compute nuclear-effect-adjusted penetration depth (cm) for given round and armor.
     """
     
     model = NuclearPenetrationModel(material)
-    return model.penetration(round_energy_j, round_diameter_cm, honeycomb_layers, round_mas)
+    return model.penetration(round_energy_j, round_diameter_cm, honeycomb_layers, round_mas,roundmaterial)
 
 
 if __name__ == "__main__":
@@ -164,10 +164,4 @@ if __name__ == "__main__":
     round_mass = 2
     honeycomb = 0
 
-    pen_steel = nuclear_penetration(round_energy, round_diameter, honeycomb, round_mass, "steel")
-    pen_du = nuclear_penetration(round_energy, round_diameter, honeycomb, round_mass, "du")
-    pen_cf=nuclear_penetration(round_energy,round_diameter,honeycomb,round_mass,"cf")
-
-    print(f"Estimated penetration in Steel: {pen_steel:.3f} cm")
-    print(f"Estimated penetration in Depleted Uranium: {pen_du:.3f} cm")
-    print("cf ",pen_cf)
+    
