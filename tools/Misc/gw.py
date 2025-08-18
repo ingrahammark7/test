@@ -1,47 +1,14 @@
-import numpy as np
 
-# Constants
-mu0 = 4 * np.pi * 1e-7  # Vacuum permeability
-dt = 0.001              # Time step (s)
-steps = 100             # Reduced for readability
+import math
 
-class Magnet:
-    def __init__(self, position, moment, mass=0.01):
-        self.position = position  # 1D position
-        self.moment = moment
-        self.mass = mass
-        self.velocity = 0.0
-
-def dipole_force(m1, m2, r):
-    if r == 0:
-        return 0
-    return (3 * mu0 / (4 * np.pi * r**4)) * m1.moment * m2.moment
-
-def dipole_energy(m1, m2, r):
-    if r == 0:
-        return 0
-    return -(mu0 / (4 * np.pi * r**3)) * m1.moment * m2.moment
-
-# Initialize magnets
-magnet1 = Magnet(position=0.0, moment=1.0)
-magnet2 = Magnet(position=0.05, moment=1.0)
-
-# Simulation
-for step in range(steps):
-    r = magnet2.position - magnet1.position
-    F = dipole_force(magnet1, magnet2, r)
-    
-    # Update velocities
-    magnet1.velocity -= F * dt / magnet1.mass
-    magnet2.velocity += F * dt / magnet2.mass
-    
-    # Update positions
-    magnet1.position += magnet1.velocity * dt
-    magnet2.position += magnet2.velocity * dt
-    
-    # Energies
-    kinetic = 0.5*magnet1.mass*magnet1.velocity**2 + 0.5*magnet2.mass*magnet2.velocity**2
-    potential = dipole_energy(magnet1, magnet2, r)
-    total = kinetic + potential
-    
-    print(f"Step {step}: KE={kinetic:.6e} J, PE={potential:.6e} J, Total={total:.6e} J")
+k=9e9
+el=1e-19
+r=1e-10
+c=3e8
+ec=1e7
+ec2=ec/2
+f=(k*ec2*ec2*el*el)/(r*(ec2**(1/3)))
+print(f)
+m=1e-30*ec
+v=math.sqrt(f/m)
+print(v/1e8)
