@@ -2,214 +2,117 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Rod Fracture & Particle Physics</title>
+<title>DU Rod Visualization with Trail</title>
 <style>
-  body { margin: 0; overflow: hidden; }
+  body { margin: 0; background: #000; overflow: hidden; }
   canvas { display: block; }
 </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
 <script>
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-let renderer = new THREE.WebGLRenderer({antialias:true});
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // Lights
-let light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(10,10,10);
-scene.add(light);
-scene.add(new THREE.AmbientLight(0x404040));
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
+scene.add(ambientLight);
+const pointLight = new THREE.PointLight(0xffaa33, 1.2, 100);
+pointLight.position.set(10, 20, 30);
+scene.add(pointLight);
 
-// Ground plane
-let groundGeo = new THREE.PlaneGeometry(200,200);
-let groundMat = new THREE.MeshStandardMaterial({color:0x333333});
-let ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2;
-ground.position.y = -5;
-scene.add(ground);
-
-// Rod parameters
-const rodLength = 15;
-const cubeSize = 0.5;
-const threshold = 1.0;
-const energyTransfer = 0.4;
-const rodVelocity = new THREE.Vector3(0,0,-0.2);
-const airHeatFactor = 0.05;
-const meltThreshold = 1.5;
-const meltRate = 0.005;
-const particlesPerFrame = 5;
-
-// Rod cubes
-let cubes = [];
-for(let i=0; i<rodLength/cubeSize; i++){
-    let geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-    let material = new THREE.MeshStandardMaterial({color: 0x8888ff});
-    let cube = new THREE.Mesh(geometry, material);
-    cube.position.z = -i*cubeSize + rodLength/2;
-    cube.userData = {
-        energy: Math.random()*0.3,
-        fractured: false,
-        velocity: new THREE.Vector3(0,0,0),
-        angularVel: new THREE.Vector3(0,0,0),
-        heat: 0,
-        originalSize: cubeSize
-    };
-    scene.add(cube);
-    cubes.push(cube);
+// DU Rod geometry
+const rodLength = 8;
+const rodRadius = 0.5;
+const rodGeom = new THREE.CylinderGeometry(rodRadius, rodRadius, rodLength, 64, 64, true);
+const rodColors = [];
+for(let i=0; i<rodGeom.attributes.position.count; i++){
+    const y = rodGeom.attributes.position.getY(i) + rodLength/2;
+    const intensity = y/rodLength;
+    rodColors.push(intensity, intensity*0.3, 0);
 }
-
-// Particle system
-let particles = [];
-
-function emitParticle(position){
-    let size = 0.03 + Math.random()*0.07;
-    let geometry = new THREE.SphereGeometry(size, 6, 6);
-    let material = new THREE.MeshStandardMaterial({
-        color: 0xffaa00,
-        emissive: 0xff5500,
-        emissiveIntensity: 1,
-        transparent: true,
-        opacity: 1
-    });
-    let particle = new THREE.Mesh(geometry, material);
-    particle.position.copy(position);
-    particle.userData = {
-        velocity: new THREE.Vector3(
-            (Math.random()-0.5)*1.5,
-            (Math.random()-0.5)*1.5,
-            (Math.random()-0.5)*1.5
-        ),
-        life: 50 + Math.random()*30
-    };
-    scene.add(particle);
-    particles.push(particle);
-}
-
-// Map heat to color
-function heatToColor(h) {
-    h = Math.min(Math.max(h, 0), 1);
-    let r = Math.floor(255 * h);
-    let g = Math.floor(255 * (1 - h) * 0.5);
-    let b = Math.floor(255 * (1 - h));
-    return new THREE.Color(`rgb(${r},${g},${b})`);
-}
-
-// Camera rotation variables
-let theta = 0, phi = 0, radius = 30;
-let isDragging = false, prevMouse = {x:0, y:0};
-window.addEventListener('mousedown', e => { isDragging = true; prevMouse = {x:e.clientX, y:e.clientY}; });
-window.addEventListener('mouseup', e => { isDragging = false; });
-window.addEventListener('mousemove', e => {
-    if(isDragging){
-        let dx = e.clientX - prevMouse.x;
-        let dy = e.clientY - prevMouse.y;
-        theta += dx * 0.005;
-        phi -= dy * 0.005;
-        phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
-        prevMouse = {x:e.clientX, y:e.clientY};
-    }
+rodGeom.setAttribute('color', new THREE.Float32BufferAttribute(rodColors,3));
+const rodMat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    emissive: 0xff3300,
+    emissiveIntensity: 0.6,
+    metalness: 0.7,
+    roughness: 0.2,
+    side: THREE.DoubleSide
 });
-window.addEventListener('wheel', e => {
-    radius += e.deltaY * 0.05;
-    radius = Math.max(5, Math.min(100, radius));
+const projectile = new THREE.Mesh(rodGeom, rodMat);
+projectile.rotation.x = Math.PI/2;
+scene.add(projectile);
+
+// Outer glow
+const glowGeom = new THREE.CylinderGeometry(rodRadius*1.3, rodRadius*1.3, rodLength*1.1, 32);
+const glowMat = new THREE.MeshBasicMaterial({
+    color: 0xff8800,
+    transparent:true,
+    opacity:0.25
 });
+const glow = new THREE.Mesh(glowGeom, glowMat);
+glow.rotation.x = Math.PI/2;
+scene.add(glow);
 
-// Physics parameters
-const gravity = new THREE.Vector3(0,-0.05,0);
-const restitution = 0.5;
+// Trail
+const trailLength = 50;
+const trailGeom = new THREE.BufferGeometry();
+const trailPositions = new Float32Array(trailLength * 3);
+trailGeom.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+const trailMat = new THREE.LineBasicMaterial({ color: 0xffaa33, transparent:true, opacity:0.6 });
+const trailLine = new THREE.Line(trailGeom, trailMat);
+scene.add(trailLine);
 
-// Animation
+// Camera
+camera.position.set(0,5,15);
+camera.lookAt(projectile.position);
+
+let t = 0;
+const trailBuffer = [];
 function animate(){
     requestAnimationFrame(animate);
+    t+=0.02;
 
-    // Rod center for camera tracking
-    let rodCenter = new THREE.Vector3();
-    cubes.forEach(c => rodCenter.add(c.position));
-    rodCenter.divideScalar(cubes.length);
+    // Rod bobbing and rotation
+    projectile.position.y = Math.sin(t)*0.3;
+    glow.position.y = projectile.position.y;
+    projectile.rotation.z += 0.015;
+    glow.rotation.z += 0.015;
 
-    // Update camera to follow rod
-    camera.position.x = rodCenter.x + radius * Math.sin(phi) * Math.cos(theta);
-    camera.position.y = rodCenter.y + radius * Math.cos(phi);
-    camera.position.z = rodCenter.z + radius * Math.sin(phi) * Math.sin(theta);
-    camera.lookAt(rodCenter);
+    // Heat pulse
+    const pulse = 0.6 + 0.4*Math.sin(t*3);
+    rodMat.emissiveIntensity = pulse;
+    glow.material.opacity = 0.15 + 0.1*Math.sin(t*3);
 
-    // Update cubes
-    cubes.forEach((cube, idx)=>{
-        if(!cube.userData.fractured){
-            cube.userData.energy += Math.random()*0.01;
-            cube.userData.heat += airHeatFactor * rodVelocity.length();
+    // Camera smooth follow
+    camera.position.lerp(new THREE.Vector3(0, 5 + Math.sin(t)*0.5, 15), 0.05);
+    camera.lookAt(projectile.position);
 
-            if(cube.userData.energy > threshold){
-                cube.userData.fractured = true;
-                cube.userData.velocity.set(
-                    (Math.random()-0.5)*1.0,
-                    (Math.random()-0.5)*1.0,
-                    (Math.random()-0.5)*1.0
-                );
-                cube.userData.angularVel.set(
-                    (Math.random()-0.5)*0.4,
-                    (Math.random()-0.5)*0.4,
-                    (Math.random()-0.5)*0.4
-                );
-                if(idx>0) cubes[idx-1].userData.energy += energyTransfer;
-                if(idx<cubes.length-1) cubes[idx+1].userData.energy += energyTransfer;
-            }
-        }
+    // Update trail
+    trailBuffer.unshift(projectile.position.clone());
+    if(trailBuffer.length > trailLength) trailBuffer.pop();
+    for(let i=0;i<trailBuffer.length;i++){
+        trailPositions[i*3] = trailBuffer[i].x;
+        trailPositions[i*3+1] = trailBuffer[i].y;
+        trailPositions[i*3+2] = trailBuffer[i].z;
+    }
+    trailGeom.attributes.position.needsUpdate = true;
+    trailMat.opacity = 0.6 * (1 - trailBuffer.length/trailLength);
 
-        // Apply physics
-        cube.userData.velocity.add(gravity);
-        cube.position.add(cube.userData.velocity);
-        cube.rotation.x += cube.userData.angularVel.x;
-        cube.rotation.y += cube.userData.angularVel.y;
-        cube.rotation.z += cube.userData.angularVel.z;
-
-        // Bounce on ground
-        if(cube.position.y - cube.scale.y/2 < ground.position.y){
-            cube.position.y = ground.position.y + cube.scale.y/2;
-            cube.userData.velocity.y *= -restitution;
-        }
-
-        cube.userData.velocity.multiplyScalar(0.97);
-        cube.userData.angularVel.multiplyScalar(0.97);
-
-        cube.material.color = heatToColor(cube.userData.heat);
-
-        // Melt cubes
-        if(cube.userData.heat > meltThreshold){
-            let fraction = 1 - meltRate;
-            cube.scale.multiplyScalar(fraction);
-            for(let p=0;p<particlesPerFrame;p++){
-                emitParticle(cube.position);
-            }
-            if(cube.scale.x < 0.01) cube.visible = false;
-        }
-    });
-
-    // Update particles
-    particles.forEach((p, idx)=>{
-        p.userData.velocity.add(gravity);
-        p.position.add(p.userData.velocity);
-        if(p.position.y - 0.01 < ground.position.y){
-            p.position.y = ground.position.y + 0.01;
-            p.userData.velocity.y *= -restitution;
-        }
-        p.userData.velocity.multiplyScalar(0.95);
-        p.userData.life -=1;
-        p.material.opacity = Math.max(p.userData.life / 80, 0);
-        p.material.emissiveIntensity = p.material.opacity;
-        if(p.userData.life <=0){
-            scene.remove(p);
-            particles.splice(idx,1);
-        }
-    });
-
-    renderer.render(scene, camera);
+    renderer.render(scene,camera);
 }
-
 animate();
+
+// Handle resize
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
 </script>
 </body>
 </html>
