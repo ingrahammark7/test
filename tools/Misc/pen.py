@@ -148,8 +148,9 @@ class Material:
         return ff
     
     def getdam(self):
-        maxd=self.base_hvl_cm
-        doh=self.material_energy_density_j_per_hvl
+        barrel=getsteel()
+        maxd=barrel.base_hvl_cm
+        doh=barrel.material_energy_density_j_per_hvl
         return self.damiter(maxd,doh)
 
     def damiter(self,maxd,doh):
@@ -308,7 +309,7 @@ def getsh(self):
 if __name__ == "__main__":    
     steel=getsteel()
     du=getdu()
-    cf=getcf()	
+    cf=getdu()
     steel.print_summary()
     rspeed=cf.gets()
     round_diameter = cf.getdam() # cm
@@ -319,7 +320,7 @@ if __name__ == "__main__":
     angle_vert = 90
     angle_horz = 90
 
-    depth= steel.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas)
+    depth= getsteel().penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas)
     print(f"Penetration depth: {depth:.2f} cm")
   
     
