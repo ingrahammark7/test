@@ -136,6 +136,7 @@ class Material:
 
     def gets(self):
         round_diameter=self.getdam()
+        print("diameter cm", round_diameter)
         f,d=self.getvel(round_diameter)
         return d
         
@@ -295,7 +296,11 @@ def getmp(self):
     ce=self.cohesive_bond_energy
     ce=ce/6
     sh=getsh(self)
-    return ce/sh
+    return ce/sh/2
+    #at 1.7kms 100mm ld 31
+    #28cm pen du vs steel
+    #863mm wikipedia rha
+    #68cm pen
 
 def getsh(self):
     sh=self.db

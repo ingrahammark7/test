@@ -82,7 +82,7 @@ class NuclearPenetrationModel:
         length = round_ld * round_diameter_cm / 100.0
         length = length / 2.0
         cov=pm*charger
-        cov=cov**(1/6)*((self.material.atomic_number)**(1/6))
+        cov=cov**(1/6)*(self.material.atomic_number**(1/2))
         print("ionized zone generates x round power ",cov.evalf())
         cov=cov/round_mas
         en = round_energy_j 
