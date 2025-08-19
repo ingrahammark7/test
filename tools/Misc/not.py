@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Extraordinary Writ" 
+footer_text = "Notice of Related Case" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -92,7 +92,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: ")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -110,10 +110,9 @@ def create_pdf(output_filename):
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
-    c.drawString(left_margin, y_position - 0.5* inch, "I. INTRODUCTION")
     c.setFont("Times-Roman",12)
-    intro_text = "    This is a petition regarding LASC case 25STCP00742. Judge stated they are not able to issue a decision and said case will be dismissed. Judge lied and pretends I dismissed the case myself. Court should order judge to issue decision and appeal any decision made. /n    I have attached a UD-100 form ordering eviction of a gang LAPD is defending. Because I have default on LAPD, I claim to own all hideout apartments of LAPD undercover operations. The majority of LAPD officers are illegal immigrants. /n"
-    y_position -= .75*inch
+    intro_text = "    A writ has been filed in Spring Street Courthouse to expedite case 25STCP00742. The case documents are attached. This electronic filing constitutes service upon Superior Court under CRC 8.846(e). /n Submitted, Mark Ingraham 8/19/2025 /n"
+    y_position -= .25*inch
     
     
     def doer(intro_text,y_position):
@@ -152,19 +151,7 @@ def create_pdf(output_filename):
     	return cc
     	
     c=dopage(c,1)
-    y_position=doy()
-    c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.5* inch, "II. REQUEST")
-    y_position -= .75*inch
-    intro_text="Petitioner petitions this Court to: /n 1. Compel judge to make decision as soon as possible. /n 2. Appeal any decision made. /n 3. Deny LAPD access to California State Treasury bank accounts and bank transfers of any kind. /n 4. Deny LAPD any ability to act against me. /n 5. Deny LAPD any vehicle titles and ability to own vehicles whatsoever. /n Certificate of service: All documents served per APP004. /n "
     
-    y_position=doer(intro_text,y_position)
-     
-    c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/18/2025")
-    c=dopage(c,2)
-
-
     # Save the PDF
     c.save()
 
