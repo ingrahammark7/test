@@ -67,8 +67,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT COURT OF APPEAL")
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -117,6 +117,7 @@ def create_pdf(output_filename):
     
     
     def doer(intro_text,y_position):
+    	c.setFont("Times-Roman", 12)
     	spr=intro_text.split(" ")
     	intro_text1=[""]
     	cc=0
