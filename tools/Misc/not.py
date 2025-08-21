@@ -155,7 +155,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.5* inch, "II. REQUEST AND CONCLUSION")
     y_position -= .75*inch
-    intro_text="Petitioner petitions this Court to: /n 1. Compel judge in original Superior Court case to make decision as soon as possible. /n 2. Appeal any decision made. /n 3. Deny LAPD access to California State Treasury bank accounts and bank transfers of any kind. /n 4. Deny LAPD any ability to act against me. /n 5. Deny LAPD any vehicle titles and ability to own vehicles whatsoever. /n Certificate of service: All documents served per APP004. /n "
+    intro_text="Petitioner petitions this Court to: /n 1. Compel judge in original Superior Court case to make decision as soon as possible. /n 2. Appeal any decision made. /n 3. Deny LAPD any ability to act against me. /n Certificate of service: All documents served per APP004. /n "
     
     y_position=doer(intro_text,y_position)
      
