@@ -2,117 +2,122 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DU Rod Visualization with Trail</title>
+<title>APFSDS Slidey-Gooey 3D</title>
 <style>
-  body { margin: 0; background: #000; overflow: hidden; }
-  canvas { display: block; }
+  body { margin: 0; overflow: hidden; background-color: #000; }
+  #info { position: absolute; top: 10px; left: 10px; color: white; font-family: sans-serif; }
 </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+<div id="info">
+  <div id="penetration">Cumulative Penetration: 0 cm</div>
+  <div id="time">Time: 0 s</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+
 <script>
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+  // ---- Scene Setup ----
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
 
-// Lights
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
-scene.add(ambientLight);
-const pointLight = new THREE.PointLight(0xffaa33, 1.2, 100);
-pointLight.position.set(10, 20, 30);
-scene.add(pointLight);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+  camera.position.set(0, 50, 150);
 
-// DU Rod geometry
-const rodLength = 8;
-const rodRadius = 0.5;
-const rodGeom = new THREE.CylinderGeometry(rodRadius, rodRadius, rodLength, 64, 64, true);
-const rodColors = [];
-for(let i=0; i<rodGeom.attributes.position.count; i++){
-    const y = rodGeom.attributes.position.getY(i) + rodLength/2;
-    const intensity = y/rodLength;
-    rodColors.push(intensity, intensity*0.3, 0);
-}
-rodGeom.setAttribute('color', new THREE.Float32BufferAttribute(rodColors,3));
-const rodMat = new THREE.MeshStandardMaterial({
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  // ---- Lighting ----
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(50, 100, 50);
+  scene.add(directionalLight);
+
+  // ---- Parameters ----
+  const z_tip = 5;
+  const z_contagion = 70;
+  const z_residual = 2;
+  const total_depth = z_tip + z_contagion + z_residual;
+  const radius = 2;
+  const frames = 200;
+  let frame = 0;
+
+  // ---- Cylinder Geometry ----
+  const geometry = new THREE.CylinderGeometry(radius, radius, total_depth, 64, 1, true);
+  geometry.rotateX(Math.PI / 2);
+
+  const colors = [];
+  for (let i = 0; i < geometry.attributes.position.count; i++) {
+    colors.push(1, 1, 1);
+  }
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+  const material = new THREE.MeshStandardMaterial({
     vertexColors: true,
-    emissive: 0xff3300,
-    emissiveIntensity: 0.6,
-    metalness: 0.7,
-    roughness: 0.2,
-    side: THREE.DoubleSide
-});
-const projectile = new THREE.Mesh(rodGeom, rodMat);
-projectile.rotation.x = Math.PI/2;
-scene.add(projectile);
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.8
+  });
 
-// Outer glow
-const glowGeom = new THREE.CylinderGeometry(rodRadius*1.3, rodRadius*1.3, rodLength*1.1, 32);
-const glowMat = new THREE.MeshBasicMaterial({
-    color: 0xff8800,
-    transparent:true,
-    opacity:0.25
-});
-const glow = new THREE.Mesh(glowGeom, glowMat);
-glow.rotation.x = Math.PI/2;
-scene.add(glow);
+  const cylinder = new THREE.Mesh(geometry, material);
+  scene.add(cylinder);
 
-// Trail
-const trailLength = 50;
-const trailGeom = new THREE.BufferGeometry();
-const trailPositions = new Float32Array(trailLength * 3);
-trailGeom.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
-const trailMat = new THREE.LineBasicMaterial({ color: 0xffaa33, transparent:true, opacity:0.6 });
-const trailLine = new THREE.Line(trailGeom, trailMat);
-scene.add(trailLine);
+  // ---- Custom Camera Controls ----
+  let isMouseDown = false;
+  let lastMouseX = 0;
+  let lastMouseY = 0;
+  let rotX = 0;
+  let rotY = 0;
+  let zoom = 1;
 
-// Camera
-camera.position.set(0,5,15);
-camera.lookAt(projectile.position);
+  window.addEventListener('mousedown', (e) => { isMouseDown = true; lastMouseX = e.clientX; lastMouseY = e.clientY; });
+  window.addEventListener('mouseup', () => { isMouseDown = false; });
+  window.addEventListener('mousemove', (e) => {
+    if (!isMouseDown) return;
+    const dx = e.clientX - lastMouseX;
+    const dy = e.clientY - lastMouseY;
+    rotY += dx * 0.01;
+    rotX += dy * 0.01;
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+  });
+  window.addEventListener('wheel', (e) => { zoom *= 1 + e.deltaY * -0.001; });
 
-let t = 0;
-const trailBuffer = [];
-function animate(){
+  // ---- Animation ----
+  function animate() {
     requestAnimationFrame(animate);
-    t+=0.02;
 
-    // Rod bobbing and rotation
-    projectile.position.y = Math.sin(t)*0.3;
-    glow.position.y = projectile.position.y;
-    projectile.rotation.z += 0.015;
-    glow.rotation.z += 0.015;
-
-    // Heat pulse
-    const pulse = 0.6 + 0.4*Math.sin(t*3);
-    rodMat.emissiveIntensity = pulse;
-    glow.material.opacity = 0.15 + 0.1*Math.sin(t*3);
-
-    // Camera smooth follow
-    camera.position.lerp(new THREE.Vector3(0, 5 + Math.sin(t)*0.5, 15), 0.05);
-    camera.lookAt(projectile.position);
-
-    // Update trail
-    trailBuffer.unshift(projectile.position.clone());
-    if(trailBuffer.length > trailLength) trailBuffer.pop();
-    for(let i=0;i<trailBuffer.length;i++){
-        trailPositions[i*3] = trailBuffer[i].x;
-        trailPositions[i*3+1] = trailBuffer[i].y;
-        trailPositions[i*3+2] = trailBuffer[i].z;
+    // Slidey-gooey contagion effect
+    const attr = geometry.attributes.color;
+    for (let i = 0; i < attr.count; i++) {
+      const zPos = geometry.attributes.position.getZ(i) + total_depth/2; // 0 at tip
+      let tFrac = frame / frames;
+      let colorVal = 1;
+      if (zPos <= z_tip) colorVal = 0.3; // tip
+      else if (zPos <= z_tip + z_contagion * tFrac) colorVal = 0.8; // contagion
+      else colorVal = 1;
+      attr.setXYZ(i, colorVal, colorVal*0.5, colorVal*0.5);
     }
-    trailGeom.attributes.position.needsUpdate = true;
-    trailMat.opacity = 0.6 * (1 - trailBuffer.length/trailLength);
+    attr.needsUpdate = true;
 
-    renderer.render(scene,camera);
-}
-animate();
+    // Update info
+    document.getElementById('penetration').innerText = `Cumulative Penetration: ${(z_tip + z_contagion * frame/frames).toFixed(2)} cm`;
+    document.getElementById('time').innerText = `Time: ${(frame/60).toFixed(2)} s`;
 
-// Handle resize
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
+    // Camera transform
+    camera.position.x = 150 * Math.sin(rotY) * zoom;
+    camera.position.y = 50 * zoom + 50 * Math.sin(rotX);
+    camera.position.z = 150 * Math.cos(rotY) * zoom;
+    camera.lookAt(0, 0, 0);
+
+    frame = (frame + 1) % frames;
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
 </script>
 </body>
 </html>
