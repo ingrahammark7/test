@@ -1,388 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>Nucleon DoF + Electron Chain (Toy Model)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<style>
-  :root { color-scheme: dark; }
-  html,body { margin:0; height:100%; background:#0a0c11; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-  canvas { display:block; touch-action: none; }
-  #hud {
-    position: fixed; left: 10px; top: 10px; z-index: 2;
-    background: rgba(0,0,0,.55); backdrop-filter: blur(6px);
-    color: #fff; padding: 10px 12px; border-radius: 12px; font-size: 14px; display:grid; gap:6px;
-  }
-  #hud label { display:grid; grid-template-columns: 1fr auto; align-items:center; gap:8px; }
-  #hud input[type=range] { width: 160px; }
-  #hud select, #hud button {
-    background:#1f2937; color:#fff; border:0; border-radius:10px; padding:7px 10px; font-weight:600;
-  }
-  #read { font-variant-numeric: tabular-nums; color:#9bdcff; }
-  #btnrow { display:flex; gap:6px; flex-wrap:wrap; }
-  #warn {
-    position: fixed; right:10px; top:10px; z-index:2; color:#a0a0a0; background: rgba(0,0,0,.35);
-    padding:8px 10px; border-radius:10px; max-width: 44ch; line-height:1.2;
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>Nucleus Simulation</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+    #health {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 6px 10px;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      font-family: sans-serif;
+      font-size: 14px;
+      border-radius: 6px;
+    }
+  </style>
 </head>
 <body>
-<div id="hud">
-  <div><strong>Nucleon DoF + Electron Chain</strong></div>
-  <label>Electron flux <input id="flux" type="range" min="0" max="200" step="5" value="60"></label>
-  <label>Electron energy (arb) <input id="eenergy" type="range" min="0.5" max="3.0" step="0.1" value="1.4"></label>
-  <label>k (chain gain) <input id="kgain" type="range" min="0.5" max="1.6" step="0.02" value="1.05"></label>
-  <label>Temp (jiggle) <input id="temp" type="range" min="0" max="1.5" step="0.05" value="0.6"></label>
-  <label>Damping <input id="damp" type="range" min="0.85" max="0.999" step="0.001" value="0.96"></label>
-  <label>Bonds
-    <select id="bondMode">
-      <option value="spring" selected>Spring</option>
-      <option value="soften">Soften w/ excitation</option>
-      <option value="off">Off</option>
-    </select>
-  </label>
-  <div id="btnrow">
-    <button id="resetView">Reset View</button>
-    <button id="resetSim">Reset Sim</button>
-    <button id="pause">Pause</button>
-  </div>
-  <div id="read">k_eff: 1.00 • electrons: 0 • excitations: 0 • state: subcritical</div>
-</div>
-<div id="warn">Toy visualization for intuition only (not physically accurate). Electrons (cyan) perturb a small nucleus (red/blue spheres). Hits excite nucleons, bonds soften, and secondary electrons may spawn (chain). Adjust flux, energy, k, temperature, and damping.</div>
+  <div id="health">Stability: 100</div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
-<script>
-(() => {
-  // ----------- THREE essentials -----------
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a0c11);
-  const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.setSize(innerWidth, innerHeight);
-  document.body.appendChild(renderer.domElement);
+    camera.position.set(0,0,10);
 
-  const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
-  let camRadius = 14, camAngle = Math.PI*0.28, camHeight = 6;
-  const lookAt = new THREE.Vector3(0,0,0);
-  function placeCamera() {
-    camera.position.set(lookAt.x + camRadius*Math.cos(camAngle), lookAt.y + camHeight, lookAt.z + camRadius*Math.sin(camAngle));
-    camera.lookAt(lookAt);
-  }
-  placeCamera();
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(5,5,5);
+    scene.add(dirLight);
 
-  // Touch orbit (simple)
-  let dragging=false, lastTouches=[];
-  function dist2(t0,t1){ const dx=t0.clientX-t1.clientX, dy=t0.clientY-t1.clientY; return Math.hypot(dx,dy); }
-  addEventListener('touchstart', e=>{ dragging=true; lastTouches=[...e.touches]; }, {passive:false});
-  addEventListener('touchmove', e=>{
-    if(!dragging) return; e.preventDefault();
-    if(e.touches.length===1 && lastTouches.length===1){
-      const dx=e.touches[0].clientX-lastTouches[0].clientX;
-      const dy=e.touches[0].clientY-lastTouches[0].clientY;
-      camAngle -= dx*0.005; camHeight -= dy*0.03; camHeight = Math.max(-2, Math.min(10, camHeight));
-    } else if(e.touches.length===2 && lastTouches.length===2){
-      const d0=dist2(lastTouches[0],lastTouches[1]), d1=dist2(e.touches[0],e.touches[1]); camRadius -= (d1-d0)*0.02;
-      camRadius = Math.max(6, Math.min(28, camRadius));
-    }
-    lastTouches=[...e.touches];
-  }, {passive:false});
-  addEventListener('touchend', ()=>{ dragging=false; lastTouches=[]; });
+    // Proton and Neutron Materials
+    const protonMat = new THREE.MeshPhongMaterial({color:0xff3333});
+    const neutronMat = new THREE.MeshPhongMaterial({color:0x3333ff});
 
-  addEventListener('resize', ()=>{
-    camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
-  });
-
-  // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.9); dir.position.set(6,10,8); scene.add(dir);
-
-  // ----------- UI -----------
-  const ui = {
-    flux: document.getElementById('flux'),
-    eenergy: document.getElementById('eenergy'),
-    kgain: document.getElementById('kgain'),
-    temp: document.getElementById('temp'),
-    damp: document.getElementById('damp'),
-    bondMode: document.getElementById('bondMode'),
-    resetView: document.getElementById('resetView'),
-    resetSim: document.getElementById('resetSim'),
-    pause: document.getElementById('pause'),
-    read: document.getElementById('read'),
-  };
-  let paused = false;
-  ui.pause.onclick = () => { paused = !paused; ui.pause.textContent = paused ? 'Resume' : 'Pause'; };
-  ui.resetView.onclick = () => { camRadius=14; camAngle=Math.PI*0.28; camHeight=6; placeCamera(); };
-  ui.resetSim.onclick = () => resetSim();
-
-  // ----------- Nucleus (nucleons + bonds) -----------
-  const Np = 8, Nn = 8; // small nucleus
-  const nucleons = [];   // {mesh, v, excitation, type: 'p'|'n'}
-  const bonds = [];      // {a, b, rest, k, line}
-  const group = new THREE.Group(); scene.add(group);
-
-  const matP = new THREE.MeshPhongMaterial({ color: 0xff4e4e });
-  const matN = new THREE.MeshPhongMaterial({ color: 0x4e7bff });
-  const geo = new THREE.SphereGeometry(0.35, 24, 20);
-
-  function makeNucleus() {
-    // clear old
-    for(const n of nucleons){ group.remove(n.mesh); }
-    nucleons.length = 0;
-    for(const b of bonds){ scene.remove(b.line); }
-    bonds.length = 0;
-
-    // place nucleons in a jittered sphere
-    const total = Np + Nn;
-    for (let i=0;i<total;i++){
-      const isP = i < Np;
-      const m = new THREE.Mesh(geo, isP?matP.clone():matN.clone());
-      // random point in sphere radius ~ 2
-      let p;
-      do {
-        p = new THREE.Vector3(Math.random()*2-1, Math.random()*2-1, Math.random()*2-1);
-      } while (p.lengthSq()>1);
-      p.multiplyScalar(2.2 + Math.random()*0.2);
-      m.position.copy(p);
-      m.material.emissive = new THREE.Color(isP?0x551111:0x112255);
-      m.material.emissiveIntensity = 0.0;
-      group.add(m);
-      nucleons.push({ mesh:m, v:new THREE.Vector3(), excitation:0, type:isP?'p':'n' });
+    // Make nucleus
+    const nucleons = [];
+    const radius = 0.3;
+    for (let i=0; i<6; i++) { // 3 protons, 3 neutrons
+      const mat = (i % 2 === 0) ? protonMat : neutronMat;
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 16), mat);
+      sphere.position.set(
+        (Math.random()-0.5)*2,
+        (Math.random()-0.5)*2,
+        (Math.random()-0.5)*2
+      );
+      scene.add(sphere);
+      nucleons.push({mesh:sphere, isProton:(i%2===0)});
     }
 
-    // create bonds between close neighbors
-    const maxDist = 2.2; // link threshold
-    for (let i=0;i<nucleons.length;i++){
-      for (let j=i+1;j<nucleons.length;j++){
-        const a = nucleons[i].mesh.position, b = nucleons[j].mesh.position;
-        const d = a.distanceTo(b);
-        if (d < maxDist){
-          const rest = d;
-          const k = 2.0; // spring stiffness (arb)
-          const line = bondLine(nucleons[i].mesh.position, nucleons[j].mesh.position);
-          bonds.push({ a:i, b:j, rest, k, line });
-          scene.add(line);
-        }
-      }
-    }
-  }
+    // Stability
+    let stability = 100;
+    const healthDiv = document.getElementById("health");
 
-  function bondLine(p1, p2){
-    const g = new THREE.BufferGeometry().setFromPoints([p1.clone(), p2.clone()]);
-    const m = new THREE.LineBasicMaterial({ color: 0x88aaff, transparent:true, opacity:0.6 });
-    const l = new THREE.Line(g, m);
-    l.frustumCulled = false;
-    return l;
-  }
+    function computeForces() {
+      let totalForce = 0;
+      for (let i=0; i<nucleons.length; i++) {
+        let n1 = nucleons[i];
+        for (let j=i+1; j<nucleons.length; j++) {
+          let n2 = nucleons[j];
+          let dx = n1.mesh.position.x - n2.mesh.position.x;
+          let dy = n1.mesh.position.y - n2.mesh.position.y;
+          let dz = n1.mesh.position.z - n2.mesh.position.z;
+          let dist = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.001;
 
-  // ----------- Electrons (particles + chain) -----------
-  const electrons = []; // {mesh, v, life}
-  const eGeo = new THREE.SphereGeometry(0.12, 12, 12);
-  const eMat = new THREE.MeshBasicMaterial({ color: 0x66ddff });
-
-  function spawnElectron(fromSide=true, seedPos=null, seedVel=null){
-    if (electrons.length > 800) return; // cap
-    const m = new THREE.Mesh(eGeo, eMat);
-    if (seedPos){
-      m.position.copy(seedPos);
-    } else {
-      // spawn on a ring/plane in front of nucleus
-      const r = 6 + Math.random()*2;
-      const theta = Math.random()*Math.PI*2;
-      m.position.set(Math.cos(theta)*r, (Math.random()*2-1)*2.0, -10 - Math.random()*4);
-    }
-    let v;
-    if (seedVel){
-      v = seedVel.clone();
-    } else {
-      // Aim toward origin with small spread + energy scaling
-      const target = new THREE.Vector3(0,0,0).add(new THREE.Vector3((Math.random()-0.5)*0.8,(Math.random()-0.5)*0.8,(Math.random()-0.5)*0.8));
-      v = target.clone().sub(m.position).normalize().multiplyScalar( 0.15 * parseFloat(ui.eenergy.value) );
-    }
-    scene.add(m);
-    electrons.push({ mesh:m, v, life: 6.0 }); // seconds max
-  }
-
-  // Simple running keff estimate: average secondaries per primary over a window
-  const windowHits = [];
-  function recordHit(secondaries){
-    windowHits.push(secondaries);
-    if (windowHits.length>60) windowHits.shift();
-  }
-  function kEff(){
-    if (windowHits.length===0) return 0;
-    let sum=0; for(const h of windowHits) sum+=h;
-    return sum/windowHits.length;
-  }
-
-  // ----------- Physics loop -----------
-  function resetSim(){
-    // remove electrons
-    for (const e of electrons) scene.remove(e.mesh);
-    electrons.length = 0;
-    windowHits.length = 0;
-    // reset nucleus
-    makeNucleus();
-  }
-  makeNucleus();
-
-  // HUD-driven spawns
-  let spawnAcc=0;
-  function spawnLoop(dt){
-    const flux = parseFloat(ui.flux.value); // electrons/sec
-    spawnAcc += flux*dt;
-    while (spawnAcc >= 1.0) {
-      spawnElectron(true);
-      spawnAcc -= 1.0;
-    }
-  }
-
-  // Interaction rules (toy):
-  // - electron-nucleon proximity < R_hit triggers "excitation"
-  // - excitation raises nucleon emissive, increases jiggle, softens bonds (if mode=soften)
-  // - with probability p = base * eenergy * (excitation factor), spawn N~Poisson with mean=(k-1)+ clamp
-  // - electrons lose life, nucleons slowly de-excite via damping
-  function step(dt){
-    const temp = parseFloat(ui.temp.value);
-    const damp = parseFloat(ui.damp.value);
-    const eE = parseFloat(ui.eenergy.value);
-    const k = parseFloat(ui.kgain.value);
-    const bondMode = ui.bondMode.value;
-
-    // --- electrons
-    for (let i=electrons.length-1;i>=0;i--){
-      const e = electrons[i];
-      e.mesh.position.addScaledVector(e.v, dt*60);
-      e.life -= dt;
-
-      // collide with nucleons
-      let secondariesSpawned = 0;
-      for (let n=0;n<nucleons.length;n++){
-        const nuc = nucleons[n];
-        const d = e.mesh.position.distanceTo(nuc.mesh.position);
-        const R_hit = 0.6 * eE; // higher "energy" => larger interaction reach (toy)
-        if (d < R_hit) {
-          // excite nucleon
-          nuc.excitation += 0.6 * eE;
-          nuc.excitation = Math.min(nuc.excitation, 5.0);
-          nuc.mesh.material.emissiveIntensity = Math.min(1.2, 0.2 + nuc.excitation*0.2);
-
-          // knock electron off course a bit and reduce life
-          const nrm = e.mesh.position.clone().sub(nuc.mesh.position).normalize();
-          e.v.addScaledVector(nrm, 0.03*eE);
-          e.life -= 0.15;
-
-          // chance to spawn secondaries (chain)
-          // mean secondaries ~ (k-1) scaled by excitation; keep bounded and stochastic
-          const mean = Math.max(0, (k - 1.0)) * (0.4 + 0.12*nuc.excitation);
-          let expected = mean; // small
-          // Poisson-ish via sum of Bernoulli
-          while (expected > 0) {
-            if (Math.random() < Math.min(0.95, expected)) {
-              // spawn a new electron with small random velocity from this point
-              const dir = new THREE.Vector3((Math.random()-0.5),(Math.random()-0.5),(Math.random()-0.5)).normalize();
-              const vel = dir.multiplyScalar(0.12 * eE);
-              spawnElectron(false, e.mesh.position, vel);
-              secondariesSpawned++;
-            }
-            expected -= 1.0;
+          // Strong force: attractive if close (<2 units)
+          let strong = 0;
+          if (dist < 2.0) {
+            strong = -5.0 / (dist*dist); 
           }
-          if (secondariesSpawned>0) recordHit(secondariesSpawned);
-          break; // one hit per step is enough
+
+          // EM force: only between protons
+          let em = 0;
+          if (n1.isProton && n2.isProton) {
+            em = 2.0 / (dist*dist);
+          }
+
+          let f = em + strong;
+          totalForce += f;
+
+          // Push them slightly
+          let fx = (dx/dist) * f * 0.02;
+          let fy = (dy/dist) * f * 0.02;
+          let fz = (dz/dist) * f * 0.02;
+          n1.mesh.position.x += fx;
+          n1.mesh.position.y += fy;
+          n1.mesh.position.z += fz;
+          n2.mesh.position.x -= fx;
+          n2.mesh.position.y -= fy;
+          n2.mesh.position.z -= fz;
         }
       }
-
-      if (e.life<=0 || e.mesh.position.length()>60){
-        scene.remove(e.mesh);
-        electrons.splice(i,1);
-      }
+      return totalForce;
     }
 
-    // --- nucleon motion: jiggle + springs + damping + excitation drift
-    // Base jiggle grows with temperature and excitation (more DoF)
-    for (let i=0;i<nucleons.length;i++){
-      const ni = nucleons[i];
-      // random jiggle force
-      const jig = (0.03 + 0.015*ni.excitation) * temp;
-      ni.v.x += (Math.random()-0.5)*jig;
-      ni.v.y += (Math.random()-0.5)*jig;
-      ni.v.z += (Math.random()-0.5)*jig;
-    }
+    function animate() {
+      requestAnimationFrame(animate);
 
-    // springs
-    if (bondMode!=='off'){
-      for (const b of bonds){
-        const A = nucleons[b.a], B = nucleons[b.b];
-        const pa = A.mesh.position, pb = B.mesh.position;
-        const delta = pb.clone().sub(pa);
-        const dist = Math.max(1e-4, delta.length());
-        // bond softening if mode=soften (higher excitation weakens)
-        const soften = (bondMode==='soften') ? (1.0 / (1.0 + 0.25*(A.excitation+B.excitation))) : 1.0;
-        const kspring = b.k * soften;
-        const fmag = (dist - b.rest) * kspring * 0.5; // each gets half
-        const f = delta.multiplyScalar(fmag/dist);
-        A.v.add(f);  B.v.addScaledVector(f, -1);
-        // update line geometry
-        const pos = b.line.geometry.attributes.position.array;
-        pos[0]=pa.x; pos[1]=pa.y; pos[2]=pa.z; pos[3]=pb.x; pos[4]=pb.y; pos[5]=pb.z;
-        b.line.geometry.attributes.position.needsUpdate = true;
-        // fade bond if very stretched
-        const stretch = Math.abs(dist - b.rest);
-        b.line.material.opacity = Math.max(0.12, 0.75 - stretch*0.25);
-      }
-    }
+      // Jiggle nucleons
+      nucleons.forEach(n => {
+        n.mesh.position.x += (Math.random()-0.5)*0.02;
+        n.mesh.position.y += (Math.random()-0.5)*0.02;
+        n.mesh.position.z += (Math.random()-0.5)*0.02;
+      });
 
-    // integrate, damp, mild confinement (to avoid exploding offscreen forever)
-    for (let i=0;i<nucleons.length;i++){
-      const n = nucleons[i];
-      n.v.multiplyScalar(damp);
-      n.mesh.position.add(n.v);
+      let netForce = computeForces();
 
-      // soft spherical confinement ~ keeps nucleus near origin unless very excited
-      const r = n.mesh.position.length();
-      const R = 4.0 + 0.4*n.excitation; // excited nucleons can wander further
-      if (r>R){
-        const pull = (r-R)*0.02;
-        n.v.addScaledVector(n.mesh.position.clone().normalize(), -pull);
+      // Adjust stability
+      stability -= Math.abs(netForce)*0.001;
+      stability = Math.max(0, stability);
+      healthDiv.innerText = "Stability: " + stability.toFixed(1);
+
+      if (stability <= 0) {
+        healthDiv.innerText = "💥 Nucleus Breaks!";
       }
 
-      // de-excite slowly
-      n.excitation = Math.max(0, n.excitation - 0.15*dt);
-      n.mesh.material.emissiveIntensity = Math.max(0, n.mesh.material.emissiveIntensity - 0.15*dt);
+      renderer.render(scene, camera);
     }
-  }
-
-  // simple state label
-  function stateLabel(k){
-    if (k < 0.98) return 'subcritical';
-    if (k < 1.02) return 'critical';
-    return 'supercritical';
-  }
-
-  // ----------- Main loop -----------
-  let last = performance.now();
-  function animate(now){
-    const dt = Math.min(0.033, (now-last)/1000); last = now;
-
-    if (!paused){
-      spawnLoop(dt);
-      step(dt);
-    }
-
-    // live readout
-    const k = kEff();
-    const st = stateLabel(k);
-    const exc = nucleons.reduce((a,n)=>a+(n.excitation>0?1:0),0);
-    ui.read.textContent = `k_eff: ${k.toFixed(2)} • electrons: ${electrons.length} • excitations: ${exc} • state: ${st}`;
-
-    // subtle auto orbit when not dragging
-    if (!dragging) camAngle += 0.1*dt;
-    placeCamera();
-
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
-  }
-  requestAnimationFrame(animate);
-})();
-</script>
+    animate();
+  </script>
 </body>
 </html>
