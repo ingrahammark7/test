@@ -2,201 +2,173 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Atomic Cluster Simulation with Cluster Markers</title>
+<title>Atomic Slide Simulation with Clusters</title>
 <style>
-body { margin:0; background:#111; overflow:hidden;}
+  body { margin:0; overflow:hidden; background:black; }
+  canvas { display:block; }
 </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
 <script>
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(5,5,10);
-camera.lookAt(0,0,0);
+let scene, camera, renderer;
+let atoms = [];
+let trails = [];
+let spirals = [];
+let boxSize = 200;
+let particleCount = 100;
+let maxTrailPoints = 20;
 
-let renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+let emStrength = 0.5;
+let strongStrength = 1.5;
+let clusterDistance = 5;
 
-let cubeSize = Math.max(window.innerWidth, window.innerHeight)/50;
-let cubeGeom = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-let cubeMat = new THREE.MeshBasicMaterial({color:0x4444ff, wireframe:true});
-let cube = new THREE.Mesh(cubeGeom, cubeMat);
-scene.add(cube);
-
-let nucleons=[], velocities=[], trails=[], spirals=[];
-const nucleonRadius = 0.1;
-let nucleonCount = 100;
-
-function initNucleons(count){
-    nucleons=[]; velocities=[]; trails=[]; spirals=[];
-    for(let i=0;i<count;i++){
-        let geo = new THREE.SphereGeometry(nucleonRadius,12,12);
-        let mat = new THREE.MeshBasicMaterial({color:0xff4444});
-        let s = new THREE.Mesh(geo, mat);
-        s.position.set((Math.random()-0.5)*cubeSize,(Math.random()-0.5)*cubeSize,(Math.random()-0.5)*cubeSize);
-        scene.add(s);
-        nucleons.push({mesh:s, cluster:null});
-
-        velocities.push(new THREE.Vector3((Math.random()-0.5)*0.05,(Math.random()-0.5)*0.05,(Math.random()-0.5)*0.05));
-
-        // Trail
-        let trailGeo = new THREE.BufferGeometry();
-        let positions = new Float32Array(30*3);
-        trailGeo.setAttribute('position', new THREE.BufferAttribute(positions,3));
-        let trailMat = new THREE.LineBasicMaterial({color:0xffff00, transparent:true, opacity:0.4});
-        let line = new THREE.Line(trailGeo, trailMat);
-        scene.add(line);
-        trails.push({line, positions, index:0});
-
-        // Spin spiral
-        let spiralGeo = new THREE.BufferGeometry();
-        let spiralPositions = new Float32Array(20*3);
-        spiralGeo.setAttribute('position', new THREE.BufferAttribute(spiralPositions,3));
-        let spiralMat = new THREE.LineBasicMaterial({color:0x00ffff, transparent:true, opacity:0.5});
-        let spiralLine = new THREE.Line(spiralGeo, spiralMat);
-        scene.add(spiralLine);
-        spirals.push({line:spiralLine, positions:spiralPositions});
-    }
-}
-initNucleons(nucleonCount);
-
-// Cluster detection and visualization
-let clusters=[];
-function detectClusters(){
-    clusters=[];
-    let visited = new Set();
-    for(let i=0;i<nucleons.length;i++){
-        if(visited.has(i)) continue;
-        let cluster = [];
-        for(let j=i;j<nucleons.length;j++){
-            let dist = nucleons[i].mesh.position.distanceTo(nucleons[j].mesh.position);
-            if(dist<0.5){
-                cluster.push(j);
-                visited.add(j);
-                nucleons[j].cluster = cluster;
-            }
-        }
-        if(cluster.length>1) clusters.push(cluster);
-    }
-
-    // Mark clusters visually
-    clusters.forEach(cluster=>{
-        let center = new THREE.Vector3();
-        cluster.forEach(idx=>center.add(nucleons[idx].mesh.position));
-        center.divideScalar(cluster.length);
-        let radius = 0.15 + 0.05*cluster.length;
-
-        if(!cluster.marker){
-            // Semi-transparent green sphere
-            let geo = new THREE.SphereGeometry(radius,16,16);
-            let mat = new THREE.MeshBasicMaterial({color:0x00ff00, transparent:true, opacity:0.2});
-            let marker = new THREE.Mesh(geo, mat);
-            scene.add(marker);
-            cluster.marker = marker;
-
-            // Halo pulse
-            let haloGeo = new THREE.RingGeometry(radius, radius*1.2, 32);
-            let haloMat = new THREE.MeshBasicMaterial({color:0x00ffff, transparent:true, opacity:0.1, side:THREE.DoubleSide});
-            let halo = new THREE.Mesh(haloGeo, haloMat);
-            scene.add(halo);
-            cluster.halo = halo;
-        }
-        cluster.marker.position.copy(center);
-        cluster.marker.scale.setScalar(1+0.01*cluster.length);
-
-        cluster.halo.position.copy(center);
-        cluster.halo.rotation.x = Date.now()*0.001;
-        cluster.halo.rotation.y = Date.now()*0.0015;
-        cluster.halo.scale.setScalar(1+0.02*Math.sin(Date.now()*0.005));
-    });
-}
-
-const EM_STRENGTH = 0.0005;
-const STRONG_RANGE = 0.5;
-const STRONG_STRENGTH = 0.002;
-
-function animate(){
-    requestAnimationFrame(animate);
-
-    for(let i=0;i<nucleons.length;i++){
-        let n = nucleons[i].mesh;
-        let vi = velocities[i];
-        let netForce = new THREE.Vector3();
-
-        for(let j=0;j<nucleons.length;j++){
-            if(i===j) continue;
-            let nj = nucleons[j].mesh;
-            let dVec = new THREE.Vector3().subVectors(n.position, nj.position);
-            let dist = dVec.length();
-            if(dist===0) continue;
-
-            let spiralVec = new THREE.Vector3(dVec.y,-dVec.x,dVec.z).normalize().multiplyScalar(Math.sin(Date.now()*0.005+i+j)*0.05);
-            let emF = dVec.clone().multiplyScalar(EM_STRENGTH/(dist*dist)).add(spiralVec);
-            let strongF = (dist<STRONG_RANGE ? dVec.clone().multiplyScalar(-STRONG_STRENGTH/(dist*dist)) : new THREE.Vector3()).add(spiralVec);
-            let total = emF.clone().add(strongF);
-            vi.add(total);
-            netForce.add(total);
-        }
-
-        n.position.add(vi);
-
-        ["x","y","z"].forEach(a=>{
-            if(Math.abs(n.position[a])>cubeSize/2-nucleonRadius){
-                vi[a]*=-0.8;
-                n.position[a]=Math.sign(n.position[a])*(cubeSize/2-nucleonRadius);
-            }
-        });
-
-        let emMag = netForce.length();
-        let strongMag = Math.min(STRONG_STRENGTH,1);
-        let ratio = strongMag/(strongMag+emMag);
-        n.material.color.setRGB(1-ratio, ratio, 0);
-
-        // Update trail
-        let t = trails[i];
-        t.positions.copyWithin(3,0,t.positions.length-3);
-        t.positions[0]=n.position.x;
-        t.positions[1]=n.position.y;
-        t.positions[2]=n.position.z;
-        t.line.geometry.attributes.position.needsUpdate = true;
-
-        // Update spin spiral
-        let s = spirals[i];
-        for(let k=0;k<10;k++){
-            let angle = Date.now()*0.01 + k*0.6;
-            s.positions[3*k] = n.position.x + Math.cos(angle)*0.2;
-            s.positions[3*k+1] = n.position.y + Math.sin(angle)*0.2;
-            s.positions[3*k+2] = n.position.z + Math.sin(angle*0.5)*0.2;
-        }
-        s.line.geometry.attributes.position.needsUpdate = true;
-    }
-
-    detectClusters();
-    renderer.render(scene,camera);
-}
+init();
 animate();
 
-// Touch + accelerometer controls
-let lastX,lastY;
-document.addEventListener('touchstart', e=>{lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;});
-document.addEventListener('touchmove', e=>{
-    let dx=e.touches[0].clientX-lastX;
-    let dy=e.touches[0].clientY-lastY;
-    lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
-    camera.rotation.y-=dx*0.005;
-    camera.rotation.x-=dy*0.005;
-});
-window.addEventListener('deviceorientation', e=>{
-    camera.rotation.x = THREE.MathUtils.degToRad((e.beta||0)-90);
-    camera.rotation.y = THREE.MathUtils.degToRad(e.gamma||0);
-});
-window.addEventListener('resize', ()=>{
+function init() {
+    scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 1, 1000);
+    camera.position.set(boxSize/2, boxSize/2, boxSize);
+    camera.lookAt(0,0,0);
+
+    renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const boxGeom = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
+    const boxMat = new THREE.LineBasicMaterial({color:0x555555});
+    const boxWire = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeom), boxMat);
+    scene.add(boxWire);
+
+    const atomGeom = new THREE.SphereGeometry(1.5, 8, 8);
+    for(let i=0;i<particleCount;i++){
+        const atomMat = new THREE.MeshPhongMaterial({color:0x00ffff, transparent:true, opacity:0.7});
+        const mesh = new THREE.Mesh(atomGeom, atomMat);
+        mesh.position.set(
+            (Math.random()-0.5)*boxSize,
+            (Math.random()-0.5)*boxSize,
+            (Math.random()-0.5)*boxSize
+        );
+        mesh.velocity = new THREE.Vector3(
+            (Math.random()-0.5)*0.5,
+            (Math.random()-0.5)*0.5,
+            (Math.random()-0.5)*0.5
+        );
+        atoms.push(mesh);
+        scene.add(mesh);
+
+        // Trail
+        const trailGeom = new THREE.BufferGeometry();
+        const positions = new Float32Array(maxTrailPoints*3);
+        trailGeom.setAttribute('position', new THREE.BufferAttribute(positions,3));
+        const trailMat = new THREE.LineBasicMaterial({color:0x00ffff, transparent:true, opacity:0.5});
+        const line = new THREE.Line(trailGeom, trailMat);
+        line.userData.positions = positions;
+        line.userData.index = 0;
+        trails.push(line);
+        scene.add(line);
+
+        // Spiral visualization
+        const spiralGeom = new THREE.BufferGeometry();
+        const spiralPos = new Float32Array(30*3); // 30 points per spiral
+        spiralGeom.setAttribute('position', new THREE.BufferAttribute(spiralPos,3));
+        const spiralMat = new THREE.LineBasicMaterial({color:0xff00ff, transparent:true, opacity:0.5});
+        const spiralLine = new THREE.Line(spiralGeom, spiralMat);
+        spiralLine.userData.positions = spiralPos;
+        spirals.push(spiralLine);
+        scene.add(spiralLine);
+    }
+
+    const light = new THREE.PointLight(0xffffff, 1);
+    light.position.set(boxSize, boxSize, boxSize);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x222222));
+
+    window.addEventListener('resize', onWindowResize);
+}
+
+function onWindowResize(){
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-});
+}
+
+function applyForces(atom){
+    let emForce = new THREE.Vector3();
+    let strongForce = new THREE.Vector3();
+    atoms.forEach(other=>{
+        if(other===atom) return;
+        const dir = new THREE.Vector3().subVectors(atom.position, other.position);
+        const dist = dir.length();
+        if(dist<1) return;
+        dir.normalize();
+        emForce.add(dir.clone().multiplyScalar(emStrength / (dist*dist)));
+        if(dist<5) strongForce.add(dir.clone().multiplyScalar(-strongStrength/(dist*dist)));
+    });
+    atom.velocity.add(emForce);
+    atom.velocity.add(strongForce);
+}
+
+function keepInBox(atom){
+    ['x','y','z'].forEach(axis=>{
+        if(atom.position[axis] > boxSize/2 || atom.position[axis] < -boxSize/2){
+            atom.velocity[axis] *= -0.8;
+            atom.position[axis] = THREE.MathUtils.clamp(atom.position[axis], -boxSize/2, boxSize/2);
+        }
+    });
+}
+
+function updateTrails(atom, trail){
+    const positions = trail.userData.positions;
+    positions.copyWithin(0,3);
+    positions[positions.length-3] = atom.position.x;
+    positions[positions.length-2] = atom.position.y;
+    positions[positions.length-1] = atom.position.z;
+    trail.geometry.attributes.position.needsUpdate = true;
+}
+
+function updateSpiral(atom, spiral){
+    const positions = spiral.userData.positions;
+    for(let i=0;i<positions.length/3;i++){
+        const angle = Date.now()*0.002 + i;
+        const radius = 2;
+        positions[i*3] = atom.position.x + radius*Math.cos(angle);
+        positions[i*3+1] = atom.position.y + radius*Math.sin(angle);
+        positions[i*3+2] = atom.position.z + radius*Math.sin(angle*0.5);
+    }
+    spiral.geometry.attributes.position.needsUpdate = true;
+}
+
+function detectClusters(){
+    atoms.forEach(atom=>{
+        let closeCount = 0;
+        atoms.forEach(other=>{
+            if(other===atom) return;
+            if(atom.position.distanceTo(other.position) < clusterDistance) closeCount++;
+        });
+        if(closeCount>2){
+            atom.material.color.set(0xffaa00); // cluster color
+        } else {
+            atom.material.color.set(0x00ffff);
+        }
+    });
+}
+
+function animate(){
+    requestAnimationFrame(animate);
+    atoms.forEach((atom,i)=>{
+        applyForces(atom);
+        atom.position.add(atom.velocity);
+        keepInBox(atom);
+        updateTrails(atom,trails[i]);
+        updateSpiral(atom,spirals[i]);
+    });
+    detectClusters();
+    renderer.render(scene,camera);
+}
 </script>
 </body>
 </html>
