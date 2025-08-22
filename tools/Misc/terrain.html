@@ -2,141 +2,139 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Nucleus Simulation</title>
+<title>Atomic Slide Simulation</title>
 <style>
-  body { margin: 0; overflow: hidden; background-color: #111; }
-  #healthBar {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    width: 200px;
-    height: 20px;
-    background-color: #333;
-  }
-  #healthFill {
-    width: 100%;
-    height: 100%;
-    background-color: #0f0;
-  }
+  body { margin: 0; background: #111; overflow: hidden; }
 </style>
 </head>
 <body>
-<div id="healthBar"><div id="healthFill"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script>
-// --- Scene Setup ---
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(5, 5, 10);
-camera.lookAt(0, 0, 0);
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(5,5,10);
+camera.lookAt(0,0,0);
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
+let renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- Lighting ---
-const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambient);
-const directional = new THREE.DirectionalLight(0xffffff, 1);
-directional.position.set(5,10,5);
-scene.add(directional);
+// Adaptive cube
+let cubeSize = Math.max(window.innerWidth, window.innerHeight)/50;
+let geometryCube = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+let materialCube = new THREE.MeshBasicMaterial({color:0x4444ff, wireframe:true});
+let cube = new THREE.Mesh(geometryCube, materialCube);
+scene.add(cube);
 
-// --- Nucleons Setup ---
-const nucleons = [];
-const numProtons = 4;
-const numNeutrons = 5;
-const nucleonRadius = 0.2;
+// Nucleons
+let nucleons=[], velocities=[], trails=[];
+const nucleonRadius = 0.1;
+const nucleonCountInit = 100;
 
-function createNucleon(isProton) {
-    const color = isProton ? 0xff0000 : 0x0000ff;
-    const geometry = new THREE.SphereGeometry(nucleonRadius, 16, 16);
-    const material = new THREE.MeshPhongMaterial({color: color});
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(
-        (Math.random()-0.5)*2,
-        (Math.random()-0.5)*2,
-        (Math.random()-0.5)*2
-    );
-    mesh.velocity = new THREE.Vector3(
-        (Math.random()-0.5)*0.02,
-        (Math.random()-0.5)*0.02,
-        (Math.random()-0.5)*0.02
-    );
-    mesh.isProton = isProton;
-    scene.add(mesh);
-    nucleons.push(mesh);
+// Initialize nucleons and trails
+function initNucleons(count){
+    nucleons.forEach(n => scene.remove(n));
+    trails.forEach(t => scene.remove(t));
+    nucleons=[]; velocities=[]; trails=[];
+    for(let i=0;i<count;i++){
+        let geometry = new THREE.SphereGeometry(nucleonRadius,16,16);
+        let material = new THREE.MeshBasicMaterial({color:0xff4444});
+        let sphere = new THREE.Mesh(geometry, material);
+        sphere.position.set((Math.random()-0.5)*cubeSize,(Math.random()-0.5)*cubeSize,(Math.random()-0.5)*cubeSize);
+        scene.add(sphere);
+        nucleons.push(sphere);
+        velocities.push(new THREE.Vector3((Math.random()-0.5)*0.05,(Math.random()-0.5)*0.05,(Math.random()-0.5)*0.05));
+
+        // Trails
+        let trailGeo = new THREE.BufferGeometry();
+        let positions = new Float32Array(300*3); // 100 points
+        trailGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        let trailMat = new THREE.LineBasicMaterial({color:0xffff00, transparent:true, opacity:0.5});
+        let trailLine = new THREE.Line(trailGeo, trailMat);
+        scene.add(trailLine);
+        trails.push({line: trailLine, positions, index:0});
+    }
 }
 
-for(let i=0;i<numProtons;i++) createNucleon(true);
-for(let i=0;i<numNeutrons;i++) createNucleon(false);
+initNucleons(nucleonCountInit);
 
-// --- Forces ---
-const strongRadius = 1.0;
-const strongStrength = 0.05;
-const emStrength = 0.02;
+// Physics
+const EM_STRENGTH = 0.0005;
+const STRONG_RANGE = 0.5;
+const STRONG_STRENGTH = 0.002;
 
-// --- Health Bar ---
-let health = 1.0;
-const healthFill = document.getElementById("healthFill");
-
-// --- Animation Loop ---
+// Animate loop
 function animate(){
     requestAnimationFrame(animate);
 
-    // Forces between nucleons
     for(let i=0;i<nucleons.length;i++){
         let ni = nucleons[i];
-        let force = new THREE.Vector3(0,0,0);
+        let vi = velocities[i];
 
+        // EM and strong interaction
         for(let j=0;j<nucleons.length;j++){
             if(i===j) continue;
             let nj = nucleons[j];
-            let dir = new THREE.Vector3().subVectors(nj.position, ni.position);
-            let dist = dir.length();
-            dir.normalize();
-
-            // Strong force attraction
-            if(dist < strongRadius){
-                force.add(dir.clone().multiplyScalar(strongStrength*(strongRadius-dist)));
-            }
-
-            // EM repulsion between protons
-            if(ni.isProton && nj.isProton && dist>0){
-                let emForce = emStrength / (dist*dist);
-                force.add(dir.clone().multiplyScalar(-emForce));
-            }
-        }
-
-        // Update velocity and position
-        ni.velocity.add(force);
-        ni.position.add(ni.velocity);
-
-        // Damping to stabilize
-        ni.velocity.multiplyScalar(0.98);
-    }
-
-    // Update health based on imbalance of EM vs strong
-    let emEnergy = 0;
-    let strongEnergy = 0;
-    for(let i=0;i<nucleons.length;i++){
-        let ni = nucleons[i];
-        for(let j=i+1;j<nucleons.length;j++){
-            let nj = nucleons[j];
-            let dist = ni.position.distanceTo(nj.position);
+            let dVec = new THREE.Vector3().subVectors(ni.position, nj.position);
+            let dist = dVec.length();
             if(dist===0) continue;
-            if(ni.isProton && nj.isProton) emEnergy += 1/(dist*dist);
-            if(dist < strongRadius) strongEnergy += (strongRadius-dist);
-        }
-    }
-    health = Math.min(1, Math.max(0, strongEnergy/(strongEnergy+emEnergy)));
-    healthFill.style.width = (health*200) + "px";
-    healthFill.style.backgroundColor = `rgb(${(1-health)*255},${health*255},0)`;
 
-    renderer.render(scene, camera);
+            // Spin spiral visualization
+            let angle = Math.sin(Date.now()*0.005 + i+j)*0.1;
+            let spiral = new THREE.Vector3(dVec.y, -dVec.x, dVec.z).normalize().multiplyScalar(angle);
+
+            // EM repulsion
+            let emForce = dVec.clone().multiplyScalar(EM_STRENGTH/(dist*dist)).add(spiral);
+            vi.add(emForce);
+
+            // Strong attraction
+            if(dist<STRONG_RANGE){
+                let strongForce = dVec.clone().multiplyScalar(-STRONG_STRENGTH/(dist*dist)).add(spiral);
+                vi.add(strongForce);
+            }
+        }
+
+        // Update position
+        ni.position.add(vi);
+
+        // Box constraints
+        ["x","y","z"].forEach(a=>{
+            if(Math.abs(ni.position[a])>cubeSize/2-nucleonRadius){
+                vi[a]*=-0.8;
+                ni.position[a]=Math.sign(ni.position[a])*(cubeSize/2-nucleonRadius);
+            }
+        });
+
+        // Update trail
+        let t = trails[i];
+        t.positions.copyWithin(3,0,t.positions.length-3);
+        t.positions[0]=ni.position.x;
+        t.positions[1]=ni.position.y;
+        t.positions[2]=ni.position.z;
+        t.line.geometry.attributes.position.needsUpdate = true;
+    }
+
+    renderer.render(scene,camera);
 }
+
 animate();
 
-// --- Window Resize ---
+// Touch rotation
+let lastX, lastY;
+document.addEventListener('touchstart', e=>{
+    lastX=e.touches[0].clientX;
+    lastY=e.touches[0].clientY;
+});
+document.addEventListener('touchmove', e=>{
+    let dx = e.touches[0].clientX - lastX;
+    let dy = e.touches[0].clientY - lastY;
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
+    camera.rotation.y -= dx*0.005;
+    camera.rotation.x -= dy*0.005;
+});
+
+// Resize
 window.addEventListener('resize', ()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
