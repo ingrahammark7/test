@@ -2,173 +2,57 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Atomic Slide Simulation with Clusters</title>
-<style>
-  body { margin:0; overflow:hidden; background:black; }
-  canvas { display:block; }
-</style>
+<title>Three.js Waves</title>
+<style>body{margin:0;overflow:hidden;}canvas{display:block;}</style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
 
-<script>
-let scene, camera, renderer;
-let atoms = [];
-let trails = [];
-let spirals = [];
-let boxSize = 200;
-let particleCount = 100;
-let maxTrailPoints = 20;
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x101010);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 200);
+camera.position.set(0,50,80);
+camera.lookAt(0,0,0);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-let emStrength = 0.5;
-let strongStrength = 1.5;
-let clusterDistance = 5;
+// Plane
+const size = 80, segments = 80;
+const geometry = new THREE.PlaneGeometry(size,size,segments,segments);
+geometry.rotateX(-Math.PI/2);
+const material = new THREE.MeshStandardMaterial({color:0x44aa88, wireframe:true});
+const plane = new THREE.Mesh(geometry, material);
+scene.add(plane);
 
-init();
+// Light
+const light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(50,50,50);
+scene.add(light);
+
+// Animate waves using sin + cos
+let time = 0;
+function animate(){
+    requestAnimationFrame(animate);
+    time += 0.02;
+    const pos = geometry.attributes.position.array;
+    for(let i=0;i<pos.length;i+=3){
+        const x = pos[i], z = pos[i+2];
+        pos[i+1] = Math.sin(x*0.2 + time) * 2 + Math.cos(z*0.2 + time) * 2;
+    }
+    geometry.attributes.position.needsUpdate = true;
+    renderer.render(scene,camera);
+}
 animate();
 
-function init() {
-    scene = new THREE.Scene();
-
-    camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 1, 1000);
-    camera.position.set(boxSize/2, boxSize/2, boxSize);
-    camera.lookAt(0,0,0);
-
-    renderer = new THREE.WebGLRenderer({antialias:true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
-    const boxGeom = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
-    const boxMat = new THREE.LineBasicMaterial({color:0x555555});
-    const boxWire = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeom), boxMat);
-    scene.add(boxWire);
-
-    const atomGeom = new THREE.SphereGeometry(1.5, 8, 8);
-    for(let i=0;i<particleCount;i++){
-        const atomMat = new THREE.MeshPhongMaterial({color:0x00ffff, transparent:true, opacity:0.7});
-        const mesh = new THREE.Mesh(atomGeom, atomMat);
-        mesh.position.set(
-            (Math.random()-0.5)*boxSize,
-            (Math.random()-0.5)*boxSize,
-            (Math.random()-0.5)*boxSize
-        );
-        mesh.velocity = new THREE.Vector3(
-            (Math.random()-0.5)*0.5,
-            (Math.random()-0.5)*0.5,
-            (Math.random()-0.5)*0.5
-        );
-        atoms.push(mesh);
-        scene.add(mesh);
-
-        // Trail
-        const trailGeom = new THREE.BufferGeometry();
-        const positions = new Float32Array(maxTrailPoints*3);
-        trailGeom.setAttribute('position', new THREE.BufferAttribute(positions,3));
-        const trailMat = new THREE.LineBasicMaterial({color:0x00ffff, transparent:true, opacity:0.5});
-        const line = new THREE.Line(trailGeom, trailMat);
-        line.userData.positions = positions;
-        line.userData.index = 0;
-        trails.push(line);
-        scene.add(line);
-
-        // Spiral visualization
-        const spiralGeom = new THREE.BufferGeometry();
-        const spiralPos = new Float32Array(30*3); // 30 points per spiral
-        spiralGeom.setAttribute('position', new THREE.BufferAttribute(spiralPos,3));
-        const spiralMat = new THREE.LineBasicMaterial({color:0xff00ff, transparent:true, opacity:0.5});
-        const spiralLine = new THREE.Line(spiralGeom, spiralMat);
-        spiralLine.userData.positions = spiralPos;
-        spirals.push(spiralLine);
-        scene.add(spiralLine);
-    }
-
-    const light = new THREE.PointLight(0xffffff, 1);
-    light.position.set(boxSize, boxSize, boxSize);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0x222222));
-
-    window.addEventListener('resize', onWindowResize);
-}
-
-function onWindowResize(){
+// Resize
+window.addEventListener('resize',()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function applyForces(atom){
-    let emForce = new THREE.Vector3();
-    let strongForce = new THREE.Vector3();
-    atoms.forEach(other=>{
-        if(other===atom) return;
-        const dir = new THREE.Vector3().subVectors(atom.position, other.position);
-        const dist = dir.length();
-        if(dist<1) return;
-        dir.normalize();
-        emForce.add(dir.clone().multiplyScalar(emStrength / (dist*dist)));
-        if(dist<5) strongForce.add(dir.clone().multiplyScalar(-strongStrength/(dist*dist)));
-    });
-    atom.velocity.add(emForce);
-    atom.velocity.add(strongForce);
-}
-
-function keepInBox(atom){
-    ['x','y','z'].forEach(axis=>{
-        if(atom.position[axis] > boxSize/2 || atom.position[axis] < -boxSize/2){
-            atom.velocity[axis] *= -0.8;
-            atom.position[axis] = THREE.MathUtils.clamp(atom.position[axis], -boxSize/2, boxSize/2);
-        }
-    });
-}
-
-function updateTrails(atom, trail){
-    const positions = trail.userData.positions;
-    positions.copyWithin(0,3);
-    positions[positions.length-3] = atom.position.x;
-    positions[positions.length-2] = atom.position.y;
-    positions[positions.length-1] = atom.position.z;
-    trail.geometry.attributes.position.needsUpdate = true;
-}
-
-function updateSpiral(atom, spiral){
-    const positions = spiral.userData.positions;
-    for(let i=0;i<positions.length/3;i++){
-        const angle = Date.now()*0.002 + i;
-        const radius = 2;
-        positions[i*3] = atom.position.x + radius*Math.cos(angle);
-        positions[i*3+1] = atom.position.y + radius*Math.sin(angle);
-        positions[i*3+2] = atom.position.z + radius*Math.sin(angle*0.5);
-    }
-    spiral.geometry.attributes.position.needsUpdate = true;
-}
-
-function detectClusters(){
-    atoms.forEach(atom=>{
-        let closeCount = 0;
-        atoms.forEach(other=>{
-            if(other===atom) return;
-            if(atom.position.distanceTo(other.position) < clusterDistance) closeCount++;
-        });
-        if(closeCount>2){
-            atom.material.color.set(0xffaa00); // cluster color
-        } else {
-            atom.material.color.set(0x00ffff);
-        }
-    });
-}
-
-function animate(){
-    requestAnimationFrame(animate);
-    atoms.forEach((atom,i)=>{
-        applyForces(atom);
-        atom.position.add(atom.velocity);
-        keepInBox(atom);
-        updateTrails(atom,trails[i]);
-        updateSpiral(atom,spirals[i]);
-    });
-    detectClusters();
-    renderer.render(scene,camera);
-}
+});
 </script>
 </body>
 </html>
