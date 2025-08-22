@@ -31,7 +31,6 @@ let nucleons=[], velocities=[], trails=[];
 const nucleonRadius = 0.1;
 const nucleonCountInit = 100;
 
-// Initialize nucleons and trails
 function initNucleons(count){
     nucleons.forEach(n => scene.remove(n));
     trails.forEach(t => scene.remove(t));
@@ -47,7 +46,7 @@ function initNucleons(count){
 
         // Trails
         let trailGeo = new THREE.BufferGeometry();
-        let positions = new Float32Array(300*3); // 100 points
+        let positions = new Float32Array(300*3);
         trailGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         let trailMat = new THREE.LineBasicMaterial({color:0xffff00, transparent:true, opacity:0.5});
         let trailLine = new THREE.Line(trailGeo, trailMat);
@@ -58,7 +57,7 @@ function initNucleons(count){
 
 initNucleons(nucleonCountInit);
 
-// Physics
+// Physics constants
 const EM_STRENGTH = 0.0005;
 const STRONG_RANGE = 0.5;
 const STRONG_STRENGTH = 0.002;
@@ -71,7 +70,6 @@ function animate(){
         let ni = nucleons[i];
         let vi = velocities[i];
 
-        // EM and strong interaction
         for(let j=0;j<nucleons.length;j++){
             if(i===j) continue;
             let nj = nucleons[j];
@@ -79,25 +77,20 @@ function animate(){
             let dist = dVec.length();
             if(dist===0) continue;
 
-            // Spin spiral visualization
             let angle = Math.sin(Date.now()*0.005 + i+j)*0.1;
             let spiral = new THREE.Vector3(dVec.y, -dVec.x, dVec.z).normalize().multiplyScalar(angle);
 
-            // EM repulsion
             let emForce = dVec.clone().multiplyScalar(EM_STRENGTH/(dist*dist)).add(spiral);
             vi.add(emForce);
 
-            // Strong attraction
             if(dist<STRONG_RANGE){
                 let strongForce = dVec.clone().multiplyScalar(-STRONG_STRENGTH/(dist*dist)).add(spiral);
                 vi.add(strongForce);
             }
         }
 
-        // Update position
         ni.position.add(vi);
 
-        // Box constraints
         ["x","y","z"].forEach(a=>{
             if(Math.abs(ni.position[a])>cubeSize/2-nucleonRadius){
                 vi[a]*=-0.8;
@@ -105,7 +98,7 @@ function animate(){
             }
         });
 
-        // Update trail
+        // Trails
         let t = trails[i];
         t.positions.copyWithin(3,0,t.positions.length-3);
         t.positions[0]=ni.position.x;
@@ -119,7 +112,16 @@ function animate(){
 
 animate();
 
-// Touch rotation
+// Accelerometer / device orientation
+window.addEventListener('deviceorientation', e=>{
+    let beta = e.beta || 0;   // front-back tilt [-180,180]
+    let gamma = e.gamma || 0; // left-right tilt [-90,90]
+
+    camera.rotation.x = THREE.MathUtils.degToRad(beta-90);
+    camera.rotation.y = THREE.MathUtils.degToRad(gamma);
+});
+
+// Touch fallback rotation
 let lastX, lastY;
 document.addEventListener('touchstart', e=>{
     lastX=e.touches[0].clientX;
