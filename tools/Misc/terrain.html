@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Atomic Slidey-Gooey Simulation</title>
+<title>Atomic Slidey-Gooey Simulation with Waves</title>
 <style>body{margin:0;overflow:hidden;}canvas{display:block;}</style>
 </head>
 <body>
@@ -31,11 +31,12 @@ scene.add(new THREE.AmbientLight(0x404040,0.5));
 const NUM_ATOMS = 100;
 const BOX_SIZE = 50;
 const atomGeom = new THREE.SphereGeometry(0.5,6,6);
-const atomMat = new THREE.MeshStandardMaterial({color:0xffaa00, transparent:true, opacity:0.8});
 const atoms = [];
+const trails = [];
 
 for(let i=0;i<NUM_ATOMS;i++){
-    const mesh = new THREE.Mesh(atomGeom, atomMat.clone());
+    const atomMat = new THREE.MeshStandardMaterial({color:0xffaa00, transparent:true, opacity:0.8});
+    const mesh = new THREE.Mesh(atomGeom, atomMat);
     mesh.position.set(
         (Math.random()-0.5)*BOX_SIZE,
         (Math.random()-0.5)*BOX_SIZE,
@@ -47,35 +48,45 @@ for(let i=0;i<NUM_ATOMS;i++){
             (Math.random()-0.5)*0.5,
             (Math.random()-0.5)*0.5
         ),
-        strong: 1,   // strong force remaining
-        em: 1        // EM influence
+        strong: 1,
+        em: 1,
+        ionized: false
     };
     scene.add(mesh);
     atoms.push(mesh);
+
+    // Trail setup
+    const trailGeom = new THREE.BufferGeometry().setFromPoints([mesh.position.clone()]);
+    const trailMat = new THREE.LineBasicMaterial({color:0xffaa00, transparent:true, opacity:0.2});
+    const line = new THREE.Line(trailGeom, trailMat);
+    scene.add(line);
+    trails.push({mesh,line,points:[mesh.position.clone()]});
 }
 
-// === Trails ===
-const trailMaterial = new THREE.LineBasicMaterial({color:0xffaa00, transparent:true, opacity:0.2});
-const trails = atoms.map(a=>{
-    const trailGeom = new THREE.BufferGeometry().setFromPoints([a.position.clone()]);
-    const line = new THREE.Line(trailGeom, trailMaterial.clone());
-    scene.add(line);
-    return line;
-});
+// === Contagion parameters ===
+const CONTAGION_DISTANCE = 2.0;
 
-// === Camera control ===
-let targetX=0, targetZ=0, distance=80;
-let rotationY=0, targetRotationY=0;
+// === Wave parameters (pseudo Perlin using sin/cos) ===
+function waveForce(pos,time){
+    return new THREE.Vector3(
+        Math.sin(pos.x*0.2 + time*0.5)*0.05,
+        Math.cos(pos.y*0.15 + time*0.7)*0.05,
+        Math.sin((pos.x+pos.z)*0.1 + time*0.3)*0.05
+    );
+}
 
 // === Animation Loop ===
+let time=0;
 function animate(){
     requestAnimationFrame(animate);
+    time += 0.02;
 
-    // Atom physics: simple EM vs strong force sliding
+    // Atom physics
     for(let i=0;i<NUM_ATOMS;i++){
         const a = atoms[i];
-        // EM repulsion from other atoms
         let force = new THREE.Vector3();
+
+        // EM repulsion and spin/spiral motion
         for(let j=0;j<NUM_ATOMS;j++){
             if(i===j) continue;
             const b = atoms[j];
@@ -83,81 +94,58 @@ function animate(){
             const dist = dir.length();
             if(dist<0.01) continue;
             dir.normalize();
-            const emForce = (a.userData.em*b.userData.em)/(dist*dist);
-            force.add(dir.multiplyScalar(emForce));
+            let emForce = (a.userData.em*b.userData.em)/(dist*dist);
+
+            // Contagion: ionized neighbor
+            if(b.userData.ionized && dist<CONTAGION_DISTANCE){
+                a.userData.strong *= 0.98;
+                a.userData.ionized = true;
+                emForce *= 1.5;
+                a.material.color.set(0xff4444);
+            }
+
+            // Spin/spiral perturbation
+            const spin = new THREE.Vector3(-dir.z,0,dir.x).multiplyScalar(0.05);
+            force.add(dir.multiplyScalar(emForce)).add(spin);
         }
 
-        // Strong force: pulls back to origin if outside box
+        // Strong force pulls back to box center
         ['x','y','z'].forEach(axis=>{
-            if(a.position[axis]>BOX_SIZE/2) force[axis]-=(a.position[axis]-BOX_SIZE/2)*0.1;
-            if(a.position[axis]<-BOX_SIZE/2) force[axis]-=(a.position[axis]+BOX_SIZE/2)*0.1;
+            const margin = BOX_SIZE/2;
+            if(a.position[axis]>margin) force[axis]-=(a.position[axis]-margin)*0.05*a.userData.strong;
+            if(a.position[axis]<-margin) force[axis]-=(a.position[axis]+margin)*0.05*a.userData.strong;
         });
 
-        // Velocity update
+        // Add pseudo-wave propagation
+        force.add(waveForce(a.position,time));
+
         a.userData.velocity.add(force.multiplyScalar(0.01));
         a.position.add(a.userData.velocity);
 
-        // Trails update
-        const line = trails[i];
-        const points = line.geometry.attributes.position.array;
-        for(let k=0;k<points.length-3;k+=3){
-            points[k]=points[k+3];
-            points[k+1]=points[k+4];
-            points[k+2]=points[k+5];
-        }
-        points[points.length-3]=a.position.x;
-        points[points.length-2]=a.position.y;
-        points[points.length-1]=a.position.z;
-        line.geometry.attributes.position.needsUpdate=true;
+        // Update trails (fade older points)
+        const trail = trails[i];
+        trail.points.push(a.position.clone());
+        if(trail.points.length>30) trail.points.shift();
+        trail.line.geometry.setFromPoints(trail.points);
+        trail.line.material.opacity = 0.2 + 0.3*(a.userData.ionized?1:0);
     }
 
-    // Camera smooth rotation & distance
-    rotationY += (targetRotationY - rotationY)*0.05;
-    camera.position.x = targetX + Math.sin(rotationY)*distance;
-    camera.position.z = targetZ + Math.cos(rotationY)*distance;
-    camera.position.y = 50;
+    // Camera subtle movement
+    camera.position.set(0,50,80);
     camera.lookAt(cameraTarget);
 
     renderer.render(scene, camera);
 }
 animate();
 
-// === Mouse drag rotation ===
-let isDragging=false, prevX=0;
-window.addEventListener('mousedown', e=>{ isDragging=true; prevX=e.clientX; });
-window.addEventListener('mouseup', ()=>isDragging=false);
-window.addEventListener('mousemove', e=>{
-    if(isDragging){ 
-        const dx = e.clientX-prevX; 
-        targetRotationY += dx*0.005; 
-        prevX = e.clientX;
-    }
-});
-
-// === Touch gestures ===
-let touchDistance=0;
-window.addEventListener('touchstart', e=>{
-    if(e.touches.length === 2){
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        touchDistance = Math.sqrt(dx*dx + dy*dy);
-    }
-}, false);
-window.addEventListener('touchmove', e=>{
-    if(e.touches.length===1){
-        const dx = e.touches[0].clientX - prevX;
-        targetRotationY += dx*0.005;
-        prevX = e.touches[0].clientX;
-    } else if(e.touches.length===2){
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const newDistance = Math.sqrt(dx*dx + dy*dy);
-        const delta = newDistance - touchDistance;
-        distance -= delta*0.1;
-        distance = Math.max(20,150);
-        touchDistance = newDistance;
-    }
-}, false);
+// === Accelerometer control ===
+window.addEventListener('deviceorientation', e=>{
+    const tiltX = (e.gamma||0)/90;
+    const tiltZ = (e.beta||0)/180;
+    camera.position.x = tiltX*10;
+    camera.position.z = 80 + tiltZ*10;
+    camera.lookAt(cameraTarget);
+}, true);
 
 // === Resize ===
 window.addEventListener('resize', ()=>{
