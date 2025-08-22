@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Full Interactive Terrain Scene</title>
+<title>Atomic Slidey-Gooey Simulation</title>
 <style>body{margin:0;overflow:hidden;}canvas{display:block;}</style>
 </head>
 <body>
@@ -11,7 +11,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.m
 
 // === Scene & Renderer ===
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
+scene.background = new THREE.Color(0x000000);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
 camera.position.set(0,50,80);
@@ -21,125 +21,106 @@ const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// === Terrain ===
-const size = 80, segments = 80;
-const terrainGeom = new THREE.PlaneGeometry(size,size,segments,segments);
-terrainGeom.rotateX(-Math.PI/2);
-terrainGeom.setAttribute('color', new THREE.BufferAttribute(new Float32Array(terrainGeom.attributes.position.count*3),3));
-const terrainMat = new THREE.MeshStandardMaterial({vertexColors:true, wireframe:false});
-const terrain = new THREE.Mesh(terrainGeom, terrainMat);
-scene.add(terrain);
-
-// === Water ===
-const waterGeom = new THREE.PlaneGeometry(size,size,segments,segments);
-waterGeom.rotateX(-Math.PI/2);
-const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-const waterMat = new THREE.MeshBasicMaterial({map: renderTarget.texture, transparent:true, opacity:0.7});
-const water = new THREE.Mesh(waterGeom, waterMat);
-water.position.y = 0.1;
-scene.add(water);
-
-// === Sky (clouds) ===
-const skyGeom = new THREE.SphereGeometry(250, 32, 32);
-const skyMat = new THREE.MeshBasicMaterial({color:0x87ceeb, side:THREE.BackSide});
-const sky = new THREE.Mesh(skyGeom, skyMat);
-scene.add(sky);
-
-// Moving cloud texture (simple procedural via noise-like function)
-const cloudGeom = new THREE.PlaneGeometry(500,500,1,1);
-const cloudMat = new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.3});
-const cloudMesh = new THREE.Mesh(cloudGeom, cloudMat);
-cloudMesh.rotation.x = -Math.PI/2;
-cloudMesh.position.y = 80;
-scene.add(cloudMesh);
-
 // === Lights ===
-const light = new THREE.DirectionalLight(0xffffff,1);
+const light = new THREE.DirectionalLight(0xffffff,1.2);
 light.position.set(50,50,50);
 scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040,0.5));
 
-// === Offsets ===
-const terrainOffsets = Array.from({length:terrainGeom.attributes.position.count}, ()=>Math.random()*2*Math.PI);
-const waterOffsets = Array.from({length:waterGeom.attributes.position.count}, ()=>Math.random()*2*Math.PI);
+// === Atom parameters ===
+const NUM_ATOMS = 100;
+const BOX_SIZE = 50;
+const atomGeom = new THREE.SphereGeometry(0.5,6,6);
+const atomMat = new THREE.MeshStandardMaterial({color:0xffaa00, transparent:true, opacity:0.8});
+const atoms = [];
 
-// === Height to color ===
-function heightToColor(h){
-    if(h<-1) return new THREE.Color(0x004400);
-    if(h<1)  return new THREE.Color(0x228B22);
-    if(h<3)  return new THREE.Color(0x8B4513);
-    return new THREE.Color(0xFFFFFF);
+for(let i=0;i<NUM_ATOMS;i++){
+    const mesh = new THREE.Mesh(atomGeom, atomMat.clone());
+    mesh.position.set(
+        (Math.random()-0.5)*BOX_SIZE,
+        (Math.random()-0.5)*BOX_SIZE,
+        (Math.random()-0.5)*BOX_SIZE
+    );
+    mesh.userData = {
+        velocity: new THREE.Vector3(
+            (Math.random()-0.5)*0.5,
+            (Math.random()-0.5)*0.5,
+            (Math.random()-0.5)*0.5
+        ),
+        strong: 1,   // strong force remaining
+        em: 1        // EM influence
+    };
+    scene.add(mesh);
+    atoms.push(mesh);
 }
+
+// === Trails ===
+const trailMaterial = new THREE.LineBasicMaterial({color:0xffaa00, transparent:true, opacity:0.2});
+const trails = atoms.map(a=>{
+    const trailGeom = new THREE.BufferGeometry().setFromPoints([a.position.clone()]);
+    const line = new THREE.Line(trailGeom, trailMaterial.clone());
+    scene.add(line);
+    return line;
+});
 
 // === Camera control ===
 let targetX=0, targetZ=0, distance=80;
 let rotationY=0, targetRotationY=0;
 
-// === Reflection Camera ===
-const reflectCamera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
-
 // === Animation Loop ===
-let time=0;
 function animate(){
     requestAnimationFrame(animate);
-    time += 0.02;
 
-    // Terrain update
-    const pos = terrainGeom.attributes.position.array;
-    const colors = terrainGeom.attributes.color.array;
-    for(let i=0;i<pos.length;i+=3){
-        const x = pos[i], z = pos[i+2], o = terrainOffsets[i/3];
-        const y = Math.sin(x*0.2 + time + o)*2
-                + Math.cos(z*0.15 + time*1.3 + o)*1.5
-                + Math.sin((x+z)*0.1 + time*0.7 + o)*1;
-        pos[i+1] = y;
-        const c = heightToColor(y);
-        colors[i]=c.r; colors[i+1]=c.g; colors[i+2]=c.b;
+    // Atom physics: simple EM vs strong force sliding
+    for(let i=0;i<NUM_ATOMS;i++){
+        const a = atoms[i];
+        // EM repulsion from other atoms
+        let force = new THREE.Vector3();
+        for(let j=0;j<NUM_ATOMS;j++){
+            if(i===j) continue;
+            const b = atoms[j];
+            const dir = new THREE.Vector3().subVectors(a.position,b.position);
+            const dist = dir.length();
+            if(dist<0.01) continue;
+            dir.normalize();
+            const emForce = (a.userData.em*b.userData.em)/(dist*dist);
+            force.add(dir.multiplyScalar(emForce));
+        }
+
+        // Strong force: pulls back to origin if outside box
+        ['x','y','z'].forEach(axis=>{
+            if(a.position[axis]>BOX_SIZE/2) force[axis]-=(a.position[axis]-BOX_SIZE/2)*0.1;
+            if(a.position[axis]<-BOX_SIZE/2) force[axis]-=(a.position[axis]+BOX_SIZE/2)*0.1;
+        });
+
+        // Velocity update
+        a.userData.velocity.add(force.multiplyScalar(0.01));
+        a.position.add(a.userData.velocity);
+
+        // Trails update
+        const line = trails[i];
+        const points = line.geometry.attributes.position.array;
+        for(let k=0;k<points.length-3;k+=3){
+            points[k]=points[k+3];
+            points[k+1]=points[k+4];
+            points[k+2]=points[k+5];
+        }
+        points[points.length-3]=a.position.x;
+        points[points.length-2]=a.position.y;
+        points[points.length-1]=a.position.z;
+        line.geometry.attributes.position.needsUpdate=true;
     }
-    terrainGeom.attributes.position.needsUpdate=true;
-    terrainGeom.attributes.color.needsUpdate=true;
-
-    // Water waves
-    const wpos = waterGeom.attributes.position.array;
-    for(let i=0;i<wpos.length;i+=3){
-        const x = wpos[i], z = wpos[i+2], o = waterOffsets[i/3];
-        wpos[i+1] = Math.sin(x*0.3 + time*1.2 + o)*0.3 + Math.cos(z*0.25 + time*1.5 + o)*0.3;
-    }
-    waterGeom.attributes.position.needsUpdate=true;
-
-    // Clouds drift
-    cloudMesh.position.x = Math.sin(time*0.05)*50;
-    cloudMesh.position.z = Math.cos(time*0.03)*50;
 
     // Camera smooth rotation & distance
     rotationY += (targetRotationY - rotationY)*0.05;
     camera.position.x = targetX + Math.sin(rotationY)*distance;
     camera.position.z = targetZ + Math.cos(rotationY)*distance;
-
-    // Camera target smoothly lerps to center
-    cameraTarget.lerp(new THREE.Vector3(0,0,0),0.02);
+    camera.position.y = 50;
     camera.lookAt(cameraTarget);
 
-    // Reflection camera
-    reflectCamera.position.copy(camera.position);
-    reflectCamera.position.y *= -1;
-    reflectCamera.up.set(0,-1,0);
-    reflectCamera.lookAt(new THREE.Vector3(cameraTarget.x, -cameraTarget.y, cameraTarget.z));
-
-    renderer.setRenderTarget(renderTarget);
-    renderer.render(scene, reflectCamera);
-    renderer.setRenderTarget(null);
-
-    // Render main scene
     renderer.render(scene, camera);
 }
 animate();
-
-// === Device Orientation ===
-window.addEventListener('deviceorientation', e=>{
-    const gamma = e.gamma||0, beta = e.beta||0;
-    targetX = gamma*0.5;
-    targetZ = -beta*0.5;
-}, true);
 
 // === Mouse drag rotation ===
 let isDragging=false, prevX=0;
@@ -173,7 +154,7 @@ window.addEventListener('touchmove', e=>{
         const newDistance = Math.sqrt(dx*dx + dy*dy);
         const delta = newDistance - touchDistance;
         distance -= delta*0.1;
-        distance = Math.max(20,Math.min(150,distance));
+        distance = Math.max(20,150);
         touchDistance = newDistance;
     }
 }, false);
@@ -182,8 +163,6 @@ window.addEventListener('touchmove', e=>{
 window.addEventListener('resize', ()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
-    reflectCamera.aspect = window.innerWidth/window.innerHeight;
-    reflectCamera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 </script>
