@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Atomic Slidey-Gooey Simulation with Waves</title>
-<style>body{margin:0;overflow:hidden;}canvas{display:block;}</style>
+<title>Nucleon Dynamics Demo</title>
+<style>
+  body { margin:0; overflow:hidden; }
+  canvas { display:block; }
+</style>
 </head>
 <body>
 <script type="module">
@@ -13,8 +16,8 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.m
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
-camera.position.set(0,50,80);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0,20,50);
 let cameraTarget = new THREE.Vector3(0,0,0);
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
@@ -22,130 +25,154 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // === Lights ===
-const light = new THREE.DirectionalLight(0xffffff,1.2);
+const light = new THREE.DirectionalLight(0xffffff,1);
 light.position.set(50,50,50);
 scene.add(light);
-scene.add(new THREE.AmbientLight(0x404040,0.5));
+const ambLight = new THREE.AmbientLight(0x555555);
+scene.add(ambLight);
 
-// === Atom parameters ===
-const NUM_ATOMS = 100;
-const BOX_SIZE = 50;
-const atomGeom = new THREE.SphereGeometry(0.5,6,6);
-const atoms = [];
-const trails = [];
-
-for(let i=0;i<NUM_ATOMS;i++){
-    const atomMat = new THREE.MeshStandardMaterial({color:0xffaa00, transparent:true, opacity:0.8});
-    const mesh = new THREE.Mesh(atomGeom, atomMat);
-    mesh.position.set(
-        (Math.random()-0.5)*BOX_SIZE,
-        (Math.random()-0.5)*BOX_SIZE,
-        (Math.random()-0.5)*BOX_SIZE
-    );
-    mesh.userData = {
-        velocity: new THREE.Vector3(
-            (Math.random()-0.5)*0.5,
-            (Math.random()-0.5)*0.5,
-            (Math.random()-0.5)*0.5
-        ),
-        strong: 1,
-        em: 1,
-        ionized: false
-    };
-    scene.add(mesh);
-    atoms.push(mesh);
-
-    // Trail setup
-    const trailGeom = new THREE.BufferGeometry().setFromPoints([mesh.position.clone()]);
-    const trailMat = new THREE.LineBasicMaterial({color:0xffaa00, transparent:true, opacity:0.2});
-    const line = new THREE.Line(trailGeom, trailMat);
-    scene.add(line);
-    trails.push({mesh,line,points:[mesh.position.clone()]});
-}
-
-// === Contagion parameters ===
-const CONTAGION_DISTANCE = 2.0;
-
-// === Wave parameters (pseudo Perlin using sin/cos) ===
-function waveForce(pos,time){
-    return new THREE.Vector3(
-        Math.sin(pos.x*0.2 + time*0.5)*0.05,
-        Math.cos(pos.y*0.15 + time*0.7)*0.05,
-        Math.sin((pos.x+pos.z)*0.1 + time*0.3)*0.05
-    );
-}
-
-// === Animation Loop ===
-let time=0;
-function animate(){
-    requestAnimationFrame(animate);
-    time += 0.02;
-
-    // Atom physics
-    for(let i=0;i<NUM_ATOMS;i++){
-        const a = atoms[i];
-        let force = new THREE.Vector3();
-
-        // EM repulsion and spin/spiral motion
-        for(let j=0;j<NUM_ATOMS;j++){
-            if(i===j) continue;
-            const b = atoms[j];
-            const dir = new THREE.Vector3().subVectors(a.position,b.position);
-            const dist = dir.length();
-            if(dist<0.01) continue;
-            dir.normalize();
-            let emForce = (a.userData.em*b.userData.em)/(dist*dist);
-
-            // Contagion: ionized neighbor
-            if(b.userData.ionized && dist<CONTAGION_DISTANCE){
-                a.userData.strong *= 0.98;
-                a.userData.ionized = true;
-                emForce *= 1.5;
-                a.material.color.set(0xff4444);
-            }
-
-            // Spin/spiral perturbation
-            const spin = new THREE.Vector3(-dir.z,0,dir.x).multiplyScalar(0.05);
-            force.add(dir.multiplyScalar(emForce)).add(spin);
-        }
-
-        // Strong force pulls back to box center
-        ['x','y','z'].forEach(axis=>{
-            const margin = BOX_SIZE/2;
-            if(a.position[axis]>margin) force[axis]-=(a.position[axis]-margin)*0.05*a.userData.strong;
-            if(a.position[axis]<-margin) force[axis]-=(a.position[axis]+margin)*0.05*a.userData.strong;
-        });
-
-        // Add pseudo-wave propagation
-        force.add(waveForce(a.position,time));
-
-        a.userData.velocity.add(force.multiplyScalar(0.01));
-        a.position.add(a.userData.velocity);
-
-        // Update trails (fade older points)
-        const trail = trails[i];
-        trail.points.push(a.position.clone());
-        if(trail.points.length>30) trail.points.shift();
-        trail.line.geometry.setFromPoints(trail.points);
-        trail.line.material.opacity = 0.2 + 0.3*(a.userData.ionized?1:0);
+// === Nucleon Class ===
+class Nucleon {
+    constructor(){
+        const geom = new THREE.SphereGeometry(0.5,8,8);
+        const mat = new THREE.MeshStandardMaterial({color:0xff4444});
+        this.mesh = new THREE.Mesh(geom, mat);
+        this.mesh.position.set((Math.random()-0.5)*20, (Math.random()-0.5)*20, (Math.random()-0.5)*20);
+        this.velocity = new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2);
+        this.userData = {energy: Math.random()};
+        scene.add(this.mesh);
+        this.createSpiral();
+        this.createWave();
     }
 
-    // Camera subtle movement
-    camera.position.set(0,50,80);
+    createSpiral(){
+        const points = [];
+        const radius = 0.4;
+        const turns = 2;
+        const segments = 12;
+        for(let i=0;i<=segments;i++){
+            const t = i/segments*Math.PI*2*turns;
+            points.push(new THREE.Vector3(radius*Math.cos(t), i/segments*0.5, radius*Math.sin(t)));
+        }
+        const geom = new THREE.BufferGeometry().setFromPoints(points);
+        const mat = new THREE.LineBasicMaterial({color:0x00ffff, transparent:true, opacity:0.6});
+        this.spiral = new THREE.Line(geom, mat);
+        scene.add(this.spiral);
+    }
+
+    createWave(){
+        const geom = new THREE.RingGeometry(0.1, 0.15, 16);
+        const mat = new THREE.MeshBasicMaterial({color:0xff00ff, transparent:true, opacity:0.2, side:THREE.DoubleSide});
+        this.wave = new THREE.Mesh(geom, mat);
+        scene.add(this.wave);
+        this.waveRadius = 0.1;
+    }
+
+    update(delta, boxSize){
+        // Position update
+        this.mesh.position.addScaledVector(this.velocity, delta);
+        // Simple containment
+        ['x','y','z'].forEach(axis=>{
+            if(this.mesh.position[axis] > boxSize) { this.mesh.position[axis]=boxSize; this.velocity[axis]*=-0.8; }
+            if(this.mesh.position[axis] < -boxSize) { this.mesh.position[axis]=-boxSize; this.velocity[axis]*=-0.8; }
+        });
+        // Spiral update
+        this.spiral.position.copy(this.mesh.position);
+        this.spiral.rotation.y += delta*5*this.userData.energy;
+        this.spiral.rotation.x += delta*2;
+        // Wave update
+        this.wave.position.copy(this.mesh.position);
+        this.waveRadius += delta*0.5*this.userData.energy;
+        if(this.waveRadius>1) this.waveRadius=0.1;
+        this.wave.scale.set(this.waveRadius,this.waveRadius,this.waveRadius);
+    }
+}
+
+// === Particle Trail ===
+class Trail {
+    constructor(){
+        this.geometry = new THREE.BufferGeometry();
+        this.positions = new Float32Array(1000*3);
+        this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions,3));
+        const mat = new THREE.LineBasicMaterial({color:0xffff00, transparent:true, opacity:0.3});
+        this.line = new THREE.Line(this.geometry, mat);
+        scene.add(this.line);
+        this.index=0;
+    }
+    emit(pos){
+        this.positions[this.index*3] = pos.x;
+        this.positions[this.index*3+1] = pos.y;
+        this.positions[this.index*3+2] = pos.z;
+        this.index = (this.index+1)%1000;
+        this.geometry.attributes.position.needsUpdate=true;
+    }
+}
+
+// === Initialize Nucleons & Trail ===
+const nucleons = [];
+const trail = new Trail();
+for(let i=0;i<100;i++) nucleons.push(new Nucleon());
+
+// === Camera Control ===
+let targetX=0, targetZ=0, distance=50, rotationY=0, targetRotationY=0;
+window.addEventListener('deviceorientation', e=>{
+    targetX = (e.gamma||0)*0.5;
+    targetZ = -(e.beta||0)*0.5;
+}, true);
+let isDragging=false, prevX=0;
+window.addEventListener('mousedown', e=>{isDragging=true; prevX=e.clientX;});
+window.addEventListener('mouseup', ()=>isDragging=false);
+window.addEventListener('mousemove', e=>{
+    if(isDragging){ const dx=e.clientX-prevX; targetRotationY+=dx*0.005; prevX=e.clientX; }
+});
+let touchDistance=0;
+window.addEventListener('touchstart', e=>{
+    if(e.touches.length===2){
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        touchDistance = Math.sqrt(dx*dx + dy*dy);
+    }
+});
+window.addEventListener('touchmove', e=>{
+    if(e.touches.length===1){
+        const dx = e.touches[0].clientX - prevX;
+        targetRotationY += dx*0.005;
+        prevX = e.touches[0].clientX;
+    } else if(e.touches.length===2){
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const newDistance = Math.sqrt(dx*dx + dy*dy);
+        const delta = newDistance - touchDistance;
+        distance -= delta*0.1;
+        distance = Math.max(20,Math.min(150,distance));
+        touchDistance = newDistance;
+    }
+});
+
+// === Animation Loop ===
+let boxSize = 30;
+let lastTime=performance.now();
+function animate(){
+    requestAnimationFrame(animate);
+    const now=performance.now();
+    const delta=(now-lastTime)/1000;
+    lastTime=now;
+
+    nucleons.forEach(n=>{
+        n.update(delta, boxSize);
+        trail.emit(n.mesh.position);
+    });
+
+    // Camera smooth follow
+    rotationY += (targetRotationY - rotationY)*0.05;
+    camera.position.x = targetX + Math.sin(rotationY)*distance;
+    camera.position.z = targetZ + Math.cos(rotationY)*distance;
+    camera.position.y = 20;
     camera.lookAt(cameraTarget);
 
-    renderer.render(scene, camera);
+    renderer.render(scene,camera);
 }
 animate();
-
-// === Accelerometer control ===
-window.addEventListener('deviceorientation', e=>{
-    const tiltX = (e.gamma||0)/90;
-    const tiltZ = (e.beta||0)/180;
-    camera.position.x = tiltX*10;
-    camera.position.z = 80 + tiltZ*10;
-    camera.lookAt(cameraTarget);
-}, true);
 
 // === Resize ===
 window.addEventListener('resize', ()=>{
