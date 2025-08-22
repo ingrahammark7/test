@@ -2,28 +2,34 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Three.js Procedural Terrain</title>
+<title>Three.js Colored Procedural Terrain</title>
 <style>body{margin:0;overflow:hidden;}canvas{display:block;}</style>
 </head>
 <body>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
 
-// Scene
+// Scene setup
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x101010);
+scene.background = new THREE.Color(0x87ceeb); // Sky blue
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 200);
 camera.position.set(0,50,80);
 camera.lookAt(0,0,0);
+
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Plane
+// Plane geometry
 const size = 80, segments = 80;
-const geometry = new THREE.PlaneGeometry(size,size,segments,segments);
+const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
 geometry.rotateX(-Math.PI/2);
-const material = new THREE.MeshStandardMaterial({color:0x44aa88, wireframe:true});
+
+// Add vertex colors
+geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(geometry.attributes.position.count * 3), 3));
+
+// Material with vertex colors
+const material = new THREE.MeshStandardMaterial({vertexColors:true, wireframe:false});
 const plane = new THREE.Mesh(geometry, material);
 scene.add(plane);
 
@@ -32,32 +38,53 @@ const light = new THREE.DirectionalLight(0xffffff,1);
 light.position.set(50,50,50);
 scene.add(light);
 
-// Helper: pseudo-random offset per vertex for organic variation
+// Random offsets for variation
 const offsets = [];
-for(let i=0; i<geometry.attributes.position.count; i++){
+for(let i=0;i<geometry.attributes.position.count;i++){
     offsets.push(Math.random()*2*Math.PI);
 }
 
-// Animate waves with multiple frequencies
+// Helper: map height to color
+function heightToColor(h){
+    if(h < -1) return new THREE.Color(0x004400); // Dark green
+    if(h < 1)  return new THREE.Color(0x228B22); // Green
+    if(h < 3)  return new THREE.Color(0x8B4513); // Brown
+    return new THREE.Color(0xFFFFFF);            // White (snow)
+}
+
+// Animate waves
 let time = 0;
 function animate(){
     requestAnimationFrame(animate);
     time += 0.02;
     const pos = geometry.attributes.position.array;
+    const colors = geometry.attributes.color.array;
+    
     for(let i=0;i<pos.length;i+=3){
         const x = pos[i], z = pos[i+2];
         const o = offsets[i/3];
-        // Combine multiple sine + cos for "noise-like" terrain
-        pos[i+1] = Math.sin(x*0.2 + time + o) * 2 
-                 + Math.cos(z*0.15 + time*1.3 + o) * 1.5
-                 + Math.sin((x+z)*0.1 + time*0.7 + o) * 1;
+        // Combined sine waves
+        const y = Math.sin(x*0.2 + time + o)*2
+                + Math.cos(z*0.15 + time*1.3 + o)*1.5
+                + Math.sin((x+z)*0.1 + time*0.7 + o)*1;
+        pos[i+1] = y;
+
+        // Color mapping
+        const color = heightToColor(y);
+        colors[i]   = color.r;
+        colors[i+1] = color.g;
+        colors[i+2] = color.b;
     }
+
     geometry.attributes.position.needsUpdate = true;
+    geometry.attributes.color.needsUpdate = true;
+    
     renderer.render(scene,camera);
 }
+
 animate();
 
-// Resize
+// Resize handler
 window.addEventListener('resize',()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
