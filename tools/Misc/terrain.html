@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Three.js Waves</title>
+<title>Three.js Procedural Terrain</title>
 <style>body{margin:0;overflow:hidden;}canvas{display:block;}</style>
 </head>
 <body>
@@ -32,7 +32,13 @@ const light = new THREE.DirectionalLight(0xffffff,1);
 light.position.set(50,50,50);
 scene.add(light);
 
-// Animate waves using sin + cos
+// Helper: pseudo-random offset per vertex for organic variation
+const offsets = [];
+for(let i=0; i<geometry.attributes.position.count; i++){
+    offsets.push(Math.random()*2*Math.PI);
+}
+
+// Animate waves with multiple frequencies
 let time = 0;
 function animate(){
     requestAnimationFrame(animate);
@@ -40,7 +46,11 @@ function animate(){
     const pos = geometry.attributes.position.array;
     for(let i=0;i<pos.length;i+=3){
         const x = pos[i], z = pos[i+2];
-        pos[i+1] = Math.sin(x*0.2 + time) * 2 + Math.cos(z*0.2 + time) * 2;
+        const o = offsets[i/3];
+        // Combine multiple sine + cos for "noise-like" terrain
+        pos[i+1] = Math.sin(x*0.2 + time + o) * 2 
+                 + Math.cos(z*0.15 + time*1.3 + o) * 1.5
+                 + Math.sin((x+z)*0.1 + time*0.7 + o) * 1;
     }
     geometry.attributes.position.needsUpdate = true;
     renderer.render(scene,camera);
