@@ -2,153 +2,94 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Slidey-Gooey Armor Simulation</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-  body { margin: 0; overflow: hidden; }
-  canvas { display: block; }
-</style>
+<title>Armor Simulation</title>
+<style> body { margin:0; overflow:hidden; } canvas { display:block; } </style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
-
 <script>
 // --- Scene setup ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111111);
 
+// --- Camera ---
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0, 5, 20);
+let armorLayers = 10; // number of layers
+let armorCenter = new THREE.Vector3(0, armorLayers/2, 0);
+let cameraRadius = 30;
+let cameraAngle = Math.PI/4;
+let cameraHeight = 15;
 
-const renderer = new THREE.WebGLRenderer({antialias: true});
+// --- Renderer ---
+const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Lights
-const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-scene.add(ambient);
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-dirLight.position.set(10, 20, 10);
-scene.add(dirLight);
+// --- Lighting ---
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(20, 40, 20);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
 
-// --- Blocks (armor) ---
-const blocks = [];
-const blockSize = 1;
-const layers = 5;
-const width = 5;
-const height = layers;
-const depth = 5;
-
-const blockGeometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
-const blockMaterial = new THREE.MeshPhongMaterial({color: 0x4444ff});
-
-for(let y=0; y<height; y++){
-  for(let x=-Math.floor(width/2); x<=Math.floor(width/2); x++){
-    for(let z=-Math.floor(depth/2); z<=Math.floor(depth/2); z++){
-      const block = new THREE.Mesh(blockGeometry, blockMaterial.clone());
-      block.position.set(x*blockSize, y*blockSize, z*blockSize);
-      block.userData = {health: 1, velocity: new THREE.Vector3(), affected: false};
-      scene.add(block);
-      blocks.push(block);
-    }
-  }
+// --- Armor blocks ---
+const armorBlocks = [];
+for(let i=0; i<armorLayers; i++){
+    const geometry = new THREE.BoxGeometry(2, 1, 4);
+    const material = new THREE.MeshPhongMaterial({color: 0x5555ff, transparent:true, opacity:0.6});
+    const block = new THREE.Mesh(geometry, material);
+    block.position.set(0, i + 0.5, 0); // stack in y
+    scene.add(block);
+    armorBlocks.push(block);
 }
 
-// --- Projectile ---
-const projectileGeometry = new THREE.CylinderGeometry(0.3, 0.3, 2, 8);
-const projectileMaterial = new THREE.MeshPhongMaterial({color: 0xff2222});
-const projectile = new THREE.Mesh(projectileGeometry, projectileMaterial);
-projectile.rotation.x = Math.PI/2;
-projectile.position.set(0, 2.5, -20);
-scene.add(projectile);
-let projectileSpeed = 0.5;
+// --- Reset camera ---
+function resetCamera() {
+    cameraAngle = Math.PI/4;
+    cameraRadius = 30;
+    cameraHeight = 15;
+    camera.position.x = armorCenter.x + cameraRadius * Math.cos(cameraAngle);
+    camera.position.z = armorCenter.z + cameraRadius * Math.sin(cameraAngle);
+    camera.position.y = armorCenter.y + cameraHeight;
+    camera.lookAt(armorCenter);
+}
+resetCamera();
 
-// --- Debris array ---
-const debris = [];
-const debrisMaterial = new THREE.MeshPhongMaterial({color: 0xffaa00});
-
-// --- Touch controls ---
-let isDragging = false;
-let previousTouch = null;
-let touchDistance = 0;
-
-window.addEventListener('touchstart', e => { isDragging = true; previousTouch = e.touches[0]; });
-window.addEventListener('touchmove', e => {
-  if(!isDragging) return;
-  const touch = e.touches[0];
-  const dx = touch.clientX - previousTouch.clientX;
-  const dy = touch.clientY - previousTouch.clientY;
-  camera.rotation.y -= dx * 0.005;
-  camera.rotation.x -= dy * 0.005;
-  previousTouch = touch;
-});
-window.addEventListener('touchend', e => { isDragging = false; previousTouch = null; });
-
-// Pinch zoom
-window.addEventListener('gesturechange', e => {
-  camera.position.z -= e.scale - 1;
-});
+// --- Animation variables ---
+const meltSpeed = 0.02; // speed blocks move/fall
+const rotationSpeed = 0.2; // camera orbit speed
+let time = 0;
 
 // --- Animation loop ---
-function animate() {
-  requestAnimationFrame(animate);
+function animate(delta){
+    time += delta;
 
-  // Move projectile
-  projectile.position.z += projectileSpeed;
+    // Orbit camera around armor
+    cameraAngle += delta * rotationSpeed;
+    camera.position.x = armorCenter.x + cameraRadius * Math.cos(cameraAngle);
+    camera.position.z = armorCenter.z + cameraRadius * Math.sin(cameraAngle);
+    camera.position.y = armorCenter.y + cameraHeight;
+    camera.lookAt(armorCenter);
 
-  // Check collision with blocks
-  blocks.forEach(block => {
-    const distance = block.position.distanceTo(projectile.position);
-    if(distance < 1.2 && block.userData.health > 0){
-      block.userData.affected = true;
-      block.userData.health -= 0.2;
-      block.material.color.setRGB(1, 0.5 + block.userData.health*0.5, 0.5 + block.userData.health*0.5);
+    // Animate armor layers
+    armorBlocks.forEach((block, i) => {
+        // random wobble
+        block.rotation.x += 0.005 * Math.random();
+        block.rotation.z += 0.005 * Math.random();
 
-      // Spawn debris
-      const d = new THREE.Mesh(blockGeometry, debrisMaterial.clone());
-      d.scale.set(0.3,0.3,0.3);
-      d.position.copy(block.position);
-      d.userData.velocity = new THREE.Vector3((Math.random()-0.5)*0.2, Math.random()*0.3, (Math.random()-0.5)*0.2);
-      scene.add(d);
-      debris.push(d);
-    }
-  });
+        // melt/fly effect (shift in x/y/z)
+        block.position.y -= meltSpeed * Math.random(); // downward
+        block.position.x += (Math.random()-0.5) * meltSpeed;
+        block.position.z += (Math.random()-0.5) * meltSpeed;
 
-  // Apply debris motion
-  debris.forEach((d,i) => {
-    d.position.add(d.userData.velocity);
-    d.userData.velocity.y -= 0.01; // gravity
-    d.material.opacity = Math.max(0, d.material.opacity - 0.005);
-    d.material.transparent = true;
-    if(d.material.opacity <= 0) {
-      scene.remove(d);
-      debris.splice(i,1);
-    }
-  });
+        // fade out as it “melts/flees”
+        block.material.opacity -= 0.001;
+        if(block.material.opacity < 0) block.material.opacity = 0;
+    });
 
-  // Slidey-gooey contagion
-  blocks.forEach(block => {
-    if(block.userData.affected){
-      blocks.forEach(nb => {
-        if(nb.userData.health > 0 && !nb.userData.affected){
-          if(block.position.distanceTo(nb.position) < 1.5){
-            nb.userData.affected = true;
-          }
-        }
-      });
-    }
-  });
-
-  renderer.render(scene, camera);
+    renderer.render(scene, camera);
+    requestAnimationFrame((newTime)=>animate((newTime - time)/1000));
 }
-animate();
-
-// Resize handler
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+animate(0);
 </script>
 </body>
 </html>
