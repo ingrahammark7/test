@@ -1,20 +1,20 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Slidey-Gooey Armor (Mobile)</title>
+<title>Slidey-Gooey Armor (Mobile) — Plasma & Modes</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 <style>
   :root { color-scheme: dark; }
-  html,body { margin:0; height:100%; background:#0e0f13; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  html,body { margin:0; height:100%; background:#0b0d12; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
   #hud {
     position: fixed; inset: 10px auto auto 10px;
-    background: rgba(0,0,0,.5); color: #fff; padding: 10px 12px; border-radius: 10px; backdrop-filter: blur(6px);
+    background: rgba(0,0,0,.55); color: #fff; padding: 10px 12px; border-radius: 10px; backdrop-filter: blur(6px);
     display: grid; gap: 6px; font-size: 14px;
   }
   #hud label { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; }
   #hud input[type="range"] { width: 160px; }
+  #hud select { background:#1f2937; color:#fff; border:0; border-radius:8px; padding:6px 8px; }
   #hud .row { display:flex; gap:6px; flex-wrap:wrap; }
   #hud button {
     appearance: none; border: 0; border-radius: 10px; padding: 8px 10px; font-weight: 600;
@@ -32,8 +32,15 @@
 <div id="hud">
   <div><strong>Slidey-Gooey Armor</strong></div>
   <label>Projectile speed <input id="speed" type="range" min="0.1" max="2.0" step="0.1" value="0.8"></label>
+  <label>Time scale <input id="timescale" type="range" min="0.25" max="2.0" step="0.05" value="1.0"></label>
   <label>Armor layers <input id="layers" type="range" min="3" max="10" step="1" value="6"></label>
   <label>Armor opacity <input id="opacity" type="range" min="0.15" max="0.9" step="0.05" value="0.45"></label>
+  <label>Failure mode
+    <select id="mode">
+      <option value="melt" selected>Melt (slidey-gooey)</option>
+      <option value="shear">Shear / Slide</option>
+    </select>
+  </label>
   <div class="row">
     <button id="resetView">Reset View</button>
     <button id="resetSim">Reset Sim</button>
@@ -48,7 +55,7 @@
 (() => {
   // ----- Scene -----
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0e0f13);
+  scene.background = new THREE.Color(0x0b0d12);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -64,8 +71,10 @@
   // ----- Globals / UI -----
   const ui = {
     speed: document.getElementById('speed'),
+    timescale: document.getElementById('timescale'),
     layers: document.getElementById('layers'),
     opacity: document.getElementById('opacity'),
+    mode: document.getElementById('mode'),
     resetView: document.getElementById('resetView'),
     resetSim: document.getElementById('resetSim'),
     toggleOrbit: document.getElementById('toggleOrbit'),
@@ -77,8 +86,10 @@
   let debris = [];
   let projectile;
   let projSpeed = parseFloat(ui.speed.value);
+  let timeScale = parseFloat(ui.timescale.value);
   let layerCount = parseInt(ui.layers.value);
   let baseOpacity = parseFloat(ui.opacity.value);
+  let failureMode = ui.mode.value; // 'melt' | 'shear'
 
   // Armor grid dims (keep modest for phones)
   const GRID_W = 7, GRID_D = 7;
@@ -106,7 +117,7 @@
   }
   placeCamera();
 
-  // Touch controls
+  // Touch controls (drag rotate, pinch zoom)
   let dragging = false;
   let lastTouches = [];
   function dist2Touches(t0, t1) {
@@ -158,7 +169,6 @@
   }
 
   function makeBlockMat() {
-    // semi-transparent, depthWrite off reduces alpha artifacts on mobile
     return new THREE.MeshPhongMaterial({
       color: 0x4466ff,
       transparent: true,
@@ -186,6 +196,7 @@
             health: 1.0,
             affected: false,
             scale: 1.0,
+            vel: new THREE.Vector3(), // used in shear mode
             grid: {x, y, z}
           };
           scene.add(m);
@@ -195,31 +206,62 @@
     }
   }
 
-  // ----- Projectile -----
-  function clearProjectile() { if (projectile) scene.remove(projectile); }
+  // ----- Projectile + Plasma Trail -----
+  let trail, trailPositions, trailIndex = 0, trailLen = 100;
+  function clearProjectile() { if (projectile) scene.remove(projectile); if (trail) scene.remove(trail); }
   function createProjectile() {
     clearProjectile();
+    // projectile
     const geom = new THREE.CylinderGeometry(0.25, 0.35, 2.2, 12);
-    const mat = new THREE.MeshPhongMaterial({ color: 0xff2b2b, emissive: 0x441111, emissiveIntensity: 0.6 });
+    const mat = new THREE.MeshPhongMaterial({ color: 0xff2b2b, emissive: 0x661111, emissiveIntensity: 0.9 });
     projectile = new THREE.Mesh(geom, mat);
     projectile.rotation.x = Math.PI/2;
     projectile.position.set(0, BLOCK*0.5 + (layerCount*(BLOCK+GAP))*0.4, -18);
     scene.add(projectile);
+
+    // plasma trail (simple line, circular buffer)
+    trailPositions = new Float32Array(trailLen * 3);
+    for (let i=0;i<trailLen;i++){
+      trailPositions[i*3+0] = projectile.position.x;
+      trailPositions[i*3+1] = projectile.position.y;
+      trailPositions[i*3+2] = projectile.position.z;
+    }
+    const tGeom = new THREE.BufferGeometry();
+    tGeom.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+    const tMat = new THREE.LineBasicMaterial({ color: 0x66ccff, transparent:true, opacity:0.85 });
+    trail = new THREE.Line(tGeom, tMat);
+    scene.add(trail);
+    trailIndex = 0;
+  }
+
+  function updateTrail() {
+    if (!trail) return;
+    trailPositions[trailIndex*3+0] = projectile.position.x;
+    trailPositions[trailIndex*3+1] = projectile.position.y;
+    trailPositions[trailIndex*3+2] = projectile.position.z;
+    trailIndex = (trailIndex + 1) % trailLen;
+    trail.geometry.attributes.position.needsUpdate = true;
+
+    // slight fade with distance by overall opacity pulsing
+    const t = performance.now()*0.001;
+    trail.material.opacity = 0.6 + 0.25*Math.sin(t*2.5);
   }
 
   // ----- Debris -----
-  const MAX_DEBRIS = 220;
-  function spawnDebris(at, n=2) {
+  const MAX_DEBRIS = 240;
+  function spawnDebris(at, n=2, lateralBoost=0) {
     for (let i=0;i<n;i++){
       if (debris.length > MAX_DEBRIS) break;
-      const g = new THREE.BoxGeometry(0.25,0.25,0.25);
+      const g = new THREE.BoxGeometry(0.24,0.24,0.24);
       const m = new THREE.MeshPhongMaterial({ color: 0xffaa00, transparent:true, opacity:0.95 });
       const d = new THREE.Mesh(g, m);
       d.position.copy(at);
-      d.userData = {
-        v: new THREE.Vector3((Math.random()-0.5)*0.6, Math.random()*0.8, (Math.random()-0.5)*0.6),
-        life: 1.0
-      };
+      const base = new THREE.Vector3(
+        (Math.random()-0.5)*0.6 + lateralBoost*(Math.random()>0.5?1:-1),
+        Math.random()*0.8,
+        (Math.random()-0.5)*0.6
+      );
+      d.userData = { v: base, life: 1.0 };
       scene.add(d);
       debris.push(d);
     }
@@ -230,25 +272,20 @@
     const p = b.position;
     for (const nb of armorBlocks) {
       if (!nb.userData || nb.userData.affected) continue;
-      if (nb.position.distanceTo(p) < radius) {
-        nb.userData.affected = true;
-      }
+      if (nb.position.distanceTo(p) < radius) nb.userData.affected = true;
     }
   }
 
   // ----- Penetration measurement -----
   function currentPenetrationCm() {
-    // Count max Y layer index whose blocks are mostly melted (health ~0)
     let deepest = -1;
     for (let y=0; y<layerCount; y++) {
-      // If >50% blocks in this layer are <=0 health, consider penetrated
       let layerBlocks = 0, dead = 0;
       for (const b of armorBlocks) {
         if (b.userData.grid.y === y) { layerBlocks++; if (b.userData.health <= 0) dead++; }
       }
       if (layerBlocks > 0 && dead / layerBlocks > 0.5) deepest = y;
     }
-    // Convert layers to "cm" (BLOCK ~ 1 unit ≈ 1 cm for viz)
     return Math.max(0, (deepest+1) * (BLOCK+GAP)) * 1.0;
   }
 
@@ -258,6 +295,7 @@
 
   // UI change handlers
   ui.speed.oninput = e => { projSpeed = parseFloat(e.target.value); };
+  ui.timescale.oninput = e => { timeScale = parseFloat(e.target.value); };
   ui.layers.oninput = e => {
     layerCount = parseInt(e.target.value);
     buildArmor();
@@ -267,25 +305,36 @@
     baseOpacity = parseFloat(e.target.value);
     for (const b of armorBlocks) if (b.material) b.material.opacity = baseOpacity;
   };
+  ui.mode.oninput = e => { failureMode = e.target.value; };
   ui.resetSim.onclick = () => { buildArmor(); createProjectile(); };
+  ui.resetView.onclick = () => {
+    orbitEnabled = true;
+    ui.toggleOrbit.textContent = 'Pause Orbit';
+    camRadius = 22; camAngle = Math.PI*0.25; camHeight = 10;
+    placeCamera();
+  };
+  ui.toggleOrbit.onclick = () => {
+    orbitEnabled = !orbitEnabled;
+    ui.toggleOrbit.textContent = orbitEnabled ? 'Pause Orbit' : 'Resume Orbit';
+  };
 
   // ----- Animate -----
   let lastT = performance.now();
   let accum = 0;
   function animate(now) {
-    const dt = Math.min(0.033, (now - lastT) / 1000); // clamp dt for stability
+    const rawDt = Math.min(0.033, (now - lastT) / 1000); // cap
+    const dt = rawDt * timeScale;
     lastT = now;
     accum += dt;
 
     // Camera orbit
-    if (orbitEnabled && !dragging) {
-      camAngle += dt * 0.22;
-    }
+    if (orbitEnabled && !dragging) camAngle += dt * 0.22;
     placeCamera();
 
     // Move projectile
     if (projectile) {
-      projectile.position.z += projSpeed;
+      projectile.position.z += projSpeed * dt * 60; // scale to feel responsive on slider
+      updateTrail();
 
       // Collision with blocks (radius check)
       for (const b of armorBlocks) {
@@ -294,45 +343,73 @@
         const d = b.position.distanceTo(projectile.position);
         if (d < 0.9) {
           b.userData.affected = true;
-          b.userData.health -= 0.22; // damage per hit
-          b.userData.health = Math.max(0, b.userData.health);
 
-          // melting/shrink
-          b.userData.scale = 0.2 + 0.8 * b.userData.health;
-          b.scale.setScalar(b.userData.scale);
+          if (failureMode === 'melt') {
+            // Melt/ionize: rapid health loss, shrink, heat tint, opacity rise
+            b.userData.health -= 0.22;
+            b.userData.health = Math.max(0, b.userData.health);
+            b.userData.scale = 0.2 + 0.8 * b.userData.health;
+            b.scale.setScalar(b.userData.scale);
+            const h = b.userData.health;
+            b.material.color.setRGB(1.0, 0.3 + 0.7*h, 0.3 + 0.7*h);
+            b.material.opacity = Math.min(1.0, baseOpacity + (1 - h) * 0.35);
+            spawnDebris(b.position, 2, 0.0);
+          } else {
+            // Shear/slide: less shrink, more lateral velocity
+            b.userData.health -= 0.16;
+            b.userData.health = Math.max(0, b.userData.health);
+            b.userData.scale = 0.5 + 0.5 * b.userData.health; // stays chunkier
+            b.scale.setScalar(b.userData.scale);
+            const lateral = new THREE.Vector3((Math.random()-0.5)*0.6, 0.1 + Math.random()*0.2, (Math.random()-0.5)*0.6);
+            b.userData.vel.add(lateral);
+            // subtle color change for shear
+            const h = b.userData.health;
+            b.material.color.setRGB(0.9 + 0.1*(1-h), 0.5 + 0.4*h, 0.5 + 0.4*h);
+            b.material.opacity = Math.min(1.0, baseOpacity + (1 - h) * 0.25);
+            spawnDebris(b.position, 3, 0.25);
+          }
 
-          // heat tint + increase opacity as it ionizes
-          const h = b.userData.health;
-          b.material.color.setRGB(1.0, 0.3 + 0.7*h, 0.3 + 0.7*h);
-          b.material.opacity = Math.min(1.0, baseOpacity + (1 - h) * 0.35);
-
-          spawnDebris(b.position, 2);
           affectNeighbors(b, 1.45);
         }
       }
     }
 
-    // Contagion decay + passive melting
+    // Contagion & passive behavior
     for (const b of armorBlocks) {
       if (!b.userData) continue;
-      if (b.userData.affected && b.userData.health > 0) {
-        b.userData.health -= 0.02 * dt * 60; // slow burn
-        b.userData.health = Math.max(0, b.userData.health);
-        b.userData.scale = 0.2 + 0.8 * b.userData.health;
-        b.scale.setScalar(b.userData.scale);
-        const h = b.userData.health;
-        b.material.color.setRGB(1.0, 0.35 + 0.65*h, 0.35 + 0.65*h);
-        b.material.opacity = Math.min(1.0, baseOpacity + (1 - h) * 0.35);
+
+      if (failureMode === 'melt') {
+        if (b.userData.affected && b.userData.health > 0) {
+          b.userData.health -= 0.02 * dt * 60;
+          b.userData.health = Math.max(0, b.userData.health);
+          b.userData.scale = 0.2 + 0.8 * b.userData.health;
+          b.scale.setScalar(b.userData.scale);
+          const h = b.userData.health;
+          b.material.color.setRGB(1.0, 0.35 + 0.65*h, 0.35 + 0.65*h);
+          b.material.opacity = Math.min(1.0, baseOpacity + (1 - h) * 0.35);
+        }
+      } else {
+        // Shear: integrate simple motion with damping & gravity
+        b.userData.vel.y -= 0.01 * dt * 60;
+        b.userData.vel.multiplyScalar(0.985);
+        b.position.addScaledVector(b.userData.vel, dt * 60 * 0.5);
+        if (b.userData.affected && b.userData.health > 0) {
+          // slow degradation (microcrack propagation)
+          b.userData.health -= 0.008 * dt * 60;
+          b.userData.health = Math.max(0, b.userData.health);
+          b.userData.scale = 0.5 + 0.5 * b.userData.health;
+          b.scale.setScalar(b.userData.scale);
+        }
       }
     }
 
     // Debris motion (simple physics)
     for (let i = debris.length-1; i >= 0; i--) {
       const d = debris[i];
-      d.userData.v.y -= 0.015;              // gravity
-      d.userData.v.multiplyScalar(0.985);   // drag
-      d.position.add(d.userData.v);
-      d.userData.life -= 0.008;
+      d.userData.v.y -= 0.015 * dt * 60;            // gravity
+      d.userData.v.multiplyScalar(0.985);
+      d.position.addScaledVector(d.userData.v, dt * 60 * 0.5);
+      d.userData.life -= 0.008 * dt * 60;
       d.material.opacity = Math.max(0, d.userData.life);
       if (d.userData.life <= 0) {
         scene.remove(d);
@@ -340,10 +417,10 @@
       }
     }
 
-    // Basic perf throttling: cull totally melted blocks
+    // Cull tiny, dead blocks
     for (let i = armorBlocks.length-1; i >= 0; i--) {
       const b = armorBlocks[i];
-      if (b.userData.health <= 0 && b.userData.scale <= 0.22) {
+      if (b.userData.health <= 0 && b.userData.scale <= (failureMode==='melt'?0.22:0.3)) {
         scene.remove(b);
         armorBlocks.splice(i,1);
       }
@@ -353,7 +430,7 @@
     if (accum > 0.2) {
       const pen = currentPenetrationCm();
       ui.readout.textContent = `Penetration: ${pen.toFixed(1)} cm`;
-      ui.stats.textContent = `Blocks: ${armorBlocks.length}  Debris: ${debris.length}`;
+      ui.stats.textContent = `Blocks: ${armorBlocks.length}  Debris: ${debris.length}  Mode: ${failureMode}`;
       accum = 0;
     }
 
