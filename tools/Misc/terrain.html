@@ -1,130 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Nucleus Simulation</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-    #health {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      padding: 6px 10px;
-      background: rgba(0,0,0,0.5);
-      color: white;
-      font-family: sans-serif;
-      font-size: 14px;
-      border-radius: 6px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Nucleus Simulation</title>
+<style>
+  body { margin: 0; overflow: hidden; background-color: #111; }
+  #healthBar {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 200px;
+    height: 20px;
+    background-color: #333;
+  }
+  #healthFill {
+    width: 100%;
+    height: 100%;
+    background-color: #0f0;
+  }
+</style>
 </head>
 <body>
-  <div id="health">Stability: 100</div>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-  <script>
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({antialias:true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+<div id="healthBar"><div id="healthFill"></div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+<script>
+// --- Scene Setup ---
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(5, 5, 10);
+camera.lookAt(0, 0, 0);
 
-    camera.position.set(0,0,10);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-    // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    dirLight.position.set(5,5,5);
-    scene.add(dirLight);
+// --- Lighting ---
+const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambient);
+const directional = new THREE.DirectionalLight(0xffffff, 1);
+directional.position.set(5,10,5);
+scene.add(directional);
 
-    // Proton and Neutron Materials
-    const protonMat = new THREE.MeshPhongMaterial({color:0xff3333});
-    const neutronMat = new THREE.MeshPhongMaterial({color:0x3333ff});
+// --- Nucleons Setup ---
+const nucleons = [];
+const numProtons = 4;
+const numNeutrons = 5;
+const nucleonRadius = 0.2;
 
-    // Make nucleus
-    const nucleons = [];
-    const radius = 0.3;
-    for (let i=0; i<6; i++) { // 3 protons, 3 neutrons
-      const mat = (i % 2 === 0) ? protonMat : neutronMat;
-      const sphere = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 16), mat);
-      sphere.position.set(
+function createNucleon(isProton) {
+    const color = isProton ? 0xff0000 : 0x0000ff;
+    const geometry = new THREE.SphereGeometry(nucleonRadius, 16, 16);
+    const material = new THREE.MeshPhongMaterial({color: color});
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(
         (Math.random()-0.5)*2,
         (Math.random()-0.5)*2,
         (Math.random()-0.5)*2
-      );
-      scene.add(sphere);
-      nucleons.push({mesh:sphere, isProton:(i%2===0)});
-    }
+    );
+    mesh.velocity = new THREE.Vector3(
+        (Math.random()-0.5)*0.02,
+        (Math.random()-0.5)*0.02,
+        (Math.random()-0.5)*0.02
+    );
+    mesh.isProton = isProton;
+    scene.add(mesh);
+    nucleons.push(mesh);
+}
 
-    // Stability
-    let stability = 100;
-    const healthDiv = document.getElementById("health");
+for(let i=0;i<numProtons;i++) createNucleon(true);
+for(let i=0;i<numNeutrons;i++) createNucleon(false);
 
-    function computeForces() {
-      let totalForce = 0;
-      for (let i=0; i<nucleons.length; i++) {
-        let n1 = nucleons[i];
-        for (let j=i+1; j<nucleons.length; j++) {
-          let n2 = nucleons[j];
-          let dx = n1.mesh.position.x - n2.mesh.position.x;
-          let dy = n1.mesh.position.y - n2.mesh.position.y;
-          let dz = n1.mesh.position.z - n2.mesh.position.z;
-          let dist = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.001;
+// --- Forces ---
+const strongRadius = 1.0;
+const strongStrength = 0.05;
+const emStrength = 0.02;
 
-          // Strong force: attractive if close (<2 units)
-          let strong = 0;
-          if (dist < 2.0) {
-            strong = -5.0 / (dist*dist); 
-          }
+// --- Health Bar ---
+let health = 1.0;
+const healthFill = document.getElementById("healthFill");
 
-          // EM force: only between protons
-          let em = 0;
-          if (n1.isProton && n2.isProton) {
-            em = 2.0 / (dist*dist);
-          }
+// --- Animation Loop ---
+function animate(){
+    requestAnimationFrame(animate);
 
-          let f = em + strong;
-          totalForce += f;
+    // Forces between nucleons
+    for(let i=0;i<nucleons.length;i++){
+        let ni = nucleons[i];
+        let force = new THREE.Vector3(0,0,0);
 
-          // Push them slightly
-          let fx = (dx/dist) * f * 0.02;
-          let fy = (dy/dist) * f * 0.02;
-          let fz = (dz/dist) * f * 0.02;
-          n1.mesh.position.x += fx;
-          n1.mesh.position.y += fy;
-          n1.mesh.position.z += fz;
-          n2.mesh.position.x -= fx;
-          n2.mesh.position.y -= fy;
-          n2.mesh.position.z -= fz;
+        for(let j=0;j<nucleons.length;j++){
+            if(i===j) continue;
+            let nj = nucleons[j];
+            let dir = new THREE.Vector3().subVectors(nj.position, ni.position);
+            let dist = dir.length();
+            dir.normalize();
+
+            // Strong force attraction
+            if(dist < strongRadius){
+                force.add(dir.clone().multiplyScalar(strongStrength*(strongRadius-dist)));
+            }
+
+            // EM repulsion between protons
+            if(ni.isProton && nj.isProton && dist>0){
+                let emForce = emStrength / (dist*dist);
+                force.add(dir.clone().multiplyScalar(-emForce));
+            }
         }
-      }
-      return totalForce;
+
+        // Update velocity and position
+        ni.velocity.add(force);
+        ni.position.add(ni.velocity);
+
+        // Damping to stabilize
+        ni.velocity.multiplyScalar(0.98);
     }
 
-    function animate() {
-      requestAnimationFrame(animate);
-
-      // Jiggle nucleons
-      nucleons.forEach(n => {
-        n.mesh.position.x += (Math.random()-0.5)*0.02;
-        n.mesh.position.y += (Math.random()-0.5)*0.02;
-        n.mesh.position.z += (Math.random()-0.5)*0.02;
-      });
-
-      let netForce = computeForces();
-
-      // Adjust stability
-      stability -= Math.abs(netForce)*0.001;
-      stability = Math.max(0, stability);
-      healthDiv.innerText = "Stability: " + stability.toFixed(1);
-
-      if (stability <= 0) {
-        healthDiv.innerText = "💥 Nucleus Breaks!";
-      }
-
-      renderer.render(scene, camera);
+    // Update health based on imbalance of EM vs strong
+    let emEnergy = 0;
+    let strongEnergy = 0;
+    for(let i=0;i<nucleons.length;i++){
+        let ni = nucleons[i];
+        for(let j=i+1;j<nucleons.length;j++){
+            let nj = nucleons[j];
+            let dist = ni.position.distanceTo(nj.position);
+            if(dist===0) continue;
+            if(ni.isProton && nj.isProton) emEnergy += 1/(dist*dist);
+            if(dist < strongRadius) strongEnergy += (strongRadius-dist);
+        }
     }
-    animate();
-  </script>
+    health = Math.min(1, Math.max(0, strongEnergy/(strongEnergy+emEnergy)));
+    healthFill.style.width = (health*200) + "px";
+    healthFill.style.backgroundColor = `rgb(${(1-health)*255},${health*255},0)`;
+
+    renderer.render(scene, camera);
+}
+animate();
+
+// --- Window Resize ---
+window.addEventListener('resize', ()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
 </body>
 </html>
