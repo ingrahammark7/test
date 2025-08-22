@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Nucleon Chain Reaction with EM/Strong Waves</title>
+<title>Nucleon Chain Reaction Dynamic</title>
 <style>body{margin:0;overflow:hidden;}canvas{display:block;}</style>
 </head>
 <body>
@@ -25,12 +25,14 @@ light.position.set(50,50,50);
 scene.add(light);
 scene.add(new THREE.AmbientLight(0x555555));
 
+let boxSize = 30;
+
 class Nucleon {
     constructor(){
         const geom = new THREE.SphereGeometry(0.5,8,8);
         const mat = new THREE.MeshStandardMaterial({color:0xff4444});
         this.mesh = new THREE.Mesh(geom, mat);
-        this.mesh.position.set((Math.random()-0.5)*20, (Math.random()-0.5)*20, (Math.random()-0.5)*20);
+        this.mesh.position.set((Math.random()-0.5)*boxSize*2, (Math.random()-0.5)*boxSize*2, (Math.random()-0.5)*boxSize*2);
         this.velocity = new THREE.Vector3((Math.random()-0.5)*2,(Math.random()-0.5)*2,(Math.random()-0.5)*2);
         this.energy = Math.random();
         this.cluster = null;
@@ -41,11 +43,10 @@ class Nucleon {
         trailGeom.setAttribute('position', new THREE.BufferAttribute(positions,3));
         const trailMat = new THREE.LineBasicMaterial({color:0xffff44, transparent:true, opacity:0.6});
         this.trail = new THREE.Line(trailGeom, trailMat);
-        this.trailPosIndex = 0;
         scene.add(this.mesh);
         scene.add(this.trail);
     }
-    update(delta, boxSize){
+    update(delta){
         if(!this.cluster){
             this.mesh.position.addScaledVector(this.velocity, delta);
             ['x','y','z'].forEach(axis=>{
@@ -57,14 +58,14 @@ class Nucleon {
         }
 
         // Trail
-        const positions = this.trail.geometry.attributes.position.array;
-        positions.copyWithin(0,3);
-        positions[positions.length-3] = this.mesh.position.x;
-        positions[positions.length-2] = this.mesh.position.y;
-        positions[positions.length-1] = this.mesh.position.z;
-        this.trail.geometry.attributes.position.needsUpdate = true;
+        const pos = this.trail.geometry.attributes.position.array;
+        pos.copyWithin(0,3);
+        pos[pos.length-3]=this.mesh.position.x;
+        pos[pos.length-2]=this.mesh.position.y;
+        pos[pos.length-1]=this.mesh.position.z;
+        this.trail.geometry.attributes.position.needsUpdate=true;
 
-        // Spin spiral for energy
+        // Spin spiral
         const angle = performance.now()*0.001*this.energy*5;
         this.mesh.rotation.x = angle;
         this.mesh.rotation.y = angle*0.7;
@@ -85,7 +86,6 @@ class Atom {
         this.mesh.position.copy(this.center);
         scene.add(this.mesh);
 
-        // Wave effect for EM/Strong propagation
         this.waveGeom = new THREE.SphereGeometry(this.nucleons.length*0.6,8,8);
         this.waveMat = new THREE.MeshBasicMaterial({color:0x00ffff, transparent:true, opacity:0.1});
         this.waveMesh = new THREE.Mesh(this.waveGeom, this.waveMat);
@@ -102,12 +102,11 @@ class Atom {
         this.mesh.material.opacity = 0.2+0.3*avgEnergy;
         this.mesh.scale.setScalar(1+0.3*avgEnergy);
 
-        // Wave propagation
         this.waveScale += 0.2;
         this.waveMesh.scale.setScalar(this.waveScale);
         this.waveMesh.position.copy(this.center);
-        this.waveMat.opacity = Math.max(0, 0.2 - (this.waveScale-1)*0.05);
-        if(this.waveMat.opacity<=0){ this.waveScale=1; }
+        this.waveMat.opacity = Math.max(0,0.2-(this.waveScale-1)*0.05);
+        if(this.waveMat.opacity<=0) this.waveScale=1;
     }
 }
 
@@ -116,11 +115,11 @@ class Electron {
         const geom = new THREE.SphereGeometry(0.2,6,6);
         const mat = new THREE.MeshBasicMaterial({color:0x4444ff});
         this.mesh = new THREE.Mesh(geom, mat);
-        this.mesh.position.set((Math.random()-0.5)*20, (Math.random()-0.5)*20, (Math.random()-0.5)*20);
+        this.mesh.position.set((Math.random()-0.5)*boxSize*2, (Math.random()-0.5)*boxSize*2, (Math.random()-0.5)*boxSize*2);
         this.velocity = new THREE.Vector3((Math.random()-0.5)*4,(Math.random()-0.5)*4,(Math.random()-0.5)*4);
         scene.add(this.mesh);
     }
-    update(delta, boxSize){
+    update(delta){
         this.mesh.position.addScaledVector(this.velocity, delta);
         ['x','y','z'].forEach(axis=>{
             if(this.mesh.position[axis]>boxSize){ this.mesh.position[axis]=boxSize; this.velocity[axis]*=-1; }
@@ -129,14 +128,14 @@ class Electron {
     }
 }
 
-const nucleons = [];
+const nucleons=[];
 for(let i=0;i<100;i++) nucleons.push(new Nucleon());
-const electrons = [];
+const electrons=[];
 for(let i=0;i<20;i++) electrons.push(new Electron());
-const atoms = [];
+const atoms=[];
 
 function detectAtoms(){
-    const threshold = 2.0;
+    const threshold=2.0;
     nucleons.forEach(n1=>{
         if(n1.cluster) return;
         nucleons.forEach(n2=>{
@@ -153,7 +152,7 @@ function electronCollisions(){
     electrons.forEach(e=>{
         nucleons.forEach(n=>{
             if(e.mesh.position.distanceTo(n.mesh.position)<0.5){
-                const push = e.velocity.clone().multiplyScalar(energyTransfer);
+                const push=e.velocity.clone().multiplyScalar(energyTransfer);
                 if(!n.cluster) n.velocity.add(push);
                 nucleons.forEach(nn=>{
                     if(nn!==n && nn.mesh.position.distanceTo(n.mesh.position)<1.5){
@@ -165,68 +164,71 @@ function electronCollisions(){
     });
 }
 
-// Camera random focus on active atoms/events
-let focusTimer = 0;
-let focusAtom = null;
-
+// Camera random focus
+let focusTimer=0, focusAtom=null;
 function updateCameraFocus(delta){
-    focusTimer -= delta;
-    if(focusTimer <=0){
-        focusTimer = 2 + Math.random()*3; // every 2-5 seconds
+    focusTimer-=delta;
+    if(focusTimer<=0){
+        focusTimer=2+Math.random()*3;
         if(atoms.length>0) focusAtom = atoms[Math.floor(Math.random()*atoms.length)];
     }
-    if(focusAtom){
-        cameraTarget.lerp(focusAtom.center, 0.02);
-    } else {
-        cameraTarget.lerp(new THREE.Vector3(0,0,0),0.02);
-    }
+    if(focusAtom) cameraTarget.lerp(focusAtom.center,0.02);
+    else cameraTarget.lerp(new THREE.Vector3(0,0,0),0.02);
 }
 
 // Camera controls
-let targetX=0, targetZ=0, distance=50, rotationY=0, targetRotationY=0;
-window.addEventListener('deviceorientation', e=>{
-    targetX = (e.gamma||0)*0.5;
-    targetZ = -(e.beta||0)*0.5;
-}, true);
+let targetX=0,targetZ=0,distance=50,rotationY=0,targetRotationY=0;
+window.addEventListener('deviceorientation',e=>{targetX=(e.gamma||0)*0.5;targetZ=-(e.beta||0)*0.5;},true);
 let isDragging=false, prevX=0;
-window.addEventListener('mousedown', e=>{isDragging=true; prevX=e.clientX;});
-window.addEventListener('mouseup', ()=>isDragging=false);
-window.addEventListener('mousemove', e=>{
-    if(isDragging){ const dx=e.clientX-prevX; targetRotationY+=dx*0.005; prevX=e.clientX; }
-});
+window.addEventListener('mousedown',e=>{isDragging=true; prevX=e.clientX;});
+window.addEventListener('mouseup',()=>isDragging=false);
+window.addEventListener('mousemove',e=>{if(isDragging){targetRotationY+=(e.clientX-prevX)*0.005; prevX=e.clientX;}});
 
-let boxSize = 30;
-let lastTime = performance.now();
+let lastTime=performance.now();
+let frameCount=0, growthAccumulator=0;
+const maxNucleons=300,maxElectrons=60,growthInterval=0.3;
 
 function animate(){
     requestAnimationFrame(animate);
-    const now = performance.now();
-    const delta = (now-lastTime)/1000;
-    lastTime = now;
+    const now=performance.now();
+    const delta=(now-lastTime)/1000;
+    lastTime=now;
+    frameCount++;
+    growthAccumulator+=delta;
 
-    nucleons.forEach(n=>n.update(delta, boxSize));
-    electrons.forEach(e=>e.update(delta, boxSize));
+    nucleons.forEach(n=>n.update(delta));
+    electrons.forEach(e=>e.update(delta));
     atoms.forEach(a=>a.update());
 
     detectAtoms();
     electronCollisions();
     updateCameraFocus(delta);
 
-    rotationY += (targetRotationY - rotationY)*0.05;
-    camera.position.x = targetX + Math.sin(rotationY)*distance;
-    camera.position.z = targetZ + Math.cos(rotationY)*distance;
-    camera.position.y = 20;
+    rotationY+=(targetRotationY-rotationY)*0.05;
+    camera.position.x=targetX+Math.sin(rotationY)*distance;
+    camera.position.z=targetZ+Math.cos(rotationY)*distance;
+    camera.position.y=20;
     camera.lookAt(cameraTarget);
 
     renderer.render(scene,camera);
+
+    // Adaptive growth
+    if(growthAccumulator>=growthInterval){
+        const fps=frameCount/growthAccumulator;
+        frameCount=0; growthAccumulator=0;
+        if(fps>30){
+            if(nucleons.length<maxNucleons) nucleons.push(new Nucleon());
+            if(electrons.length<maxElectrons) electrons.push(new Electron());
+        }
+    }
 }
 
 animate();
 
-window.addEventListener('resize', ()=>{
-    camera.aspect = window.innerWidth/window.innerHeight;
+window.addEventListener('resize',()=>{
+    camera.aspect=window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth,window.innerHeight);
 });
 </script>
 </body>
