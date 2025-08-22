@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Atomic Cluster Simulation with Force Spirals</title>
+<title>Atomic Cluster Simulation with Cluster Markers</title>
 <style>
 body { margin:0; background:#111; overflow:hidden;}
 </style>
@@ -62,7 +62,7 @@ function initNucleons(count){
 }
 initNucleons(nucleonCount);
 
-// Clusters
+// Cluster detection and visualization
 let clusters=[];
 function detectClusters(){
     clusters=[];
@@ -80,6 +80,37 @@ function detectClusters(){
         }
         if(cluster.length>1) clusters.push(cluster);
     }
+
+    // Mark clusters visually
+    clusters.forEach(cluster=>{
+        let center = new THREE.Vector3();
+        cluster.forEach(idx=>center.add(nucleons[idx].mesh.position));
+        center.divideScalar(cluster.length);
+        let radius = 0.15 + 0.05*cluster.length;
+
+        if(!cluster.marker){
+            // Semi-transparent green sphere
+            let geo = new THREE.SphereGeometry(radius,16,16);
+            let mat = new THREE.MeshBasicMaterial({color:0x00ff00, transparent:true, opacity:0.2});
+            let marker = new THREE.Mesh(geo, mat);
+            scene.add(marker);
+            cluster.marker = marker;
+
+            // Halo pulse
+            let haloGeo = new THREE.RingGeometry(radius, radius*1.2, 32);
+            let haloMat = new THREE.MeshBasicMaterial({color:0x00ffff, transparent:true, opacity:0.1, side:THREE.DoubleSide});
+            let halo = new THREE.Mesh(haloGeo, haloMat);
+            scene.add(halo);
+            cluster.halo = halo;
+        }
+        cluster.marker.position.copy(center);
+        cluster.marker.scale.setScalar(1+0.01*cluster.length);
+
+        cluster.halo.position.copy(center);
+        cluster.halo.rotation.x = Date.now()*0.001;
+        cluster.halo.rotation.y = Date.now()*0.0015;
+        cluster.halo.scale.setScalar(1+0.02*Math.sin(Date.now()*0.005));
+    });
 }
 
 const EM_STRENGTH = 0.0005;
@@ -143,35 +174,6 @@ function animate(){
     }
 
     detectClusters();
-
-    clusters.forEach(cluster=>{
-        let center = new THREE.Vector3();
-        cluster.forEach(idx=>center.add(nucleons[idx].mesh.position));
-        center.divideScalar(cluster.length);
-        let radius = 0.15 + 0.05*cluster.length;
-        if(!cluster.sphere){
-            let geo = new THREE.SphereGeometry(radius,16,16);
-            let mat = new THREE.MeshBasicMaterial({color:0x00ff00, transparent:true, opacity:0.2});
-            let s = new THREE.Mesh(geo, mat);
-            scene.add(s);
-            cluster.sphere = s;
-
-            // Gravity-wave halo
-            let haloGeo = new THREE.RingGeometry(radius, radius*1.2, 32);
-            let haloMat = new THREE.MeshBasicMaterial({color:0x00ffff, transparent:true, opacity:0.1, side:THREE.DoubleSide});
-            let halo = new THREE.Mesh(haloGeo, haloMat);
-            scene.add(halo);
-            cluster.halo = halo;
-        }
-        cluster.sphere.position.copy(center);
-        cluster.sphere.scale.setScalar(1+0.01*cluster.length);
-
-        cluster.halo.position.copy(center);
-        cluster.halo.rotation.x = Date.now()*0.001;
-        cluster.halo.rotation.y = Date.now()*0.0015;
-        cluster.halo.scale.setScalar(1+0.02*Math.sin(Date.now()*0.005));
-    });
-
     renderer.render(scene,camera);
 }
 animate();
