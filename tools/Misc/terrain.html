@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Atomic Cluster Simulation</title>
+<title>Atomic Cluster Simulation with Force Spirals</title>
 <style>
 body { margin:0; background:#111; overflow:hidden;}
 </style>
@@ -25,13 +25,12 @@ let cubeMat = new THREE.MeshBasicMaterial({color:0x4444ff, wireframe:true});
 let cube = new THREE.Mesh(cubeGeom, cubeMat);
 scene.add(cube);
 
-// Nucleons
-let nucleons=[], velocities=[], trails=[];
+let nucleons=[], velocities=[], trails=[], spirals=[];
 const nucleonRadius = 0.1;
 let nucleonCount = 100;
 
 function initNucleons(count){
-    nucleons=[]; velocities=[]; trails=[];
+    nucleons=[]; velocities=[]; trails=[]; spirals=[];
     for(let i=0;i<count;i++){
         let geo = new THREE.SphereGeometry(nucleonRadius,12,12);
         let mat = new THREE.MeshBasicMaterial({color:0xff4444});
@@ -39,7 +38,9 @@ function initNucleons(count){
         s.position.set((Math.random()-0.5)*cubeSize,(Math.random()-0.5)*cubeSize,(Math.random()-0.5)*cubeSize);
         scene.add(s);
         nucleons.push({mesh:s, cluster:null});
+
         velocities.push(new THREE.Vector3((Math.random()-0.5)*0.05,(Math.random()-0.5)*0.05,(Math.random()-0.5)*0.05));
+
         // Trail
         let trailGeo = new THREE.BufferGeometry();
         let positions = new Float32Array(30*3);
@@ -48,11 +49,20 @@ function initNucleons(count){
         let line = new THREE.Line(trailGeo, trailMat);
         scene.add(line);
         trails.push({line, positions, index:0});
+
+        // Spin spiral
+        let spiralGeo = new THREE.BufferGeometry();
+        let spiralPositions = new Float32Array(20*3);
+        spiralGeo.setAttribute('position', new THREE.BufferAttribute(spiralPositions,3));
+        let spiralMat = new THREE.LineBasicMaterial({color:0x00ffff, transparent:true, opacity:0.5});
+        let spiralLine = new THREE.Line(spiralGeo, spiralMat);
+        scene.add(spiralLine);
+        spirals.push({line:spiralLine, positions:spiralPositions});
     }
 }
 initNucleons(nucleonCount);
 
-// Cluster system
+// Clusters
 let clusters=[];
 function detectClusters(){
     clusters=[];
@@ -72,7 +82,6 @@ function detectClusters(){
     }
 }
 
-// Physics constants
 const EM_STRENGTH = 0.0005;
 const STRONG_RANGE = 0.5;
 const STRONG_STRENGTH = 0.002;
@@ -80,7 +89,6 @@ const STRONG_STRENGTH = 0.002;
 function animate(){
     requestAnimationFrame(animate);
 
-    // Update nucleons
     for(let i=0;i<nucleons.length;i++){
         let n = nucleons[i].mesh;
         let vi = velocities[i];
@@ -93,9 +101,9 @@ function animate(){
             let dist = dVec.length();
             if(dist===0) continue;
 
-            let spiral = new THREE.Vector3(dVec.y,-dVec.x,dVec.z).normalize().multiplyScalar(Math.sin(Date.now()*0.005+i+j)*0.05);
-            let emF = dVec.clone().multiplyScalar(EM_STRENGTH/(dist*dist)).add(spiral);
-            let strongF = (dist<STRONG_RANGE ? dVec.clone().multiplyScalar(-STRONG_STRENGTH/(dist*dist)) : new THREE.Vector3()).add(spiral);
+            let spiralVec = new THREE.Vector3(dVec.y,-dVec.x,dVec.z).normalize().multiplyScalar(Math.sin(Date.now()*0.005+i+j)*0.05);
+            let emF = dVec.clone().multiplyScalar(EM_STRENGTH/(dist*dist)).add(spiralVec);
+            let strongF = (dist<STRONG_RANGE ? dVec.clone().multiplyScalar(-STRONG_STRENGTH/(dist*dist)) : new THREE.Vector3()).add(spiralVec);
             let total = emF.clone().add(strongF);
             vi.add(total);
             netForce.add(total);
@@ -115,18 +123,27 @@ function animate(){
         let ratio = strongMag/(strongMag+emMag);
         n.material.color.setRGB(1-ratio, ratio, 0);
 
-        // Trails
+        // Update trail
         let t = trails[i];
         t.positions.copyWithin(3,0,t.positions.length-3);
         t.positions[0]=n.position.x;
         t.positions[1]=n.position.y;
         t.positions[2]=n.position.z;
         t.line.geometry.attributes.position.needsUpdate = true;
+
+        // Update spin spiral
+        let s = spirals[i];
+        for(let k=0;k<10;k++){
+            let angle = Date.now()*0.01 + k*0.6;
+            s.positions[3*k] = n.position.x + Math.cos(angle)*0.2;
+            s.positions[3*k+1] = n.position.y + Math.sin(angle)*0.2;
+            s.positions[3*k+2] = n.position.z + Math.sin(angle*0.5)*0.2;
+        }
+        s.line.geometry.attributes.position.needsUpdate = true;
     }
 
     detectClusters();
 
-    // Visualize clusters as semi-transparent spheres
     clusters.forEach(cluster=>{
         let center = new THREE.Vector3();
         cluster.forEach(idx=>center.add(nucleons[idx].mesh.position));
@@ -138,16 +155,28 @@ function animate(){
             let s = new THREE.Mesh(geo, mat);
             scene.add(s);
             cluster.sphere = s;
+
+            // Gravity-wave halo
+            let haloGeo = new THREE.RingGeometry(radius, radius*1.2, 32);
+            let haloMat = new THREE.MeshBasicMaterial({color:0x00ffff, transparent:true, opacity:0.1, side:THREE.DoubleSide});
+            let halo = new THREE.Mesh(haloGeo, haloMat);
+            scene.add(halo);
+            cluster.halo = halo;
         }
         cluster.sphere.position.copy(center);
         cluster.sphere.scale.setScalar(1+0.01*cluster.length);
+
+        cluster.halo.position.copy(center);
+        cluster.halo.rotation.x = Date.now()*0.001;
+        cluster.halo.rotation.y = Date.now()*0.0015;
+        cluster.halo.scale.setScalar(1+0.02*Math.sin(Date.now()*0.005));
     });
 
     renderer.render(scene,camera);
 }
 animate();
 
-// Simple touch + accelerometer controls
+// Touch + accelerometer controls
 let lastX,lastY;
 document.addEventListener('touchstart', e=>{lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;});
 document.addEventListener('touchmove', e=>{
