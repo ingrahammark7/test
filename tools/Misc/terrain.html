@@ -1,95 +1,367 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Armor Simulation</title>
-<style> body { margin:0; overflow:hidden; } canvas { display:block; } </style>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<meta charset="utf-8" />
+<title>Slidey-Gooey Armor (Mobile)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<style>
+  :root { color-scheme: dark; }
+  html,body { margin:0; height:100%; background:#0e0f13; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  #hud {
+    position: fixed; inset: 10px auto auto 10px;
+    background: rgba(0,0,0,.5); color: #fff; padding: 10px 12px; border-radius: 10px; backdrop-filter: blur(6px);
+    display: grid; gap: 6px; font-size: 14px;
+  }
+  #hud label { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; }
+  #hud input[type="range"] { width: 160px; }
+  #hud .row { display:flex; gap:6px; flex-wrap:wrap; }
+  #hud button {
+    appearance: none; border: 0; border-radius: 10px; padding: 8px 10px; font-weight: 600;
+    background: #1f2937; color:#fff;
+  }
+  #hud button:active { transform: translateY(1px); }
+  #stats {
+    position: fixed; right: 10px; top: 10px; background: rgba(0,0,0,.4);
+    color:#9bdcff; font-variant-numeric: tabular-nums; padding:8px 10px; border-radius:10px;
+  }
+  canvas { display:block; touch-action: none; }
+</style>
 </head>
 <body>
+<div id="hud">
+  <div><strong>Slidey-Gooey Armor</strong></div>
+  <label>Projectile speed <input id="speed" type="range" min="0.1" max="2.0" step="0.1" value="0.8"></label>
+  <label>Armor layers <input id="layers" type="range" min="3" max="10" step="1" value="6"></label>
+  <label>Armor opacity <input id="opacity" type="range" min="0.15" max="0.9" step="0.05" value="0.45"></label>
+  <div class="row">
+    <button id="resetView">Reset View</button>
+    <button id="resetSim">Reset Sim</button>
+    <button id="toggleOrbit">Pause Orbit</button>
+  </div>
+  <div id="readout">Penetration: 0.0 cm</div>
+</div>
+<div id="stats"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
 <script>
-// --- Scene setup ---
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111);
+(() => {
+  // ----- Scene -----
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0e0f13);
 
-// --- Camera ---
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-let armorLayers = 10; // number of layers
-let armorCenter = new THREE.Vector3(0, armorLayers/2, 0);
-let cameraRadius = 30;
-let cameraAngle = Math.PI/4;
-let cameraHeight = 15;
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-// --- Renderer ---
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+  // Lights (mobile-cheap)
+  const amb = new THREE.AmbientLight(0xffffff, 0.55);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(10, 18, 10);
+  scene.add(amb, dir);
 
-// --- Lighting ---
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(20, 40, 20);
-scene.add(light);
-scene.add(new THREE.AmbientLight(0x404040));
+  // ----- Globals / UI -----
+  const ui = {
+    speed: document.getElementById('speed'),
+    layers: document.getElementById('layers'),
+    opacity: document.getElementById('opacity'),
+    resetView: document.getElementById('resetView'),
+    resetSim: document.getElementById('resetSim'),
+    toggleOrbit: document.getElementById('toggleOrbit'),
+    readout: document.getElementById('readout'),
+    stats: document.getElementById('stats'),
+  };
 
-// --- Armor blocks ---
-const armorBlocks = [];
-for(let i=0; i<armorLayers; i++){
-    const geometry = new THREE.BoxGeometry(2, 1, 4);
-    const material = new THREE.MeshPhongMaterial({color: 0x5555ff, transparent:true, opacity:0.6});
-    const block = new THREE.Mesh(geometry, material);
-    block.position.set(0, i + 0.5, 0); // stack in y
-    scene.add(block);
-    armorBlocks.push(block);
-}
+  let armorBlocks = [];
+  let debris = [];
+  let projectile;
+  let projSpeed = parseFloat(ui.speed.value);
+  let layerCount = parseInt(ui.layers.value);
+  let baseOpacity = parseFloat(ui.opacity.value);
 
-// --- Reset camera ---
-function resetCamera() {
-    cameraAngle = Math.PI/4;
-    cameraRadius = 30;
-    cameraHeight = 15;
-    camera.position.x = armorCenter.x + cameraRadius * Math.cos(cameraAngle);
-    camera.position.z = armorCenter.z + cameraRadius * Math.sin(cameraAngle);
-    camera.position.y = armorCenter.y + cameraHeight;
-    camera.lookAt(armorCenter);
-}
-resetCamera();
+  // Armor grid dims (keep modest for phones)
+  const GRID_W = 7, GRID_D = 7;
+  const BLOCK = 1.0;
+  const GAP = 0.08;
 
-// --- Animation variables ---
-const meltSpeed = 0.02; // speed blocks move/fall
-const rotationSpeed = 0.2; // camera orbit speed
-let time = 0;
+  // Armor center used for camera lookAt
+  function armorCenterVec() {
+    return new THREE.Vector3(0, (layerCount* (BLOCK+GAP)) * 0.5, 0);
+  }
 
-// --- Animation loop ---
-function animate(delta){
-    time += delta;
+  // ----- Camera (custom orbit, touch) -----
+  const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+  let orbitEnabled = true;
+  let camRadius = 22;
+  let camAngle = Math.PI * 0.25;  // 3/4
+  let camHeight = 10;
 
-    // Orbit camera around armor
-    cameraAngle += delta * rotationSpeed;
-    camera.position.x = armorCenter.x + cameraRadius * Math.cos(cameraAngle);
-    camera.position.z = armorCenter.z + cameraRadius * Math.sin(cameraAngle);
-    camera.position.y = armorCenter.y + cameraHeight;
-    camera.lookAt(armorCenter);
+  function placeCamera() {
+    const center = armorCenterVec();
+    camera.position.x = center.x + camRadius * Math.cos(camAngle);
+    camera.position.z = center.z + camRadius * Math.sin(camAngle);
+    camera.position.y = center.y + camHeight;
+    camera.lookAt(center);
+  }
+  placeCamera();
 
-    // Animate armor layers
-    armorBlocks.forEach((block, i) => {
-        // random wobble
-        block.rotation.x += 0.005 * Math.random();
-        block.rotation.z += 0.005 * Math.random();
+  // Touch controls
+  let dragging = false;
+  let lastTouches = [];
+  function dist2Touches(t0, t1) {
+    const dx = t0.clientX - t1.clientX, dy = t0.clientY - t1.clientY;
+    return Math.hypot(dx, dy);
+  }
+  addEventListener('touchstart', (e) => { dragging = true; lastTouches = [...e.touches]; }, {passive:false});
+  addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    e.preventDefault();
+    if (e.touches.length === 1 && lastTouches.length === 1) {
+      const dx = e.touches[0].clientX - lastTouches[0].clientX;
+      const dy = e.touches[0].clientY - lastTouches[0].clientY;
+      camAngle -= dx * 0.005;
+      camHeight -= dy * 0.03;
+      camHeight = Math.max(2, Math.min(22, camHeight));
+    } else if (e.touches.length === 2 && lastTouches.length === 2) {
+      const d0 = dist2Touches(lastTouches[0], lastTouches[1]);
+      const d1 = dist2Touches(e.touches[0], e.touches[1]);
+      const dd = d1 - d0;
+      camRadius -= dd * 0.03;
+      camRadius = Math.max(8, Math.min(40, camRadius));
+    }
+    lastTouches = [...e.touches];
+  }, {passive:false});
+  addEventListener('touchend', () => { dragging = false; lastTouches = []; });
 
-        // melt/fly effect (shift in x/y/z)
-        block.position.y -= meltSpeed * Math.random(); // downward
-        block.position.x += (Math.random()-0.5) * meltSpeed;
-        block.position.z += (Math.random()-0.5) * meltSpeed;
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
 
-        // fade out as it “melts/flees”
-        block.material.opacity -= 0.001;
-        if(block.material.opacity < 0) block.material.opacity = 0;
+  ui.resetView.onclick = () => {
+    orbitEnabled = true;
+    ui.toggleOrbit.textContent = 'Pause Orbit';
+    camRadius = 22; camAngle = Math.PI*0.25; camHeight = 10;
+    placeCamera();
+  };
+  ui.toggleOrbit.onclick = () => {
+    orbitEnabled = !orbitEnabled;
+    ui.toggleOrbit.textContent = orbitEnabled ? 'Pause Orbit' : 'Resume Orbit';
+  };
+
+  // ----- Armor build -----
+  function clearArmor() {
+    armorBlocks.forEach(m => scene.remove(m));
+    armorBlocks.length = 0;
+  }
+
+  function makeBlockMat() {
+    // semi-transparent, depthWrite off reduces alpha artifacts on mobile
+    return new THREE.MeshPhongMaterial({
+      color: 0x4466ff,
+      transparent: true,
+      opacity: baseOpacity,
+      depthWrite: false,
     });
+  }
+
+  function buildArmor() {
+    clearArmor();
+    const geom = new THREE.BoxGeometry(BLOCK, BLOCK, BLOCK);
+    const x0 = -((GRID_W-1)*(BLOCK+GAP))*0.5;
+    const z0 = -((GRID_D-1)*(BLOCK+GAP))*0.5;
+
+    for (let y=0; y<layerCount; y++) {
+      for (let x=0; x<GRID_W; x++) {
+        for (let z=0; z<GRID_D; z++) {
+          const m = new THREE.Mesh(geom, makeBlockMat());
+          m.position.set(
+            x0 + x*(BLOCK+GAP),
+            y*(BLOCK+GAP) + BLOCK*0.5,
+            z0 + z*(BLOCK+GAP)
+          );
+          m.userData = {
+            health: 1.0,
+            affected: false,
+            scale: 1.0,
+            grid: {x, y, z}
+          };
+          scene.add(m);
+          armorBlocks.push(m);
+        }
+      }
+    }
+  }
+
+  // ----- Projectile -----
+  function clearProjectile() { if (projectile) scene.remove(projectile); }
+  function createProjectile() {
+    clearProjectile();
+    const geom = new THREE.CylinderGeometry(0.25, 0.35, 2.2, 12);
+    const mat = new THREE.MeshPhongMaterial({ color: 0xff2b2b, emissive: 0x441111, emissiveIntensity: 0.6 });
+    projectile = new THREE.Mesh(geom, mat);
+    projectile.rotation.x = Math.PI/2;
+    projectile.position.set(0, BLOCK*0.5 + (layerCount*(BLOCK+GAP))*0.4, -18);
+    scene.add(projectile);
+  }
+
+  // ----- Debris -----
+  const MAX_DEBRIS = 220;
+  function spawnDebris(at, n=2) {
+    for (let i=0;i<n;i++){
+      if (debris.length > MAX_DEBRIS) break;
+      const g = new THREE.BoxGeometry(0.25,0.25,0.25);
+      const m = new THREE.MeshPhongMaterial({ color: 0xffaa00, transparent:true, opacity:0.95 });
+      const d = new THREE.Mesh(g, m);
+      d.position.copy(at);
+      d.userData = {
+        v: new THREE.Vector3((Math.random()-0.5)*0.6, Math.random()*0.8, (Math.random()-0.5)*0.6),
+        life: 1.0
+      };
+      scene.add(d);
+      debris.push(d);
+    }
+  }
+
+  // ----- Contagion to neighbors -----
+  function affectNeighbors(b, radius=1.45) {
+    const p = b.position;
+    for (const nb of armorBlocks) {
+      if (!nb.userData || nb.userData.affected) continue;
+      if (nb.position.distanceTo(p) < radius) {
+        nb.userData.affected = true;
+      }
+    }
+  }
+
+  // ----- Penetration measurement -----
+  function currentPenetrationCm() {
+    // Count max Y layer index whose blocks are mostly melted (health ~0)
+    let deepest = -1;
+    for (let y=0; y<layerCount; y++) {
+      // If >50% blocks in this layer are <=0 health, consider penetrated
+      let layerBlocks = 0, dead = 0;
+      for (const b of armorBlocks) {
+        if (b.userData.grid.y === y) { layerBlocks++; if (b.userData.health <= 0) dead++; }
+      }
+      if (layerBlocks > 0 && dead / layerBlocks > 0.5) deepest = y;
+    }
+    // Convert layers to "cm" (BLOCK ~ 1 unit ≈ 1 cm for viz)
+    return Math.max(0, (deepest+1) * (BLOCK+GAP)) * 1.0;
+  }
+
+  // ----- Build initial -----
+  buildArmor();
+  createProjectile();
+
+  // UI change handlers
+  ui.speed.oninput = e => { projSpeed = parseFloat(e.target.value); };
+  ui.layers.oninput = e => {
+    layerCount = parseInt(e.target.value);
+    buildArmor();
+    createProjectile();
+  };
+  ui.opacity.oninput = e => {
+    baseOpacity = parseFloat(e.target.value);
+    for (const b of armorBlocks) if (b.material) b.material.opacity = baseOpacity;
+  };
+  ui.resetSim.onclick = () => { buildArmor(); createProjectile(); };
+
+  // ----- Animate -----
+  let lastT = performance.now();
+  let accum = 0;
+  function animate(now) {
+    const dt = Math.min(0.033, (now - lastT) / 1000); // clamp dt for stability
+    lastT = now;
+    accum += dt;
+
+    // Camera orbit
+    if (orbitEnabled && !dragging) {
+      camAngle += dt * 0.22;
+    }
+    placeCamera();
+
+    // Move projectile
+    if (projectile) {
+      projectile.position.z += projSpeed;
+
+      // Collision with blocks (radius check)
+      for (const b of armorBlocks) {
+        if (!b.userData) continue;
+        if (b.userData.health <= 0) continue;
+        const d = b.position.distanceTo(projectile.position);
+        if (d < 0.9) {
+          b.userData.affected = true;
+          b.userData.health -= 0.22; // damage per hit
+          b.userData.health = Math.max(0, b.userData.health);
+
+          // melting/shrink
+          b.userData.scale = 0.2 + 0.8 * b.userData.health;
+          b.scale.setScalar(b.userData.scale);
+
+          // heat tint + increase opacity as it ionizes
+          const h = b.userData.health;
+          b.material.color.setRGB(1.0, 0.3 + 0.7*h, 0.3 + 0.7*h);
+          b.material.opacity = Math.min(1.0, baseOpacity + (1 - h) * 0.35);
+
+          spawnDebris(b.position, 2);
+          affectNeighbors(b, 1.45);
+        }
+      }
+    }
+
+    // Contagion decay + passive melting
+    for (const b of armorBlocks) {
+      if (!b.userData) continue;
+      if (b.userData.affected && b.userData.health > 0) {
+        b.userData.health -= 0.02 * dt * 60; // slow burn
+        b.userData.health = Math.max(0, b.userData.health);
+        b.userData.scale = 0.2 + 0.8 * b.userData.health;
+        b.scale.setScalar(b.userData.scale);
+        const h = b.userData.health;
+        b.material.color.setRGB(1.0, 0.35 + 0.65*h, 0.35 + 0.65*h);
+        b.material.opacity = Math.min(1.0, baseOpacity + (1 - h) * 0.35);
+      }
+    }
+
+    // Debris motion (simple physics)
+    for (let i = debris.length-1; i >= 0; i--) {
+      const d = debris[i];
+      d.userData.v.y -= 0.015;              // gravity
+      d.userData.v.multiplyScalar(0.985);   // drag
+      d.position.add(d.userData.v);
+      d.userData.life -= 0.008;
+      d.material.opacity = Math.max(0, d.userData.life);
+      if (d.userData.life <= 0) {
+        scene.remove(d);
+        debris.splice(i,1);
+      }
+    }
+
+    // Basic perf throttling: cull totally melted blocks
+    for (let i = armorBlocks.length-1; i >= 0; i--) {
+      const b = armorBlocks[i];
+      if (b.userData.health <= 0 && b.userData.scale <= 0.22) {
+        scene.remove(b);
+        armorBlocks.splice(i,1);
+      }
+    }
+
+    // HUD readouts
+    if (accum > 0.2) {
+      const pen = currentPenetrationCm();
+      ui.readout.textContent = `Penetration: ${pen.toFixed(1)} cm`;
+      ui.stats.textContent = `Blocks: ${armorBlocks.length}  Debris: ${debris.length}`;
+      accum = 0;
+    }
 
     renderer.render(scene, camera);
-    requestAnimationFrame((newTime)=>animate((newTime - time)/1000));
-}
-animate(0);
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+})();
 </script>
 </body>
 </html>
