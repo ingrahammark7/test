@@ -314,7 +314,7 @@ def getsh(self):
 if __name__ == "__main__":    
     steel=getsteel()
     du=getdu()
-    cf=getdu()
+    cf=getsteel()
     steel.print_summary()
     rspeed=cf.gets()
     round_diameter = cf.getdam() # cm

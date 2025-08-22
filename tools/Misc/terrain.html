@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Li Wei Interactive Walkthrough - Micro Animations</title>
+<title>Li Wei Walkthrough</title>
 <style>
 body { margin:0; overflow:hidden; }
 canvas { display:block; }
@@ -36,13 +36,12 @@ canvas { display:block; }
 <b>Legend</b><br>
 Blue Box: Li Wei<br>
 Gray Boxes/Spheres: Crowd/People<br>
-Green/Yellow/Red: Safety markers<br>
-POI Animations: Doors, Lights, Chairs, Dogs
+POI Micro-Objects: Chairs, Dogs, Trees, Lights, Benches
 </div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.module.js';
 
-// Scene & camera
+// Scene & Camera
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xa0a0a0);
 scene.fog = new THREE.Fog(0xa0a0a0, 10, 50);
@@ -75,7 +74,7 @@ const places = [
   { pos:new THREE.Vector3(5,0,8), label:"Park", content:"Safe", risk:"Medium", event:"park" }
 ];
 
-// Create buildings
+// Buildings and safety spheres
 function createBuilding(x,z,label){
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(2,4,2), new THREE.MeshPhongMaterial({color:0x00ff00}));
   mesh.position.set(x,2,z); mesh.castShadow=true; mesh.receiveShadow=true; scene.add(mesh);
@@ -89,7 +88,6 @@ function createBuilding(x,z,label){
   return mesh;
 }
 
-// Safety spheres
 function createSafetySpheres(x,z,contentColor,riskColor){
   const content = new THREE.Mesh(new THREE.SphereGeometry(0.3,16,16), new THREE.MeshBasicMaterial({color:contentColor}));
   content.position.set(x,0.3,z); scene.add(content);
@@ -97,7 +95,6 @@ function createSafetySpheres(x,z,contentColor,riskColor){
   risk.position.set(x,0.6,z); scene.add(risk);
 }
 
-// Buildings & safety
 places.forEach(p=>{
   createBuilding(p.pos.x,p.pos.z,p.label);
   const cColor = p.content==='Safe'?0x00ff00:(p.content==='Limited'?0xffff00:0xff0000);
@@ -106,8 +103,14 @@ places.forEach(p=>{
 });
 
 // Li Wei
-const liWei = new THREE.Mesh(new THREE.BoxGeometry(0.5,1.5,0.5), new THREE.MeshPhongMaterial({color:0x0000ff}));
-liWei.castShadow=true; scene.add(liWei);
+const liWei = new THREE.Group();
+const body = new THREE.Mesh(new THREE.BoxGeometry(0.5,1.5,0.5), new THREE.MeshPhongMaterial({color:0x0000ff}));
+body.castShadow=true; liWei.add(body);
+const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.6,0.15), new THREE.MeshPhongMaterial({color:0x0000ff}));
+leftArm.position.set(-0.35,0.25,0); liWei.add(leftArm);
+const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.6,0.15), new THREE.MeshPhongMaterial({color:0x0000ff}));
+rightArm.position.set(0.35,0.25,0); liWei.add(rightArm);
+scene.add(liWei);
 
 // Crowd
 const crowd=[];
@@ -118,28 +121,27 @@ for(let i=0;i<20;i++){
   crowd.push({mesh:mesh,dir:new THREE.Vector3(Math.random()-0.5,0,Math.random()-0.5).normalize(),speed:0.02+Math.random()*0.02});
 }
 
-// POI micro-objects
-const cafeChairs=[], parkPeople=[], parkDogs=[], officeDoors=[], apartmentLights=[];
+// POI Micro Objects
+const cafeChairs=[], parkPeople=[], parkDogs=[], officeDoors=[], apartmentLights=[], parkBenches=[], parkTrees=[];
 function initPOIObjects(){
-  // Cafe chairs
   for(let i=0;i<4;i++){
     const chair = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,0.3), new THREE.MeshPhongMaterial({color:0x654321}));
-    chair.position.set(-8+Math.random(),0.15,3+Math.random()); scene.add(chair);
-    cafeChairs.push(chair);
+    chair.position.set(-8+Math.random(),0.15,3+Math.random()); scene.add(chair); cafeChairs.push(chair);
   }
-  // Park people + dogs
   for(let i=0;i<3;i++){
     const person = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.8,0.3), new THREE.MeshPhongMaterial({color:0x808080}));
     person.position.set(5+Math.random(),0.4,8+Math.random()); scene.add(person); parkPeople.push(person);
     const dog = new THREE.Mesh(new THREE.SphereGeometry(0.15,8,8), new THREE.MeshPhongMaterial({color:0x000000}));
     dog.position.set(5+Math.random(),0.15,8+Math.random()); scene.add(dog); parkDogs.push(dog);
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(1,0.2,0.3), new THREE.MeshPhongMaterial({color:0x654321}));
+    bench.position.set(5+Math.random(),0.1,8+Math.random()); scene.add(bench); parkBenches.push(bench);
+    const tree = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1), new THREE.MeshPhongMaterial({color:0x228833}));
+    tree.position.set(5+Math.random(),0.5,8+Math.random()); scene.add(tree); parkTrees.push(tree);
   }
-  // Office doors
   for(let i=0;i<2;i++){
     const door = new THREE.Mesh(new THREE.BoxGeometry(0.5,1,0.05), new THREE.MeshPhongMaterial({color:0x333333}));
     door.position.set(10,0.5,-5+i*0.6); scene.add(door); officeDoors.push(door);
   }
-  // Apartment lights
   for(let i=0;i<2;i++){
     const light = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.2,0.2), new THREE.MeshPhongMaterial({color:0xffff00}));
     light.position.set(0,3.8,0.5+i*0.5); scene.add(light); apartmentLights.push(light);
@@ -147,57 +149,81 @@ function initPOIObjects(){
 }
 initPOIObjects();
 
-// Path
-const pathPoints = places.map(p=>p.pos).concat([places[0].pos]);
+// Labels
+function createLabel(text){
+  const canvas = document.createElement('canvas');
+  canvas.width=256; canvas.height=64;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='white'; ctx.font='24px Arial'; ctx.fillText(text,10,40);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(canvas), transparent:true}));
+  sprite.scale.set(1.5,0.4,1);
+  scene.add(sprite);
+  return sprite;
+}
+crowd.forEach(c=>c.label=createLabel("Pedestrian"));
+parkDogs.forEach((d,i)=>d.label=createLabel("Dog "+(i+1)));
+cafeChairs.forEach((c,i)=>c.label=createLabel("Chair "+(i+1)));
 
-// Animation
+// Animation Variables
+const pathPoints = places.map(p=>p.pos).concat([places[0].pos]);
 let t=0; const totalTime=25; let lastPlaceIndex=-1;
 const clock = new THREE.Clock();
+const chatterMsgs = ["Hello!","Hi!","Watching...","Nice day","Hmm..."];
 
 function triggerEvent(eventName){
   switch(eventName){
-    case "cafe":
-      cafeChairs.forEach(c=>c.rotation.y += 0.5*Math.sin(t*5));
-      break;
+    case "cafe": cafeChairs.forEach(c=>c.rotation.y += 0.5*Math.sin(t*5)); break;
     case "park":
       parkPeople.forEach(p=>p.position.y=0.4+0.05*Math.sin(t*5));
       parkDogs.forEach(d=>d.position.x += 0.02*Math.sin(t*10));
+      parkBenches.forEach(b=>b.rotation.z = 0.05*Math.sin(t*2));
+      parkTrees.forEach(tr=>tr.rotation.y=0.02*Math.sin(t*1.5));
       break;
-    case "office":
-      officeDoors.forEach(d=>d.rotation.y = 0.3*Math.sin(t*5));
-      break;
-    case "lights":
-      apartmentLights.forEach(l=>l.material.color.setHex(Math.random()>0.5?0xffff00:0xffaa00));
-      break;
+    case "office": officeDoors.forEach(d=>d.rotation.y = 0.3*Math.sin(t*5)); break;
+    case "lights": apartmentLights.forEach(l=>l.material.color.setHex(Math.random()>0.5?0xffff00:0xffaa00)); break;
   }
+}
+
+function updateLabels(){
+  crowd.forEach(c=>{
+    c.label.position.set(c.mesh.position.x, c.mesh.position.y + 1, c.mesh.position.z);
+    if(Math.random()<0.002){
+      const ctx=c.label.material.map.image.getContext('2d');
+      ctx.clearRect(0,0,256,64);
+      const msg = chatterMsgs[Math.floor(Math.random()*chatterMsgs.length)];
+      ctx.fillStyle='yellow'; ctx.font='24px Arial'; ctx.fillText(msg,10,40);
+      c.label.material.map.needsUpdate=true;
+      setTimeout(()=>{
+        ctx.clearRect(0,0,256,64);
+        ctx.fillStyle='white'; ctx.font='24px Arial'; ctx.fillText("Pedestrian",10,40);
+        c.label.material.map.needsUpdate=true;
+      },1000 + Math.random()*2000);
+    }
+  });
+  parkDogs.forEach(d=>d.label.position.set(d.position.x,d.position.y+0.4,d.position.z));
+  cafeChairs.forEach(c=>c.label.position.set(c.position.x,c.position.y+0.3,c.position.z));
 }
 
 function animate(){
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
   t+=delta;
-
-  // Day/night cycle
-  const timeOfDay=(t/totalTime)%1;
-  scene.background = new THREE.Color(0xa0a0a0).lerp(new THREE.Color(0x101030),timeOfDay);
-
-  // Li Wei movement
   const progress=(t/totalTime)%1;
   const segment = Math.floor(progress*(pathPoints.length-1));
   const localT = progress*(pathPoints.length-1)-segment;
   const p1 = pathPoints[segment], p2 = pathPoints[segment+1];
   const pos = new THREE.Vector3().lerpVectors(p1,p2,localT);
-  liWei.position.copy(pos); liWei.position.y = 0.75;
-  liWei.position.y += 0.05*Math.sin(t*5); // sway
-  const dir = new THREE.Vector3().subVectors(p2,p1).setY(0).normalize();
-  liWei.lookAt(pos.clone().add(dir));
+  liWei.position.copy(pos); liWei.position.y = 0.75 + 0.05*Math.sin(t*5);
+  liWei.rotation.y = Math.atan2(p2.x-p1.x,p2.z-p1.z);
+  leftArm.rotation.x = Math.sin(t*5)*0.5; rightArm.rotation.x = -Math.sin(t*5)*0.5;
 
-  // Camera cinematic
+  // Camera
   const offset = new THREE.Vector3(0,3+Math.sin(t*2)*0.1,6+Math.sin(t*1.5)*0.2);
-  camera.position.lerp(pos.clone().add(offset),0.1);
+  const shake = new THREE.Vector3(Math.sin(t*3)*0.02,Math.sin(t*2)*0.01,Math.sin(t*1.5)*0.02);
+  camera.position.lerp(pos.clone().add(offset).add(shake),0.1);
   camera.lookAt(pos.clone().add(new THREE.Vector3(0,1.2,0)));
 
-  // Event popups
+  // Popup for POIs
   if(segment !== lastPlaceIndex){
     lastPlaceIndex=segment;
     if(segment<places.length){
@@ -214,21 +240,29 @@ function animate(){
     popup.style.left=x+'px'; popup.style.top=y+'px';
   }
 
-  // Crowd movement + idle
+  // Crowd Movement
   crowd.forEach(c=>{
     const dist = c.mesh.position.distanceTo(liWei.position);
     if(dist<1.2) c.dir.add(new THREE.Vector3(Math.random()-0.5,0,Math.random()-0.5).normalize());
     c.mesh.position.add(c.dir.clone().multiplyScalar(c.speed));
     if(Math.abs(c.mesh.position.x)>25 || Math.abs(c.mesh.position.z)>25) c.dir.multiplyScalar(-1);
-    // idle bob
     c.mesh.position.y = 0.4 + 0.05*Math.sin(t*2 + c.mesh.position.x);
+    c.mesh.rotation.y = Math.sin(t*3 + c.mesh.position.z)*0.2;
   });
 
-  // Trigger micro-animations
+  // Trigger POI animations
   if(segment<places.length) triggerEvent(places[segment].event);
+
+  // Labels
+  updateLabels();
+
+  // Day/Night cycle
+  const timeOfDay=(t/totalTime)%1;
+  scene.background = new THREE.Color(0xa0a0a0).lerp(new THREE.Color(0x101030),timeOfDay);
 
   renderer.render(scene,camera);
 }
+animate();
 
 // Click interactivity
 const raycaster = new THREE.Raycaster();
@@ -237,24 +271,28 @@ window.addEventListener('click',(event)=>{
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse,camera);
-  const intersects = raycaster.intersectObjects(scene.children);
-  intersects.forEach(i=>{
-    if(i.object.userData.popupText){
-      popup.style.display='block';
-      popup.innerText=i.object.userData.popupText;
-      setTimeout(()=>{popup.style.display='none';},3000);
-    }
-  });
+  const objects = [];
+  crowd.forEach(c=>objects.push(c.mesh));
+  cafeChairs.forEach(c=>objects.push(c));
+  parkPeople.forEach(c=>objects.push(c));
+  parkDogs.forEach(c=>objects.push(c));
+  officeDoors.forEach(c=>objects.push(c));
+  apartmentLights.forEach(c=>objects.push(c));
+  const intersects = raycaster.intersectObjects(objects);
+  if(intersects.length>0){
+    const obj=intersects[0].object;
+    popup.style.display='block';
+    popup.innerText=`Object Clicked`;
+    setTimeout(()=>{popup.style.display='none';},2000);
+  }
 });
 
-// Resize handling
+// Responsive
 window.addEventListener('resize',()=>{
-  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.aspect=window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth,window.innerHeight);
 });
-
-animate();
 </script>
 </body>
 </html>
