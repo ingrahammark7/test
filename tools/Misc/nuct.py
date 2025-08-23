@@ -1,14 +1,11 @@
 # nuct.py
 import sympy as sp
 import math
-
-# Attempt import from your pen.py
-from pen import Material  # expects your pen.py to provide getsteel/getdu and Material
+from pen import Material 
 import pen
 
 phi = sp.GoldenRatio
-        # Physical constants (kept your original expressions)
-alpha_fs = 1/((((4*sp.pi)-6)**phi)**phi)  # fine-structure-like proxy
+alpha_fs = 1/((((4*sp.pi)-6)**phi)**phi)  
 alpha = 1 / alpha_fs
 pm = alpha ** phi ** 4.55
 ac = pm       
@@ -22,9 +19,9 @@ class NuclearPenetrationModel:
     def __init__(self, material):
         self.material = material
         
-        # Symbolic variables (kept for compatibility with older code)
-        self.E = sp.symbols('E')        # Particle energy in MeV
-        self.n_e = sp.symbols('n_e')    # Electron density proxy
+
+        self.E = sp.symbols('E')        
+        self.n_e = sp.symbols('n_e')   
         self.ec = material.elementary_charge
         
         self.am = alpha ** phi
@@ -35,16 +32,13 @@ class NuclearPenetrationModel:
         self.compt = self.brem * 2
         self.evperj = pen.getsteel().ev_to_joule
 
-        # Planck-ish proxy values (kept your formula)
         
     def bremsstrahlung_loss(self, E_mev, n_e):
-        # Keep your original numeric form (returns a float)
         Z = self.material.atomic_number
         E_mev = math.sqrt(E_mev)
         frac = E_mev / (self.compt)
         exponent = frac * self.osc
-        
-        # this is your original expression (numeric)
+
         loss = (Z ** exponent) * n_e * alpha_fs * math.log(E_mev + 1)
         return loss
 
@@ -55,7 +49,6 @@ class NuclearPenetrationModel:
         return top / r
 
     def velfromen(self, mass, en):
-        # en assumed joules here
         return math.sqrt(2 * (en / mass))
 
     def emvf(self, mass1, mass2, r):
@@ -65,14 +58,12 @@ class NuclearPenetrationModel:
         return min(v1,v2)
 
     def mhd_bolus(self, round_energy_j, round_diameter_cm, round_mas, round_ld):
-        # Keep your original structure; small safety for ch1
         numpm = round_mas / pm
         perpm = round_energy_j / numpm if numpm != 0 else 0
         numpm = math.sqrt(numpm)
         peaken = numpm * perpm
         ch1 = getattr(pen.getsteel(), "ch1", None)
         if ch1 is None:
-            # fallback constant if your pen.getsteel() doesn't define ch1
             ch1 = 1.0
         charger = (peaken / numpm) / ch1 if numpm != 0 else 0.0
         if charger > 1:
@@ -97,7 +88,6 @@ class NuclearPenetrationModel:
         c2=.5*round_mas*roundspeed
         round_energy_j=max(round_energy_j,c2)
         p=(round_energy_j/self.material.material_energy_density_j_per_hvl)*self.material.base_hvl_cm
-        # placeholder return (preserve your placeholder behavior)
         return (p*cov)**phi
 
     def honeycomb_dissipation_factor(self, layers):
@@ -107,10 +97,8 @@ class NuclearPenetrationModel:
         return num * 6.242e6
 
     def roundld(self, round_diameter_cm, round_mas,roundmaterial):
-        # Keep your older (square area) method as you originally had it
         round_front_vol = round_diameter_cm * round_diameter_cm *round_diameter_cm / 1000000.0
         round_front_mass = round_front_vol * roundmaterial.density
-        # avoid division by zero
         if round_front_mass == 0:
             return 1
         return round_mas / round_front_mass
@@ -119,27 +107,23 @@ class NuclearPenetrationModel:
         round_ld = self.roundld(round_diameter_cm, round_mas,roundmaterial)
         print("round ld ", round_ld)
         E_mev_val = self.jtomev(round_energy_j)
-
-        # electron density proxy proportional to material density (keep your original scaling)
         n_e_val = self.material.density * (1 / self.am)
 
-        # use numeric bremsstrahlung (no sympy subs/eval)
         brems_loss_val = self.bremsstrahlung_loss(E_mev_val, n_e_val)
 
         base_penetration = (round_energy_j / self.material.material_energy_density_j_per_hvl) * self.material.base_hvl_cm
 
         dissipation = self.honeycomb_dissipation_factor(honeycomb_layers)
 
-        # your original cap behaviour (keeps your logic)
+
         if brems_loss_val > E_mev_val:
-            brems_loss_val = 0  # entire energy dissipated (your rule)
+            brems_loss_val = 0  
 
         mhd_var = self.mhd_bolus( round_energy_j, round_diameter_cm, round_mas, round_ld)
 
-        # original precedence from your version: mhd_var + base / (1 + brems * dissipation)
         adjusted_penetration = mhd_var + base_penetration / (1 + brems_loss_val * dissipation)
 
-        # Ensure penetration not below 1 HVL physically
+
         if adjusted_penetration < self.material.base_hvl_cm:
             adjusted_penetration = 0
 
@@ -147,21 +131,12 @@ class NuclearPenetrationModel:
 
 
 def nuclear_penetration(round_energy_j, round_diameter_cm, honeycomb_layers, round_mas, material,roundmaterial):
-    """
-    Compute nuclear-effect-adjusted penetration depth (cm) for given round and armor.
-    """
+  
     
     model = NuclearPenetrationModel(material)
     return model.penetration(round_energy_j, round_diameter_cm, honeycomb_layers, round_mas,roundmaterial)
 
 
-if __name__ == "__main__":
-    # Test/demo with your original numbers
-    print("Testing nuclear penetration model...")
 
-    round_energy = 10# MJ
-    round_diameter = 4 # cm
-    round_mass = 2
-    honeycomb = 0
 
     
