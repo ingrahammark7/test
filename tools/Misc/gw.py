@@ -1,156 +1,152 @@
-# === MK-84 Global Inventory Model ===
-# - Global stock (today): 150,000 (this is the ONLY pool)
-# - Deliveries to any country subtract from the global pool and are capped at what's left (no negatives)
-# - Countries then "use" bombs from their own on-hand inventory (country stock)
-# - Casualties are estimated from bombs used, using 2–3.5 bombs per casualty
-# - Includes a forecast to ZERO (global pool stockout)
+# === MK-84 Global Inventory Model (Palestine-focused; Yemen declining) ===
+# - One global pool (today): 150,000
+# - Deliveries subtract from the global pool; capped by what's left (never negative)
+# - Countries then "use" bombs from their own on-hand stock
+# - Casualties estimated at 2–3.5 bombs per casualty
+# - Prints month-by-month table + totals
+# - Forecasts months to global ZERO using recent average monthly draw
 
 from collections import defaultdict, OrderedDict
 
 # ---------------------------
-# Config / assumptions
+# Model constants
 # ---------------------------
 GLOBAL_START_STOCK = 150_000
 MIN_BOMBS_PER_CASUALTY = 2.0
 MAX_BOMBS_PER_CASUALTY = 3.5
 
-# Example monthly plans (edit freely)
-# Deliveries: { "Month YYYY": {"Country": amount, ...}, ... }
+# ---------------------------
+# Scenario (you can edit)
+# ---------------------------
+# Deliveries: amounts pulled from the global pool and allocated to country stocks.
+# Usage: bombs dropped (consumed) from each country's on-hand stock.
+
 monthly_deliveries = OrderedDict({
-    "October 2024": {"Israel": 5_000},
-    "November 2024": {"Israel": 7_000},
-    "December 2024": {"Israel": 6_000},
-    "January 2025": {"Israel": 10_000},
-    "February 2025": {"Israel": 12_000},
-    "March 2025": {"Israel": 8_000},
-    "April 2025": {"Israel": 7_000},
+    # Palestine/Gaza is the primary sink via Israel deliveries
+    "Oct 2024": {"Israel/Palestine": 9_000, "Yemen/Saudi-led": 600},
+    "Nov 2024": {"Israel/Palestine": 11_000, "Yemen/Saudi-led": 500},
+    "Dec 2024": {"Israel/Palestine": 10_000, "Yemen/Saudi-led": 400},
+    "Jan 2025": {"Israel/Palestine": 12_000, "Yemen/Saudi-led": 300},
+    "Feb 2025": {"Israel/Palestine": 14_000, "Yemen/Saudi-led": 250},
+    "Mar 2025": {"Israel/Palestine": 10_000, "Yemen/Saudi-led": 200},
+    "Apr 2025": {"Israel/Palestine": 9_000,  "Yemen/Saudi-led": 150},
+    "May 2025": {"Israel/Palestine": 9_000,  "Yemen/Saudi-led": 120},
+    "Jun 2025": {"Israel/Palestine": 8_500,  "Yemen/Saudi-led": 100},
+    "Jul 2025": {"Israel/Palestine": 8_500,  "Yemen/Saudi-led": 80},
+    "Aug 2025": {"Israel/Palestine": 8_000,  "Yemen/Saudi-led": 60},
 })
 
-# Usage: bombs dropped by country each month
 monthly_usage = OrderedDict({
-    "October 2024": {"Israel": 5_000},
-    "November 2024": {"Israel": 8_000},
-    "December 2024": {"Israel": 7_000},
-    "January 2025": {"Israel": 10_000},
-    "February 2025": {"Israel": 12_000},
-    "March 2025": {"Israel": 8_000},
-    "April 2025": {"Israel": 7_000},
+    # Usage mirrors intensity: Palestine heavy; Yemen steadily declining
+    "Oct 2024": {"Israel/Palestine": 9_000, "Yemen/Saudi-led": 700},
+    "Nov 2024": {"Israel/Palestine": 11_500, "Yemen/Saudi-led": 600},
+    "Dec 2024": {"Israel/Palestine": 10_000, "Yemen/Saudi-led": 450},
+    "Jan 2025": {"Israel/Palestine": 12_000, "Yemen/Saudi-led": 350},
+    "Feb 2025": {"Israel/Palestine": 13_500, "Yemen/Saudi-led": 300},
+    "Mar 2025": {"Israel/Palestine": 10_000, "Yemen/Saudi-led": 220},
+    "Apr 2025": {"Israel/Palestine": 9_000,  "Yemen/Saudi-led": 180},
+    "May 2025": {"Israel/Palestine": 9_000,  "Yemen/Saudi-led": 130},
+    "Jun 2025": {"Israel/Palestine": 8_500,  "Yemen/Saudi-led": 100},
+    "Jul 2025": {"Israel/Palestine": 8_500,  "Yemen/Saudi-led": 80},
+    "Aug 2025": {"Israel/Palestine": 8_000,  "Yemen/Saudi-led": 60},
 })
 
 # ---------------------------
-# Core helpers
+# Helpers
 # ---------------------------
 
 def est_casualties(bombs_used: float) -> tuple[float, float]:
-    """Return (min, max) casualties from bombs_used with 2–3.5 bombs per casualty."""
-    if MAX_BOMBS_PER_CASUALTY <= 0 or MIN_BOMBS_PER_CASUALTY <= 0:
-        return (0.0, 0.0)
-    # min casualties uses the less lethal ratio (more bombs per casualty)
-    min_est = bombs_used / MAX_BOMBS_PER_CASUALTY
-    # max casualties uses the more lethal ratio (fewer bombs per casualty)
-    max_est = bombs_used / MIN_BOMBS_PER_CASUALTY
+    """Return (min, max) casualties from bombs_used using 2–3.5 bombs per casualty."""
+    min_est = bombs_used / MAX_BOMBS_PER_CASUALTY if MAX_BOMBS_PER_CASUALTY > 0 else 0.0
+    max_est = bombs_used / MIN_BOMBS_PER_CASUALTY if MIN_BOMBS_PER_CASUALTY > 0 else 0.0
     return min_est, max_est
 
-def safe_deliver(global_left: int, request: int) -> int:
-    """Cap delivery at remaining global stock; never negative."""
+def cap_delivery(global_left: int, request: int) -> int:
+    """Never deliver more than what's left in the global pool; never negative."""
     if request <= 0 or global_left <= 0:
         return 0
     return min(request, global_left)
 
-def forecast_to_zero(global_left: int, future_monthly_delivery_rate: int) -> int:
-    """
-    Forecast how many months until the global pool hits ZERO,
-    assuming a constant future monthly delivery rate (consumption of the pool).
-    Returns the number of months (integer). If rate <= 0, returns 0.
-    """
-    if future_monthly_delivery_rate <= 0:
+def avg_monthly_draw(deliveries_plan: OrderedDict) -> int:
+    """Average monthly draw on the global pool from the given deliveries plan."""
+    if not deliveries_plan:
         return 0
-    months = (global_left + future_monthly_delivery_rate - 1) // future_monthly_delivery_rate
-    return months
+    months = len(deliveries_plan)
+    total = sum(sum(month.values()) for month in deliveries_plan.values())
+    return total // months if months else 0
+
+def months_to_zero(global_left: int, monthly_draw: int) -> int:
+    """How many months to consume 'global_left' at 'monthly_draw' (integer months)."""
+    if monthly_draw <= 0:
+        return 0
+    return (global_left + monthly_draw - 1) // monthly_draw
 
 # ---------------------------
 # Simulation
 # ---------------------------
 
-def run_simulation(
-    deliveries_plan: "OrderedDict[str, dict[str, int]]",
-    usage_plan: "OrderedDict[str, dict[str, int]]",
-    global_start: int
-):
-    # State
+def run_sim(deliveries_plan: OrderedDict, usage_plan: OrderedDict, global_start: int):
     global_stock = global_start
     country_stock = defaultdict(int)
 
-    print("Month | Global Start | Delivered | Used | Global End | Est. Casualties (min–max)")
-    print("-" * 92)
+    print("Month      | Global Start | Delivered | Used | Global End | Est. Casualties (min–max)")
+    print("-" * 96)
 
-    total_min_cas = 0.0
-    total_max_cas = 0.0
+    total_min_cas, total_max_cas = 0.0, 0.0
 
-    # Iterate months present in either plan (union, ordered by deliveries_plan first, then remaining usage months)
+    # Use the union of months (keep the delivery order first, then any extra usage months)
     months = list(OrderedDict.fromkeys(list(deliveries_plan.keys()) + list(usage_plan.keys())))
 
-    for month in months:
+    for m in months:
         g_start = global_stock
 
-        # Deliveries for this month
+        # 1) Deliveries (pull from the global pool)
         delivered_total = 0
-        for c, req in deliveries_plan.get(month, {}).items():
-            grant = safe_deliver(global_stock, int(req))
-            if grant > 0:
+        for country, req in deliveries_plan.get(m, {}).items():
+            grant = cap_delivery(global_stock, int(req))
+            if grant:
+                country_stock[country] += grant
                 global_stock -= grant
-                country_stock[c] += grant
                 delivered_total += grant
 
-        # Usage (bombs dropped) for this month
+        # 2) Usage (consume from country on-hand)
         used_total = 0
-        for c, used in usage_plan.get(month, {}).items():
-            # Country can only use what it has
-            take = min(country_stock[c], int(used))
-            country_stock[c] -= take
+        for country, want_to_use in usage_plan.get(m, {}).items():
+            take = min(country_stock[country], int(want_to_use))
+            country_stock[country] -= take
             used_total += take
 
-        # Casualty estimates for this month (from total bombs used)
+        # 3) Casualties estimate (from total used)
         min_c, max_c = est_casualties(used_total)
         total_min_cas += min_c
         total_max_cas += max_c
 
-        print(f"{month:12} | {g_start:>12,} | {delivered_total:>9,} | {used_total:>4,} | {global_stock:>10,} | {min_c:>8.0f}–{max_c:>8.0f}")
+        print(f"{m:10} | {g_start:>12,} | {delivered_total:>9,} | {used_total:>4,} | "
+              f"{global_stock:>10,} | {int(min_c):>7,}–{int(max_c):>7,}")
 
         if global_stock == 0:
-            print("(Global pool exhausted — no further deliveries possible.)")
-            # After global stock hits zero, subsequent months can only use remaining country stocks.
-            # We continue the loop to reflect that usage could still happen from on-hand.
+            print("(Global pool exhausted — further deliveries impossible; countries can only draw down remaining on-hand.)")
 
-    print("-" * 92)
-    print(f"Totals:                         Delivered={sum(sum(m.values()) for m in deliveries_plan.values()):,} | "
-          f"Used={sum(sum(m.values()) for m in usage_plan.values()):,} | Global Remaining={global_stock:,}")
+    print("-" * 96)
+    delivered_sum = sum(sum(month.values()) for month in deliveries_plan.values())
+    used_sum = sum(sum(month.values()) for month in usage_plan.values())
+    print(f"Totals:                          Delivered={delivered_sum:,} | Used={used_sum:,} | Global Remaining={global_stock:,}")
     print(f"Total estimated casualties: {int(total_min_cas):,} – {int(total_max_cas):,}")
 
     return global_stock, dict(country_stock)
 
 # ---------------------------
-# Run with the example plans
+# Run the scenario & forecast
 # ---------------------------
-
 if __name__ == "__main__":
-    final_global, final_country_stocks = run_simulation(
-        monthly_deliveries, monthly_usage, GLOBAL_START_STOCK
-    )
+    final_global, final_country = run_sim(monthly_deliveries, monthly_usage, GLOBAL_START_STOCK)
 
-    # Forecast to ZERO of the global pool assuming a future constant delivery rate
-    # (i.e., how many more months of deliveries at this rate until stockout?)
-    # We use the average monthly delivery rate from the plan as a sensible default.
-    months_count = len(monthly_deliveries) if monthly_deliveries else 0
-    avg_future_rate = (
-        sum(sum(m.values()) for m in monthly_deliveries.values()) // months_count
-        if months_count > 0 else 0
-    )
-
-    if final_global > 0 and avg_future_rate > 0:
-        months_to_zero = forecast_to_zero(final_global, avg_future_rate)
-        print(f"\nForecast to ZERO of global pool at ~{avg_future_rate:,}/month: ~{months_to_zero} months.")
+    # Forecast months to ZERO using recent average monthly draw (deliveries)
+    draw = avg_monthly_draw(monthly_deliveries)
+    if final_global > 0 and draw > 0:
+        m_to_zero = months_to_zero(final_global, draw)
+        print(f"\nForecast to ZERO of global pool at ~{draw:,}/month: ~{m_to_zero} months.")
     elif final_global == 0:
         print("\nGlobal pool already at ZERO after the simulated months.")
     else:
-        print("\nNo forecast: average future delivery rate is zero (no further draw on the global pool).")
+        print("\nNo forecast: average monthly draw is zero (no further depletion of the global pool).")
