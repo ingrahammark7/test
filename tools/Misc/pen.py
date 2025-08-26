@@ -38,6 +38,13 @@ class Material:
         self.te=1-(1/(8))
         self.elmol*=self.te
         self.db=self.elmol
+        
+        #self.bafac=2.1
+        #self.f2=1.65
+        #self.f3=1.55
+        self.bafac=29/14
+        self.f2=4.1/2.5
+        self.f3=2410/1555
     
     def compute_high_estimate(self):
         ch = self.ch
@@ -128,7 +135,7 @@ class Material:
         ht=airenpers/(ht*mp)
         ba=ht/airvol
         roundside=ra*4
-        ba=ba/roundside*2.1
+        ba=ba/roundside*self.bafac 
         return ba,airvol
 
     def gets(self):
@@ -149,7 +156,7 @@ class Material:
         barrel=getsteel()
         maxd=barrel.base_hvl_cm
         doh=barrel.material_energy_density_j_per_hvl
-        return self.damiter(maxd,doh)/1.65
+        return self.damiter(maxd,doh)/self.f2
 
     def damiter(self,maxd,doh):
         basevel=self.getmass(maxd)
@@ -293,7 +300,7 @@ def getmp(self):
     ce=self.cohesive_bond_energy
     ce=ce/6
     sh=getsh(self)
-    return ce/sh/2/1.55/1.55
+    return ce/sh/2/(self.f3**2)
     #at 1.55kms 25mm ld 29
     #28cm pen du vs steel
     #863mpa wikipedia rha
