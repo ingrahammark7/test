@@ -32,10 +32,11 @@ class Material:
         #self.bafac=2.1
         #self.f2=1.65
         #self.f3=1.55
-        self.bafac=29/14
-        self.f2=4.1/2.5
-        self.f3=2410/1555
+        self.bafac=29
+        self.f2=2.5
+        self.f3=2410/1550
         self.f4=863/2000
+                
         
         self.j_high_estimate = (self.compute_high_estimate() ** 0.5)*self.f4
         self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
@@ -136,8 +137,10 @@ class Material:
         ht=airenpers/(ht*mp)
         ba=ht/airvol
         roundside=ra*4
-        ba=ba/roundside*self.bafac 
-        return ba,airvol
+        ba=ba/roundside
+        if(self.bafac==1):
+        	return ba,airvol
+        return self.bafac,airvol
 
     def gets(self):
         round_diameter1=self.getdam()
@@ -157,7 +160,9 @@ class Material:
         barrel=getsteel()
         maxd=barrel.base_hvl_cm
         doh=barrel.material_energy_density_j_per_hvl
-        return self.damiter(maxd,doh)/self.f2
+        if(self.f2==1):
+        	return self.damiter(maxd,doh)
+        return self.f2
 
     def damiter(self,maxd,doh):
         basevel=self.getmass(maxd)
