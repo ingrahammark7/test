@@ -29,8 +29,15 @@ class Material:
         self.emr=nuct.alpha**nuct.phi
         self.emr=self.emr/nuct.phi
         
-    
-        self.j_high_estimate = (self.compute_high_estimate() ** 0.5)*.43
+        #self.bafac=2.1
+        #self.f2=1.65
+        #self.f3=1.55
+        self.bafac=29/14
+        self.f2=4.1/2.5
+        self.f3=2410/1555
+        self.f4=863/2000
+        
+        self.j_high_estimate = (self.compute_high_estimate() ** 0.5)*self.f4
         self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
         self.elmol=self.elementary_charge*self.avogadro
         self.elmol=self.elmol**(1/4)
@@ -39,12 +46,6 @@ class Material:
         self.elmol*=self.te
         self.db=self.elmol
         
-        #self.bafac=2.1
-        #self.f2=1.65
-        #self.f3=1.55
-        self.bafac=29/14
-        self.f2=4.1/2.5
-        self.f3=2410/1555
     
     def compute_high_estimate(self):
         ch = self.ch
