@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Case" 
+footer_text = "Request for Judgement" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,8 +67,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES COURT OF APPEALS")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "NINTH CIRCUIT")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
  
 
     # (4) Case Title
@@ -77,15 +77,14 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Office of the Comptroller of the Currency",
-        "of the United States Department of the Treasury",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
     counter=0
     for line in case_title:
         c.setFont("Times-Bold",12)
-        if counter==1 or counter==5:
+        if counter==1 or counter==4:
         	c.setFont("Times-Roman",12)
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
@@ -94,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25-4338")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -113,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Dear Circuit Executive, /n    I filed case 25-4338 months ago. IFP remains pending. Please inform if case should be dismissed. Judge rejected original case because 'cartel activity'. Email is the best way to reach me for any questions. /n" 
+    intro_text = "1. There is literally no way defendant can win this case. /n 2. If police arrest me, they have to admit to defending gang. /n 3. If police dont arrest me, they lose. /n 4. The only option for defendant is to delay and evade judgement. /n 5. As I have demanded multiple times, judge should issue decision as soon as possible. /n 6. I dont care if you order police to arrest me. /n 7. The only possible outcome of this case is me winning and all defendant can do is delay. /n 8. Any further hearings or motions in this case are a waste of time beyond the decision. /n" 
     y_position -= .25*inch
     
     
