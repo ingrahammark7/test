@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice to Court" 
+footer_text = "Notice of Case" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,9 +67,9 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
-   
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "NINTH CIRCUIT")
+ 
 
     # (4) Case Title
     c.setFont("Times-Bold", 12)
@@ -77,14 +77,15 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Chase Bank",
+        "Office of the Comptroller of the Currency",
+        "of the United States Department of the Treasury",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
     counter=0
     for line in case_title:
         c.setFont("Times-Bold",12)
-        if counter==1 or counter==4:
+        if counter==1 or counter==5:
         	c.setFont("Times-Roman",12)
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
@@ -93,7 +94,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: CGC-25-625577")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25-4338")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -112,7 +113,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = " Clerk rejected my default pakcet and gave no explanation at all. /n" 
+    intro_text = "Dear Circuit Executive, /n    I filed case 25-4338 months ago. IFP remains pending. Please inform if case should be dismissed. Judge rejected original case because 'cartel activity'. Email is the best way to reach me for any questions. /n" 
     y_position -= .25*inch
     
     
