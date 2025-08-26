@@ -14,10 +14,10 @@ class Material:
         self.material_energy_density_j_per_hvl = material_energy_density_j_per_hvl
         self.weak_factor = weak_factor
         
-        # Constants
+     
         self.avogadro = 6.02214076e23
         self.ev_to_joule = 1.602e-19
-        self.k = 9e9  # Coulomb constant
+        self.k = 9e9  
         self.elementary_charge = 1.60217663e-19
         self.phi = 1.61803398875
         self.ch=(self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
@@ -29,8 +29,8 @@ class Material:
         self.emr=nuct.alpha**nuct.phi
         self.emr=self.emr/nuct.phi
         
-        # Precompute values
-        self.j_high_estimate = self.compute_high_estimate() ** 0.5
+    
+        self.j_high_estimate = (self.compute_high_estimate() ** 0.5)*.43
         self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
         self.elmol=self.elementary_charge*self.avogadro
         self.elmol=self.elmol**(1/4)
@@ -49,7 +49,7 @@ class Material:
         return re
     
     def compute_cohesive_bond_energy(self):
-        mass_g = 1000  # for 1 kg
+        mass_g = 1000  
         moles = mass_g / self.molar_mass
         atoms = moles * self.avogadro
         bond_energy_per_atom_j = self.cohesive_energy_ev * self.ev_to_joule
@@ -61,10 +61,7 @@ class Material:
         print(f"Cohesive bond energy total (MJ): {self.cohesive_bond_energy / 1e6:.4f}")
 
     def combine_angles(self, angle1_deg, angle2_deg):
-        """
-        Combine two orthogonal angles (degrees) into one effective angle (degrees).
-        Caps at 90 degrees.
-        """
+        
         a1=self.clean_angle(angle1_deg) 
         a2=self.clean_angle(angle2_deg) 
         f2=90-a2 
@@ -131,7 +128,7 @@ class Material:
         ht=airenpers/(ht*mp)
         ba=ht/airvol
         roundside=ra*4
-        ba=ba/roundside
+        ba=ba/roundside*2.1
         return ba,airvol
 
     def gets(self):
@@ -152,7 +149,7 @@ class Material:
         barrel=getsteel()
         maxd=barrel.base_hvl_cm
         doh=barrel.material_energy_density_j_per_hvl
-        return self.damiter(maxd,doh)
+        return self.damiter(maxd,doh)/1.65
 
     def damiter(self,maxd,doh):
         basevel=self.getmass(maxd)
@@ -296,8 +293,8 @@ def getmp(self):
     ce=self.cohesive_bond_energy
     ce=ce/6
     sh=getsh(self)
-    return ce/sh/2
-    #at 1.7kms 100mm ld 31
+    return ce/sh/2/1.55/1.55
+    #at 1.55kms 25mm ld 29
     #28cm pen du vs steel
     #863mpa wikipedia rha
     #68cm pen
@@ -310,14 +307,14 @@ def getsh(self):
     
     
 
-# Example usage:
+
 if __name__ == "__main__":    
     steel=getsteel()
     du=getdu()
-    cf=getsteel()
+    cf=getdu()
     steel.print_summary()
     rspeed=cf.gets()
-    round_diameter = cf.getdam() # cm
+    round_diameter = cf.getdam() 
     round_mas=cf.getmass(round_diameter)
     print("mass",round_mas)
     round_energy = (.5*round_mas*(rspeed**2))
