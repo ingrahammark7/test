@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Advanced Projectile Penetration Simulator</title>
+<title>Advanced Multi-Shell Penetration Simulator</title>
 <style>
 body { margin:0; overflow:hidden; background:#111; font-family: monospace;}
 #info { position:absolute; top:10px; left:10px; color:white; z-index:10;}
@@ -13,28 +13,26 @@ input[type=range]{ width:150px;}
 </style>
 </head>
 <body>
-<div id="info">Projectile Penetration Simulator</div>
-<div id="legend">Sphere = mass, Color = speed / ionization, Tilt phone to move camera</div>
+<div id="info">Advanced Multi-Shell Penetration Simulator</div>
+<div id="legend">Sphere size = mass, Color = speed/ionization, Tilt device or drag mouse to move camera</div>
 <div id="ui">
-    <div>Mass: <input type="range" id="massSlider" min="1" max="10000" value="1000"></div>
     <div>Speed: <input type="range" id="speedSlider" min="0.1" max="5" step="0.01" value="1"></div>
-    <div>Material Strength: <input type="range" id="strengthSlider" min="0.1" max="2" step="0.01" value="1"></div>
+    <div>Strength: <input type="range" id="strengthSlider" min="0.1" max="2" step="0.01" value="1"></div>
 </div>
 <div id="graph">
 <canvas id="logGraph" width="280" height="280"></canvas>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/FontLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/geometries/TextGeometry.js"></script>
 
 <script>
-// ---------------- Scene ----------------
+// ---------------- Scene Setup ----------------
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111111);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
 camera.position.set(0, 200, 800);
 camera.lookAt(0,0,0);
+
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -45,114 +43,162 @@ const dirLight = new THREE.DirectionalLight(0xffffff,1);
 dirLight.position.set(200,500,300);
 scene.add(dirLight);
 
-// ---------------- Armor ----------------
-const blocks = [];
-const numBlocks=6;
-for(let i=0;i<numBlocks;i++){
-    const geometry=new THREE.BoxGeometry(50,50,50);
-    const block=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color:0x4444ff}));
-    block.position.set(i*70-200,0,0);
-    scene.add(block);
-    blocks.push(block);
+// ---------------- Armor Layers ----------------
+const armorLayers=[];
+const blocksPerLayer=6;
+const layerSpacing=60;
+const numLayers=3;
+for(let l=0;l<numLayers;l++){
+    const layer=[];
+    for(let i=0;i<blocksPerLayer;i++){
+        const geometry=new THREE.BoxGeometry(50,50,50);
+        const block=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color:0x4444ff}));
+        block.position.set(i*70-200,0,l*layerSpacing);
+        scene.add(block);
+        layer.push(block);
+    }
+    armorLayers.push(layer);
 }
 
-// ---------------- Shell ----------------
-let shellMass = parseFloat(document.getElementById("massSlider").value);
-let shellSpeed = parseFloat(document.getElementById("speedSlider").value);
-let shellStrength = parseFloat(document.getElementById("strengthSlider").value);
+// ---------------- Shell Configurations ----------------
+const shellConfigs=[
+    {name:'50 cal', mass:19.8, diameter:5.3},
+    {name:'Sherman 76mm', mass:6.5, diameter:7.6},
+    {name:'APFSDS', mass:5.0, diameter:2},
+    {name:'16in', mass:1190, diameter:41}
+];
 
-const shellGeometry = new THREE.SphereGeometry(5 + Math.cbrt(shellMass)/5, 16, 16);
-const shellMaterial = new THREE.MeshStandardMaterial({color:0xff4444});
-const shell = new THREE.Mesh(shellGeometry, shellMaterial);
-shell.position.set(-400,0,0);
-shell.userData = {
-    targetX: blocks[0].position.x,
-    pen: 50 * shellStrength, 
-    speed: shellSpeed,
-    mass: shellMass,
-    ionScale:0.1
-};
-scene.add(shell);
+let currentShellIndex=0;
+let speed=parseFloat(document.getElementById("speedSlider").value);
+let strength=parseFloat(document.getElementById("strengthSlider").value);
+let shell, ion;
+const trails = [];
 
-// Ionization sphere
-const ionMaterial = new THREE.MeshStandardMaterial({color:0xffff00, transparent:true, opacity:0.6});
-const ion = new THREE.Mesh(new THREE.SphereGeometry(1,8,8), ionMaterial);
-ion.position.copy(shell.position);
-ion.scale.set(0.1,0.1,0.1);
-scene.add(ion);
-shell.userData.ion = ion;
+// ---------------- Create Shell ----------------
+function createShell(config){
+    const geom=new THREE.SphereGeometry(5 + Math.cbrt(config.mass)/5,16,16);
+    const colorScale=Math.min(1, config.mass/2000);
+    const mat=new THREE.MeshStandardMaterial({color: new THREE.Color(colorScale,0,1-colorScale)});
+    const s=new THREE.Mesh(geom,mat);
+    s.position.set(-400,0,0);
+    s.userData={
+        mass:config.mass,
+        diameter:config.diameter,
+        speed:speed,
+        strength:strength,
+        pen: Math.pow(config.mass,2/3)*speed*strength,
+        targetX:armorLayers[0][0].position.x,
+        ionScale:0.1,
+        trailPoints:[s.position.clone()]
+    };
+    scene.add(s);
+
+    // Ionization sphere
+    const imat = new THREE.MeshStandardMaterial({color:0xffff00, transparent:true, opacity:0.6});
+    const i=new THREE.Mesh(new THREE.SphereGeometry(1,8,8), imat);
+    i.position.copy(s.position);
+    i.scale.set(0.1,0.1,0.1);
+    scene.add(i);
+    s.userData.ion=i;
+    return s;
+}
 
 // ---------------- Graph ----------------
-const logCanvas = document.getElementById("logGraph");
-const logCtx = logCanvas.getContext("2d");
-function drawGraph(mass, pen){
+const logCanvas=document.getElementById("logGraph");
+const logCtx=logCanvas.getContext("2d");
+function drawGraph(){
     logCtx.fillStyle="#222";
     logCtx.fillRect(0,0,logCanvas.width,logCanvas.height);
     logCtx.strokeStyle="#fff";
     logCtx.beginPath();
-    for(let i=0;i<logCanvas.width;i++){
-        let logMass = Math.log10(1+i/10);
-        let logPen = Math.log10(pen*(i/10)/mass);
-        let x=i;
-        let y=logCanvas.height- (logPen/logMass)*100 - 140;
+    for(let i=0;i<shellConfigs.length;i++){
+        let mass=Math.log10(shellConfigs[i].mass);
+        let pen=Math.log10(Math.pow(shellConfigs[i].mass,2/3)*speed*strength);
+        let x=50 + i*50;
+        let y=logCanvas.height- (pen/mass)*50 -50;
         if(i===0) logCtx.moveTo(x,y); else logCtx.lineTo(x,y);
     }
     logCtx.stroke();
 }
-drawGraph(shellMass, shell.userData.pen);
+drawGraph();
 
 // ---------------- Sliders ----------------
-document.getElementById("massSlider").addEventListener("input", e=>{
-    shellMass = parseFloat(e.target.value);
-    shell.scale.setScalar(5 + Math.cbrt(shellMass)/5);
-    shell.userData.mass = shellMass;
-    shell.userData.pen = 50 * shellStrength;
-    drawGraph(shellMass, shell.userData.pen);
-});
 document.getElementById("speedSlider").addEventListener("input", e=>{
-    shellSpeed = parseFloat(e.target.value);
-    shell.userData.speed = shellSpeed;
+    speed=parseFloat(e.target.value);
+    if(shell) shell.userData.speed=speed;
+    if(shell) shell.userData.pen=Math.pow(shell.userData.mass,2/3)*speed*strength;
+    drawGraph();
 });
 document.getElementById("strengthSlider").addEventListener("input", e=>{
-    shellStrength = parseFloat(e.target.value);
-    shell.userData.pen = 50 * shellStrength;
-    drawGraph(shellMass, shell.userData.pen);
+    strength=parseFloat(e.target.value);
+    if(shell) shell.userData.strength=strength;
+    if(shell) shell.userData.pen=Math.pow(shell.userData.mass,2/3)*speed*strength;
+    drawGraph();
 });
 
-// ---------------- Device orientation ----------------
+// ---------------- Device Orientation & Mouse ----------------
+let mouseX=0,mouseY=0;
 window.addEventListener("deviceorientation", function(event){
-    const gamma = event.gamma; // left-right tilt
-    const beta = event.beta; // front-back tilt
-    camera.position.x = gamma*5;
-    camera.position.y = 200 + beta*2;
+    const gamma = event.gamma;
+    const beta = event.beta;
+    camera.position.x = gamma*5 + mouseX;
+    camera.position.y = 200 + beta*2 - mouseY;
     camera.lookAt(0,0,0);
 });
+window.addEventListener('mousemove',e=>{ mouseX=e.clientX- window.innerWidth/2; mouseY=e.clientY- window.innerHeight/2; });
 
 // ---------------- Animate ----------------
+let launch=true;
+function launchNextShell(){
+    if(shell) scene.remove(shell), scene.remove(shell.userData.ion);
+    if(currentShellIndex>=shellConfigs.length) return;
+    shell=createShell(shellConfigs[currentShellIndex]);
+    currentShellIndex++;
+    launch=true;
+}
+launchNextShell();
+
 function animate(){
     requestAnimationFrame(animate);
+    if(launch && shell){
+        const dx=shell.userData.targetX - shell.position.x;
+        if(Math.abs(dx)>0.5){
+            shell.position.x += Math.sign(dx)*shell.userData.speed;
 
-    // Move shell
-    const dx = shell.userData.targetX - shell.position.x;
-    if(Math.abs(dx)>0.5){
-        shell.position.x += Math.sign(dx)*shell.userData.speed;
+            // Ionization sphere
+            shell.userData.ion.position.copy(shell.position);
+            shell.userData.ion.scale.setScalar(Math.min(shell.userData.ion.scale.x + 0.05, shell.userData.pen/10));
 
-        // Ionization sphere
-        shell.userData.ion.position.copy(shell.position);
-        shell.userData.ion.scale.setScalar(Math.min(shell.userData.ion.scale.x + 0.05, shell.userData.pen/10));
-    } else {
-        // Impact
-        const block = blocks[0];
-        block.scale.z = Math.max(0.1, block.scale.z - shell.userData.pen/50);
-        shell.userData.ion.scale.setScalar(shell.userData.pen/5);
-        shell.userData.ion.material.opacity = 0.8;
+            // Trail
+            shell.userData.trailPoints.push(shell.position.clone());
+            const trailGeom=new THREE.BufferGeometry().setFromPoints(shell.userData.trailPoints);
+            let trailMat = new THREE.LineBasicMaterial({color:0xffff00});
+            let trailLine = new THREE.Line(trailGeom, trailMat);
+            scene.add(trailLine);
+            trails.push(trailLine);
+
+        } else {
+            // Impact on all layers
+            for(let l=0;l<numLayers;l++){
+                for(let b=0;b<blocksPerLayer;b++){
+                    const block=armorLayers[l][b];
+                    block.scale.z=Math.max(0.1, block.scale.z - shell.userData.pen/50/(l+1));
+                }
+            }
+            shell.userData.ion.scale.setScalar(shell.userData.pen/5);
+            shell.userData.ion.material.opacity=0.8;
+
+            // Next shell after delay
+            launch=false;
+            setTimeout(()=>{launchNextShell();},1000);
+        }
     }
 
     renderer.render(scene,camera);
 }
 animate();
 
-// ---------------- Window resize ----------------
+// ---------------- Window Resize ----------------
 window.addEventListener('resize', ()=>{
     camera.aspect=window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
@@ -160,4 +206,4 @@ window.addEventListener('resize', ()=>{
 });
 </script>
 </body>
-</html>
+</html> 
