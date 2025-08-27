@@ -2,94 +2,159 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Projectile Penetration Visualization</title>
+<title>Advanced Projectile Penetration Simulator</title>
 <style>
-  body { margin: 0; overflow: hidden; background: #111; }
+body { margin:0; overflow:hidden; background:#111; font-family: monospace;}
+#info { position:absolute; top:10px; left:10px; color:white; z-index:10;}
+#legend { position:absolute; bottom:10px; left:10px; color:white; z-index:10;}
+#ui { position:absolute; top:50px; left:10px; color:white; z-index:10;}
+#graph { position:absolute; top:10px; right:10px; width:300px; height:300px; background:#222; color:white; z-index:10; padding:10px; }
+input[type=range]{ width:150px;}
 </style>
 </head>
 <body>
+<div id="info">Projectile Penetration Simulator</div>
+<div id="legend">Sphere = mass, Color = speed / ionization, Tilt phone to move camera</div>
+<div id="ui">
+    <div>Mass: <input type="range" id="massSlider" min="1" max="10000" value="1000"></div>
+    <div>Speed: <input type="range" id="speedSlider" min="0.1" max="5" step="0.01" value="1"></div>
+    <div>Material Strength: <input type="range" id="strengthSlider" min="0.1" max="2" step="0.01" value="1"></div>
+</div>
+<div id="graph">
+<canvas id="logGraph" width="280" height="280"></canvas>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/FontLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/geometries/TextGeometry.js"></script>
+
 <script>
-// Scene setup
+// ---------------- Scene ----------------
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111111);
-
-// Camera setup (fixed, no orbit controls)
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
-camera.position.set(0, 100, 600);
-camera.lookAt(0, 0, 0);
-
-// Renderer
+camera.position.set(0, 200, 800);
+camera.lookAt(0,0,0);
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Lights
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+const ambientLight = new THREE.AmbientLight(0xffffff,0.5);
 scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-dirLight.position.set(200, 500, 300);
+const dirLight = new THREE.DirectionalLight(0xffffff,1);
+dirLight.position.set(200,500,300);
 scene.add(dirLight);
 
-// Define blocks (armor targets)
-const blockMaterial = new THREE.MeshStandardMaterial({color: 0x4444ff});
+// ---------------- Armor ----------------
 const blocks = [];
-const numBlocks = 6;
-for(let i=0; i<numBlocks; i++){
-    const geometry = new THREE.BoxGeometry(50, 50, 50);
-    const block = new THREE.Mesh(geometry, blockMaterial);
-    block.position.set(i*60 - 150, 0, 0);
+const numBlocks=6;
+for(let i=0;i<numBlocks;i++){
+    const geometry=new THREE.BoxGeometry(50,50,50);
+    const block=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color:0x4444ff}));
+    block.position.set(i*70-200,0,0);
     scene.add(block);
     blocks.push(block);
 }
 
-// Define shells (projectiles)
-const shellMaterial = new THREE.MeshStandardMaterial({color: 0xff4444});
-const shells = [];
+// ---------------- Shell ----------------
+let shellMass = parseFloat(document.getElementById("massSlider").value);
+let shellSpeed = parseFloat(document.getElementById("speedSlider").value);
+let shellStrength = parseFloat(document.getElementById("strengthSlider").value);
 
-// Example shell data (mass, penetration factor)
-const shellData = [
-    {mass: 0.05, pen: 1.5},
-    {mass: 6, pen: 7.5},
-    {mass: 20, pen: 49},
-    {mass: 1190, pen: 35},
-    {mass: 6047, pen: 157},
-];
+const shellGeometry = new THREE.SphereGeometry(5 + Math.cbrt(shellMass)/5, 16, 16);
+const shellMaterial = new THREE.MeshStandardMaterial({color:0xff4444});
+const shell = new THREE.Mesh(shellGeometry, shellMaterial);
+shell.position.set(-400,0,0);
+shell.userData = {
+    targetX: blocks[0].position.x,
+    pen: 50 * shellStrength, 
+    speed: shellSpeed,
+    mass: shellMass,
+    ionScale:0.1
+};
+scene.add(shell);
 
-shellData.forEach((s, i)=>{
-    const geometry = new THREE.SphereGeometry(5, 16, 16);
-    const shell = new THREE.Mesh(geometry, shellMaterial);
-    shell.position.set(-300, 0, 50*i);
-    shell.userData = { targetX: blocks[i%blocks.length].position.x, pen: s.pen, speed: 1 + s.mass/1000 };
-    scene.add(shell);
-    shells.push(shell);
+// Ionization sphere
+const ionMaterial = new THREE.MeshStandardMaterial({color:0xffff00, transparent:true, opacity:0.6});
+const ion = new THREE.Mesh(new THREE.SphereGeometry(1,8,8), ionMaterial);
+ion.position.copy(shell.position);
+ion.scale.set(0.1,0.1,0.1);
+scene.add(ion);
+shell.userData.ion = ion;
+
+// ---------------- Graph ----------------
+const logCanvas = document.getElementById("logGraph");
+const logCtx = logCanvas.getContext("2d");
+function drawGraph(mass, pen){
+    logCtx.fillStyle="#222";
+    logCtx.fillRect(0,0,logCanvas.width,logCanvas.height);
+    logCtx.strokeStyle="#fff";
+    logCtx.beginPath();
+    for(let i=0;i<logCanvas.width;i++){
+        let logMass = Math.log10(1+i/10);
+        let logPen = Math.log10(pen*(i/10)/mass);
+        let x=i;
+        let y=logCanvas.height- (logPen/logMass)*100 - 140;
+        if(i===0) logCtx.moveTo(x,y); else logCtx.lineTo(x,y);
+    }
+    logCtx.stroke();
+}
+drawGraph(shellMass, shell.userData.pen);
+
+// ---------------- Sliders ----------------
+document.getElementById("massSlider").addEventListener("input", e=>{
+    shellMass = parseFloat(e.target.value);
+    shell.scale.setScalar(5 + Math.cbrt(shellMass)/5);
+    shell.userData.mass = shellMass;
+    shell.userData.pen = 50 * shellStrength;
+    drawGraph(shellMass, shell.userData.pen);
+});
+document.getElementById("speedSlider").addEventListener("input", e=>{
+    shellSpeed = parseFloat(e.target.value);
+    shell.userData.speed = shellSpeed;
+});
+document.getElementById("strengthSlider").addEventListener("input", e=>{
+    shellStrength = parseFloat(e.target.value);
+    shell.userData.pen = 50 * shellStrength;
+    drawGraph(shellMass, shell.userData.pen);
 });
 
-// Animate shells hitting blocks
-function animate() {
+// ---------------- Device orientation ----------------
+window.addEventListener("deviceorientation", function(event){
+    const gamma = event.gamma; // left-right tilt
+    const beta = event.beta; // front-back tilt
+    camera.position.x = gamma*5;
+    camera.position.y = 200 + beta*2;
+    camera.lookAt(0,0,0);
+});
+
+// ---------------- Animate ----------------
+function animate(){
     requestAnimationFrame(animate);
 
-    shells.forEach(shell=>{
-        const dx = shell.userData.targetX - shell.position.x;
-        if(Math.abs(dx) > 0.5){
-            shell.position.x += Math.sign(dx) * shell.userData.speed;
-        } else {
-            // “Blast” the block based on penetration
-            const block = blocks.find(b=>Math.abs(b.position.x - shell.userData.targetX)<1);
-            if(block){
-                block.scale.z = Math.max(0.1, block.scale.z - shell.userData.pen/50);
-            }
-        }
-    });
+    // Move shell
+    const dx = shell.userData.targetX - shell.position.x;
+    if(Math.abs(dx)>0.5){
+        shell.position.x += Math.sign(dx)*shell.userData.speed;
 
-    renderer.render(scene, camera);
+        // Ionization sphere
+        shell.userData.ion.position.copy(shell.position);
+        shell.userData.ion.scale.setScalar(Math.min(shell.userData.ion.scale.x + 0.05, shell.userData.pen/10));
+    } else {
+        // Impact
+        const block = blocks[0];
+        block.scale.z = Math.max(0.1, block.scale.z - shell.userData.pen/50);
+        shell.userData.ion.scale.setScalar(shell.userData.pen/5);
+        shell.userData.ion.material.opacity = 0.8;
+    }
+
+    renderer.render(scene,camera);
 }
-
 animate();
 
-// Handle resizing
+// ---------------- Window resize ----------------
 window.addEventListener('resize', ()=>{
-    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.aspect=window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
