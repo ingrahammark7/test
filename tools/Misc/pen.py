@@ -370,7 +370,6 @@ if __name__ == "__main__":
     	return (863*10**6)/mat.j_high_estimate
     	
     strength=bhn250()
-    print(strength)
     
     def do9mm():
     	cf=du
@@ -503,14 +502,45 @@ if __name__ == "__main__":
     	dopen(cf)
     	print("actual 63cm")
     	
+    def do5():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=5.35/2/2
+    	cf.f2=12.7
+    	cf.f3=speed/790
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 13cm")
+    	
+    def do6():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=4.5/2
+    	cf.f2=15
+    	cf.f3=speed/640
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 30cm")
+    	
+    def do8():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=4.06/2
+    	cf.f2=20
+    	cf.f3=speed/(823)
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 40cm")
+    	
     def do16():
     	cf=steel
     	speed=getspeed(cf)
-    	cf.bafac=4.5
+    	cf.bafac=4.5/2
     	cf.f2=41
     	cf.f3=speed/762
     	cf.f4=strength
     	dopen(cf)
+    	print("actual 75cm")
     	
     
 
@@ -548,6 +578,10 @@ if __name__ == "__main__":
     do3bm7()
     do3vbm17()
     dosvinets()
+    dotapna()
+    do5()
+    do6()
+    do8()
     do16()
     
   
