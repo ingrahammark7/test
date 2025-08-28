@@ -188,10 +188,9 @@ class Material:
         return d
             
     def clean_angle(self, angle):
-        if angle > 180:
-            angle -= 180
+        angle = angle % 180
         if angle > 90:
-            angle -= 90
+        	angle = 180 - angle
         return angle
 
     def base_pen(self, d, round_energy_j, round_diameter_cm):
@@ -294,7 +293,7 @@ def getrp1tenpct():
     material_energy_density_j_per_hvl=1,
     weak_factor=1/2000
     )
-    getrp1tenpct.material_energy_density_j_per_hvl=estfix(rp1tenpct)
+    rp1tenpct.material_energy_density_j_per_hvl=estfix(rp1tenpct)
     return rp1tenpct
     
 def getmht(self):
