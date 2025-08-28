@@ -29,13 +29,15 @@ class Material:
         self.emr=nuct.alpha**nuct.phi
         self.emr=self.emr/nuct.phi
         
-        #self.bafac=2.1
-        #self.f2=1.65
-        #self.f3=1.55
-        self.bafac=29
-        self.f2=2.5
-        self.f3=2410/1550
-        self.f4=863/2000
+       
+        #self.bafac=4.5#ld
+        #self.f2=41#diameter
+        #self.f3=2210/914#mp
+        #self.f4= 863/2010 #tensile
+        self.bafac=1
+        self.f2=1
+        self.f3=1
+        self.f4=1
                 
         
         self.j_high_estimate = (self.compute_high_estimate() ** 0.5)*self.f4
@@ -97,16 +99,12 @@ class Material:
         f=self.melt_one_hvl()
         r=(round_energy)/(f*self.base_hvl_cm)
         if(d>r):
-            print("A ", d, "cm penetration was thermally bound to ", r,"cm.")
+            print("A penetration was thermally bound to ", r,"cm.")
             return r
         print("A ", d,"cm penetration did not reach thermal bound ", r,"cm.")
         return d
 
     def penetration_depth(self, round_energy, round_diameter_cm, angle1, angle2, honeycomb_layers,round_mas,roundmaterial):
-        """
-        Compute penetration depth (cm) using your MHD dynamic HVL model,
-        with two slope angles (angle1, angle2) in degrees.
-        """
         effective_angle = self.combine_angles(angle1, angle2)
         pm = nuct.NuclearPenetrationModel(self)
         d=nuct.nuclear_penetration(round_energy,round_diameter_cm,honeycomb_layers,round_mas,pm.material,roundmaterial)
@@ -210,8 +208,16 @@ class Material:
         return round_energy_j / ((round_diameter_cm/self.base_hvl_cm) ** 2)
 
 def estfix(self):
-        return (self.j_high_estimate*self.hvl_mass_kg())	
-
+        return (self.j_high_estimate*self.hvl_mass_kg())
+        
+def cohfrommp(mp):
+		mp+=getsteel().zc
+		he=getsteel().db*mp/getsteel().avogadro
+		he=he/getsteel().ev_to_joule
+		return he*2*zrule()
+		
+def zrule():
+	return 6
 
 def getsteel():
     steel = Material(
@@ -259,6 +265,8 @@ def getcf():
     return cf
 
 dn=1.25
+rpmo=16
+rp1z=8
 
 def getn():
     n=Material(
@@ -273,6 +281,21 @@ def getn():
     weak_factor=1
     )
     return n
+    
+def getrp1tenpct():
+    rp1tenpct=Material(
+    name="RP1tenpct",
+    molar_mass_g_mol=rpmo,
+    density_kg_m3=1400,
+    atomic_radius_m=6e-11,
+    atomic_number=rp1z,
+    cohesive_energy_ev=cohfrommp(60),
+    base_hvl_cm=10,
+    material_energy_density_j_per_hvl=1,
+    weak_factor=1/2000
+    )
+    getrp1tenpct.material_energy_density_j_per_hvl=estfix(rp1tenpct)
+    return rp1tenpct
     
 def getmht(self):
     ht=getht(self)
@@ -304,7 +327,7 @@ def getvel(self,t):
 
 def getmp(self):
     ce=self.cohesive_bond_energy
-    ce=ce/6
+    ce=ce/zrule()
     sh=getsh(self)
     return ce/sh/2/(self.f3**2)
     #at 1.55kms 25mm ld 29
@@ -318,25 +341,215 @@ def getsh(self):
     sh=ker*sh
     return sh
     
-    
 
-
-if __name__ == "__main__":    
+if __name__ == "__main__":   
     steel=getsteel()
     du=getdu()
-    cf=getdu()
+    cf=getrp1tenpct()
     steel.print_summary()
-    rspeed=cf.gets()
-    round_diameter = cf.getdam() 
-    round_mas=cf.getmass(round_diameter)
-    print("mass",round_mas)
-    round_energy = (.5*round_mas*(rspeed**2))
-    print("energy j ",round_energy)
-    angle_vert = 90
-    angle_horz = 90
+   
+    
+    
+    def basevals(mat):
+    	mat.bafac=1
+    	mat.f2=1
+    	mat.f3=1
+    	mat.f4=1
+    	return mat
+    
+    def getspeed(mat):
+    	mat=basevals(mat)
+    	return mat.gets()
+    	
+    def getstr(mat):
+    	mat=basevals(mat)
+    	return mat.j_high_estimate
+    	
+    def bhn250():
+    	mat=basevals(getsteel())
+    	return (863*10**6)/mat.j_high_estimate
+    	
+    strength=bhn250()
+    print(strength)
+    
+    def do9mm():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=2
+    	cf.f2=.9
+    	cf.f3=speed/376
+    	cf.f4=strength
+    	dopen(cf)
+    	print("19mm drop in .5mpa clay is .01mm steel. 2000x clay steel ratio is .15mm for 30cm clay.")
+    	
+    def do44():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=3
+    	cf.f2=1.09
+    	cf.f3=speed/470
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 5mm plate. cavity exceeds hvl and enters new regime")
+    
+    def do556():
+    	cf=du
+    	speed=getspeed(cf)	
+    	cf.bafac=8.1
+    	cf.f2=.556
+    	cf.f3=speed/994
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 1.5 (scaled from magnun).")
+    	
+    def do762():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=6.7
+    	cf.f2=.762
+    	cf.f3=speed/856
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 1.5 (scaled from magnum) ")
+    	
+    def do3006():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=8.25
+    	cf.f2=.762
+    	cf.f3=speed/890
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 1.5 (scaled from mangum")
+    	
+    	
+    def do50cal():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=7.8
+    	cf.f2=1.27
+    	cf.f3=speed/(1219)#explosive
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 2.3")
+    	
+    def dobradley():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=5.5
+    	cf.f2=2.5
+    	cf.f3=speed/1385
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 10.1")
+    	
+    def dosherman():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=7.07
+    	cf.f2=7.6
+    	cf.f3=speed/(792)#explosive
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 23.9")
+    	
+    def do3vmb3():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=10*(3.6/5.6)
+    	cf.f2=4.1
+    	cf.f3=speed/(1800*.85)
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 25cm")
+    	
+    def do3bm7():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=12
+    	cf.f2=3.6
+    	cf.f3=speed/(1785)
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 40cm")
+    	
+    def do3vbm17():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=17
+    	cf.f2=3.1
+    	cf.f3=speed/(1700*.85)
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 52cm")
+    	
+    def dosvinets():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=21.84
+    	cf.f2=2.5
+    	cf.f3=speed/1700
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 66cm")
+    	
+    def dotapna():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=29
+    	cf.f2=2.5
+    	cf.f3=speed/1690
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 63cm")
+    	
+    def do16():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=4.5
+    	cf.f2=41
+    	cf.f3=speed/762
+    	cf.f4=strength
+    	dopen(cf)
+    	
+    
 
-    depth= getsteel().penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas,cf)
-    print(f"Penetration depth: {depth:.2f} cm")
+    def dopen(mat):
+    	print("")
+    	rspeed=mat.gets()
+    	round_diameter = mat.getdam()
+    	round_mas=mat.getmass(round_diameter)
+    	print("mass",round_mas)
+    	round_energy = (.5*round_mas*(rspeed**2))
+    	print("energy j ",round_energy)
+    	angle_vert = 90
+    	angle_horz = 90
+    	armor=steel
+    	hvl=armor.base_hvl_cm*zrule()
+    	mult=1
+    	if(round_diameter>hvl):
+    		mult=round_diameter/hvl
+    	mult=mult**2
+    	armor.material_energy_density_j_per_hvl=mat.f4*steel.material_energy_density_j_per_hvl
+    	depth= armor.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas,mat)
+    	depth=depth/mult
+    	print(f"Penetration depth: {depth:.2f} cm")
+    
+    dopen(cf)
+    do9mm()
+    do44()
+    do556()
+    do762()
+    do3006()
+    do50cal()
+    dobradley()
+    dosherman()
+    do3vmb3()
+    do3bm7()
+    do3vbm17()
+    dosvinets()
+    do16()
+    
   
     
 
