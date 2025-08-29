@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Judgement" 
+footer_text = "Request for Order" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "1. Judge should make decision aa soon as possible as I have asked three times. /n 2. Judge should order police to arrest me or whatever will get the case resolved. /n 3. Judge has no serious intention of considering any fact besides just pretending I dismissed the case and avoiding appeal. /n 4. Because appeals court wants a decision and wont file a writ you need to issue decision. /n 5. Clerk can dismiss case or make any order whatsoever or order police to arrest me or whatever will get the case to appeals. /n 6. As I said, the only reason this case isnt in federal appeals is I cant afford $200 for a process server. /n 7. When government stops embezzling my welfare I will have $200. /n 8. Once the case is dismissed in appeals, police will have no chance to file a case against me. /n 9. Judge is trying to help police by delaying appeal. 10. Order judge to make decision of any kind on anything ASAP. /n" 
+    intro_text = "1. Because police had a chance to arrest me in this case, and failed, an estoppel should be ordered banning any arrest. /n 2. Although judge will ignore this order and never issue it, the fact that police failed to arrest me requires court to issue estoppel against police because any issues were litigated here. /n 3. Regardless of whether court actually issues the estoppel, police have already lost the case by failing to arrest me and any arrest by police is illegal. /n" 
     y_position -= .25*inch
     
     
