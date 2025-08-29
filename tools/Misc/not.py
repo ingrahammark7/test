@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Decision on the Papers" 
+footer_text = "Appeal of Decision and Petition for Writ" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "1. Clerk should allow case to be decided on briefs alone. /n 2. As judge will simply lie and pretend I dismissed case like last time, there is no point at all in any hearings. /n 3. Because of obvious criminality and nonappearance of defendant, clerk has aurhority to rule against defendant and estoppel police from arresting me. /n 4. Clerk may respond to this request with an appealable denial and not waste time with hearings. /n" 
+    intro_text = "This is regarding Los Angeles Superior Court case 25STCP00742. Clerk rejected a request for judgement on 8/6. Judge lied and claims I dismissed case. I am appealijg the rejection of my request. Court should order judge to issue final decision. Because the majority of LAPD officers are illegal immigrants, LAPD should have been ruled against automatically as an illegal entity. /n Petitioner petitions this Court to: /n 1. Order judge to issue final decision as soon as possible. /n 2. Appeal any decision made. /n 3. Require police to explain why they attempt to arrest me when I enter my apartment at 690 S Catalina St Apartment 4x. /n" 
     y_position -= .25*inch
     
     
