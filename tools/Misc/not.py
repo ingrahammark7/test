@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "1. There is literally no way defendant can win this case. /n 2. If police arrest me, they have to admit to defending gang. /n 3. If police dont arrest me, they lose. /n 4. The only option for defendant is to delay and evade judgement. /n 5. As I have demanded multiple times, judge should issue decision as soon as possible. /n 6. I dont care if you order police to arrest me. /n 7. The only possible outcome of this case is me winning and all defendant can do is delay. /n 8. Any further hearings or motions in this case are a waste of time beyond the decision. /n" 
+    intro_text = "1. Judge should make decision aa soon as possible as I have asked three times. /n 2. Judge should order police to arrest me or whatever will get the case resolved. /n 3. Judge has no serious intention of considering any fact besides just pretending I dismissed the case and avoiding appeal. /n 4. Because appeals court wants a decision and wont file a writ you need to issue decision. /n 5. Clerk can dismiss case or make any order whatsoever or order police to arrest me or whatever will get the case to appeals. /n 6. As I said, the only reason this case isnt in federal appeals is I cant afford $200 for a process server. /n 7. When government stops embezzling my welfare I will have $200. /n 8. Once the case is dismissed in appeals, police will have no chance to file a case against me. /n 9. Judge is trying to help police by delaying appeal. 10. Order judge to make decision of any kind on anything ASAP. /n" 
     y_position -= .25*inch
     
     
