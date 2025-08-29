@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order" 
+footer_text = "Request for Decision on the Papers" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "1. Because police had a chance to arrest me in this case, and failed, an estoppel should be ordered banning any arrest. /n 2. Although judge will ignore this order and never issue it, the fact that police failed to arrest me requires court to issue estoppel against police because any issues were litigated here. /n 3. Regardless of whether court actually issues the estoppel, police have already lost the case by failing to arrest me and any arrest by police is illegal. /n" 
+    intro_text = "1. Clerk should allow case to be decided on briefs alone. /n 2. As judge will simply lie and pretend I dismissed case like last time, there is no point at all in any hearings. /n 3. Because of obvious criminality and nonappearance of defendant, clerk has aurhority to rule against defendant and estoppel police from arresting me. /n 4. Clerk may respond to this request with an appealable denial and not waste time with hearings. /n" 
     y_position -= .25*inch
     
     
