@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "This is regarding Los Angeles Superior Court case 25STCP00742. Clerk rejected a request for judgement on 8/6. Judge lied and claims I dismissed case. I am appealijg the rejection of my request. Court should order judge to issue final decision. Because the majority of LAPD officers are illegal immigrants, LAPD should have been ruled against automatically as an illegal entity. /n Petitioner petitions this Court to: /n 1. Order judge to issue final decision as soon as possible. /n 2. Appeal any decision made. /n 3. Require police to explain why they attempt to arrest me when I enter my apartment at 690 S Catalina St Apartment 4x. /n" 
+    intro_text = "This is regarding Los Angeles Superior Court case 25STCP00742. Clerk rejected a request for judgement on 8/6. Judge lied and claims I dismissed case. I am appealing the rejection of my request. Court should order judge to issue final decision. Because the majority of LAPD officers are illegal immigrants, LAPD should have been ruled against automatically as an illegal entity. /n Petitioner petitions this Court to: /n 1. Order judge to issue final decision as soon as possible. /n 2. Appeal any decision made. /n 3. Require police to explain why they attempt to arrest me when I enter my apartment at 690 S Catalina St Apartment 4x. /n" 
     y_position -= .25*inch
     
     
