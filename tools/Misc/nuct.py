@@ -31,6 +31,7 @@ class NuclearPenetrationModel:
         self.shellt = self.brem / 3
         self.compt = self.brem * 2
         self.evperj = pen.getsteel().ev_to_joule
+        self.c3=c**(1/3)
 
         
     def bremsstrahlung_loss(self, E_mev, n_e):
@@ -73,8 +74,7 @@ class NuclearPenetrationModel:
         length = round_ld * round_diameter_cm / 100.0
         length = length / 2.0
         cov=pm*charger
-        cov=cov**(1/3)
-        print("ionized zone generates x round power ",cov.evalf())
+        cov=(cov**(1/3))
         cov=cov/round_mas
         en = round_energy_j 
         roundspeed = self.velfromen(round_mas, en)
@@ -83,12 +83,17 @@ class NuclearPenetrationModel:
         print("flux flies at c% ",em/c)
         em1=em**(1/3)
         print("round speed % of flux ",roundspeed/(em1))
+        v1=roundspeed/self.c3
+        if(v1>1):
+        	v1**=(2/3)
+        else:
+        	v1=1
         vdif=math.sqrt(roundspeed+em1)-math.sqrt(roundspeed)
         roundspeed=roundspeed+vdif
         c2=.5*round_mas*roundspeed
         round_energy_j=max(round_energy_j,c2)
-        p=(round_energy_j/self.material.material_energy_density_j_per_hvl)*self.material.base_hvl_cm
-        return (p*cov)**phi
+        p=(round_energy_j/pen.estfix(self.material))*self.material.base_hvl_cm
+        return ((p*cov)**phi)/v1
 
     def honeycomb_dissipation_factor(self, layers):
         return (1 + layers) ** 3
@@ -111,7 +116,7 @@ class NuclearPenetrationModel:
 
         brems_loss_val = self.bremsstrahlung_loss(E_mev_val, n_e_val)
 
-        base_penetration = (round_energy_j / self.material.material_energy_density_j_per_hvl) * self.material.base_hvl_cm
+        base_penetration = (round_energy_j /pen.estfix( self.material)) * self.material.base_hvl_cm
 
         dissipation = self.honeycomb_dissipation_factor(honeycomb_layers)
 
@@ -120,10 +125,7 @@ class NuclearPenetrationModel:
             brems_loss_val = 0  
 
         mhd_var = self.mhd_bolus( round_energy_j, round_diameter_cm, round_mas, round_ld)
-
         adjusted_penetration = mhd_var + base_penetration / (1 + brems_loss_val * dissipation)
-
-
         if adjusted_penetration < self.material.base_hvl_cm:
             adjusted_penetration = 0
 

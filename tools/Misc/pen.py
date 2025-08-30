@@ -96,13 +96,17 @@ class Material:
         return bo
         
     def thermal_max_pen(self,d,round_energy):
-        f=self.melt_one_hvl()
-        r=(round_energy)/(f*self.base_hvl_cm)
+        r=self.thermalpen(round_energy)
         if(d>r):
-            print("A penetration was thermally bound to ", r,"cm.")
+            print("A ",d,"cm penetration was thermally bound to ", r,"cm.")
             return r
         print("A ", d,"cm penetration did not reach thermal bound ", r,"cm.")
         return d
+        
+    def thermalpen(self,round_energy):
+    	f=self.melt_one_hvl()
+    	r=(round_energy)/(f*self.base_hvl_cm)
+    	return r
 
     def penetration_depth(self, round_energy, round_diameter_cm, angle1, angle2, honeycomb_layers,round_mas,roundmaterial):
         effective_angle = self.combine_angles(angle1, angle2)
@@ -291,7 +295,7 @@ def getrp1tenpct():
     cohesive_energy_ev=cohfrommp(60),
     base_hvl_cm=10,
     material_energy_density_j_per_hvl=1,
-    weak_factor=1/2000
+    weak_factor=16_000_000
     )
     rp1tenpct.material_energy_density_j_per_hvl=estfix(rp1tenpct)
     return rp1tenpct
@@ -368,7 +372,13 @@ if __name__ == "__main__":
     	mat=basevals(getsteel())
     	return (863*10**6)/mat.j_high_estimate
     	
+    def do10gel():
+    	mat=basevals(getsteel())
+    	gel=getrp1tenpct()
+    	return gel.j_high_estimate/mat.j_high_estimate
+    	
     strength=bhn250()
+    gels=do10gel()
     
     def do9mm():
     	cf=du
@@ -377,6 +387,8 @@ if __name__ == "__main__":
     	cf.f2=.9
     	cf.f3=speed/376
     	cf.f4=strength
+    	print("switch to clay pen for 9")
+    	cf.cohesive_bond_energy=getrp1tenpct().cohesive_bond_energy
     	dopen(cf)
     	print("19mm drop in .5mpa clay is .01mm steel. 2000x clay steel ratio is .15mm for 30cm clay.")
     	
@@ -559,9 +571,12 @@ if __name__ == "__main__":
     	if(round_diameter>hvl):
     		mult=round_diameter/hvl
     	mult=mult**2
-    	armor.material_energy_density_j_per_hvl=mat.f4*steel.material_energy_density_j_per_hvl
+    	armor.material_energy_density_j_per_hvl=mat.f4*estfix(steel)
     	depth= armor.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas,mat)
-    	depth=depth/mult
+    	th=armor.thermalpen(round_energy)
+    	if(depth<th):
+    		depth=th
+    		depth=depth/mult
     	print(f"Penetration depth: {depth:.2f} cm")
     
     dopen(cf)
