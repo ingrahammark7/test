@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Appeal of Decision and Petition for Writ" 
+footer_text = "Statement in Support of IFP and Request for Service By US Marshall" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,8 +67,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
  
 
     # (4) Case Title
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
+    c.drawString(space, top_margin - 4* inch, "Case Number: ")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "This is regarding Los Angeles Superior Court case 25STCP00742. Clerk rejected a request for judgement on 8/6. Judge lied and claims I dismissed case. I am appealing the rejection of my request. Court should order judge to issue final decision. Because the majority of LAPD officers are illegal immigrants, LAPD should have been ruled against automatically as an illegal entity. /n Petitioner petitions this Court to: /n 1. Order judge to issue final decision as soon as possible. /n 2. Appeal any decision made. /n 3. Require police to explain why they attempt to arrest me when I enter my apartment at 690 S Catalina St Apartment 4x. /n" 
+    intro_text = "I have submitted a request to proceed in forma pauperis. I request that a US Marshall serve the filed summons and petition to defendant. /n" 
     y_position -= .25*inch
     
     
@@ -152,7 +152,7 @@ def create_pdf(output_filename):
     	return cc
     	
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/25/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/31/2025")
     c=dopage(c,2)
 
 
