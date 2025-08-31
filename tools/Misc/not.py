@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I have submitted a request to proceed in forma pauperis. I request that a US Marshall serve the filed summons and petition to defendant. /n" 
+    intro_text = "I have submitted a request to proceed in forma pauperis. I request that a US Marshall serve the filed summons and petition to defendant. If service by marshall is not possibel, case will be appealed. /n" 
     y_position -= .25*inch
     
     
