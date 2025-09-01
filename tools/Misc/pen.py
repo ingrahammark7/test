@@ -105,7 +105,8 @@ class Material:
         
     def thermalpen(self,round_energy):
     	f=self.melt_one_hvl()
-    	r=(round_energy)/(f*self.base_hvl_cm)
+    	hv=self.base_hvl_cm
+    	r=(round_energy)/(f*hv)
     	return r
 
     def penetration_depth(self, round_energy, round_diameter_cm, angle1, angle2, honeycomb_layers,round_mas,roundmaterial):
@@ -214,8 +215,7 @@ def estfix(self):
         return (self.j_high_estimate*self.hvl_mass_kg())
         
 def cohfrommp(mp):
-		mp+=getsteel().zc
-		he=getsteel().db*mp/getsteel().avogadro
+		he=(getsteel().db*mp)/getsteel().avogadro
 		he=he/getsteel().ev_to_joule
 		return he*2*zrule()
 		
@@ -270,6 +270,7 @@ def getcf():
 dn=1.25
 rpmo=16
 rp1z=8
+rpsolidfrac=0.1
 
 def getn():
     n=Material(
@@ -292,7 +293,7 @@ def getrp1tenpct():
     density_kg_m3=1400,
     atomic_radius_m=6e-11,
     atomic_number=rp1z,
-    cohesive_energy_ev=cohfrommp(60),
+    cohesive_energy_ev=cohfrommp(60/((1/rpsolidfrac)**2)),
     base_hvl_cm=10,
     material_energy_density_j_per_hvl=1,
     weak_factor=16_000_000
@@ -387,8 +388,6 @@ if __name__ == "__main__":
     	cf.f2=.9
     	cf.f3=speed/376
     	cf.f4=strength
-    	print("switch to clay pen for 9")
-    	cf.cohesive_bond_energy=getrp1tenpct().cohesive_bond_energy
     	dopen(cf)
     	print("19mm drop in .5mpa clay is .01mm steel. 2000x clay steel ratio is .15mm for 30cm clay.")
     	
