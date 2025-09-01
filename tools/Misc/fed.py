@@ -82,6 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
+        "Case Number: ",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -153,7 +154,7 @@ def create_pdf(output_filename):
     	return y_position
     	
     
-    h1="I. ISSUES, STATEMENT, CASE, ARGUMENTS, COMPLIANCE"
+    h1="I. ARGUMENTS"
     y_position=top_margin-.5*inch
     y_position=heads(h1,y_position)    
     
