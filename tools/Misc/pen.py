@@ -29,11 +29,6 @@ class Material:
         self.emr=nuct.alpha**nuct.phi
         self.emr=self.emr/nuct.phi
         
-       
-        #self.bafac=4.5#ld
-        #self.f2=41#diameter
-        #self.f3=2210/914#mp
-        #self.f4= 863/2010 #tensile
         self.bafac=1
         self.f2=1
         self.f3=1
@@ -565,6 +560,9 @@ if __name__ == "__main__":
     	angle_vert = 90
     	angle_horz = 90
     	armor=steel
+    	if(round_diameter==.9):
+    		armor=getrp1tenpct()
+    		armor.base_hvl_cm=round_diameter*2	
     	hvl=armor.base_hvl_cm*zrule()
     	mult=1
     	if(round_diameter>hvl):
