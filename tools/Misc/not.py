@@ -67,7 +67,7 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURTS OF APPEAL")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
     c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
