@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Appeal of Decision and Petition for Writ" 
+footer_text = "Petition for Writ of Mandamus" 
 
 def create_pdf(output_filename):
     # Create a PDF document
