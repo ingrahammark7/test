@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Non-Opposition" 
+footer_text = "Request for Decision" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -94,9 +94,6 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
     c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
-    # (6) Nature of the Paper (moved slightly lower)
-    c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number:")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -112,7 +109,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Mr Lebron filed a brief today requesting judgement just like I did. I will agree with anything he says just to get a decision from the judge and go to appeals instead of wasting time given judge already said they would side with police and there is no point in Superior Court hearing. /n" 
+    intro_text = "Court must either: /n 1. Remove unauthorized counsel and grant default on LAPD. Or, /n 2. Decide in my favor. Or, /n 3. Decide against me and provide appealable rejection of motion to vacate as requested by all parties. /n Clerk or judge may make this decision. There is no way to respond to this request without final decision on case. /n" 
     y_position -= .25*inch
     
     
@@ -151,9 +148,6 @@ def create_pdf(output_filename):
     	return cc
     	
     
-  
-    c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     y_position-=.5*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
