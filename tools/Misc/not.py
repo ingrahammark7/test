@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Decision" 
+footer_text = "Notice of Correction to Transcript" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -107,9 +107,9 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
+    c.drawString(left_margin, y_position - 0*inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Court must either: /n 1. Remove unauthorized counsel and grant default on LAPD. Or, /n 2. Decide in my favor. Or, /n 3. Decide against me and provide appealable rejection of motion to vacate as requested by all parties. /n Clerk or judge may make this decision. There is no way to respond to this request without final decision on case. /n" 
+    intro_text = "I have the following minor corrections to posted transcript of 7/22 hearing. I never used the word ''police'', I said cops. Page 8 line 23 has a error. I never made the ''THIS NEVER HAPPENED BEFORE SHE CAME. MAYBE NOT'' statement. Instead, I said ''I dont know where this ''it never happened before'' came from'', in reference to the fact police have failed to arrest me despite claims by unauthorized counsel. /n The closing statements are slightly innaccurate. Judge never said ''IF YOU'RE ASKING ME TO SO SO?''. Even with this error, the transcript still shows judge dismissed the case and I did not. Transcript says ''JUDGE: I WILL DISMISS CASE'' which is accurate and judge did say he would dismiss case. This contradicts the statement immediately after. /n" 
     y_position -= .25*inch
     
     
@@ -148,7 +148,7 @@ def create_pdf(output_filename):
     	return cc
     	
     
-    y_position-=.5*inch
+    y_position-=0*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/3/2025")
