@@ -44,6 +44,7 @@ class Material:
         self.elmol*=self.te
         self.db=self.elmol
         
+        
     
     def compute_high_estimate(self):
         ch = self.ch
@@ -295,6 +296,21 @@ def getrp1tenpct():
     )
     rp1tenpct.material_energy_density_j_per_hvl=estfix(rp1tenpct)
     return rp1tenpct
+    
+def getskin():
+    skin=Material(
+    name="Organic",
+    molar_mass_g_mol=1,
+    density_kg_m3=1,
+    atomic_radius_m=5.3e-11,
+    atomic_number=1,
+    cohesive_energy_ev=-8,
+    base_hvl_cm=4,
+    material_energy_density_j_per_hvl=1,
+    weak_factor=4_000
+    )
+    skin.material_energy_density_j_per_hvl=estfix(skin)
+    return skin
     
 def getmht(self):
     ht=getht(self)
@@ -549,6 +565,22 @@ if __name__ == "__main__":
     	
     
 
+    def lethalcalc(mat,en):
+    	sken=getskin().melt_one_hvl()
+    	if(en<sken):
+    		print("round not lethal")
+    		return 0
+    	mel=mat.melt_one_hvl()
+    	en=en-sken
+    	hvls=en/mel
+    	ar=mat.base_hvl_cm
+    	hvls**=(1/3)
+    	hvls=hvls*ar
+    	print("round lethal at armor cm",hvls)
+    	return hvls
+    	
+    	
+    
     def dopen(mat):
     	print("")
     	rspeed=mat.gets()
@@ -575,6 +607,8 @@ if __name__ == "__main__":
     		depth=th
     		depth=depth/mult
     	print(f"Penetration depth: {depth:.2f} cm")
+    	lethalcalc(armor,round_energy)
+    	
     
     dopen(cf)
     do9mm()
