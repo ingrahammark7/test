@@ -566,7 +566,8 @@ if __name__ == "__main__":
     
 
     def lethalcalc(mat,en):
-    	sken=getskin().melt_one_hvl()
+    	sken=getskin().melt_one_hvl()*-1/64
+    	print(sken)
     	if(en<sken):
     		print("round not lethal")
     		return 0
