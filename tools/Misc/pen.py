@@ -267,6 +267,9 @@ dn=1.25
 rpmo=16
 rp1z=8
 rpsolidfrac=0.1
+rp1tendensity=1400
+waterfrac=.9
+invw=1-waterfrac
 
 def getn():
     n=Material(
@@ -286,28 +289,28 @@ def getrp1tenpct():
     rp1tenpct=Material(
     name="RP1tenpct",
     molar_mass_g_mol=rpmo,
-    density_kg_m3=1400,
+    density_kg_m3=rp1tendensity,
     atomic_radius_m=6e-11,
     atomic_number=rp1z,
     cohesive_energy_ev=cohfrommp(60/((1/rpsolidfrac)**2)),
     base_hvl_cm=10,
     material_energy_density_j_per_hvl=1,
-    weak_factor=16_000_000
+    weak_factor=(((getsteel().density)/rp1tendensity)**6)*nuct.alpha.evalf()*(1/rpsolidfrac)
     )
-    rp1tenpct.material_energy_density_j_per_hvl=estfix(rp1tenpct)
+    rp1tenpct.material_energy_density_j_per_hvl=estfix(rp1tenpct)   
     return rp1tenpct
-    
+            
 def getskin():
     skin=Material(
     name="Organic",
     molar_mass_g_mol=1,
-    density_kg_m3=1,
+    density_kg_m3=1000,
     atomic_radius_m=5.3e-11,
     atomic_number=1,
     cohesive_energy_ev=-8,
     base_hvl_cm=4,
     material_energy_density_j_per_hvl=1,
-    weak_factor=4_000
+    weak_factor=((1/invw)**2)**2
     )
     skin.material_energy_density_j_per_hvl=estfix(skin)
     return skin
@@ -566,8 +569,8 @@ if __name__ == "__main__":
     
 
     def lethalcalc(mat,en):
-    	sken=getskin().melt_one_hvl()*-1/64
-    	print(sken)
+    	sk=getskin()
+    	sken=sk.material_energy_density_j_per_hvl/64/nuct.alpha.evalf()
     	if(en<sken):
     		print("round not lethal")
     		return 0
