@@ -475,6 +475,26 @@ if __name__ == "__main__":
     	cf.f4=strength
     	dopen(cf)
     	print("actual 23.9")
+    
+    def do88():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=10/4
+    	cf.f2=8.8
+    	cf.f3=speed/773
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 17")
+    	
+    def do122():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=3.28/2
+    	cf.f2=12.2
+    	cf.f3=speed/780
+    	cf.f4=strength
+    	dopen(cf)
+    	print("actual 17")
     	
     def do3vmb3():
     	cf=steel
@@ -623,6 +643,8 @@ if __name__ == "__main__":
     do50cal()
     dobradley()
     dosherman()
+    do88()
+    do122()
     do3vmb3()
     do3bm7()
     do3vbm17()
