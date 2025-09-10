@@ -109,7 +109,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0*inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge should make decision as soon as possible and nothing as follows should delay decision. /n Arresting an out-of-state visitor without a formal extradition request or independent probable cause is illegal under both the Constitution (Article IV, §2) and federal constitutional protections. /n Order defendant to clearly state if LAPD will or will not arrest me. /n" 
+    intro_text = "Judge should make decision as soon as possible and nothing as follows should delay decision. /n Arresting an out-of-state visitor without a formal extradition request or independent probable cause is illegal under both the Constitution (Article IV, §2) and federal constitutional protections. /n Order defendant to clearly state if LAPD will or will not arrest me. Such order can end case immediately. /n" 
     y_position -= .25*inch
     
     
