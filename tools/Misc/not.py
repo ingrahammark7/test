@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order" 
+footer_text = "Notice of Duplicate Case" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,8 +67,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
  
 
     # (4) Case Title
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 2:2025cv08306")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -109,7 +109,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0*inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge should make decision as soon as possible and nothing as follows should delay decision. /n Arresting an out-of-state visitor without a formal extradition request or independent probable cause is illegal under both the Constitution (Article IV, §2) and federal constitutional protections. /n Order defendant to clearly state if LAPD will or will not arrest me. Such order can end case immediately. /n" 
+    intro_text = "Court created duplicate case 2:2025cv08388. That case should be merged into this case. /n" 
     y_position -= .25*inch
     
     
@@ -151,7 +151,7 @@ def create_pdf(output_filename):
     y_position-=0*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/3/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/10/2025")
     c=dopage(c,1)
  
 
