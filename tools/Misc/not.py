@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Duplicate Case" 
+footer_text = "Notice of Evidence" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 2:2025cv08306")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -109,7 +109,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0*inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Court created duplicate case 2:2025cv08388. That case should be merged into this case. /n" 
+    intro_text = "At 9/16 hearing, if judge chooses not to delay case then they can reject the reopening so the case can be appealled. /n If for any reason evidence is required to get judge decision, evidence is available. The following orders can be issued in that instance. /n 1. Compel LAPD to explain why they attempt to arrest me at apartment. /n 2. Compel LAPD to claim the majority of its officers are not illegal immigrants. /n LAPD will fail to reply and lose case through contempt of court. /n" 
     y_position -= .25*inch
     
     
