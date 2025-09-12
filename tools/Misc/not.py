@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Evidence" 
+footer_text = "Notice of Intent to Appeal and Order to Clerk to Appeal Case As Soon As Possible" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,8 +67,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
  
 
     # (4) Case Title
@@ -109,7 +109,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0*inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "At 9/16 hearing, if judge chooses not to delay case then they can reject the reopening so the case can be appealled. /n If for any reason evidence is required to get judge decision, evidence is available. The following orders can be issued in that instance. /n 1. Compel LAPD to explain why they attempt to arrest me at apartment. /n 2. Compel LAPD to claim the majority of its officers are not illegal immigrants. /n LAPD will fail to reply and lose case through contempt of court. /n" 
+    intro_text = "Clerk should submit case for appeal immediately once any decision is made at all. Judge not making decision only delays case. Judge should have deadline to make decision. /n" 
     y_position -= .25*inch
     
     
