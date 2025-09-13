@@ -1,42 +1,44 @@
-import pandas as pd
-from sklearn.linear_model import LinearRegression
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Dataset
-data = {
-    "Gun": [
-        "7.62 NATO", "5.56 M16", "30mm Oerlikon", "40mm Bofors",
-        "Panzer IV 75mm", "Pak 40 75mm", "5-inch early", "5-inch 51cal",
-        "Dora 800mm", "APCR Tungsten", "Squeeze-bore 75mm"
-    ],
-    "Caliber_mm": [7.62, 5.56, 30, 40, 75, 75, 127, 127, 800, 75, 75],
-    "Barrel_m": [0.61, 0.508, 1.5, 2.0, 3.61, 3.71, 5.0, 6.48, 32.5, 3.71, 3.15],
-    "Shell_m": [0.051, 0.045, 0.15, 0.18, 0.495, 0.495, 0.7, 0.65, 7.1, 0.28, 0.25],
-    "Fire_rate": [60, 700, 600, 120, 5, 5, 10, 10, 1, 5, 5],  # rounds/min
-    "Material": ["Steel","Steel","Steel","Steel","Steel","Steel","Steel","Steel","Steel","Tungsten","Tungsten"]
-}
+# Shell and barrel parameters
+L_shell = 1.0       # shell length in meters
+L_barrel = 6.0      # barrel length in meters
+A_shell = 0.16      # m^2 surface area of shell
+m_shell = 5.0       # kg
+c_shell = 1e3       # J/kg·K (specific heat, simplified)
+T_gas = 1000        # K temperature difference driving heat
+h = 25              # W/m2·K convective coefficient
+E_max = 5e6         # Max usable energy in Joules
 
-df = pd.DataFrame(data)
-df["Ratio"] = df["Shell_m"] / df["Barrel_m"]
+# Discretize barrel into N segments
+N = 1000
+dx = L_barrel / N
+x = np.linspace(0, L_barrel, N)
 
-# Encode material
-df["Material_num"] = df["Material"].map({"Steel":0, "Tungsten":1})
+# Initialize arrays
+E_deposited = np.zeros(N)
+v_shell = np.zeros(N)
+Q_dot = h * A_shell * T_gas   # constant convective flux for simplicity
 
-# Features and target
-X = df[["Caliber_mm","Fire_rate","Material_num"]]
-y = df["Ratio"]
+# Accumulated energy and velocity
+E_acc = 0
+for i in range(N):
+    # Energy deposited over this segment (scaled to remaining available energy)
+    dE = min(Q_dot * dx / (L_barrel / N), E_max - E_acc)
+    E_acc += dE
+    E_deposited[i] = E_acc
+    # Instantaneous velocity from energy
+    v_shell[i] = np.sqrt(2 * E_acc / m_shell)
 
-# Fit linear regression
-model = LinearRegression()
-model.fit(X, y)
-
-# Coefficients and intercept
-print("Intercept:", model.intercept_)
-print("Coefficients (Caliber, Fire_rate, Material):", model.coef_)
-
-# R²
-r2 = model.score(X, y)
-print("R²:", r2)
-
-# Predicted ratios
-df["Predicted_Ratio"] = model.predict(X)
-print(df[["Gun","Ratio","Predicted_Ratio"]])
+# Plot results
+plt.figure(figsize=(10,5))
+plt.plot(x, E_deposited/1e6, label='Cumulative Energy (MJ)')
+plt.plot(x, v_shell/1000, label='Shell Velocity (km/s)')
+plt.axhline(np.sqrt(2*E_max/m_shell)/1000, color='gray', linestyle='--', label='Max Velocity')
+plt.xlabel('Barrel Length (m)')
+plt.ylabel('Energy / Velocity')
+plt.title('Shell Acceleration and Energy Deposition in Barrel')
+plt.legend()
+plt.grid(True)
+plt.show()
