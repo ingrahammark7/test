@@ -157,13 +157,20 @@ class Material:
     def getbarrelmat(self):
     	return getsteel()
     	
-    def getbarrellen(self,round,roundl):
+    def getbarrellen(self,rounde,roundl):
     	fine=nuct.alpha
     	mpb=getmp(self)
-    	mpr=getmp(round)
+    	mpr=getmp(rounde)
     	rat=mpb/mpr
     	logl=math.log2(fine)*-1
     	return rat*logl*roundl
+    	
+    def getbarrelmass(self,rounde,roundl,diam):
+    	thick=self.base_hvl_cm
+    	massper=self.density/1_000_000
+    	lenn=self.getbarrellen(rounde,roundl)
+    	side=massper*thick*lenn*diam
+    	return side*4
     
     def getdam(self):
         barrel=self.getbarrelmat()
@@ -610,6 +617,8 @@ if __name__ == "__main__":
     	ar=mat.base_hvl_cm
     	hvls**=(1/3)
     	hvls=hvls*ar
+    	if(hvls>2):
+    		return hvls
     	print("round lethal at armor cm",hvls)
     	return hvls
     	
