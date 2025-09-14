@@ -33,7 +33,7 @@ class Material:
         self.f2=1
         self.f3=1
         self.f4=1
-                
+                  
         
         self.j_high_estimate = (self.compute_high_estimate() ** 0.5)*self.f4
         self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
@@ -43,7 +43,6 @@ class Material:
         self.te=1-(1/(8))
         self.elmol*=self.te
         self.db=self.elmol
-        
         
     
     def compute_high_estimate(self):
@@ -154,9 +153,20 @@ class Material:
         d=self.density
         ff=round_diameter1*ld*d
         return ff
+        
+    def getbarrelmat(self):
+    	return getsteel()
+    	
+    def getbarrellen(self,round,roundl):
+    	fine=nuct.alpha
+    	mpb=getmp(self)
+    	mpr=getmp(round)
+    	rat=mpb/mpr
+    	logl=math.log2(fine)*-1
+    	return rat*logl*roundl
     
     def getdam(self):
-        barrel=getsteel()
+        barrel=self.getbarrelmat()
         maxd=barrel.base_hvl_cm
         doh=barrel.material_energy_density_j_per_hvl
         if(self.f2==1):
