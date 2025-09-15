@@ -13,18 +13,19 @@ df = pd.DataFrame(data)
 # Compute percent error
 df['percent_error'] = df['A_value'] / df['lethal_armor_cm']
 
-# Identify outliers (percent_error > 10)
-outliers = df[df['percent_error'] > 100000]
-pd.set_option('display.float_format', '{:.6f}'.format)
+# Remove extreme outliers (>10)
+outliers = df[df['percent_error'] > 1000000]
 print("=== Removed Outliers (percent_error > 10) ===")
 print(outliers[['diameter_cm', 'mass_kg', 'percent_error']].to_string(index=False))
 
-# Remove extreme outliers for model training
 df_filtered = df[df['percent_error'] <= 10]
 
-# Features and target
-X = df_filtered.drop(columns=['percent_error', 'A_value', 'actual_value'])
+# Features: exclude direct outcomes like penetration_cm
+features_to_exclude = ['percent_error', 'A_value', 'actual_value', 'penetration_cm']
+X = df_filtered.drop(columns=features_to_exclude)
 y = df_filtered['percent_error']
+
+# Fill missing values
 X = X.fillna(0)
 
 # Train/test split
@@ -43,18 +44,16 @@ r2 = r2_score(y_test, y_pred)
 print("\nMean Squared Error:", mse)
 print("R^2 Score:", r2)
 
-# Row-by-row comparison on filtered dataset
-df_filtered['predicted_percent_error'] = model.predict(X)
+# Row-by-row comparison
+df_filtered.loc[:, 'predicted_percent_error'] = model.predict(X)
 comparison = df_filtered[['diameter_cm', 'mass_kg', 'percent_error', 'predicted_percent_error']]
-
 print("\n=== Row-by-Row Comparison (Outliers Removed) ===")
 print(comparison.to_string(index=False))
 
-# Feature importance ranking
+# Feature importance
 importances = pd.DataFrame({
     'feature': X.columns,
     'importance': model.feature_importances_
 }).sort_values(by='importance', ascending=False)
-
 print("\n=== Predictor Contribution Ranking (Outliers Removed) ===")
 print(importances.to_string(index=False))
