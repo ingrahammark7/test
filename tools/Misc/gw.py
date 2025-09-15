@@ -1,93 +1,60 @@
+import json
 import pandas as pd
-import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 
-# Parameters
-years = list(range(2030, 2051))  # 2030 to 2050
-revenue_2030 = 400               # B USD in 2030 (example starting revenue)
-revenue_growth = 0.05             # 5% per year
+# Load JSON
+with open("clean.json", "r") as f:
+    data = json.load(f)
 
-dividend_initial = 30             # B USD in 2030
-dividend_relative_growth = 0.03   # Net growth relative to revenue
+df = pd.DataFrame(data)
 
-buyback_initial = 110             # B USD in 2030
-buyback_relative_growth = 0.03    # Net growth relative to revenue
+# Compute percent error
+df['percent_error'] = df['A_value'] / df['lethal_armor_cm']
 
-cash_initial = 80                 # B USD
-debt_initial = 100                # B USD
-interest_rate_initial = 5 / 100   # interest / debt ratio in 2030
+# Identify outliers (percent_error > 10)
+outliers = df[df['percent_error'] > 100000]
+pd.set_option('display.float_format', '{:.6f}'.format)
+print("=== Removed Outliers (percent_error > 10) ===")
+print(outliers[['diameter_cm', 'mass_kg', 'percent_error']].to_string(index=False))
 
-# Lists to store results
-revenue_list = []
-cash_list = []
-debt_list = []
-interest_list = []
-dividend_list = []
-buyback_list = []
-total_outflow_list = []
+# Remove extreme outliers for model training
+df_filtered = df[df['percent_error'] <= 10]
 
-# Initialize values
-revenue = revenue_2030
-cash = cash_initial
-debt = debt_initial
-interest = debt_initial * interest_rate_initial
-dividends = dividend_initial
-buybacks = buyback_initial
+# Features and target
+X = df_filtered.drop(columns=['percent_error', 'A_value', 'actual_value'])
+y = df_filtered['percent_error']
+X = X.fillna(0)
 
-for year in years:
-    # Record values
-    revenue_list.append(revenue)
-    cash_list.append(cash)
-    debt_list.append(debt)
-    interest_list.append(interest)
-    dividend_list.append(dividends)
-    buyback_list.append(buybacks)
-    total_outflow_list.append(interest + dividends + buybacks)
-    
-    # Calculate cash after obligations
-    cash -= (dividends + buybacks)
-    if cash < 0:
-        # Use debt to cover shortfall
-        debt_needed = -cash
-        debt += debt_needed
-        cash = 0
-    
-    # Update revenue
-    revenue *= (1 + revenue_growth)
-    
-    # Update dividends and buybacks relative to revenue
-    dividends *= (1 + revenue_growth) * (1 + dividend_relative_growth)
-    buybacks *= (1 + revenue_growth) * (1 + buyback_relative_growth)
-    
-    # Update interest proportional to debt
-    interest = debt * interest_rate_initial
+# Train/test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Create DataFrame
-df = pd.DataFrame({
-    "Year": years,
-    "Revenue (B USD)": revenue_list,
-    "Cash (B USD)": cash_list,
-    "Debt (B USD)": debt_list,
-    "Interest (B USD)": interest_list,
-    "Dividends (B USD)": dividend_list,
-    "Buybacks (B USD)": buyback_list,
-    "Total Outflow (B USD)": total_outflow_list
-})
+# Train model
+model = RandomForestRegressor(n_estimators=200, random_state=42)
+model.fit(X_train, y_train)
 
-print(df)
+# Predictions
+y_pred = model.predict(X_test)
 
-# Plot
-plt.figure(figsize=(14,7))
-plt.plot(df["Year"], df["Cash (B USD)"], label="Cash")
-plt.plot(df["Year"], df["Debt (B USD)"], label="Debt")
-plt.plot(df["Year"], df["Interest (B USD)"], label="Interest")
-plt.plot(df["Year"], df["Dividends (B USD)"], label="Dividends")
-plt.plot(df["Year"], df["Buybacks (B USD)"], label="Buybacks")
-plt.plot(df["Year"], df["Revenue (B USD)"], label="Revenue", linestyle="--", color="black")
-plt.axhline(y=80, color='red', linestyle='--', label="80B Cash Threshold")
+# Evaluation
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+print("\nMean Squared Error:", mse)
+print("R^2 Score:", r2)
 
-plt.xlabel("Year")
-plt.ylabel("Billion USD")
-plt.title("Apple Cash, Debt, Dividends, Buybacks vs Revenue (Relative Growth 2030-2050)")
-plt.legend()
-plt.grid(True)
-plt.show()
+# Row-by-row comparison on filtered dataset
+df_filtered['predicted_percent_error'] = model.predict(X)
+comparison = df_filtered[['diameter_cm', 'mass_kg', 'percent_error', 'predicted_percent_error']]
+
+print("\n=== Row-by-Row Comparison (Outliers Removed) ===")
+print(comparison.to_string(index=False))
+
+# Feature importance ranking
+importances = pd.DataFrame({
+    'feature': X.columns,
+    'importance': model.feature_importances_
+}).sort_values(by='importance', ascending=False)
+
+print("\n=== Predictor Contribution Ranking (Outliers Removed) ===")
+print(importances.to_string(index=False))
