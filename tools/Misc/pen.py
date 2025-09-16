@@ -545,6 +545,7 @@ if __name__ == "__main__":
     	cf.f2=3.6
     	cf.f3=speed/(1785)
     	cf.f4=strength
+    	cf.fill=1
     	dopen(cf)
     	print("actual 40cm")
     	
@@ -666,7 +667,6 @@ if __name__ == "__main__":
     	depth= armor.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas,mat)
     	th=armor.thermalpen(round_energy)
     	if(depth<th):
-    		print(depth,th,mult)
     		depth=th
     		depth=depth/mult
     	print(f"Penetration depth: {depth:.2f} cm")
