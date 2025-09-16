@@ -33,6 +33,7 @@ class Material:
         self.f2=1
         self.f3=1
         self.f4=1
+        self.fill=1
                   
         
         self.j_high_estimate = (self.compute_high_estimate() ** 0.5)*self.f4
@@ -151,7 +152,7 @@ class Material:
         round_diameter1=round_diameter1/100
         round_diameter1=round_diameter1*round_diameter1*round_diameter1
         d=self.density
-        ff=round_diameter1*ld*d
+        ff=round_diameter1*ld*d*self.fill
         return ff
         
     def getbarrelmat(self):
@@ -198,7 +199,7 @@ class Material:
         dens=self.density/1_000_000
         firstd=diam*diam*dens
         lens=mass/firstd
-        return lens
+        return lens/self.fill
     
     def enfromvel(self,mass,vel):
         return .5*mass*vel*vel
@@ -507,31 +508,34 @@ if __name__ == "__main__":
     def do88():
     	cf=steel
     	speed=getspeed(cf)
-    	cf.bafac=10/4
+    	cf.bafac=10
     	cf.f2=8.8
     	cf.f3=speed/773
     	cf.f4=strength
-    	dopen(cf)
+    	cf.fill=.25
+    	dopen(cf)    	
     	print("actual 17")
     	
     def do122():
     	cf=steel
     	speed=getspeed(cf)
-    	cf.bafac=3.28/2
+    	cf.bafac=3.28
     	cf.f2=12.2
     	cf.f3=speed/780
     	cf.f4=strength
+    	cf.fill=.5
     	dopen(cf)
     	print("actual 17")
     	
     def do3vmb3():
     	cf=steel
     	speed=getspeed(cf)
-    	cf.bafac=10*(3.6/5.6)
+    	cf.bafac=10
     	cf.f2=4.1
     	cf.f3=speed/(1800*.85)
     	cf.f4=strength
-    	dopen(cf)
+    	cf.fill=(3.6/5.6)
+    	dopen(cf)	
     	print("actual 25cm")
     	
     def do3bm7():
@@ -577,40 +581,44 @@ if __name__ == "__main__":
     def do5():
     	cf=steel
     	speed=getspeed(cf)
-    	cf.bafac=5.35/2/2
+    	cf.bafac=5.35
     	cf.f2=12.7
     	cf.f3=speed/790
     	cf.f4=strength
+    	cf.fill=.25
     	dopen(cf)
     	print("actual 13cm")
     	
     def do6():
     	cf=steel
     	speed=getspeed(cf)
-    	cf.bafac=4.5/2
+    	cf.bafac=4.5
     	cf.f2=15
     	cf.f3=speed/640
     	cf.f4=strength
+    	cf.fill=.5
     	dopen(cf)
     	print("actual 30cm")
     	
     def do8():
     	cf=steel
     	speed=getspeed(cf)
-    	cf.bafac=4.06/2
+    	cf.bafac=4.06
     	cf.f2=20
     	cf.f3=speed/(823)
     	cf.f4=strength
+    	cf.fill=.5
     	dopen(cf)
     	print("actual 40cm")
     	
     def do16():
     	cf=steel
     	speed=getspeed(cf)
-    	cf.bafac=4.5/2
+    	cf.bafac=4.5
     	cf.f2=41
     	cf.f3=speed/762
     	cf.f4=strength
+    	cf.fill=.5
     	dopen(cf)
     	print("actual 75cm")
     	
@@ -658,6 +666,7 @@ if __name__ == "__main__":
     	depth= armor.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas,mat)
     	th=armor.thermalpen(round_energy)
     	if(depth<th):
+    		print(depth,th,mult)
     		depth=th
     		depth=depth/mult
     	print(f"Penetration depth: {depth:.2f} cm")

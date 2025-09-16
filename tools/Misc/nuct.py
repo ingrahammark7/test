@@ -102,6 +102,7 @@ class NuclearPenetrationModel:
         return num * 6.242e6
 
     def roundld(self, round_diameter_cm, round_mas,roundmaterial):
+        round_mas/=roundmaterial.fill
         round_front_vol = round_diameter_cm * round_diameter_cm *round_diameter_cm / 1000000.0
         round_front_mass = round_front_vol * roundmaterial.density
         if round_front_mass == 0:
@@ -128,7 +129,7 @@ class NuclearPenetrationModel:
         adjusted_penetration = mhd_var + base_penetration / (1 + brems_loss_val * dissipation)
         if adjusted_penetration < self.material.base_hvl_cm:
             adjusted_penetration = 0
-
+        
         return float(adjusted_penetration)
 
 
