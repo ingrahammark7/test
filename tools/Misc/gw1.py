@@ -1,261 +1,244 @@
 [
   {
-    "caliber_mm": 5.56,
-    "name": "M855",
-    "type": "Ball",
-    "mass_kg": 0.004,
-    "energy_j": 1700,
-    "speed_m_s": 940,
-    "penetration_mm": {
-      "100m": 3,
-      "500m": 2.5,
-      "1000m": 2
-    },
-    "lethal_armor_mm": 3,
-    "notes": "Standard NATO 5.56mm round"
+    "caliber_mm": 5.7,
+    "name": "FN 5.7×28mm SS190",
+    "type": "SS190",
+    "mass_kg": 0.002,
+    "energy_j": 500,
+    "speed_m_s": 715,
+    "penetration_mm": {"100m": 2, "200m": 1.5},
+    "lethal_armor_mm": 2,
+    "notes": "FN pistol/PDW round",
+    "source": "BBTI"
   },
   {
-    "caliber_mm": 7.62,
-    "name": "M80",
-    "type": "Ball",
-    "mass_kg": 0.0095,
-    "energy_j": 3400,
-    "speed_m_s": 850,
-    "penetration_mm": {
-      "100m": 7,
-      "500m": 6,
-      "1000m": 5
-    },
+    "caliber_mm": 6.5,
+    "name": "6.5mm Creedmoor",
+    "type": "Match",
+    "mass_kg": 0.010,
+    "energy_j": 3500,
+    "speed_m_s": 900,
+    "penetration_mm": {"100m": 6, "500m": 5, "1000m": 4},
+    "lethal_armor_mm": 6,
+    "notes": "Precision long-range rifle round",
+    "source": "BBTI"
+  },
+  {
+    "caliber_mm": 7.92,
+    "name": "7.92×57mm Mauser",
+    "type": "AP",
+    "mass_kg": 0.011,
+    "energy_j": 3800,
+    "speed_m_s": 760,
+    "penetration_mm": {"100m": 7, "500m": 6},
     "lethal_armor_mm": 7,
-    "notes": "Standard NATO 7.62mm ball round"
+    "notes": "German WW2 rifle/LMG round",
+    "source": "BBTI"
   },
   {
-    "caliber_mm": 12.7,
-    "name": ".50 BMG",
-    "type": "API",
-    "mass_kg": 0.045,
-    "energy_j": 15000,
-    "speed_m_s": 890,
-    "penetration_mm": {
-      "100m": 19,
-      "500m": 17,
-      "1000m": 15
-    },
-    "lethal_armor_mm": 19,
-    "notes": "Heavy machine gun and anti-materiel round"
+    "caliber_mm": 8.8,
+    "name": "8.8×56mm R",
+    "type": "AP",
+    "mass_kg": 0.015,
+    "energy_j": 5000,
+    "speed_m_s": 800,
+    "penetration_mm": {"100m": 10, "500m": 8},
+    "lethal_armor_mm": 10,
+    "notes": "WW2 German anti-tank rifle round",
+    "source": "Panzerworld"
   },
   {
     "caliber_mm": 14.5,
-    "name": "BS",
+    "name": "14.5×114mm B-32",
     "type": "API",
-    "mass_kg": 0.070,
-    "energy_j": 25000,
-    "speed_m_s": 900,
-    "penetration_mm": {
-      "100m": 30,
-      "500m": 25
-    },
-    "lethal_armor_mm": 30,
-    "notes": "Soviet heavy machine gun round"
-  },
-  {
-    "caliber_mm": 20,
-    "name": "Hispano Mk II",
-    "type": "AP",
-    "mass_kg": 0.100,
-    "energy_j": 40000,
-    "speed_m_s": 800,
-    "penetration_mm": {
-      "100m": 50,
-      "500m": 45
-    },
-    "lethal_armor_mm": 50,
-    "notes": "British aircraft cannon round"
-  },
-  {
-    "caliber_mm": 7.62,
-    "name": "7.62×39mm",
-    "type": "M43",
-    "mass_kg": 0.008,
-    "energy_j": 2000,
-    "speed_m_s": 710,
-    "penetration_mm": {
-      "100m": 6,
-      "500m": 5,
-      "1000m": 4
-    },
-    "lethal_armor_mm": 6,
-    "notes": "Soviet intermediate cartridge"
-  },
-  {
-    "caliber_mm": 9,
-    "name": "9×19mm Parabellum",
-    "type": "FMJ",
-    "mass_kg": 0.008,
-    "energy_j": 500,
-    "speed_m_s": 350,
-    "penetration_mm": {
-      "100m": 2,
-      "500m": 1.5,
-      "1000m": 1
-    },
-    "lethal_armor_mm": 2,
-    "notes": "Standard NATO pistol round"
-  },
-  {
-    "caliber_mm": 5.45,
-    "name": "5.45×39mm",
-    "type": "M74",
-    "mass_kg": 0.006,
-    "energy_j": 1600,
-    "speed_m_s": 900,
-    "penetration_mm": {
-      "100m": 5,
-      "500m": 4,
-      "1000m": 3
-    },
-    "lethal_armor_mm": 5,
-    "notes": "Soviet intermediate cartridge"
-  },
-  {
-    "caliber_mm": 12.7,
-    "name": "12.7×108mm",
-    "type": "API",
-    "mass_kg": 0.090,
+    "mass_kg": 0.064,
     "energy_j": 22000,
-    "speed_m_s": 800,
-    "penetration_mm": {
-      "100m": 35,
-      "500m": 30
-    },
-    "lethal_armor_mm": 35,
-    "notes": "Soviet heavy machine gun round"
+    "speed_m_s": 1000,
+    "penetration_mm": {"100m": 32, "500m": 28},
+    "lethal_armor_mm": 32,
+    "notes": "Soviet heavy MG anti-armor round",
+    "source": "BBTI"
   },
   {
     "caliber_mm": 20,
-    "name": "20×102mm",
+    "name": "20×110mm Hispano",
     "type": "HEI",
-    "mass_kg": 0.150,
-    "energy_j": 50000,
-    "speed_m_s": 1000,
-    "penetration_mm": {
-      "100m": 60,
-      "500m": 50
-    },
-    "lethal_armor_mm": 60,
-    "notes": "US aircraft cannon round"
+    "mass_kg": 0.130,
+    "energy_j": 45000,
+    "speed_m_s": 850,
+    "penetration_mm": {"100m": 55, "500m": 50},
+    "lethal_armor_mm": 55,
+    "notes": "Aircraft cannon round",
+    "source": "BBTI"
+  },
+  {
+    "caliber_mm": 25,
+    "name": "25×137mm M791",
+    "type": "APDS-T",
+    "mass_kg": 0.250,
+    "energy_j": 100000,
+    "speed_m_s": 1100,
+    "penetration_mm": {"100m": 90, "500m": 85},
+    "lethal_armor_mm": 90,
+    "notes": "US autocannon APDS-T round",
+    "source": "SteelBeasts"
+  },
+  {
+    "caliber_mm": 30,
+    "name": "30×173mm PGU-14/B",
+    "type": "APDS",
+    "mass_kg": 0.720,
+    "energy_j": 200000,
+    "speed_m_s": 1050,
+    "penetration_mm": {"100m": 120, "500m": 110},
+    "lethal_armor_mm": 120,
+    "notes": "US aircraft cannon AP round",
+    "source": "SteelBeasts"
+  },
+  {
+    "caliber_mm": 37,
+    "name": "37×94mm",
+    "type": "AP",
+    "mass_kg": 0.900,
+    "energy_j": 300000,
+    "speed_m_s": 800,
+    "penetration_mm": {"100m": 150, "500m": 130},
+    "lethal_armor_mm": 150,
+    "notes": "WW2 German autocannon round",
+    "source": "Panzerworld"
+  },
+  {
+    "caliber_mm": 40,
+    "name": "40×311mmR Bofors",
+    "type": "AP",
+    "mass_kg": 0.850,
+    "energy_j": 290000,
+    "speed_m_s": 780,
+    "penetration_mm": {"100m": 140, "500m": 120},
+    "lethal_armor_mm": 140,
+    "notes": "Naval/AA round",
+    "source": "BBTI"
+  },
+  {
+    "caliber_mm": 57,
+    "name": "57×348mm",
+    "type": "APDS",
+    "mass_kg": 2.3,
+    "energy_j": 1.2e6,
+    "speed_m_s": 1050,
+    "penetration_mm": {"100m": 200, "500m": 180},
+    "lethal_armor_mm": 200,
+    "notes": "British anti-tank gun round",
+    "source": "Panzerworld"
+  },
+  {
+    "caliber_mm": 75,
+    "name": "75×350mm R",
+    "type": "APCR",
+    "mass_kg": 6.8,
+    "energy_j": 3.0e6,
+    "speed_m_s": 900,
+    "penetration_mm": {"100m": 250, "500m": 220},
+    "lethal_armor_mm": 250,
+    "notes": "WW2 German tank gun",
+    "source": "Panzerworld"
+  },
+  {
+    "caliber_mm": 88,
+    "name": "88×571mm KwK 36",
+    "type": "APC",
+    "mass_kg": 10.0,
+    "energy_j": 5.0e6,
+    "speed_m_s": 820,
+    "penetration_mm": {"100m": 300, "500m": 270},
+    "lethal_armor_mm": 300,
+    "notes": "WW2 German Tiger I main gun",
+    "source": "Panzerworld"
+  },
+  {
+    "caliber_mm": 105,
+    "name": "105mm L7",
+    "type": "APDS",
+    "mass_kg": 15.0,
+    "energy_j": 1.2e7,
+    "speed_m_s": 900,
+    "penetration_mm": {"100m": 400, "500m": 350},
+    "lethal_armor_mm": 400,
+    "notes": "NATO tank gun",
+    "source": "SteelBeasts"
+  },
+  {
+    "caliber_mm": 120,
+    "name": "120mm Rheinmetall DM53",
+    "type": "APFSDS",
+    "mass_kg": 10.0,
+    "energy_j": 1.5e7,
+    "speed_m_s": 1700,
+    "penetration_mm": {"100m": 550, "500m": 500},
+    "lethal_armor_mm": 550,
+    "notes": "Modern MBT kinetic penetrator",
+    "source": "SteelBeasts"
   }
 ]
-
 [
   {
-    "vehicle_name": "M1 Abrams",
+    "vehicle_name": "Leopard 2A6",
     "type": "Main Battle Tank",
-    "armor_mm": 350,
+    "armor_mm": 550,
     "weight_tons": 62,
-    "max_speed_kph": 67,
-    "engine_power_hp": 1500,
-    "crew": 4,
-    "armor_material": "Chobham composite",
-    "notes": "Modern US main battle tank"
-  },
-  {
-    "vehicle_name": "T-90",
-    "type": "Main Battle Tank",
-    "armor_mm": 330,
-    "weight_tons": 46.5,
-    "max_speed_kph": 60,
-    "engine_power_hp": 1000,
-    "crew": 3,
-    "armor_material": "Composite + ERA",
-    "notes": "Modern Russian main battle tank"
-  },
-  {
-    "vehicle_name": "M113",
-    "type": "Armored Personnel Carrier",
-    "armor_mm": 38,
-    "weight_tons": 12.3,
-    "max_speed_kph": 64,
-    "engine_power_hp": 215,
-    "crew": 2,
-    "armor_material": "Aluminum",
-    "notes": "US tracked APC"
-  },
-  {
-    "vehicle_name": "BMP-1",
-    "type": "Infantry Fighting Vehicle",
-    "armor_mm": 33,
-    "weight_tons": 13,
-    "max_speed_kph": 65,
-    "engine_power_hp": 300,
-    "crew": 3,
-    "armor_material": "Rolled steel",
-    "notes": "Soviet amphibious IFV"
-  },
-  {
-    "vehicle_name": "Buffalo",
-    "type": "Mine-Resistant Vehicle",
-    "armor_mm": 50,
-    "weight_tons": 22,
-    "max_speed_kph": 105,
-    "engine_power_hp": 450,
-    "crew": 2,
-    "armor_material": "Composite",
-    "notes": "US MRAP vehicle"
-  },
-  {
-    "vehicle_name": "Leopard 2",
-    "type": "Main Battle Tank",
-    "armor_mm": 320,
-    "weight_tons": 60,
     "max_speed_kph": 68,
     "engine_power_hp": 1500,
     "crew": 4,
     "armor_material": "Composite + ERA",
-    "notes": "German main battle tank"
+    "notes": "German modern MBT",
+    "source": "AFV Database"
   },
   {
     "vehicle_name": "Challenger 2",
     "type": "Main Battle Tank",
-    "armor_mm": 400,
+    "armor_mm": 650,
     "weight_tons": 62,
     "max_speed_kph": 59,
     "engine_power_hp": 1200,
     "crew": 4,
-    "armor_material": "Chobham composite",
-    "notes": "British main battle tank"
+    "armor_material": "Chobham",
+    "notes": "British MBT",
+    "source": "AFV Database"
   },
   {
-    "vehicle_name": "T-80",
+    "vehicle_name": "T-14 Armata",
     "type": "Main Battle Tank",
-    "armor_mm": 300,
-    "weight_tons": 46,
-    "max_speed_kph": 70,
-    "engine_power_hp": 1100,
+    "armor_mm": 750,
+    "weight_tons": 48,
+    "max_speed_kph": 80,
+    "engine_power_hp": 1500,
     "crew": 3,
     "armor_material": "Composite + ERA",
-    "notes": "Soviet main battle tank"
+    "notes": "Modern Russian MBT",
+    "source": "AFV Database"
   },
   {
-    "vehicle_name": "M2 Bradley",
+    "vehicle_name": "M2A3 Bradley",
     "type": "Infantry Fighting Vehicle",
     "armor_mm": 50,
-    "weight_tons": 27,
+    "weight_tons": 30,
     "max_speed_kph": 72,
     "engine_power_hp": 600,
     "crew": 3,
-    "armor_material": "Aluminum",
-    "notes": "US IFV"
+    "armor_material": "Aluminum + ERA",
+    "notes": "US IFV",
+    "source": "AFV Database"
   },
   {
-    "vehicle_name": "BTR-80",
+    "vehicle_name": "BTR-82A",
     "type": "Armored Personnel Carrier",
     "armor_mm": 33,
-    "weight_tons": 13,
+    "weight_tons": 14.5,
     "max_speed_kph": 80,
-    "engine_power_hp": 200,
-    "crew": 2,
+    "engine_power_hp": 300,
+    "crew": 3,
     "armor_material": "Steel",
-    "notes": "Soviet wheeled APC"
+    "notes": "Modern Russian wheeled APC",
+    "source": "AFV Database"
   }
 ]
