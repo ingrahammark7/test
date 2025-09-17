@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Motion for Decision" 
+footer_text = "Notice of Motion" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -109,7 +109,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0*inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Order judge to make any decision on anything immediately. Appeal any decision made. /n" 
+    intro_text = "I called court to schedule motion to compel decision. Court ignored the request. Compel judge to make decision. /n" 
     y_position -= .25*inch
     
     
@@ -151,7 +151,7 @@ def create_pdf(output_filename):
     y_position-=0*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/10/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/17/2025")
     c=dopage(c,1)
  
 
