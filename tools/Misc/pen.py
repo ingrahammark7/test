@@ -166,6 +166,8 @@ class Material:
     			maxs=self.gets()
     			speed=speed/maxs
     			fine=1-speed
+    			if(fine==0):
+    				fine=nuct.alpha
     	mpb=getmp(self)
     	mpr=getmp(rounde)
     	rat=mpb/mpr
