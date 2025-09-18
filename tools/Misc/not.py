@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Appeal" 
+footer_text = "Notice of Appeal 9/18" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -109,7 +109,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0*inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I am appealing the decision of the judge to not make a decision despite repeated requests to do so. Notice mailed to defendant at: /n 100 W 1st St /n Los Angeles CA 90012 /n" 
+    intro_text = "I am appealing the decision of the judge made 9/18. Notice mailed to defendant at: /n 100 W 1st St /n Los Angeles CA 90012 /n" 
     y_position -= .25*inch
     
     
@@ -151,7 +151,7 @@ def create_pdf(output_filename):
     y_position-=0*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/17/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/18/2025")
     c=dopage(c,1)
  
 
