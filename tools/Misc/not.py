@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Appeal 9/18" 
+footer_text = "Statement in Support of IFP and Request for Service By US Marshall" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -22,7 +22,7 @@ def create_pdf(output_filename):
 
     # Add page numbers (starting from page 2)
     def add_page_number(page_num):
-        if page_num > 2:  # Suppress page number on the first page
+        if page_num > 1:  # Suppress page number on the first page
             c.setFont("Times-Roman", 10)
             c.drawCentredString(width / 2, 0.5 * inch, f"{page_num}")
 
@@ -67,8 +67,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
  
 
     # (4) Case Title
@@ -77,23 +77,26 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Police Department,",
-        "Respondent.",        
+        "Department of Public Social Services",
+        "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
     counter=0
     for line in case_title:
         c.setFont("Times-Bold",12)
-        if counter==1 or counter==4 or counter==6:
+        if counter==1 or counter==4:
         	c.setFont("Times-Roman",12)
         c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch
         counter+=1
 
     # (5) Case Number
-    c.setFont("Times-Bold", 12)
+    c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
+    c.drawString(space, top_margin - 4* inch, "Case Number: ")
+    # (6) Nature of the Paper (moved slightly lower)
+    c.setFont("Times-Bold", 12)
+    c.drawString(space, top_margin - 4.25* inch, "")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -107,9 +110,9 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawString(left_margin, y_position - 0*inch, footer_text.upper())
+    c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I am appealing the decision of the judge made 9/18. Notice mailed to defendant at: /n 100 W 1st St /n Los Angeles CA 90012 /n" 
+    intro_text = "I have submitted a request to proceed in forma pauperis. I request that a US Marshall serve the filed summons and petition to defendant. If service by marshall is not possible, case should be rejected. /n" 
     y_position -= .25*inch
     
     
@@ -136,7 +139,8 @@ def create_pdf(output_filename):
     		y_position -= 0.25* inch
     	return y_position
     	
-       
+    y_position=doer(intro_text,y_position)
+    
     
     
     def dopage(cc,num):
@@ -147,13 +151,9 @@ def create_pdf(output_filename):
     	cc.showPage()
     	return cc
     	
-    
-    y_position-=0*inch
-    y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/18/2025")
-    c=dopage(c,1)
- 
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/31/2025")
+    c=dopage(c,2)
 
 
     # Save the PDF
