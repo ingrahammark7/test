@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Writ of Mandamus" 
+footer_text = "Appellant Opening Brief" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "This is regarding Los Angeles Superior Court case 25STCP00742. Clerk rejected a request for judgement on 8/6. Judge lied and claims I dismissed case. I am appealing the rejection of my request. Court should order judge to issue final decision. /n Petitioner petitions this Court to: /n 1. Order judge to issue final decision as soon as possible. /n 2. Appeal any decision made. /n 3. Require police to explain why they attempt to arrest me when I enter my apartment at 690 S Catalina St Apartment 4x. /n" 
+    intro_text = "I. INTRODUCTION /n Estop LAPD from arresting me. The majority of LAPD officers are illegal immigrants. /n II. CONCLUSION /n Petitioner petitions this court to: /n 1. Order LAPD to explain why they attempt to arrest me at 690 S Catalina St Apartment 4x. /n 2. Estop LAPD and inform that any officers in violation of the estoppel will be killed by plaintiff. /n" 
     y_position -= .25*inch
     
     
@@ -160,7 +160,7 @@ def create_pdf(output_filename):
     y_position-=.5*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/3/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/19/2025")
     c=dopage(c,2)
  
 

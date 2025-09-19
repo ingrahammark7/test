@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Statement in Support of IFP and Request for Service By US Marshall" 
+footer_text = "Notice" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,8 +67,10 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
+   # c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
+    #c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
  
 
     # (4) Case Title
@@ -77,7 +79,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Department of Public Social Services",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -93,7 +95,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: ")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -112,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I have submitted a request to proceed in forma pauperis. I request that a US Marshall serve the filed summons and petition to defendant. If service by marshall is not possible, case should be rejected. /n" 
+    intro_text = "For reference, attached is appellate opening brief I will use. /n" 
     y_position -= .25*inch
     
     
@@ -152,7 +154,7 @@ def create_pdf(output_filename):
     	return cc
     	
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/31/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 9/19/2025")
     c=dopage(c,2)
 
 
