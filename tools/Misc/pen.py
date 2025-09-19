@@ -633,18 +633,17 @@ if __name__ == "__main__":
 
     def lethalcalc(mat,en):
     	sk=getskin()
-    	sken=sk.material_energy_density_j_per_hvl/64/nuct.alpha.evalf()
+    	sken=sk.material_energy_density_j_per_hvl/(2**nuct.phi.evalf()**6)
     	if(en<sken):
     		print("round not lethal")
     		return 0
     	mel=mat.melt_one_hvl()
-    	en=en-sken
-    	hvls=en/mel
+    	en=en/mel
+    	sken=sken/mel
+    	hvls=en/sken
     	ar=mat.base_hvl_cm
-    	hvls**=(1/3)
+    	hvls**=(1/12)
     	hvls=hvls*ar
-    	if(hvls>2):
-    		return hvls
     	print("round lethal at armor cm",hvls)
     	return hvls
     	
@@ -674,6 +673,8 @@ if __name__ == "__main__":
     	th=armor.thermalpen(round_energy)
     	depth=th
     	depth=depth/mult
+    	ld=mat.getroundlenmass(round_mas,round_diameter)
+    	print("ld ",ld/round_diameter)
     	print(f"Penetration depth: {depth:.2f} cm")
     	lethalcalc(armor,round_energy)
     	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed)
