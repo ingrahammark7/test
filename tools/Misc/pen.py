@@ -93,6 +93,8 @@ class Material:
         
     def thermal_max_pen(self,d,round_energy):
         r=self.thermalpen(round_energy)
+        if(d==-1):
+        	return r
         if(d>r):
             print("A ",d,"cm penetration was thermally bound to ", r,"cm.")
             return r
@@ -107,11 +109,13 @@ class Material:
 
     def penetration_depth(self, round_energy, round_diameter_cm, angle1, angle2, honeycomb_layers,round_mas,roundmaterial):
         effective_angle = self.combine_angles(angle1, angle2)
-        pm = nuct.NuclearPenetrationModel(self)
-        d=nuct.nuclear_penetration(round_energy,round_diameter_cm,honeycomb_layers,round_mas,pm.material,roundmaterial)
+        #pm = nuct.NuclearPenetrationModel(self)
+        #d=nuct.nuclear_penetration(round_energy,round_diameter_cm,honeycomb_layers,round_mas,pm.material,roundmaterial)
+        d=-1
+        d=self.thermal_max_pen(d,round_energy)
         d = self.pen_angle(d, effective_angle, round_energy, round_diameter_cm)
         d=self.honeycomb_pen(d,round_energy,round_diameter_cm,honeycomb_layers)
-        d=self.thermal_max_pen(d,round_energy)
+        
         return d
 
     def pen_angle(self, d, angle, round_energy, round_diameter_cm):
@@ -666,11 +670,10 @@ if __name__ == "__main__":
     		mult=round_diameter/hvl
     	mult=mult**2
     	armor.material_energy_density_j_per_hvl=mat.f4*estfix(steel)
-    	depth= armor.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas,mat)
+    	depth= 1#armor.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas,mat)
     	th=armor.thermalpen(round_energy)
-    	if(depth<th):
-    		depth=th
-    		depth=depth/mult
+    	depth=th
+    	depth=depth/mult
     	print(f"Penetration depth: {depth:.2f} cm")
     	lethalcalc(armor,round_energy)
     	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed)
