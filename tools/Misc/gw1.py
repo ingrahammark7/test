@@ -1,4 +1,7 @@
 import math
+import json
+import os
+from typing import List
 
 # -------------------------
 # Material database
@@ -11,133 +14,171 @@ materials = {
 }
 
 # -------------------------
-# Projectile inputs
+# Classes
 # -------------------------
-projectile = {
-    "material": "tungsten",
-    "mass": 10.0,        # kg
-    "length": 1.2,       # meters
-    "diameter": 0.03,    # meters
-    "velocity": 1500,    # m/s
-    "tip_type": "pointed"
-}
+class ProjectileFragment:
+    def __init__(self, mass, length, diameter, velocity, tip_type="pointed"):
+        self.mass = mass
+        self.length = length
+        self.diameter = diameter
+        self.velocity = velocity
+        self.tip_type = tip_type
+        self.remaining_length = length
+        self.area = math.pi * (diameter/2)**2
+        self.rod_ratio = length/diameter
+        self.density = None
+
+class Projectile:
+    def __init__(self, name, material, mass, length, diameter, velocity, tip_type="pointed"):
+        self.name = name
+        self.material = material
+        self.mass = mass
+        self.length = length
+        self.diameter = diameter
+        self.velocity = velocity
+        self.tip_type = tip_type
+        self.fragments: List[ProjectileFragment] = []
+        self.create_initial_fragment()
+
+    def create_initial_fragment(self):
+        frag = ProjectileFragment(self.mass, self.length, self.diameter, self.velocity, self.tip_type)
+        frag.density = materials[self.material]["density"]
+        self.fragments.append(frag)
+
+class ArmorBlock:
+    def __init__(self, material, thickness, angle=0):
+        self.material = material
+        self.thickness = thickness
+        self.angle = angle
+        self.density = materials[material]["density"]
+        self.yield_strength = materials[material]["yield_strength"]
+        self.hardness = materials[material]["hardness"]
+        self.spall_factor = materials[material]["spall_factor"]
+
+class ArmorLayer:
+    def __init__(self, blocks: List[ArmorBlock]):
+        self.blocks = blocks
+        self.total_thickness = sum(block.thickness for block in blocks)
+
+class ArmorPlate:
+    def __init__(self, layers: List[ArmorLayer]):
+        self.layers = layers
+        self.total_thickness = sum(layer.total_thickness for layer in layers)
+
+class PenetrationSimulation:
+    def __init__(self, projectile: Projectile, armor_plate: ArmorPlate,
+                 block_size=0.01, log_file="penetration_log.json"):
+        self.projectile = projectile
+        self.armor_plate = armor_plate
+        self.block_size = block_size
+        self.log_file = log_file
+        self.penetration_total = 0.0
+        self.log_data = []
+
+    def run(self):
+        for frag_index, fragment in enumerate(self.projectile.fragments):
+            for layer_index, layer in enumerate(self.armor_plate.layers):
+                for block_index, block in enumerate(layer.blocks):
+                    n_subblocks = max(1, int(block.thickness / self.block_size))
+                    subblock_thickness = block.thickness / n_subblocks
+
+                    for sub_index in range(n_subblocks):
+                        if fragment.remaining_length <= 0 or fragment.velocity <= 0:
+                            break
+
+                        KE = 0.5 * fragment.mass * fragment.velocity**2
+                        P = KE / (fragment.area * block.yield_strength)
+                        P *= (fragment.density / block.density) * (0.9 + 0.1 * fragment.rod_ratio)
+                        P *= math.cos(math.radians(block.angle))
+
+                        # Tip factor
+                        tip_factor = 1.0
+                        if fragment.tip_type == "pointed":
+                            tip_factor = 1.1
+                        elif fragment.tip_type == "blunt":
+                            tip_factor = 0.9
+                        P *= tip_factor
+
+                        # Spall
+                        P *= block.spall_factor
+                        # Hardness correction
+                        P *= (block.yield_strength / block.hardness)**0.25
+
+                        # Obliquity dependent spall
+                        P *= math.cos(math.radians(block.angle))
+
+                        # Limit to block thickness
+                        actual_pen = min(P, subblock_thickness)
+                        self.penetration_total += actual_pen
+
+                        # Energy absorption
+                        energy_absorbed = KE * (actual_pen / P) if P > 0 else 0
+                        fragment.velocity = math.sqrt(max(0, 2*(KE - energy_absorbed)/fragment.mass))
+
+                        # Rod erosion
+                        erosion_factor = 0.05
+                        rod_erosion = erosion_factor * subblock_thickness
+                        fragment.remaining_length = max(0, fragment.remaining_length - rod_erosion)
+
+                        # Rod bending
+                        bending_factor = 1.0 - 0.01*(sub_index / n_subblocks)
+                        actual_pen *= bending_factor
+
+                        # Projectile fragmentation (simplified)
+                        if fragment.velocity > 3000 and fragment.remaining_length > 0.2:
+                            new_mass = fragment.mass * 0.5
+                            new_length = fragment.remaining_length * 0.5
+                            new_diam = fragment.diameter
+                            new_frag = ProjectileFragment(new_mass, new_length, new_diam, fragment.velocity, fragment.tip_type)
+                            new_frag.density = fragment.density
+                            self.projectile.fragments.append(new_frag)
+                            fragment.mass *= 0.5
+                            fragment.length *= 0.5
+
+                        # Logging
+                        log_entry = {
+                            "fragment_index": frag_index+1,
+                            "layer_index": layer_index+1,
+                            "block_index": block_index+1,
+                            "subblock_index": sub_index+1,
+                            "material": block.material,
+                            "penetration": round(actual_pen,5),
+                            "remaining_velocity": round(fragment.velocity,2),
+                            "remaining_rod_length": round(fragment.remaining_length,3),
+                            "KE": round(KE,2)
+                        }
+                        self.log_data.append(log_entry)
+
+        self.save_log()
+        self.report()
+
+    def save_log(self):
+        with open(self.log_file, "w") as f:
+            json.dump(self.log_data, f, indent=2)
+
+    def report(self):
+        print(f"Total penetration: {self.penetration_total:.3f} meters")
+        if self.penetration_total >= self.armor_plate.total_thickness:
+            print("Projectile fully penetrated all layers!")
+        else:
+            print("Projectile did not fully penetrate all layers.")
+        print(f"Total fragments: {len(self.projectile.fragments)}")
+        print(f"Block-by-block log saved to: {self.log_file}")
 
 # -------------------------
-# Armor definition (layered)
-# Each layer: (material, thickness_m, angle_deg)
+# Example usage
 # -------------------------
-armor_layers = [
-    ("steel", 0.15, 0),
-    ("ceramic", 0.05, 0),
-    ("steel", 0.1, 0)
-]
+if __name__ == "__main__":
+    proj = Projectile(name="APFSDS", material="tungsten", mass=10.0, length=1.2,
+                      diameter=0.03, velocity=1500, tip_type="pointed")
 
-# -------------------------
-# Derived projectile properties
-# -------------------------
-proj = materials[projectile["material"]]
-proj_density = proj["density"]
-proj_area = math.pi * (projectile["diameter"]/2)**2
-proj_rod_ratio = projectile["length"] / projectile["diameter"]
-proj_velocity = projectile["velocity"]
-proj_tip_type = projectile["tip_type"]
-proj_mass = projectile["mass"]
-proj_length = projectile["length"]
+    layers = [
+        ArmorLayer([ArmorBlock("steel", 0.15, 0), ArmorBlock("steel", 0.05, 10)]),
+        ArmorLayer([ArmorBlock("ceramic", 0.05, 0)]),
+        ArmorLayer([ArmorBlock("steel", 0.1, 0)])
+    ]
 
-# -------------------------
-# Simulation parameters
-# -------------------------
-block_size = 0.01  # 1 cm blocks for armor discretization
-penetration_total = 0.0
-rod_remaining_length = proj_length
-remaining_velocity = proj_velocity
+    plate = ArmorPlate(layers)
 
-# -------------------------
-# Pseudo-FEM Block-based Penetration
-# -------------------------
-for layer_index, (mat_name, thickness, angle) in enumerate(armor_layers):
-    armor = materials[mat_name]
-    rho_a = armor["density"]
-    yield_a = armor["yield_strength"]
-    hardness = armor["hardness"]
-    spall = armor["spall_factor"]
-    
-    # Number of blocks in this layer
-    n_blocks = max(1, int(thickness / block_size))
-    block_thickness = thickness / n_blocks
-    
-    for block_index in range(n_blocks):
-        if remaining_velocity <= 0 or rod_remaining_length <= 0:
-            break
-        
-        # 1. Base kinetic energy
-        KE = 0.5 * proj_mass * remaining_velocity**2
-        
-        # 2. Base penetration estimate
-        P = KE / (proj_area * yield_a)
-        
-        # 3. Hydrodynamic/rod scaling
-        P *= (proj_density / rho_a) * (0.9 + 0.1 * proj_rod_ratio)
-        
-        # 4. Angle effect
-        P *= math.cos(math.radians(angle))
-        
-        # 5. Tip factor
-        tip_factor = 1.0
-        if proj_tip_type == "pointed":
-            tip_factor = 1.1
-        elif proj_tip_type == "blunt":
-            tip_factor = 0.9
-        P *= tip_factor
-        
-        # 6. Spall factor
-        P *= spall
-        
-        # 7. Hardness correction
-        P *= (yield_a / hardness)**0.25
-        
-        # 8. Limit penetration to current block
-        actual_pen = min(P, block_thickness)
-        penetration_total += actual_pen
-        
-        # 9. Energy absorbed by block
-        energy_absorbed = KE * (actual_pen / P) if P > 0 else 0
-        
-        # 10. Update remaining projectile velocity
-        remaining_velocity = math.sqrt(max(0, 2 * (KE - energy_absorbed) / proj_mass))
-        
-        # 11. Rod erosion (tip shortening proportional to block penetration)
-        erosion_factor = 0.05  # 5% of block thickness per step as approximation
-        rod_erosion = erosion_factor * block_thickness
-        rod_remaining_length = max(0, rod_remaining_length - rod_erosion)
-        
-        # 12. Rod bending (simplified): reduce effective penetration
-        bending_factor = 1.0 - 0.01 * (block_index / n_blocks)
-        actual_pen *= bending_factor
-        
-        # Optional: print block debug info
-        # print(f"Layer {layer_index+1} Block {block_index+1}: Penetration={actual_pen:.4f} m, Velocity={remaining_velocity:.1f} m/s, Rod length={rod_remaining_length:.3f} m")
-    
-    # Stop if projectile stopped
-    if remaining_velocity <= 0 or rod_remaining_length <= 0:
-        print(f"Projectile stopped in layer {layer_index+1}")
-        break
-
-# -------------------------
-# Output summary
-# -------------------------
-print(f"Total penetration: {penetration_total:.3f} meters")
-total_armor_thickness = sum(layer[1] for layer in armor_layers)
-if penetration_total >= total_armor_thickness:
-    print("Projectile fully penetrated all layers!")
-else:
-    print("Projectile did not fully penetrate all layers.")
-
-print("\nNotes: This pseudo-FEM model includes:")
-print("- Block discretization of armor layers")
-print("- Sequential energy propagation and velocity reduction")
-print("- Rod tip erosion and shortening")
-print("- Rod bending effect")
-print("- Multi-material, multi-layer armor")
-print("- Tip type, obliquity, spall, hardness, and geometry corrections")
-print("- Approximate and cannot replace full FEM/hydrodynamic simulations")
+    sim = PenetrationSimulation(proj, plate, block_size=0.01)
+    sim.run()
