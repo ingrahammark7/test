@@ -59,7 +59,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Police Department",
+        "Department of Public Social Services",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 1.75* inch
@@ -159,11 +159,11 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="The majority of LAPD officers are illegal immigrants. All actions by LAPD are illegal. /n"
+    text="The DPSS is embezzling GR welfare benefits. /n"
     y_position=doer(text,y_position)
     h2="II. CONCLUSION"
     y_position=heads(h2,y_position)
-    text="Petitioner petitions this Court to: /n 1. Estop the LAPD from arresting me. /n 2. Auction all LAPD property. /n"
+    text="Petitioner petitions this Court to: /n 1. Stop embezzling the GR. /n"
     y_position=doer(text,y_position)
     h3="III. CERTIFICATE OF SERVICE"
     y_position=heads(h3,y_position)
