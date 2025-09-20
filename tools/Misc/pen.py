@@ -439,6 +439,16 @@ if __name__ == "__main__":
     	cf.f4=strength
     	dopen(cf)
     	
+    def dopaintball():
+    	cfa=steel
+    	cfa.density=1900
+    	speed=getspeed(cfa)
+    	cfa.bafac=1.1
+    	cfa.f2=1.8
+    	cfa.f3=speed/60
+    	cfa.f4=strength
+    	dopen(cfa)
+    	
     def dorubber():
     	cfa=steel
     	cfa.density=1900
@@ -720,6 +730,7 @@ if __name__ == "__main__":
     
     dopen(cf)
     do2mm()
+    dopaintball()
     dorubber()
     do25acp()
     do22long()
