@@ -430,6 +430,33 @@ if __name__ == "__main__":
     strength=bhn250()
     gels=do10gel()
     
+    def do2mm():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=3.5
+    	cf.f2=.27
+    	cf.f3=speed/200
+    	cf.f4=strength
+    	dopen(cf)
+    
+    def do25acp():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=2.5
+    	cf.f2=.635
+    	cf.f3=speed/230
+    	cf.f4=strength
+    	dopen(cf)
+    
+    def do22long():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=2.6
+    	cf.f2=.57
+    	cf.f3=speed/370
+    	cf.f4=strength
+    	dopen(cf)
+    
     def do9mm():
     	cf=du
     	speed=getspeed(cf)
@@ -682,6 +709,9 @@ if __name__ == "__main__":
     	
     
     dopen(cf)
+    do2mm()
+    do25acp()
+    do22long()
     do9mm()
     do44()
     do556()
