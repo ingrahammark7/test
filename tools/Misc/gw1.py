@@ -1,48 +1,31 @@
-import numpy as np
-import matplotlib.pyplot as plt
+import sympy as sp
 
-# ------------------------
-# Simulation Parameters
-# ------------------------
+# Define constants symbolically
+pi = sp.pi
+phi = sp.GoldenRatio
 
-# Ideal scenario (atomic-scale collapse)
-rho_ideal = 1e34  # J/m^3, single pulse equivalent
-pulses_ideal = 1e9  # hypothetical, atomic-scale tries
-time_total = 1e6  # s, total experiment time (for realistic case)
+# Step 1: alpha_fs and alpha (symbolic)
+alpha_fs = (-6 + 4*pi)**(-phi**2)
+alpha = (-6 + 4*pi)**(phi**2)
 
-# Realistic ablative lab scenario
-rho_pulse = 5e34      # J/m^3 per pulse (ablative hotspot)
-f_pulse = 1000        # Hz, pulse frequency
-epsilon = 1e-3        # fraction of pulse energy that accumulates
-timestep = 1          # s, simulation step
+# Step 2: symbolic prefactor for getearth
+av = ((alpha**phi)**7)/3
+avogadro = sp.Rational('6.02214076e23')  # Avogadro number
+f_factor = (av*3)*(alpha**phi)*8 / avogadro / 1000
 
-# Generate time array
-time_array = np.arange(0, time_total, timestep)
+# Step 3: full symbolic getearth expression
+getearth_symbolic = f_factor * av / 6 / (1 + 1/(16 + sp.Rational(1, 22)/10))
 
-# Calculate cumulative energy density over time
-rho_realistic = []
-cumulative = 0
-for t in time_array:
-    # pulses per timestep
-    pulses = f_pulse * timestep
-    cumulative += rho_pulse * pulses * epsilon
-    rho_realistic.append(cumulative)
+# Step 4: evaluate numerically
+getearth_numeric = getearth_symbolic.evalf()
+prefactor_numeric = f_factor.evalf()
 
-rho_realistic = np.array(rho_realistic)
+# Step 5: real Earth mass
+actual_earth_mass = 5.9722e24  # kg
 
-# Ideal case: constant max (atomic-scale, instantaneous)
-rho_ideal_array = np.full_like(time_array, rho_ideal * pulses_ideal)
+# Step 6: percent error as fraction of 1/alpha
+fraction_of_inv_alpha =( (getearth_numeric / actual_earth_mass) / (1/alpha)/alpha)+(1/alpha)-(1/alpha/(1.25+(4+(1-1/(38-1/(4/(2.8+1/(17-1/(32-1/(1/(2+8/9)))))))))*(1/alpha)))
 
-# ------------------------
-# Plot results
-# ------------------------
-plt.figure(figsize=(10,6))
-plt.plot(time_array/3600, rho_realistic, label='Realistic Ablative Lab', color='red')
-plt.plot(time_array/3600, rho_ideal_array, label='Ideal / Atomic-Scale', color='blue', linestyle='--')
-plt.yscale('log')
-plt.xlabel('Time (hours)')
-plt.ylabel('Cumulative Energy Density (J/m³)')
-plt.title('Time-Integrated Energy Density: Realistic vs Ideal')
-plt.legend()
-plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-plt.show()
+print("Numeric getearth:", getearth_numeric)
+print("Actual Earth mass:", actual_earth_mass)
+print("Error as fraction of 1/alpha:", fraction_of_inv_alpha.evalf())
