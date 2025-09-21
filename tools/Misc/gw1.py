@@ -1,27 +1,48 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Constants
-ke = 8.987e9  # Coulomb constant, N·m²/C²
-e = 1.602e-19  # Elementary charge, C
-m_p = 1.673e-27  # Proton mass, kg
-r0 = 1e-10  # Characteristic atomic spacing, m
-Z = 1  # Assume single effective charge per atom
+# ------------------------
+# Simulation Parameters
+# ------------------------
 
-# Number of atoms
-N = np.logspace(0, 6, 500)  # From 1 atom to 1 million atoms
+# Ideal scenario (atomic-scale collapse)
+rho_ideal = 1e34  # J/m^3, single pulse equivalent
+pulses_ideal = 1e9  # hypothetical, atomic-scale tries
+time_total = 1e6  # s, total experiment time (for realistic case)
 
-# Escape velocity scaling
-v_bulk = np.sqrt(2 * ke * Z * e**2 / (m_p * r0)) * N**(1/3)      # Bulk-like
-v_surface = np.sqrt(2 * ke * Z * e**2 / (m_p * r0)) * N**(1/6)   # Surface-dominated
+# Realistic ablative lab scenario
+rho_pulse = 5e34      # J/m^3 per pulse (ablative hotspot)
+f_pulse = 1000        # Hz, pulse frequency
+epsilon = 1e-3        # fraction of pulse energy that accumulates
+timestep = 1          # s, simulation step
 
-# Plot
-plt.figure(figsize=(8,6))
-plt.loglog(N, v_bulk/1e3, label='Bulk-like (v ~ N^(1/3))')
-plt.loglog(N, v_surface/1e3, label='Surface-dominated (v ~ N^(1/6))')
-plt.xlabel('Number of atoms (N)')
-plt.ylabel('Escape velocity (km/s)')
-plt.title('Escape velocity vs cluster size')
-plt.grid(True, which='both', ls='--')
+# Generate time array
+time_array = np.arange(0, time_total, timestep)
+
+# Calculate cumulative energy density over time
+rho_realistic = []
+cumulative = 0
+for t in time_array:
+    # pulses per timestep
+    pulses = f_pulse * timestep
+    cumulative += rho_pulse * pulses * epsilon
+    rho_realistic.append(cumulative)
+
+rho_realistic = np.array(rho_realistic)
+
+# Ideal case: constant max (atomic-scale, instantaneous)
+rho_ideal_array = np.full_like(time_array, rho_ideal * pulses_ideal)
+
+# ------------------------
+# Plot results
+# ------------------------
+plt.figure(figsize=(10,6))
+plt.plot(time_array/3600, rho_realistic, label='Realistic Ablative Lab', color='red')
+plt.plot(time_array/3600, rho_ideal_array, label='Ideal / Atomic-Scale', color='blue', linestyle='--')
+plt.yscale('log')
+plt.xlabel('Time (hours)')
+plt.ylabel('Cumulative Energy Density (J/m³)')
+plt.title('Time-Integrated Energy Density: Realistic vs Ideal')
 plt.legend()
+plt.grid(True, which='both', linestyle='--', linewidth=0.5)
 plt.show()
