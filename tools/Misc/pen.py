@@ -44,7 +44,24 @@ class Material:
         self.te=1-(1/(8))
         self.elmol*=self.te
         self.db=self.elmol
+        self.av=(((nuct.alpha**nuct.phi)**7)/3)
         
+    
+    def getrange(self,round_mas,diam):
+    	airdens=getn().density
+    	de=self.density*self.fill
+    	lenn=self.getroundlenmass(round_mas,diam)
+    	de=self.density/airdens
+    	return lenn*de
+    	
+    def getearth(self):
+    	f=(self.av*3)*(nuct.alpha**nuct.phi)*8
+    	f=f/self.avogadro/1000
+    	emass=5.9722e24
+    	f=f*self.av/6/(1+1/(16+1/2.2))
+    	print("masses ", f.evalf(), " actual ", emass)
+    	return f
+    	
     
     def compute_high_estimate(self):
         ch = self.ch
@@ -68,7 +85,6 @@ class Material:
         print(f"Cohesive bond energy total (MJ): {self.cohesive_bond_energy / 1e6:.4f}")
 
     def combine_angles(self, angle1_deg, angle2_deg):
-        
         a1=self.clean_angle(angle1_deg) 
         a2=self.clean_angle(angle2_deg) 
         f2=90-a2 
@@ -115,7 +131,6 @@ class Material:
         d=self.thermal_max_pen(d,round_energy)
         d = self.pen_angle(d, effective_angle, round_energy, round_diameter_cm)
         d=self.honeycomb_pen(d,round_energy,round_diameter_cm,honeycomb_layers)
-        
         return d
 
     def pen_angle(self, d, angle, round_energy, round_diameter_cm):
@@ -753,6 +768,7 @@ if __name__ == "__main__":
     do6()
     do8()
     do16()
+    getsteel().getearth()
     
   
     
