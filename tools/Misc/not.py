@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "For reference, attached is appellate opening brief I will use. /n" 
+    intro_text = "Attached is some GPT-generated notes on the case. /n" 
     y_position -= .25*inch
     
     
