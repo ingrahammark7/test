@@ -67,8 +67,11 @@ class Material:
     	c=nuct.c
     	pm=self.getpl()
     	pm=c/pm
-    	pm*=3
+    	pm*=3    	
     	return pm
+    	
+    def does(self):
+    	gg=self.getg().evalf()
     	
     def getpl(self):
     	pm=nuct.pm*1000*self.avogadro*7e-11
@@ -81,6 +84,11 @@ class Material:
     	amf=self.am
     	corr=1/amf/(2/3)/nuct.alpha/(1+1/24)
     	gg=pl*corr
+    	gg*=self.getsec()
+    	ff=pl/req
+    	ff**=2
+    	ff*=1/gg
+    	print("equatorial grav accel ",ff.evalf())
     	return gg
     
     def compute_high_estimate(self):
@@ -788,7 +796,7 @@ if __name__ == "__main__":
     do6()
     do8()
     do16()
-    getsteel().getsec()
+    getsteel().does()
     
   
     
