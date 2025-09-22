@@ -45,6 +45,7 @@ class Material:
         self.elmol*=self.te
         self.db=self.elmol
         self.av=(((nuct.alpha**nuct.phi)**7)/3)
+        self.am=nuct.alpha**nuct.phi
         
     
     def getrange(self,round_mas,diam):
@@ -61,7 +62,27 @@ class Material:
     	f=f*self.av/6/(1+1/(16+1/2.2))
     	print("masses ", f.evalf(), " actual ", emass)
     	return f
+    
+    def getsec(self):
+    	c=nuct.c
+    	pm=self.getpl()
+    	pm=c/pm
+    	pm*=3
+    	pl=self.getpl()
+    	gg=3.086071e-4*pm
+    	gg=pl*gg
+    	amf=self.am
+    	corr=1/amf/(2/3)/nuct.alpha/(1+1/24)
+    	print(gg.evalf()*corr.evalf())
+    	return pm
     	
+    def getpl(self):
+    	pm=nuct.pm*1000*self.avogadro*7e-11
+    	return pm
+    	
+    def getg(self):
+    	emass=self.getearth()
+    	req=6378137
     
     def compute_high_estimate(self):
         ch = self.ch
@@ -768,7 +789,7 @@ if __name__ == "__main__":
     do6()
     do8()
     do16()
-    getsteel().getearth()
+    getsteel().getsec()
     
   
     
