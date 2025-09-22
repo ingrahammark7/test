@@ -78,17 +78,18 @@ class Material:
     	return pm
     	
     def getg(self):
-    	emass=self.getearth()
     	req=6378137
     	pl=self.getpl()
     	amf=self.am
-    	corr=1/amf/(2/3)/nuct.alpha/(1+1/24)
+    	corr=(1/amf/(2/3)/nuct.alpha/(1+1/(24)))
     	gg=pl*corr
     	gg*=self.getsec()
     	ff=pl/req
     	ff**=2
     	ff*=1/gg
     	print("equatorial grav accel ",ff.evalf())
+    	fff=9.798337
+    	print("error ",ff.evalf()/fff)
     	return gg
     
     def compute_high_estimate(self):
@@ -663,7 +664,7 @@ if __name__ == "__main__":
     	speed=getspeed(cf)
     	cf.bafac=21.84
     	cf.f2=2.5
-    	cf.f3=speed/(1700)
+    	cf.f3=speed/(1700*.85)
     	cf.f4=strength
     	cf.fill=.3
     	dopen(cf)
