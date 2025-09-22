@@ -88,7 +88,7 @@ class Material:
     	ff**=2
     	ff*=1/gg
     	print("equatorial grav accel ",ff.evalf())
-    	fff=9.798337
+    	fff=9.798286
     	print("error ",ff.evalf()/fff)
     	return gg
     
