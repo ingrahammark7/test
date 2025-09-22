@@ -1,31 +1,30 @@
+import numpy as np
 import sympy as sp
 
-# Define constants symbolically
-pi = sp.pi
-phi = sp.GoldenRatio
+m_n = 1.675e-27
+G = 6.674e-11
+r_nucleus = 1e-15
 
-# Step 1: alpha_fs and alpha (symbolic)
-alpha_fs = (-6 + 4*pi)**(-phi**2)
-alpha = (-6 + 4*pi)**(phi**2)
+f_n = 1e22
+phase_prob = 1/(f_n**.5)
+proximity_factor = 3e8/r_nucleus
+cumulative_factor = f_n * phase_prob
 
-# Step 2: symbolic prefactor for getearth
-av = ((alpha**phi)**7)/3
-avogadro = sp.Rational('6.02214076e23')  # Avogadro number
-f_factor = (av*3)*(alpha**phi)*8 / avogadro / 1000
+def effective_force(m1, m2, r, proximity, cumulative):
+    F_newton = G * m1 * m2 / r**2
+    F_effective = F_newton * proximity * cumulative
+    return F_effective
 
-# Step 3: full symbolic getearth expression
-getearth_symbolic = f_factor * av / 6 / (1 + 1/(16 + sp.Rational(1, 22)/10))
+def binding_energy(N):
+    E_total = 0.0
+    for i in range(N):
+        for j in range(i + 1, N):
+            F_eff = effective_force(m_n, m_n, r_nucleus, proximity_factor, cumulative_factor)
+            E_pair = F_eff * r_nucleus
+            E_total += E_pair
+    E_total_MeV = E_total * 6.242e12
+    return (E_total_MeV*2**sp.GoldenRatio.evalf())*(1+1/12)
 
-# Step 4: evaluate numerically
-getearth_numeric = getearth_symbolic.evalf()
-prefactor_numeric = f_factor.evalf()
-
-# Step 5: real Earth mass
-actual_earth_mass = 5.9722e24  # kg
-
-# Step 6: percent error as fraction of 1/alpha
-fraction_of_inv_alpha =( (getearth_numeric / actual_earth_mass) / (1/alpha)/alpha)+(1/alpha)-(1/alpha/(1.25+(4+(1-1/(38-1/(4/(2.8+1/(17-1/(32-1/(1/(2+8/9)))))))))*(1/alpha)))
-
-print("Numeric getearth:", getearth_numeric)
-print("Actual Earth mass:", actual_earth_mass)
-print("Error as fraction of 1/alpha:", fraction_of_inv_alpha.evalf())
+N_carbon = 12
+E_carbon = binding_energy(N_carbon)
+print(f"Predicted binding energy for Carbon-12: {E_carbon:.2e} MeV")
