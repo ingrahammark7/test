@@ -576,7 +576,7 @@ if __name__ == "__main__":
     	speed=getspeed(cf)
     	cf.bafac=7.8
     	cf.f2=1.27
-    	cf.f3=speed/(1219)#explosive
+    	cf.f3=speed/(860)#explosive
     	cf.f4=strength
     	dopen(cf)
     	print("actual 2.3")
@@ -588,7 +588,9 @@ if __name__ == "__main__":
     	cf.f2=2.5
     	cf.f3=speed/1385
     	cf.f4=strength
+    	cf.fill=(100/1670)
     	dopen(cf)
+    	cf.fill=1
     	print("actual 10.1")
     	
     def dosherman():
@@ -630,7 +632,7 @@ if __name__ == "__main__":
     	cf.f2=4.1
     	cf.f3=speed/(1800*.85)
     	cf.f4=strength
-    	cf.fill=(3.6/5.6)
+    	cf.fill=1
     	dopen(cf)	
     	print("actual 25cm")
     	
@@ -652,6 +654,7 @@ if __name__ == "__main__":
     	cf.f2=3.1
     	cf.f3=speed/(1700*.85)
     	cf.f4=strength
+    	cf.fill=.3
     	dopen(cf)
     	print("actual 52cm")
     	
@@ -660,8 +663,9 @@ if __name__ == "__main__":
     	speed=getspeed(cf)
     	cf.bafac=21.84
     	cf.f2=2.5
-    	cf.f3=speed/1700
+    	cf.f3=speed/(1700)
     	cf.f4=strength
+    	cf.fill=.3
     	dopen(cf)
     	print("actual 66cm")
     	
@@ -672,6 +676,7 @@ if __name__ == "__main__":
     	cf.f2=2.5
     	cf.f3=speed/1690
     	cf.f4=strength
+    	cf.fill=.3
     	dopen(cf)
     	print("actual 63cm")
     	
@@ -744,6 +749,7 @@ if __name__ == "__main__":
     	rspeed=mat.gets()
     	round_diameter = mat.getdam()
     	round_mas=mat.getmass(round_diameter)
+    	round_len=mat.getroundlenmass(round_mas,round_diameter)
     	print("mass",round_mas)
     	round_energy = (.5*round_mas*(rspeed**2))
     	print("energy j ",round_energy)
