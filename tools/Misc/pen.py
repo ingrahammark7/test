@@ -68,12 +68,6 @@ class Material:
     	pm=self.getpl()
     	pm=c/pm
     	pm*=3
-    	pl=self.getpl()
-    	gg=3.086071e-4*pm
-    	gg=pl*gg
-    	amf=self.am
-    	corr=1/amf/(2/3)/nuct.alpha/(1+1/24)
-    	print(gg.evalf()*corr.evalf())
     	return pm
     	
     def getpl(self):
@@ -83,6 +77,11 @@ class Material:
     def getg(self):
     	emass=self.getearth()
     	req=6378137
+    	pl=self.getpl()
+    	amf=self.am
+    	corr=1/amf/(2/3)/nuct.alpha/(1+1/24)
+    	gg=pl*corr
+    	return gg
     
     def compute_high_estimate(self):
         ch = self.ch
