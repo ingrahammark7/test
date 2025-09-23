@@ -7,7 +7,7 @@ import pen
 phi = sp.GoldenRatio
 alpha_fs = 1/((((4*sp.pi)-6)**phi)**phi)  
 alpha = 1 / alpha_fs
-pm = alpha ** phi ** 4.55
+pm = alpha ** phi ** (4+5/9)
 ac = pm       
 prma = 1 / (alpha ** phi ** 5)
 prma = prma / 1000
@@ -33,7 +33,24 @@ class NuclearPenetrationModel:
         self.evperj = pen.getsteel().ev_to_joule
         self.c3=c**(1/3)
 
-        
+    def getpow(self):
+    	p=pen.getsteel()
+    	h=p.geth()
+    	g=p.getg()
+    	r=p.crad
+    	gg=p.getbigg()
+    	am=self.am
+    	f=am**phi**5
+    	f=1/f.evalf()
+    	am=am.evalf()
+    	print(f.evalf())
+    	#pp ee pe
+    	a=8.1e-37/f/alpha.evalf()/1.5/(1-1/32)
+    	b=2.4e-43/f*am*6/(1+1/24)
+    	c=4.4e-40/f*9/(1-1/alpha.evalf())
+    	(print(a,b,c))
+    	
+    
     def bremsstrahlung_loss(self, E_mev, n_e):
         Z = self.material.atomic_number
         E_mev = math.sqrt(E_mev)
@@ -138,6 +155,9 @@ def nuclear_penetration(round_energy_j, round_diameter_cm, honeycomb_layers, rou
     
     model = NuclearPenetrationModel(material)
     return model.penetration(round_energy_j, round_diameter_cm, honeycomb_layers, round_mas,roundmaterial)
+    
+def baseobj():
+	return NuclearPenetrationModel(pen.getsteel())
 
 
 

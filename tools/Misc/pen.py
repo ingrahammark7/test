@@ -28,6 +28,8 @@ class Material:
         self.pmas=nuct.prma/2
         self.emr=nuct.alpha**nuct.phi
         self.emr=self.emr/nuct.phi
+        self.crad=7e-11
+        self.req=6378137
         
         self.bafac=1
         self.f2=1
@@ -56,13 +58,17 @@ class Material:
     	return lenn*de
     	
     def getearth(self):
-    	f=(self.av*3)*(nuct.alpha**nuct.phi)*8
-    	f=f/self.avogadro/1000
+    	f=self.geth()
     	emass=5.9722e24
     	f=f*self.av/6/(1+1/(16+1/2.2))
     	print("masses ", f.evalf(), " actual ", emass)
     	return f
-    
+    	
+    def geth(self):
+    	f=(self.av*3)*(nuct.alpha**nuct.phi)*8
+    	f=f/self.avogadro/1000
+    	return f
+    	 
     def getsec(self):
     	c=nuct.c
     	pm=self.getpl()
@@ -74,11 +80,14 @@ class Material:
     	gg=self.getg().evalf()
     	
     def getpl(self):
-    	pm=nuct.pm*1000*self.avogadro*7e-11
+    	pm=nuct.pm*1000*self.avogadro*self.crad
     	return pm
     	
+    def getbigg(self):
+    	return self.getg()*self.req*self.req/self.getearth()
+    	
     def getg(self):
-    	req=6378137
+    	req=self.req
     	pl=self.getpl()
     	amf=self.am
     	corr=(1/amf/(2/3)/nuct.alpha/(1+1/(24)))
@@ -803,7 +812,8 @@ if __name__ == "__main__":
     do6()
     do8()
     do16()
-    getsteel().does()
+    n=nuct.baseobj()
+    n.getpow()
     
   
     
