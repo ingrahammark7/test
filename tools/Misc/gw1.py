@@ -1,46 +1,44 @@
+import pandas as pd
 import numpy as np
-import sympy as sp
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
 
-m_n = 1.675e-27
-G = 6.674e-11
-r_nucleus = 1.2e-15
+# Planetary data
+planets = ['Earth', 'Venus', 'Mars', 'Titan', 'Pluto']
+M = [28.96, 44.01, 43.34, 28.67, 28.02]         # Mean molecular mass (g/mol)
+c_p = [1005, 520, 520, 1040, 1000]             # Specific heat J/(kg·K)
+m_atm = [1e5, 9.2e6, 2.5e4, 1.5e5, 6.5e-5]    # Atmospheric mass per unit area kg/m^2
+T_s = [288, 735, 210, 94, 40]                  # Surface temperature K
+z_trop = [12, 55, 40, 40, 4]                   # Troposphere height km
 
-# Neutron rest-mass frequency
-m_n = 1.67492749804e-27  # kg, CODATA 2018
-c = 299_792_458           # m/s, exact
-h = 6.62607015e-34        # J·s, exact
+# Create DataFrame
+data = pd.DataFrame({
+    'Planet': planets,
+    'M': M,
+    'c_p': c_p,
+    'm_atm': m_atm,
+    'T_s': T_s,
+    'z_trop': z_trop
+})
 
-# Calculate frequency
-f_n = (m_n * c**2) / h
+# Log-transform variables where appropriate
+X = np.log(data[['M','c_p','m_atm']].replace(0,1e-10))  # Avoid log(0)
+X['T_s'] = data['T_s']
+y = data['z_trop']
 
-# Relative uncertainty from neutron mass
-delta_m_n = 0.00000000095e-27  # kg
-rel_uncertainty = delta_m_n / m_n
-delta_f_n = f_n * rel_uncertainty
+# Standardize predictors
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
-print(f"Neutron rest-mass frequency: {f_n:.6e} Hz ± {delta_f_n:.2e} Hz")
+# Fit linear regression
+model = LinearRegression()
+model.fit(X_scaled, y)
 
-phase_prob = 1/(f_n**.5)
-proximity_factor = 3e8/r_nucleus
-cumulative_factor = f_n * phase_prob
+# Get absolute value of coefficients and rank
+coef_abs = np.abs(model.coef_)
+predictors = X.columns
+importance = pd.DataFrame({'Predictor': predictors, 'Coefficient': coef_abs})
+importance = importance.sort_values(by='Coefficient', ascending=False).reset_index(drop=True)
 
-def effective_force(m1, m2, r, proximity, cumulative):
-    F_newton = G * m1 * m2 / r**2
-    F_effective = F_newton * proximity * cumulative
-    return F_effective
-
-def binding_energy(N):
-    E_total = 0.0
-    for i in range(N):
-        for j in range(i + 1, N):
-            F_eff = effective_force(m_n, m_n, r_nucleus, proximity_factor, cumulative_factor)
-            E_pair = F_eff * r_nucleus
-            E_total += E_pair
-    E_total_MeV = E_total * 6.242e12
-    return ((E_total_MeV*2**sp.GoldenRatio.evalf())*(2**sp.GoldenRatio.evalf()))/12
-
-N_carbon = 12
-E_carbon = binding_energy(N_carbon)
-actual=7.67
-print(f"Predicted binding energy for Carbon-12: {E_carbon:.2e} MeV")
-print("error ",E_carbon/actual)
+print("Predictor importance ranking:")
+print(importance)
