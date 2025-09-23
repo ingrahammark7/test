@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice" 
+footer_text = "Request to Clarify Res Judicata" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Attached is some GPT-generated notes on the case. /n" 
+    intro_text = "The intention of judge dismissing case appears to be to bar future cases using prior adjucitation. This is impossible for this issue due to its recurring nature. Any instance of police being illegal immigrants or arresting me becomes a new case. /n Court requires that I kill a police officer to provoke police to take action and allow a new case to be filed. This is absurd and court should compel me to find a new cause of action rather than forcing me to create a test case to circumvent prior adjudication. /n If none of this was the intent of judge's decision, judge should specify. /n" 
     y_position -= .25*inch
     
     
