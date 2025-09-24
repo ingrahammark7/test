@@ -51,20 +51,9 @@ class NuclearPenetrationModel:
     def getc(self):
     	p=penn
     	sec=p.getsec()
-    	cc=c*sec
     	ll=p.getpl()
-    	cc=ll/cc
-    	cc=cc/4.8
-    	cc*=(1+alpha_fs/4)
-    	amf=1/self.am
-    	cc=cc*(1+amf/1.8)
-    	amf**=2
-    	cc=cc*(1+amf*4.8)
-    	cc=cc*(1+amf/14)
-    	#.999807818608332
+    	cc=ll/4.8/sec    	
     	print(cc.evalf())
-    	
-    	
     
     def gethb(self):
     	tp=self.gettp()

@@ -16,10 +16,10 @@ class Material:
         
      
         self.avogadro = 6.02214076e23
-        self.ev_to_joule = 1.602e-19
         self.k = 9e9  
         self.elementary_charge = 1.60217663e-19
-        self.phi = 1.61803398875
+        self.ev_to_joule = self.elementary_charge
+        self.phi = nuct.phi
         self.ch=(self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
         self.ch1=self.ch*self.atomic_radius
         self.bol=1.380649e-23
@@ -200,7 +200,6 @@ class Material:
 
     def gets(self):
         round_diameter1=self.getdam()
-        print("diameter cm", round_diameter1)
         f,d=self.getvel(round_diameter1)
         return d
         
