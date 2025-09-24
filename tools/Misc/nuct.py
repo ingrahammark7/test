@@ -13,6 +13,7 @@ prma = 1 / (alpha ** phi ** 5)
 prma = prma / 1000
 pm = pm * prma
 c=3e8
+penn=pen.getsteel()
 
 
 class NuclearPenetrationModel:
@@ -34,22 +35,43 @@ class NuclearPenetrationModel:
         self.c3=c**(1/3)
 
     def getpow(self):
-    	p=pen.getsteel()
+    	p=penn
     	h=p.geth()
     	g=p.getg()
     	r=p.crad
     	gg=p.getbigg()
-    	am=self.am
-    	f=am**phi**5
-    	f=1/f.evalf()
-    	am=am.evalf()
-    	print(f.evalf())
-    	#pp ee pe
-    	a=8.1e-37/f/alpha.evalf()/1.5/(1-1/32)
-    	b=2.4e-43/f*am*6/(1+1/24)
-    	c=4.4e-40/f*9/(1-1/alpha.evalf())
-    	(print(a,b,c))
+    	gem=self.getgem()
+    	crate=(c/p.crad**1/3)
+    	hb=self.gethb()
     	
+    def getelm(self):
+    	print(prma.evalf())
+    	
+    
+    def gethb(self):
+    	tp=self.gettp()
+    	tp*=tp
+    	g=penn.getbigg()
+    	tp/=g
+    	cc=c**5
+    	tp/=cc
+    	return tp
+    	
+    def gettp(self):
+    	#tp=5.391247e-44
+    	sec=pen.getsteel().getsec()
+    	r=sec
+    	r=r/(self.am**12)/42
+    	return r
+    
+    def getgem(self):
+    	f=self.am**phi**5
+    	f=1/f
+    	am=self.am
+    	a=1/f/1.5/(1-1/32)
+    	b=1/f*am*6/(1+1/24)
+    	cc=1/f*9/(1-1/alpha)
+    	return b   	
     
     def bremsstrahlung_loss(self, E_mev, n_e):
         Z = self.material.atomic_number
