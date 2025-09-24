@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Writ of Mandamus" 
+footer_text = "Request" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -82,7 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "Case Number: ",
+        "Case Number: 2:25-cv-09066-RGK-(MAAx)",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -154,20 +154,12 @@ def create_pdf(output_filename):
     	return y_position
     	
     
-    h1="I. ARGUMENTS"
+    h1=""
     y_position=top_margin-.5*inch
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="The DPSS is embezzling GR welfare benefits. /n"
-    y_position=doer(text,y_position)
-    h2="II. CONCLUSION"
-    y_position=heads(h2,y_position)
-    text="Petitioner petitions this Court to: /n 1. Stop embezzling the GR. /n"
-    y_position=doer(text,y_position)
-    h3="III. CERTIFICATE OF SERVICE"
-    y_position=heads(h3,y_position)
-    text="An IFP statement was filed requesting US Marshall service of summons and petition. /n"
+    text="I filed an IFP request for service by marshall. Normally, court ignores my motions and dismisses case due to no service. If you are going to do that then just dismiss the case. /n"
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/31/2025")
 
