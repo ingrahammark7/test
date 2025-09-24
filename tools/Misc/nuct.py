@@ -12,7 +12,8 @@ ac = pm
 prma = 1 / (alpha ** phi ** 5)
 prma = prma / 1000
 pm = pm * prma
-c=3e8
+c1=299792456.2
+c=c1
 penn=pen.getsteel()
 
 
@@ -42,10 +43,27 @@ class NuclearPenetrationModel:
     	gg=p.getbigg()
     	gem=self.getgem()
     	crate=(c/p.crad**1/3)
-    	hb=self.gethb()
+    	self.getc()
     	
     def getelm(self):
     	print(prma.evalf())
+    	
+    def getc(self):
+    	p=penn
+    	sec=p.getsec()
+    	cc=c*sec
+    	ll=p.getpl()
+    	cc=ll/cc
+    	cc=cc/4.8
+    	cc*=(1+alpha_fs/4)
+    	amf=1/self.am
+    	cc=cc*(1+amf/1.8)
+    	amf**=2
+    	cc=cc*(1+amf*4.8)
+    	cc=cc*(1+amf/14)
+    	#.999807818608332
+    	print(cc.evalf())
+    	
     	
     
     def gethb(self):
