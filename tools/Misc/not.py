@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Clarify Res Judicata" 
+footer_text = "Request"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,10 +67,10 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-   # c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
-    #c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
+    #c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
+    #c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
  
 
     # (4) Case Title
@@ -95,7 +95,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP00742")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 2:25-cv-08306")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "The intention of judge dismissing case appears to be to bar future cases using prior adjucitation. This is impossible for this issue due to its recurring nature. Any instance of police being illegal immigrants or arresting me becomes a new case. /n Court requires that I kill a police officer to provoke police to take action and allow a new case to be filed. This is absurd and court should compel me to find a new cause of action rather than forcing me to create a test case to circumvent prior adjudication. /n If none of this was the intent of judge's decision, judge should specify. /n" 
+    intro_text = "When I filed case I provided IFP motion for service by marshall. Court ignored this motion. Court should dismiss case if they are not going to read anything. /n" 
     y_position -= .25*inch
     
     
