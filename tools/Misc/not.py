@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "As I cannot afford a process server, court should ask Sheriff Department to serve the case. If court ignores this request, case should be dismissed. Defendant address is: /n 100 W 1st St /n Los Angeles CA 90012 /n" 
+    intro_text = "As I cannot afford a process server, court should ask Sheriff Department to serve the case. If court ignores this request, case should be dismissed. As an alternative court may compel ABC Legal to serve. Defendant address is: /n 100 W 1st St /n Los Angeles CA 90012 /n" 
     y_position -= .25*inch
     
     
