@@ -18,6 +18,7 @@ c=c1
 penn=pen.getsteel()
 PRECISION=2**12
 unage=4.3532208e17
+year=60*60*24*365
 
 class NuclearPenetrationModel:
     def __init__(self, material):
@@ -74,20 +75,38 @@ class NuclearPenetrationModel:
     	return r
     
     def getalp(self):
+    	d=self.getalpd()
+    	d=d**-1
+    	d*=1+(2/3)+alpha_fs*(2+4.2/9)
+    	amf=1/self.am
+    	d+=amf*amf*(25+alpha_fs*2.5)
+    	d+=137
+    	return d
+    	
+    def getalpd(self):
     	inv=self.getinvtp()
     	d=alpha**1/3
     	ee=alpha**1/2
-    	d=d/(unage/self.gettp())
+    	gh=unage/self.gettp()
+    	d=d/(gh)
     	d=d*ee*inv
     	d=1/d
     	d=sp.log(d)
     	ff=alpha
     	ff=sp.log(ff)
     	d=d/ff
+    	re=d
+    	#s
     	d=d**-1
     	d*=1+(2/3)+alpha_fs*(2+4.2/9)
-    	d+=137
-    	return d
+    	amf=1/self.am
+    	d+=amf*amf*(25+alpha_fs*2.5)
+    	d=d/.035999177
+    	print(d.evalf())
+    	return re
+    	
+    def getinalp(self):
+    	return 1/self.getalp()
     
     def getinvtp(self):
     	tp = self.gettp()           # assume tp is symbolic or numeric
