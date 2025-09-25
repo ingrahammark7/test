@@ -107,6 +107,9 @@ class NuclearPenetrationModel:
     	print(foo.evalf())
     	d*=adj
     	amf=1/self.am
+    	ag=amf*amf*(25+alpha_fs*2.5)
+    	ag=ag**powd
+    	print(ag.evalf()*unage)
     	d+=amf*amf*(25+alpha_fs*2.5)
     	d/=0.0359991717
     	#3 2/3 power
