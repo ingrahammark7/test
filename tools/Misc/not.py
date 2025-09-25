@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Writ of Mandate"
+footer_text = "IFP Request for Service by Sheriff"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Police Department",
+        "Department of Public Social Services",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I. INTRODUCTION /n Estop LAPD from arresting me. The majority of LAPD officers are illegal immigrants. /n II. CONCLUSION /n Petitioner petitions this court to: /n 1. Order LAPD to explain why they attempt to arrest me at 690 S Catalina St Apartment 4x. /n III. PROCEDURAL NOTE /n Court should not reject this case on res judicata. Court would require me to kill police officers to raise new causes of action. Court should order me to show cause first. /n" 
+    intro_text = "As I cannot afford a process server, court should ask Sheriff Department to serve the case. If court ignores this request, case should be dismissed. As an alternative court may compel ABC Legal to serve. Defendant address is: /n 12860 Crossroads Parkway South /n City of Industry CA 91746 /n" 
     y_position -= .25*inch
     
     
