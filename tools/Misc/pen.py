@@ -28,7 +28,7 @@ class Material:
         self.pmas=nuct.prma/2
         self.emr=nuct.alpha**nuct.phi
         self.emr=self.emr/nuct.phi
-        self.crad=7e-11
+        self.crad=7e-11*1.001001778
         self.req=6378137
         
         self.bafac=1

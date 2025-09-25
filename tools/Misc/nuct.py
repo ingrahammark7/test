@@ -46,7 +46,7 @@ class NuclearPenetrationModel:
     	gg=p.getbigg()
     	c=self.getc()
     	crate=(c/p.crad**1/3)
-    	print(self.getalp().evalf())
+    	print(self.getc().evalf())
     	
     def getelm(self):
     	print(prma.evalf())
@@ -55,7 +55,8 @@ class NuclearPenetrationModel:
     	p=penn
     	sec=p.getsec()
     	ll=p.getpl()
-    	cc=ll/4.8/sec    	
+    	cc=ll/4.8/sec
+    	print(cc)    	
     	return cc
     
     def gethb(self):
@@ -96,26 +97,6 @@ class NuclearPenetrationModel:
     	ff=sp.log(ff)
     	d=d/ff
     	re=d
-    	#s
-    	d=d**-1
-    	powd=3+(2/3)
-    	adj=1+(2/3)+alpha_fs*(2+4.2/9)
-    	ma=adj**powd
-    	print(ma.evalf())
-    	una=13.8
-    	foo=una/ma
-    	print(foo.evalf())
-    	d*=adj
-    	amf=1/self.am
-    	ag=amf*amf*(25+alpha_fs*2.5)
-    	ag=ag**powd
-    	print(ag.evalf()*unage)
-    	d+=amf*amf*(25+alpha_fs*2.5)
-    	d/=0.0359991717
-    	#3 2/3 power
-    	#1.00301498696319 with half
-    	
-    	print(d.evalf())
     	return re
     	
     def getinalp(self):
