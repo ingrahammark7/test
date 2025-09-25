@@ -87,7 +87,7 @@ class NuclearPenetrationModel:
     	inv=self.getinvtp()
     	d=alpha**1/3
     	ee=alpha**1/2
-    	gh=unage/self.gettp()
+    	gh=unage/self.gettp()/2
     	d=d/(gh)
     	d=d*ee*inv
     	d=1/d
@@ -98,10 +98,20 @@ class NuclearPenetrationModel:
     	re=d
     	#s
     	d=d**-1
-    	d*=1+(2/3)+alpha_fs*(2+4.2/9)
+    	powd=3+(2/3)
+    	adj=1+(2/3)+alpha_fs*(2+4.2/9)
+    	ma=adj**powd
+    	print(ma.evalf())
+    	una=13.8
+    	foo=una/ma
+    	print(foo.evalf())
+    	d*=adj
     	amf=1/self.am
     	d+=amf*amf*(25+alpha_fs*2.5)
-    	d=d/.035999177
+    	d/=0.0359991717
+    	#3 2/3 power
+    	#1.00301498696319 with half
+    	
     	print(d.evalf())
     	return re
     	
