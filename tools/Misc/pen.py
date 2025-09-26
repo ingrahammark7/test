@@ -97,7 +97,7 @@ class Material:
     	print("equatorial grav accel ",ff.evalf())
     	fff=9.798286
     	print("error ",ff.evalf()/fff)
-    	return gg
+    	return ff
     
     def compute_high_estimate(self):
         ch = self.ch

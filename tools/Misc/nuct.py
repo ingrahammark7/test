@@ -46,7 +46,7 @@ class NuclearPenetrationModel:
     	gg=p.getbigg()
     	c=self.getc()
     	crate=(c/p.crad**1/3)
-    	print(self.gethb().evalf())
+    	print(self.getalp().evalf())
  
    
     def getelm(self):
@@ -63,10 +63,13 @@ class NuclearPenetrationModel:
     	tp=self.gettp()
     	tp*=tp
     	g=penn.getbigg()
-    	tp/=g
     	cc=self.getc()**5
-    	tp/=cc
+    	tp*=cc*2*sp.pi
+    	tp/=g
     	return tp
+    	
+    def getrhb(self):
+    	return self.gethb()/(2*sp.pi)
     	
     def gettp(self):
     	#tp=5.391247e-44
@@ -81,6 +84,8 @@ class NuclearPenetrationModel:
     	d*=1+(2/3)+alpha_fs*(2+4.2/9)
     	amf=1/self.am
     	d+=amf*amf*(25+alpha_fs*2.5)
+    	an=amf*(8+2/(3-alpha_fs*27.25))
+    	d=d*(1-an)
     	d+=137
     	return d
     	
@@ -136,9 +141,9 @@ class NuclearPenetrationModel:
         return loss
 
     def emf(self, mass1, mass2, r):
-        c1 = mass1 / prma * self.ec
+        cc1 = mass1 / prma * self.ec
         c2 = mass2 / prma * self.ec
-        top = pen.getsteel().k * c1 * c2
+        top = pen.getsteel().k * cc1 * c2
         return top / r
 
     def velfromen(self, mass, en):
