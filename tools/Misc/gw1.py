@@ -1,65 +1,32 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-# -----------------------
-# PARAMETERS
-# -----------------------
-G = 1.0          # Gravitational constant (normalized)
-dt = 0.001       # Time step
-steps = 2000     # Number of simulation steps
+# Layers and fragility values (arbitrary scale: 1=very stable, 10=extremely fragile)
+layers = [
+    "Fundamental constants",
+    "Chemistry & reactions",
+    "Stellar physics",
+    "Stellar arrangement",
+    "Planetary habitability",
+    "Cosmological features"
+]
 
-# Star 1 (central star)
-m1 = 1.0
-pos1 = np.array([0.0, 0.0])
-vel1 = np.array([0.0, 0.0])
+fragility = [1, 2, 5, 8, 9, 10]  # Increasing sensitivity
+colors = ['#2ca02c', '#98df8a', '#ffbb78', '#ff7f0e', '#d62728', '#9467bd']
 
-# Planet orbiting Star 1
-m_planet = 0.001
-r_planet = 1.0
-pos_p = np.array([r_planet, 0.0])
-vel_p = np.array([0.0, np.sqrt(G*m1/r_planet)])  # circular orbit
+# Vertical positions for bars
+y_pos = np.arange(len(layers))
 
-# Star 2 (neighboring star)
-m2 = 1.0
-pos2 = np.array([5.0, 0.0])       # distance to Star 1
-vel2 = np.array([0.0, 0.0])       # stationary for simplicity
+plt.figure(figsize=(8,6))
+plt.barh(y_pos, fragility, color=colors, edgecolor='black')
+plt.yticks(y_pos, layers)
+plt.xlabel("Fragility / Sensitivity (1=stable, 10=extreme)")
+plt.title("Hierarchy of Fine-Tuning and Fragility in the Universe")
+plt.gca().invert_yaxis()  # Top layer at top
+plt.grid(axis='x', linestyle='--', alpha=0.7)
 
-# Optional: small perturbation
-perturb = 0.01
-pos2 += np.array([perturb, 0.0])  # tiny shift in x-direction
+# Add numeric labels on bars
+for i, v in enumerate(fragility):
+    plt.text(v + 0.2, i, str(v), color='black', va='center')
 
-# -----------------------
-# FUNCTION: Compute acceleration on planet
-# -----------------------
-def acceleration_planet(pos_p, pos1, pos2, m1, m2):
-    a1 = -G*m1 * (pos_p - pos1) / np.linalg.norm(pos_p - pos1)**3
-    a2 = -G*m2 * (pos_p - pos2) / np.linalg.norm(pos_p - pos2)**3
-    return a1 + a2
-
-# -----------------------
-# SIMULATION
-# -----------------------
-planet_positions = []
-
-for i in range(steps):
-    a = acceleration_planet(pos_p, pos1, pos2, m1, m2)
-    vel_p += a*dt
-    pos_p += vel_p*dt
-    planet_positions.append(pos_p.copy())
-
-planet_positions = np.array(planet_positions)
-
-# -----------------------
-# PLOT ORBIT
-# -----------------------
-plt.figure(figsize=(6,6))
-plt.plot(planet_positions[:,0], planet_positions[:,1], label='Planet orbit')
-plt.scatter(*pos1, color='orange', s=100, label='Star 1')
-plt.scatter(*pos2, color='red', s=100, label='Star 2 (perturbed)')
-plt.xlabel("x")
-plt.ylabel("y")
-plt.title("Planet orbit destabilized by small stellar perturbation")
-plt.legend()
-plt.axis('equal')
-plt.grid(True)
 plt.show()
