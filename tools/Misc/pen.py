@@ -59,9 +59,8 @@ class Material:
     	
     def getearth(self):
     	f=self.geth()
-    	emass=5.9722e24
+    	#emass=5.9722e24
     	f=f*self.av/6/(1+1/(16+1/2.2))
-    	print("masses ", f.evalf(), " actual ", emass)
     	return f
     	
     def geth(self):
@@ -76,9 +75,7 @@ class Material:
     	pm*=3    	
     	return pm
     	
-    def does(self):
-    	gg=self.getg().evalf()
-    	
+        	
     def getpl(self):
     	pm=nuct.pm*1000*self.avogadro*self.crad
     	return pm
@@ -95,7 +92,8 @@ class Material:
     	gg*=self.getsec()
     	ff=pl/req
     	ff**=2
-    	ff*=1/gg
+    	ff*=(1/gg)
+    	ff/=1+6/amf
     	print("equatorial grav accel ",ff.evalf())
     	fff=9.798286
     	print("error ",ff.evalf()/fff)

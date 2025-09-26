@@ -46,7 +46,7 @@ class NuclearPenetrationModel:
     	gg=p.getbigg()
     	c=self.getc()
     	crate=(c/p.crad**1/3)
-    	print(self.getc().evalf())
+    	print(self.gethb().evalf())
  
    
     def getelm(self):
@@ -64,7 +64,7 @@ class NuclearPenetrationModel:
     	tp*=tp
     	g=penn.getbigg()
     	tp/=g
-    	cc=c**5
+    	cc=self.getc()**5
     	tp/=cc
     	return tp
     	
@@ -72,7 +72,7 @@ class NuclearPenetrationModel:
     	#tp=5.391247e-44
     	sec=pen.getsteel().getsec()
     	r=sec
-    	r=r/(self.am**12)/42
+    	r=r/(self.am**12)/(40+phi)
     	return r
     
     def getalp(self):
@@ -121,9 +121,9 @@ class NuclearPenetrationModel:
     	f=self.am**phi**5
     	f=1/f
     	am=self.am
-    	a=1/f/1.5/(1-1/32)
+    	#a=1/f/1.5/(1-1/32)
     	b=1/f*am*6/(1+1/24)
-    	cc=1/f*9/(1-1/alpha)
+    	#cc=1/f*9/(1-1/alpha)
     	return b   	
     
     def bremsstrahlung_loss(self, E_mev, n_e):
