@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "IFP Request for Service by Sheriff"
+footer_text = "Request for Order"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -95,7 +95,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: ")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "As I cannot afford a process server, court should ask Sheriff Department to serve the case. If court ignores this request, case should be dismissed. As an alternative court may compel ABC Legal to serve. Defendant address is: /n 12860 Crossroads Parkway South /n City of Industry CA 91746 /n" 
+    intro_text = "Court assigned case to the same judge again. There is no point in continuing as he will just create fake transcript and dismiss case like last time. Judge should make a decision as soon as possible so case can be appealed. I assume all your judges do this. /n" 
     y_position -= .25*inch
     
     
