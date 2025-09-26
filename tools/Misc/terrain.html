@@ -40,18 +40,21 @@
   // Create boxes
   layers.forEach((layer, i) => {
     const geometry = new THREE.BoxGeometry(6, layer.fragility*2, 6);
-    const material = new THREE.MeshStandardMaterial({color: layer.color, emissive: layer.color, emissiveIntensity: 0.2});
+    const material = new THREE.MeshStandardMaterial({
+      color: layer.color,
+      emissive: layer.color,
+      emissiveIntensity: 0.2
+    });
     const box = new THREE.Mesh(geometry, material);
     box.position.y = layer.fragility + i*spacing;
     boxes.push(box);
     scene.add(box);
   });
 
-  // Floating arrow to indicate escalating chaos
+  // Floating arrow with gradient color
   const arrowGeometry = new THREE.ConeGeometry(1, 3, 32);
   const arrowMaterial = new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5});
   const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
-  arrow.position.set(0, 0, 0);
   arrow.rotation.x = Math.PI; // point upward
   scene.add(arrow);
 
@@ -62,6 +65,13 @@
   pointLight.position.set(50, 50, 50);
   scene.add(pointLight);
 
+  // Device tilt variables
+  let tiltX = 0, tiltY = 0;
+  window.addEventListener('deviceorientation', (event) => {
+    tiltX = event.gamma ? event.gamma * 0.01 : 0; // left-right tilt
+    tiltY = event.beta ? event.beta * 0.01 : 0;   // front-back tilt
+  }, true);
+
   // Animation
   let clock = new THREE.Clock();
 
@@ -69,26 +79,34 @@
     requestAnimationFrame(animate);
     const time = clock.getElapsedTime();
 
-    // Tilt rotation of scene
-    scene.rotation.y = Math.sin(time*0.1)*0.3;  // slow left-right tilt
-    scene.rotation.x = Math.sin(time*0.05)*0.1; // slow up-down tilt
+    // Scene tilt controlled by phone orientation
+    scene.rotation.x = tiltY + Math.sin(time*0.05)*0.05; // subtle auto tilt
+    scene.rotation.y = tiltX + Math.sin(time*0.1)*0.1;
 
-    // Pulsing effect based on fragility
+    // Pulsing effect for layers
     boxes.forEach((box, i) => {
       box.material.emissiveIntensity = 0.2 + 0.3 * Math.sin(time * (0.5 + i*0.2));
     });
 
-    // Move arrow upward over layers repeatedly
-    arrow.position.y = (time % 20); // loops from 0 to 20
-    arrow.position.x = 0;
-    arrow.position.z = 0;
+    // Move arrow upward repeatedly
+    const arrowHeight = (time % 20); // loops 0->20
+    arrow.position.y = arrowHeight;
+
+    // Arrow color gradient from green → red → purple
+    const t = arrowHeight / 20;
+    arrow.material.color.setRGB(
+      Math.min(1, t*2),             // red
+      Math.max(0, 1 - t*2),         // green
+      t                           // blue
+    );
+    arrow.material.emissive.set(arrow.material.color);
 
     renderer.render(scene, camera);
   }
 
   animate();
 
-  // Handle window resize
+  // Handle resize
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
