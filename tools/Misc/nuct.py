@@ -46,7 +46,7 @@ class NuclearPenetrationModel:
     	gg=p.getbigg()
     	c=self.getc()
     	crate=(c/p.crad**1/3)
-    	print(self.corprma().evalf())
+    	print(self.getalp().evalf())
  
    
     def corprma(self):
@@ -92,10 +92,10 @@ class NuclearPenetrationModel:
     def getalp(self):
     	d=self.getalpd()
     	d=d**-1
-    	d*=1+(2/3)+alpha_fs*(2+4.2/9)
+    	d*=1+(2/3)+alpha_fs*(2+10.5/9)
     	amf=1/self.am
     	d+=amf*amf*(25+alpha_fs*2.5)
-    	an=amf*(8+2/(3-alpha_fs*27.25))
+    	an=amf*(8+2/(3-alpha_fs*(21+(5/6))))
     	d=d*(1-an)
     	d+=137
     	return d
@@ -104,7 +104,7 @@ class NuclearPenetrationModel:
     	inv=self.getinvtp()
     	d=alpha**1/3
     	ee=alpha**1/2
-    	gh=unage/self.gettp()/2
+    	gh=unage/self.gettp()
     	d=d/(gh)
     	d=d*ee*inv
     	d=1/d
