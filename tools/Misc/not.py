@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "If case does not default then judgr should decide as soon as possible so I can appeal the case. /n The primary evidence to order for the case is a explanation by DPSS why they cut benefits for unexplained reasons, and any explanation of the completely arbitrary and undocumented benefit process at DPSS. /n" 
+    intro_text = "I see the same judge as last time was put on the case in expectation he will just commit fraud and fake transcripts like last time. Although that is fine, Judge Kin should respond to my question on the LAPD case and explain if I am banned from suing LAPD by res judicata if I file a new case with a different judge. Judge should define what is required for a new cause of action, because every time I see an illegal immigrant police officer is a cause of action. /n" 
     y_position -= .25*inch
     
     
