@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Court assigned case to the same judge again. There is no point in continuing as he will just create fake transcript and dismiss case like last time. Judge should make a decision as soon as possible so case can be appealed. I assume all your judges do this. /n" 
+    intro_text = "If case does not default then judgr should decide as soon as possible so I can appeal the case. /n The primary evidence to order for the case is a explanation by DPSS why they cut benefits for unexplained reasons, and any explanation of the completely arbitrary and undocumented benefit process at DPSS. /n" 
     y_position -= .25*inch
     
     
