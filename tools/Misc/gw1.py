@@ -1,32 +1,37 @@
-import matplotlib.pyplot as plt
 import numpy as np
 
-# Layers and fragility values (arbitrary scale: 1=very stable, 10=extremely fragile)
-layers = [
-    "Fundamental constants",
-    "Chemistry & reactions",
-    "Stellar physics",
-    "Stellar arrangement",
-    "Planetary habitability",
-    "Cosmological features"
-]
+# --- Parameters ---
+rho = 1060.0                 # blood density (kg/m^3)
+P_heart_mmHg = 120.0          # nominal capillary driving pressure (mmHg)
+P_heart = P_heart_mmHg * 133.322368  # Pa
+L = 1.0e-3                   # capillary length (m)
+h = 1.5                      # vertical head from heart to capillary (m)
+eta = 3.5e-3                 # blood viscosity (Pa·s)
 
-fragility = [1, 2, 5, 8, 9, 10]  # Increasing sensitivity
-colors = ['#2ca02c', '#98df8a', '#ffbb78', '#ff7f0e', '#d62728', '#9467bd']
+# --- Functions ---
+def deltaP_from_tau(r, tau):
+    return 2.0 * L * tau / r
 
-# Vertical positions for bars
-y_pos = np.arange(len(layers))
+def g_and_Q_for_tau_and_r(r, tau):
+    dP = deltaP_from_tau(r, tau)
+    if dP <= 0 or dP > P_heart:
+        return np.nan, np.nan
+    g = (P_heart - dP) / (rho * h)
+    if g < 0:
+        return np.nan, np.nan
+    Q = (np.pi * r**4 * dP) / (8.0 * eta * L)
+    return g, Q
 
-plt.figure(figsize=(8,6))
-plt.barh(y_pos, fragility, color=colors, edgecolor='black')
-plt.yticks(y_pos, layers)
-plt.xlabel("Fragility / Sensitivity (1=stable, 10=extreme)")
-plt.title("Hierarchy of Fine-Tuning and Fragility in the Universe")
-plt.gca().invert_yaxis()  # Top layer at top
-plt.grid(axis='x', linestyle='--', alpha=0.7)
+# --- CLI Sweep ---
+radii = np.linspace(2e-6, 12e-6, 11)  # radii 2–12 µm in steps
+tau_targets = [0.5, 1.0, 2.0]          # shear stress targets in Pa
 
-# Add numeric labels on bars
-for i, v in enumerate(fragility):
-    plt.text(v + 0.2, i, str(v), color='black', va='center')
+print(f"{'Radius(µm)':>10} | {'Tau(Pa)':>6} | {'g(m/s²)':>8} | {'Q(pL/s)':>10} | Feasible")
+print("-"*55)
 
-plt.show()
+for tau in tau_targets:
+    for r in radii:
+        g, Q = g_and_Q_for_tau_and_r(r, tau)
+        feasible = True if not np.isnan(g) else False
+        Q_pl_s = Q*1e12 if not np.isnan(Q) else np.nan
+        print(f"{r*1e6:10.2f} | {tau:6.2f} | {g:8.3f} | {Q_pl_s:10.3f} | {feasible}")
