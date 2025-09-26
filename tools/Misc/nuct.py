@@ -46,8 +46,61 @@ class NuclearPenetrationModel:
     	gg=p.getbigg()
     	c=self.getc()
     	crate=(c/p.crad**1/3)
-    	print(self.getc().evalf())
+    	ff=1.001001778
+    	ff=ff-1
+    	amf=1/self.am
+    	ff1=sp.log(alpha_fs,ff)
+    	ff1=sp.log(alpha_fs,ff1)
+    	print(ff1.evalf())
+    	ff1-=14.6
+    	ff1*=-1
+    	ff1=ff1
+    	win=self.iterf(ff1)
+    	ff1=win
+    	print(ff1)
     	
+    def iterf(self,ins):
+    	max=1
+    	win=0
+    	ins=abs(ins)
+    	for i in range(10):
+    		if(i==0):
+    			i=1
+    		r1=alpha_fs**i    	
+    		max,win=self.checkmax(r1,ins,max,win,i)
+    		r1=(1/self.am)**i    	
+    		max,win=self.checkmax(r1,ins,max,win,i)
+    		r1=alpha_fs**(sp.E*i) 		
+    		max,win=self.checkmax(r1,ins,max,win,i)
+    		r1=(1/self.am)**(sp.E*i)    		
+    		max,win=self.checkmax(r1,ins,max,win,i)
+    		r1=sp.E**(1/i)
+    		max,win=self.checkmax(r1,ins,max,win,i)
+    	print("won is",win,"val",max.evalf())
+    	return max.evalf()
+    	
+    def checkiter(self,ins,t):
+    	dif=ins-t
+    	dif2=t-ins
+    	dif=abs(dif)
+    	dif2=abs(dif2)
+    	dif=min(dif,dif2)
+    	return dif
+    	
+    def checkmax(self,ins,t,max,win,i):
+    		r1=ins
+    		dif=self.checkiter(r1,t)
+    		print("use",float(max))
+    		if(dif<max):
+    			print("won",dif.evalf(),i)
+    			max=dif
+    			win=i
+    			return (max,win)
+    		else:
+    			win=win
+    			print("lost",dif.evalf())
+    		return max,win
+   
     def getelm(self):
     	print(prma.evalf())
     	

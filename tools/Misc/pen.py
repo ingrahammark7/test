@@ -30,7 +30,7 @@ class Material:
         self.emr=self.emr/nuct.phi
         self.crad=7e-11*1.001001778
         self.req=6378137
-        
+       
         self.bafac=1
         self.f2=1
         self.f3=1
