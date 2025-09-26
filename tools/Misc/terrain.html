@@ -1,196 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Advanced Projectile Penetration Simulator</title>
-<style>
-body { margin:0; overflow:hidden; background:#111; font-family: monospace;}
-#info { position:absolute; top:10px; left:10px; color:white; z-index:10;}
-#legend { position:absolute; bottom:10px; left:10px; color:white; z-index:10;}
-#ui { position:absolute; top:50px; left:10px; color:white; z-index:10;}
-#graph { position:absolute; top:10px; right:10px; width:300px; height:300px; background:#222; color:white; z-index:10; padding:10px; }
-input[type=range]{ width:150px;}
-select { width:160px; }
-</style>
+  <meta charset="UTF-8">
+  <title>Fine-Tuning Hierarchy Animation</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
 </head>
 <body>
-<div id="info">Projectile Penetration Simulator</div>
-<div id="legend">Sphere = mass, Color = speed/ionization, Tilt phone to move camera</div>
-<div id="ui">
-    <div>
-        Shell: 
-        <select id="shellSelect">
-            <option value="50cal">50 cal</option>
-            <option value="sherman">Sherman 76mm</option>
-            <option value="apfsds">APFSDS</option>
-            <option value="16inch">16" Battleship</option>
-        </select>
-    </div>
-    <div>Mass: <input type="range" id="massSlider" min="1" max="10000" value="1000"></div>
-    <div>Speed: <input type="range" id="speedSlider" min="0.1" max="5" step="0.01" value="1"></div>
-    <div>Material Strength: <input type="range" id="strengthSlider" min="0.1" max="2" step="0.01" value="1"></div>
-    <div><button id="resetBtn">Reset Simulation</button></div>
-</div>
-<div id="graph">
-<canvas id="logGraph" width="280" height="280"></canvas>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+
 <script>
-// ---------------- Scene Setup ----------------
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111);
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
-camera.position.set(0, 200, 800);
-camera.lookAt(0,0,0);
+  // Scene and camera
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x111111);
+  const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(30, 20, 40);
+  camera.lookAt(0, 10, 0);
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-const ambientLight = new THREE.AmbientLight(0xffffff,0.5);
-scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xffffff,1);
-dirLight.position.set(200,500,300);
-scene.add(dirLight);
+  // Layers and colors
+  const layers = [
+    {name: "Fundamental constants", color: 0x2ca02c, fragility: 1},
+    {name: "Chemistry & reactions", color: 0x98df8a, fragility: 2},
+    {name: "Stellar physics", color: 0xffbb78, fragility: 5},
+    {name: "Stellar arrangement", color: 0xff7f0e, fragility: 8},
+    {name: "Planetary habitability", color: 0xd62728, fragility: 9},
+    {name: "Cosmological features", color: 0x9467bd, fragility: 10}
+  ];
 
-// ---------------- Armor Blocks ----------------
-const blocks = [];
-const numBlocks=6;
-for(let i=0;i<numBlocks;i++){
-    const geometry=new THREE.BoxGeometry(50,50,50);
-    const block=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color:0x4444ff}));
-    block.position.set(i*70-200,0,0);
-    scene.add(block);
-    blocks.push(block);
-}
+  const boxes = [];
+  const spacing = 4;
 
-// ---------------- Shell Presets ----------------
-const shellPresets = {
-    "50cal": {mass:43, diameter:1.27, speed:1.5, strength:1, ld:1},
-    "sherman": {mass:6.8, diameter:7.6, speed:1.2, strength:1.1, ld:1.5},
-    "apfsds": {mass:19.87, diameter:5.3, speed:1.38, strength:1.2, ld:2.0},
-    "16inch": {mass:1190.2, diameter:41, speed:0.76, strength:1.0, ld:2.2}
-};
+  // Create boxes
+  layers.forEach((layer, i) => {
+    const geometry = new THREE.BoxGeometry(6, layer.fragility*2, 6);
+    const material = new THREE.MeshStandardMaterial({color: layer.color, emissive: layer.color, emissiveIntensity: 0.2});
+    const box = new THREE.Mesh(geometry, material);
+    box.position.y = layer.fragility + i*spacing;
+    boxes.push(box);
+    scene.add(box);
+  });
 
-// ---------------- Graph ----------------
-const logCanvas = document.getElementById("logGraph");
-const logCtx = logCanvas.getContext("2d");
-function drawGraph(mass, pen){
-    logCtx.fillStyle="#222";
-    logCtx.fillRect(0,0,logCanvas.width,logCanvas.height);
-    logCtx.strokeStyle="#fff";
-    logCtx.beginPath();
-    for(let i=0;i<logCanvas.width;i++){
-        let logMass = Math.log10(1+i/10);
-        let logPen = Math.log10(pen*(i/10)/mass);
-        let x=i;
-        let y=logCanvas.height- (logPen/logMass)*100 - 140;
-        if(i===0) logCtx.moveTo(x,y); else logCtx.lineTo(x,y);
-    }
-    logCtx.stroke();
-}
+  // Floating arrow to indicate escalating chaos
+  const arrowGeometry = new THREE.ConeGeometry(1, 3, 32);
+  const arrowMaterial = new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5});
+  const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+  arrow.position.set(0, 0, 0);
+  arrow.rotation.x = Math.PI; // point upward
+  scene.add(arrow);
 
-// ---------------- Shell Object ----------------
-let currentPreset = "apfsds";
-let shell, ion;
-function createShell(preset){
-    const data = shellPresets[preset];
-    const shellGeometry = new THREE.SphereGeometry(5 + Math.cbrt(data.mass)/5, 16, 16);
-    const shellMaterial = new THREE.MeshStandardMaterial({color:0xff4444});
-    shell = new THREE.Mesh(shellGeometry, shellMaterial);
-    shell.position.set(-400,0,0);
-    shell.userData = {
-        targetX: blocks[0].position.x,
-        pen: 50 * data.strength,
-        speed: data.speed,
-        mass: data.mass,
-        ionScale:0.1
-    };
-    scene.add(shell);
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+  scene.add(ambientLight);
+  const pointLight = new THREE.PointLight(0xffffff, 1);
+  pointLight.position.set(50, 50, 50);
+  scene.add(pointLight);
 
-    const ionMaterial = new THREE.MeshStandardMaterial({color:0xffff00, transparent:true, opacity:0.6});
-    ion = new THREE.Mesh(new THREE.SphereGeometry(1,8,8), ionMaterial);
-    ion.position.copy(shell.position);
-    ion.scale.set(0.1,0.1,0.1);
-    scene.add(ion);
-    shell.userData.ion = ion;
+  // Animation
+  let clock = new THREE.Clock();
 
-    drawGraph(shell.userData.mass, shell.userData.pen);
-}
-
-// ---------------- Initial Shell ----------------
-createShell(currentPreset);
-
-// ---------------- UI Handlers ----------------
-document.getElementById("massSlider").addEventListener("input", e=>{
-    const val = parseFloat(e.target.value);
-    shell.scale.setScalar(5 + Math.cbrt(val)/5);
-    shell.userData.mass = val;
-    shell.userData.pen = 50 * parseFloat(document.getElementById("strengthSlider").value);
-    drawGraph(shell.userData.mass, shell.userData.pen);
-});
-document.getElementById("speedSlider").addEventListener("input", e=>{
-    shell.userData.speed = parseFloat(e.target.value);
-});
-document.getElementById("strengthSlider").addEventListener("input", e=>{
-    shell.userData.pen = 50 * parseFloat(e.target.value);
-    drawGraph(shell.userData.mass, shell.userData.pen);
-});
-document.getElementById("shellSelect").addEventListener("change", e=>{
-    currentPreset = e.target.value;
-    scene.remove(shell);
-    scene.remove(shell.userData.ion);
-    createShell(currentPreset);
-});
-document.getElementById("resetBtn").addEventListener("click", ()=>{
-    scene.remove(shell);
-    scene.remove(shell.userData.ion);
-    createShell(currentPreset);
-});
-
-// ---------------- Device Orientation ----------------
-window.addEventListener("deviceorientation", function(event){
-    const gamma = event.gamma; // left-right tilt
-    const beta = event.beta; // front-back tilt
-    camera.position.x = gamma*5;
-    camera.position.y = 200 + beta*2;
-    camera.lookAt(0,0,0);
-});
-
-// ---------------- Animation Loop ----------------
-function animate(){
+  function animate() {
     requestAnimationFrame(animate);
+    const time = clock.getElapsedTime();
 
-    if(shell){
-        const dx = shell.userData.targetX - shell.position.x;
-        if(Math.abs(dx)>0.5){
-            shell.position.x += Math.sign(dx)*shell.userData.speed;
-            shell.userData.ion.position.copy(shell.position);
-            shell.userData.ion.scale.setScalar(Math.min(shell.userData.ion.scale.x + 0.05, shell.userData.pen/10));
-        } else {
-            const block = blocks[0];
-            block.scale.z = Math.max(0.1, block.scale.z - shell.userData.pen/50);
-            shell.userData.ion.scale.setScalar(shell.userData.pen/5);
-            shell.userData.ion.material.opacity = 0.8;
+    // Tilt rotation of scene
+    scene.rotation.y = Math.sin(time*0.1)*0.3;  // slow left-right tilt
+    scene.rotation.x = Math.sin(time*0.05)*0.1; // slow up-down tilt
 
-            // Loop shell
-            shell.position.set(-400,0,0);
-            shell.userData.ion.scale.set(0.1,0.1,0.1);
-            shell.userData.ion.material.opacity = 0.6;
-        }
-    }
+    // Pulsing effect based on fragility
+    boxes.forEach((box, i) => {
+      box.material.emissiveIntensity = 0.2 + 0.3 * Math.sin(time * (0.5 + i*0.2));
+    });
 
-    renderer.render(scene,camera);
-}
-animate();
+    // Move arrow upward over layers repeatedly
+    arrow.position.y = (time % 20); // loops from 0 to 20
+    arrow.position.x = 0;
+    arrow.position.z = 0;
 
-// ---------------- Window Resize ----------------
-window.addEventListener('resize', ()=>{
-    camera.aspect=window.innerWidth/window.innerHeight;
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth,window.innerHeight);
-});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
 </script>
 </body>
 </html>
