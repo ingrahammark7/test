@@ -87,7 +87,7 @@ class Material:
     	req=self.req
     	pl=self.getpl()
     	amf=self.am
-    	corr=(1/amf/(2/3)/nuct.alpha/(1+1/(24)))
+    	corr=(1/amf/(2/3)/nuct.alpha/(1+1/(24+(1/(2+(3/4)+nuct.alpha_fs*nuct.phi*1.1)))))
     	gg=pl*corr
     	gg*=self.getsec()
     	ff=pl/req
