@@ -1,20 +1,24 @@
-import numpy as np
-from mpmath import mp
+from mpmath import mp, power, pi, sqrt
 
-# Set maximum precision (100 decimal digits)
+# Set maximum precision
 mp.dps = 100
 
-# ATP parameters
-alpha_min = mp.mpf('5.16e-3')
-alpha_max = mp.mpf('1.032e-2')
+# Constants
+f = mp.mpf('1.45e-6')             # fraction of water permittivity needed
+mass_water = mp.mpf('2.992e-26')  # kg, one water molecule
+density_water = mp.mpf('1000')    # kg/m^3
 
-# Compute geometric/log midpoint at maximum precision
-alpha_opt = mp.sqrt(alpha_min * alpha_max)
+# Mass ratio
+mass_object = mass_water / f
+print(f"Mass of object: {mass_object} kg")
 
-# Current CODATA alpha
-alpha_0 = mp.mpf('7.2973525693e-3')
+# Atom count (approximate, assuming 1 atom per water mass unit)
+atom_count = mass_object / mass_water
+print(f"Approximate number of water-molecule masses: {atom_count}")
 
-# Fractional difference
-frac_diff = (alpha_opt - alpha_0) / alpha_0
+# Volume of object
+volume_object = mass_object / density_water  # m^3
 
-print(alpha_opt, frac_diff)
+# Radius of object assuming spherical
+radius_object = (3 * volume_object / (4 * pi))**(1/3)
+print(f"Radius of object: {radius_object} m")
