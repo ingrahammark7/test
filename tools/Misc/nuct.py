@@ -17,7 +17,7 @@ c1=299792456.2
 c=c1
 penn=pen.getsteel()
 PRECISION=2**12
-unage=4.3532208e17
+unage=sp.exp(32+2/3)
 year=60*60*24*365
 
 class NuclearPenetrationModel:
@@ -47,6 +47,13 @@ class NuclearPenetrationModel:
     	c=self.getc()
     	crate=(c/p.crad**1/3)
     	print(self.getalp().evalf())
+    	
+    def getevfreq(self):
+    	sec=penn.getsec()
+    	#2.417989262
+    	sec=unage/self.am
+    	sec=sp.log(sec)
+    	return sec
  
    
     def corprma(self):
@@ -61,7 +68,14 @@ class NuclearPenetrationModel:
     	return ff2
     
     def getelm(self):
-    	print(prma.evalf())
+    	ff=self.corprma()
+    	#1836.152673426
+    	fd=self.am/phi
+    	
+    	amf=1/self.am
+    	amf=1+amf*71.9727
+    	fd*=amf
+    	return fd/1836.152673426
     	
     def getc(self):
     	p=penn
@@ -92,11 +106,7 @@ class NuclearPenetrationModel:
     def getalp(self):
     	d=self.getalpd()
     	d=d**-1
-    	d*=1+(2/3)+alpha_fs*(2+10.5/9)
-    	amf=1/self.am
-    	d+=amf*amf*(25+alpha_fs*2.5)
-    	an=amf*(8+2/(3-alpha_fs*(21+(5/6))))
-    	d=d*(1-an)
+    	d*=1+(2/(3+(.2-(alpha_fs/((8-(1/13.7))/9)))))
     	d+=137
     	return d
     	
