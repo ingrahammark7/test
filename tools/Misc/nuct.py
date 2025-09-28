@@ -47,25 +47,21 @@ class NuclearPenetrationModel:
     	c=self.getc()
     	crate=(c/p.crad**1/3)
     	
-    	print(self.gethb().evalf())
+    	print(self.corprma().evalf())
     	
-    	
-    def getevfreq(self):
-    	sec=penn.getsec()
-    	#2.417989262
-    	sec=unage/self.am
-    	sec=sp.log(sec)
-    	return sec
  
    
     def corprma(self):
-    	cop=1.67262192595e-27
-    	ff=prma
+    	#cop=1.67262192595e-27	
     	hb=self.gethb()
-    	print(hb.evalf())
-    	ff2=cop/ff
-    	ff2*=ff
-    	return ff2
+    	cc=self.getc()
+    	hb=2*hb/(cc*cc)
+    	amf=1/self.am
+    	fl=53+(1/(12-(1/(3+(1/(5/(4/(3.3/(1+alpha_fs*(.5*(1-amf*51)))))))))))
+    	aml=sp.exp((fl))
+    	aml=hb*aml
+    	print(aml.evalf())
+    	return aml
     
     def getelm(self):
     	ff=self.corprma()
