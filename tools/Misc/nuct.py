@@ -68,16 +68,14 @@ class NuclearPenetrationModel:
     	return hb
     
     def evpr(self):
-    	#ra=0.00000000106578891869549
+    	ra=0.00000000106578891869549
     	an=1/self.am
     	af=an**2.59
     	af=af/(1+alpha_fs*(1+2/3))
-    	af=af/(1-an/(1.75-alpha_fs*(40/(1+alpha_fs*0.2))))
-    	af1=af
-    	af=af*self.corprma()
-    	af=af*(self.getc()**2)
-    	af=af1*af
-    	af=af1
+    	af=af/(1-an/(1.75-alpha_fs*(40+(.6+alpha_fs/8))))
+    	cc=self.getc()**2
+    	af=af*self.corprma()*(cc)
+    
     	return af
     
     def getelm(self):
