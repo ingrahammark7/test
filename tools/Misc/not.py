@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order"
+footer_text = "Notice of Intent to Dismiss Case"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I see the same judge as last time was put on the case in expectation he will just commit fraud and fake transcripts like last time. Although that is fine, Judge Kin should respond to my question on the LAPD case and explain if I am banned from suing LAPD by res judicata if I file a new case with a different judge. Judge should define what is required for a new cause of action, because every time I see an illegal immigrant police officer is a cause of action. /n" 
+    intro_text = "Its obvious that, like last time, judge will create a fake transcript to claim I dismissed the case. I am issuing a standing order that any dismissals judge pretends I issue are appealable. I never dismiss a case without appeal. /n In any other court judge would already be arrested. The obviously fake transcript judge endorsed in the LAPD case should be forwarded to law enforcement with the recommendation to arrest judge. /n I will request an appealable dismissal for this case automatically if defendant does not default, since judge has already said they would side against me and there is no point in hearings. /n All dismissals judge pretends I made will be appealed even if judge claims they are not appealable. /n" 
     y_position -= .25*inch
     
     
