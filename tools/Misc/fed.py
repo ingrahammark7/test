@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request" 
+footer_text = "Petition for Writ of Mandamus" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -59,7 +59,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Department of Public Social Services",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 1.75* inch
@@ -82,7 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "Case Number: 2:25-cv-09066-RGK-(MAAx)",
+        "Case Number: ",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -159,7 +159,7 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="I filed an IFP request for service by marshall. Normally, court ignores my motions and dismisses case due to no service. If you are going to do that then just dismiss the case. /n"
+    text="I. INTRODUCTION /n Order LAPD to arrest me. If court requires, I can kill police or do whatever is necessary to provoke arrest. /n II. CONCLUSION /n Petitioner petitions this Court to: /n 1. Order my arrest. /n"
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/31/2025")
 
