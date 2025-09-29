@@ -17,7 +17,7 @@ class Material:
      
         self.avogadro = 6.02214076e23
         self.k = 9e9  
-        self.elementary_charge = 1.60217663e-19
+        self.elementary_charge = 1.60217663047908e-19
         self.ev_to_joule = self.elementary_charge
         self.phi = nuct.phi
         self.ch=(self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
@@ -94,9 +94,6 @@ class Material:
     	ff**=2
     	ff*=(1/gg)
     	ff/=1+6/amf
-    	print("equatorial grav accel ",ff.evalf())
-    	fff=9.798286
-    	print("error ",ff.evalf()/fff)
     	return ff
     
     def compute_high_estimate(self):

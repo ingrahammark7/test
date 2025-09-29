@@ -37,20 +37,66 @@ class NuclearPenetrationModel:
         self.compt = self.brem * 2
         self.evperj = pen.getsteel().ev_to_joule
         self.c3=c**(1/3)
-
+        
     def getpow(self):
+        w=self.gethw()
+        r=penn.req
+        r=4*sp.pi*r*r
+        wa=1361
+        wa1=wa*year
+        dur=year*10
+        wa=r*wa*dur
+        w=w*dur
+        f=wa/w
+        f*=1/self.am/3
+        f*=alpha_fs        
+        vesc=sp.sqrt((2*penn.getbigg()*penn.getearth())/penn.req)
+        hm=penn.geth()
+        hm**=2
+        en=.5*hm*vesc*vesc
+        stel=2*10e9
+        corf=1
+        sden=7.85
+        shvl=1.27
+        steelperm=shvl*100*100*sden
+        steelperm/=1000
+        steelperm*=stel*corf
+        f1=wa1/steelperm
+        w1=self.gethw()*(1/f1)*year
+        w1=w1/en
+        w1*=alpha_fs
+        print(w1.evalf())
+        
+        
+    def gethw(self):
     	p=penn
     	h=p.geth()
-    	g=p.getg()
     	r=p.crad
     	gg=p.getbigg()
-    	c=self.getc()
-    	crate=(c/p.crad**1/3)
+    	cc=self.getc()
+    	crate=(cc/p.crad)
+    	r=penn.crad
+    	pr=self.corprma()
+    	f=gg*(pr*pr)/(r**2)
+    	f=f*crate
+    	f=f*h*penn.avogadro*1000*2
+    	return f
     	
-    	print(self.evpr().evalf())
+    def magc(self):
+    	return 4*sp.pi*10e-7
+    
+    def getelm(self):
+    	return self.evpr()*self.shellt
     	
+    def getema(self):
+    	return self.getelm()/(self.getc()**2)
  
-   
+    def getperm(self):
+    	return 1/(self.magc()*self.getc()*self.getc())
+    
+    def getk(self):
+    	return 1/(4*sp.pi*self.getperm())
+    
     def corprma(self):
     	#cop=1.67262192595e-27	
     	hb=self.prmaen()*2
@@ -58,7 +104,6 @@ class NuclearPenetrationModel:
     	fl=53+(1/(12-(1/(3+(1/(5/(4/(3.3/(1+alpha_fs*(.5*(1-amf*51)))))))))))
     	aml=sp.exp((fl))
     	aml=hb*aml
-    	print(aml.evalf())
     	return aml
     	
     def prmaen(self):
@@ -68,7 +113,7 @@ class NuclearPenetrationModel:
     	return hb
     
     def evpr(self):
-    	ra=0.00000000106578891869549
+    	#ra=0.00000000106578891869549
     	an=1/self.am
     	af=an**2.59
     	af=af/(1+alpha_fs*(1+2/3))
@@ -79,14 +124,9 @@ class NuclearPenetrationModel:
     	return af
     
     def getelm(self):
-    	ff=self.corprma()
-    	#1836.152673426
-    	fd=self.am/phi
-    	
-    	amf=1/self.am
-    	amf=1+amf*71.9727
-    	fd*=amf
-    	return fd/1836.152673426
+    	ev=self.evpr()
+    	ev=ev*self.shellt
+    	return ev
     	
     def getc(self):
     	p=penn
@@ -269,7 +309,7 @@ def nuclear_penetration(round_energy_j, round_diameter_cm, honeycomb_layers, rou
     return model.penetration(round_energy_j, round_diameter_cm, honeycomb_layers, round_mas,roundmaterial)
     
 def baseobj():
-	return NuclearPenetrationModel(pen.getsteel())
+	return NuclearPenetrationModel(penn)
 
 
 
