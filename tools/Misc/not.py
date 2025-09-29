@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Intent to Dismiss Case"
+footer_text = "Petition for Writ of Mandamus"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Department of Public Social Services",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -95,7 +95,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03728")
+    c.drawString(space, top_margin - 4* inch, "Case Number: ")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Its obvious that, like last time, judge will create a fake transcript to claim I dismissed the case. I am issuing a standing order that any dismissals judge pretends I issue are appealable. I never dismiss a case without appeal. /n In any other court judge would already be arrested. The obviously fake transcript judge endorsed in the LAPD case should be forwarded to law enforcement with the recommendation to arrest judge. /n I will request an appealable dismissal for this case automatically if defendant does not default, since judge has already said they would side against me and there is no point in hearings. /n All dismissals judge pretends I made will be appealed even if judge claims they are not appealable. /n" 
+    intro_text = "I. INTRODUCTION /n Order LAPD to arrest me. If court requires, I can kill police or do whatever is necessary to provoke arrest. /n II. CONCLUSION /n Petitioner petitions this Court to: /n 1. Order my arrest. /n" 
     y_position -= .25*inch
     
     
