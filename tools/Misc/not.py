@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Writ of Mandamus"
+footer_text = "IFP Statement and Request for Service by Sheriff"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I. INTRODUCTION /n Order LAPD to arrest me. If court requires, I can kill police or do whatever is necessary to provoke arrest. /n II. CONCLUSION /n Petitioner petitions this Court to: /n 1. Order my arrest. /n" 
+    intro_text = "I cannot afford a process server. Court should dismiss case if they ignore this filing. Order sheriff to serve my case. Alternatively, order ABC Legal to serve my cases." 
     y_position -= .25*inch
     
     
