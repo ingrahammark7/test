@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "IFP Statement and Request for Service by Sheriff"
+footer_text = "Request for Waiver of Fee for Service by Sheriff"
 
 def create_pdf(output_filename):
     # Create a PDF document
