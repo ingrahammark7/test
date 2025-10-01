@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I cannot afford a process server. Court should dismiss case if they ignore this filing. Order sheriff to serve my case. Alternatively, order ABC Legal to serve my cases." 
+    intro_text = "I cannot afford a process server. Court should dismiss case if they ignore this filing. Order sheriff to serve my case. Alternatively, order ABC Legal to serve my cases. /n" 
     y_position -= .25*inch
     
     
