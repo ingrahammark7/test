@@ -1,75 +1,74 @@
-import numpy as np
+#!/usr/bin/env python3
+import math
 
-# --- Constants ---
-e = 1.602e-19       # Elementary charge (C)
-delta_V = 0.1       # Action potential amplitude (V)
-lambda_const = 1e-3 # Axon length constant (1 mm)
-N_ions = 1e9        # Number of ions moved per AP
-vesicle_energy = 5e-14  # Energy per synaptic vesicle release (J)
-num_neurons = 1e11  # Total neurons in human brain
-kB = 1.38e-23       # Boltzmann constant (J/K)
-T = 310             # Body temperature (K)
-R = 8.314           # Gas constant (J/mol·K)
-F = 96485           # Faraday constant (C/mol)
+def neuron_atoms(radius_m=10e-6, include_dendrites=True):
+    """Estimate total number of atoms in a neuron (kg/m3 ~ 1000, avg atom mass 12 amu)."""
+    V_soma = 4/3 * math.pi * radius_m**3
+    if include_dendrites:
+        V_neuron = 2 * V_soma
+    else:
+        V_neuron = V_soma
+    m_neuron = 1000 * V_neuron  # kg
+    m_atom = 12 * 1.66e-27  # kg
+    N_atoms = m_neuron / m_atom
+    N_electrons = 6 * N_atoms
+    return N_atoms, N_electrons
 
-# --- Distances between neurons (meters) ---
-distances = np.array([1e-6, 1e-4, 1e-3, 1e-2])  # 1 μm, 0.1 mm, 1 mm, 1 cm
+def protein_particle_limit(N_atoms_total, N_atoms_repair=1e7):
+    """Compute max particle size (atoms) and number of particles."""
+    particles = N_atoms_total / N_atoms_repair
+    particle_size = N_atoms_repair
+    return int(particles), int(particle_size)
 
-# --- 1. Minimal energy for a single electron ---
-E_min_electron = e * delta_V * np.exp(distances / lambda_const)
+def spike_energy(bits=1, energy_per_bit=1e-11, freq_hz=10):
+    """Compute neuron power usage for given spike rate."""
+    energy_per_sec = energy_per_bit * bits * freq_hz
+    return energy_per_sec
 
-print("Minimal energy to move ONE electron:")
-for d, E in zip(distances, E_min_electron):
-    print(f"Distance: {d*1e3:.3f} mm, Energy: {E:.2e} J")
+def areal_bit_rate(active_neurons=1.8e7, osc_hz=10):
+    """Compute effective bit rate (bits/sec) for given oscillation."""
+    return active_neurons * osc_hz
 
-# --- 2. Realistic AP energy ---
-E_AP = N_ions * e * delta_V + vesicle_energy
-print(f"\nRealistic neuron AP energy: {E_AP:.2e} J")
+def ponderomotive_force(q=1.6e-19, m=3.8e-26, E=2e7, freq_hz=10, R_m=1e-5):
+    """Estimate ponderomotive force on ion inside neuron."""
+    omega = 2 * math.pi * freq_hz
+    grad_E2 = E**2 / R_m
+    F = (q**2 / (4 * m * omega**2)) * grad_E2
+    return F
 
-# --- 3. Average power per neuron at given firing rate ---
-firing_rate = 10  # Hz, close to human reaction speed
-P_neuron = E_AP * firing_rate
-print(f"Average power per neuron at {firing_rate} Hz: {P_neuron:.2e} W")
+def brain_temperature(R_m=0.08, k=0.6, total_power_W=10, brain_volume_m3=1.3e-3):
+    """Estimate central temperature rise (°C) in brain sphere."""
+    q = total_power_W / brain_volume_m3
+    delta_T = q * R_m**2 / (6 * k)
+    return delta_T
 
-# --- 4. Total brain power ---
-P_brain = P_neuron * num_neurons
-print(f"Total brain power for {num_neurons:.0e} neurons at {firing_rate} Hz: {P_brain:.2f} W")
+def main():
+    print("=== Neuron / Brain CLI Analysis ===\n")
+    # Neuron atoms
+    N_atoms, N_electrons = neuron_atoms()
+    print(f"Neuron atoms: {N_atoms:.2e}, electrons: {N_electrons:.2e}")
+    
+    # Protein particle limit
+    particles, particle_size = protein_particle_limit(N_atoms)
+    print(f"Max particles per neuron: {particles}, particle size (atoms): {particle_size}")
+    
+    # Spike energy
+    energy = spike_energy(freq_hz=10)
+    print(f"Neuron energy usage @10Hz: {energy:.2e} W")
+    
+    # Areal bit rate
+    bit_rate = areal_bit_rate()
+    print(f"Effective areal bit rate: {bit_rate:.2e} bits/sec (~20 Mbps realistic)")
+    
+    # Ponderomotive force
+    F_pond = ponderomotive_force()
+    print(f"Ponderomotive force on ion: {F_pond:.2e} N")
+    
+    # Brain temperature rise
+    delta_T = brain_temperature()
+    print(f"Central brain temperature rise (R=8cm): {delta_T:.2f} °C (without perfusion)\n")
+    
+    print("=== End of Analysis ===")
 
-# --- 5. Energy per bit vs number of ions used ---
-ions_per_bit = np.array([10, 100, 1e3, 1e4, 1e5, 1e6])
-E_bit = ions_per_bit * e * delta_V
-print("\nEnergy per bit vs number of ions used:")
-for ions, E in zip(ions_per_bit, E_bit):
-    print(f"{int(ions)} ions -> {E:.2e} J/bit")
-
-# --- 6. Neuron thermal stability ---
-V_thermal = kB * T / e  # ~26 mV
-print(f"\nThermal voltage at body temp: {V_thermal:.2f} V (for comparison)")
-
-# Critical K+ concentration for stability (E_K ~ V_thermal)
-K_out = 5  # mM typical extracellular
-E_crit = V_thermal  # Voltage where neuron destabilizes
-
-# Solve for K_in such that E_K = V_thermal
-K_in_crit = K_out / np.exp(E_crit / V_thermal)
-print(f"Critical intracellular K+ for stability: {K_in_crit:.2f} mM")
-print("Actual physiological K+ inside neuron: ~140 mM")
-
-# Critical Na+ (approx) for AP viability
-Na_in = 10   # mM
-Na_out = 145 # mM
-print(f"Actual physiological Na+ inside neuron: {Na_in} mM, outside: {Na_out} mM")
-
-# --- Optional: total number of electrons and fraction free ions ---
-neuron_mass = 1e-12  # kg
-atom_mass = 2e-26    # kg/atom (average)
-Z_avg = 6            # average number of electrons per atom
-
-N_atoms = neuron_mass / atom_mass
-N_electrons = N_atoms * Z_avg
-free_ions = 1e7
-fraction_free = free_ions / N_electrons
-
-print(f"\nEstimated total electrons per neuron: {N_electrons:.2e}")
-print(f"Number of free ions for signaling: {free_ions}")
-print(f"Fraction of electrons used in signaling: {fraction_free:.2e}")
+if __name__ == "__main__":
+    main()
