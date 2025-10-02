@@ -1,125 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Balloon + Beamed Electric Animation</title>
-    <style>
-      body { margin: 0; overflow: hidden; }
-      canvas { display: block; }
-    </style>
-  </head>
-  <body>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script>
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x101020);
+<head>
+  <meta charset="UTF-8">
+  <title>Balloon + Beamed-Electric System Animation</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x101020);
 
-      // Camera
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(10, 5, 10);
-      camera.lookAt(0, 0, 0);
+  // Camera
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(20, 10, 20);
+  camera.lookAt(0, 0, 0);
 
-      // Renderer
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-      // Lights
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-      scene.add(ambientLight);
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-      directionalLight.position.set(10, 20, 10);
-      scene.add(directionalLight);
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(20, 30, 10);
+  scene.add(directionalLight);
 
-      // Ground plane
-      const groundGeom = new THREE.PlaneGeometry(50, 50);
-      const groundMat = new THREE.MeshStandardMaterial({ color: 0x202020 });
-      const ground = new THREE.Mesh(groundGeom, groundMat);
-      ground.rotation.x = -Math.PI / 2;
-      scene.add(ground);
+  // Ground
+  const groundGeom = new THREE.PlaneGeometry(100, 100);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x202020 });
+  const ground = new THREE.Mesh(groundGeom, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
 
-      // Balloon
-      const balloonGeom = new THREE.SphereGeometry(1.5, 32, 32);
-      const balloonMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-      const balloon = new THREE.Mesh(balloonGeom, balloonMat);
-      balloon.position.y = 10;
-      scene.add(balloon);
+  // Balloons & Gondolas
+  const balloons = [];
+  const gondolas = [];
+  const balloonCount = 2;
+  for (let i = 0; i < balloonCount; i++) {
+    const balloonGeom = new THREE.SphereGeometry(2, 32, 32);
+    const balloonMat = new THREE.MeshStandardMaterial({ color: 0xff4444 });
+    const balloon = new THREE.Mesh(balloonGeom, balloonMat);
+    balloon.position.set(i * 8 - 4, 12, 0);
+    balloons.push(balloon);
+    scene.add(balloon);
 
-      // Gondola / payload
-      const gondolaGeom = new THREE.BoxGeometry(1, 0.5, 1);
-      const gondolaMat = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-      const gondola = new THREE.Mesh(gondolaGeom, gondolaMat);
-      gondola.position.y = 8;
-      scene.add(gondola);
+    const gondolaGeom = new THREE.BoxGeometry(1, 0.6, 1);
+    const gondolaMat = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+    const gondola = new THREE.Mesh(gondolaGeom, gondolaMat);
+    gondola.position.set(balloon.position.x, balloon.position.y - 2.5, balloon.position.z);
+    gondolas.push(gondola);
+    scene.add(gondola);
+  }
 
-      // Ground lasers (cylinders)
-      const laserCount = 5;
-      const lasers = [];
-      for (let i = 0; i < laserCount; i++) {
-        const laserGeom = new THREE.CylinderGeometry(0.05, 0.05, 1, 8);
-        const laserMat = new THREE.MeshStandardMaterial({ color: 0x00ffff });
-        const laser = new THREE.Mesh(laserGeom, laserMat);
-        const angle = (i / laserCount) * Math.PI * 2;
-        laser.position.set(5 * Math.cos(angle), 0.5, 5 * Math.sin(angle));
-        laser.rotation.z = Math.PI / 2;
-        lasers.push(laser);
-        scene.add(laser);
+  // Ground laser arrays
+  const lasers = [];
+  const laserCount = 6;
+  const laserRadius = 8;
+  for (let i = 0; i < laserCount; i++) {
+    const laserGeom = new THREE.CylinderGeometry(0.08, 0.08, 1, 8);
+    const laserMat = new THREE.MeshStandardMaterial({ color: 0x00ffff });
+    const laser = new THREE.Mesh(laserGeom, laserMat);
+    const angle = (i / laserCount) * Math.PI * 2;
+    laser.position.set(laserRadius * Math.cos(angle), 0.5, laserRadius * Math.sin(angle));
+    laser.rotation.z = Math.PI / 2;
+    lasers.push(laser);
+    scene.add(laser);
+  }
+
+  // Laser beams (lines)
+  const beams = [];
+  for (let i = 0; i < balloonCount; i++) {
+    const balloonBeams = [];
+    for (let j = 0; j < laserCount; j++) {
+      const beamMat = new THREE.LineBasicMaterial({ color: 0x00ffff });
+      const points = [ new THREE.Vector3(), new THREE.Vector3() ];
+      const beamGeom = new THREE.BufferGeometry().setFromPoints(points);
+      const beam = new THREE.Line(beamGeom, beamMat);
+      balloonBeams.push(beam);
+      scene.add(beam);
+    }
+    beams.push(balloonBeams);
+  }
+
+  // Optional energy particle effect along beams
+  const particleCount = 20;
+  const particles = [];
+  for (let i = 0; i < balloonCount; i++) {
+    const balloonParticles = [];
+    for (let j = 0; j < laserCount; j++) {
+      const group = new THREE.Group();
+      for (let k = 0; k < particleCount; k++) {
+        const pGeom = new THREE.SphereGeometry(0.05, 6, 6);
+        const pMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        const p = new THREE.Mesh(pGeom, pMat);
+        group.add(p);
       }
+      balloonParticles.push(group);
+      scene.add(group);
+    }
+    particles.push(balloonParticles);
+  }
 
-      // Laser beams (lines)
-      const beams = [];
-      for (let i = 0; i < laserCount; i++) {
-        const beamMat = new THREE.LineBasicMaterial({ color: 0x00ffff });
-        const points = [ new THREE.Vector3(), new THREE.Vector3() ];
-        const beamGeom = new THREE.BufferGeometry().setFromPoints(points);
-        const beam = new THREE.Line(beamGeom, beamMat);
-        beams.push(beam);
-        scene.add(beam);
-      }
+  // Animation loop
+  let clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
 
-      // Animate
-      let clock = new THREE.Clock();
-      function animate() {
-        requestAnimationFrame(animate);
+    // Balloons rotate slightly and sway
+    balloons.forEach((b, i) => {
+      b.rotation.y += 0.002;
+      b.position.x += Math.sin(t * 0.5 + i) * 0.001;
+      b.position.z += Math.cos(t * 0.5 + i) * 0.001;
 
-        const t = clock.getElapsedTime();
+      gondolas[i].position.x = b.position.x + Math.sin(t + i) * 0.3;
+      gondolas[i].position.z = b.position.z + Math.cos(t + i) * 0.3;
+      gondolas[i].position.y = b.position.y - 2.5;
+    });
 
-        // Gondola oscillates slightly
-        gondola.position.x = Math.sin(t) * 0.5;
-        gondola.position.z = Math.cos(t) * 0.5;
+    // Update beams to point from lasers to gondolas
+    beams.forEach((balloonBeams, i) => {
+      balloonBeams.forEach((beam, j) => {
+        const positions = beam.geometry.attributes.position.array;
+        const laserPos = lasers[j].position;
+        const gondolaPos = gondolas[i].position;
+        positions[0] = laserPos.x;
+        positions[1] = laserPos.y + 0.5;
+        positions[2] = laserPos.z;
+        positions[3] = gondolaPos.x;
+        positions[4] = gondolaPos.y + 0.25;
+        positions[5] = gondolaPos.z;
+        beam.geometry.attributes.position.needsUpdate = true;
 
-        // Update beams to point from lasers to gondola
-        for (let i = 0; i < laserCount; i++) {
-          const positions = beams[i].geometry.attributes.position.array;
-          const laserPos = lasers[i].position;
-          positions[0] = laserPos.x;
-          positions[1] = laserPos.y + 0.5; // top of cylinder
-          positions[2] = laserPos.z;
-          positions[3] = gondola.position.x;
-          positions[4] = gondola.position.y + 0.25;
-          positions[5] = gondola.position.z;
-          beams[i].geometry.attributes.position.needsUpdate = true;
+        // Update particles along beam
+        const group = particles[i][j];
+        for (let k = 0; k < particleCount; k++) {
+          const f = ( (t + k * 0.1) % 1 );
+          group.children[k].position.x = laserPos.x + f * (gondolaPos.x - laserPos.x);
+          group.children[k].position.y = laserPos.y + 0.5 + f * (gondolaPos.y + 0.25 - (laserPos.y + 0.5));
+          group.children[k].position.z = laserPos.z + f * (gondolaPos.z - laserPos.z);
         }
-
-        // Balloon slowly rotates
-        balloon.rotation.y += 0.002;
-
-        // Camera slowly orbits
-        const radius = 15;
-        camera.position.x = radius * Math.cos(t * 0.1);
-        camera.position.z = radius * Math.sin(t * 0.1);
-        camera.lookAt(0, 8, 0);
-
-        renderer.render(scene, camera);
-      }
-
-      animate();
-
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
       });
-    </script>
-  </body>
+    });
+
+    // Camera orbit
+    const radius = 25;
+    camera.position.x = radius * Math.cos(t * 0.05);
+    camera.position.z = radius * Math.sin(t * 0.05);
+    camera.position.y = 10 + Math.sin(t * 0.2) * 3;
+    camera.lookAt(0, 8, 0);
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  // Resize handling
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+</body>
 </html>
