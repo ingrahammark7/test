@@ -1,35 +1,41 @@
 #!/usr/bin/env python3
 import math
 
-def hill_size(v_w=5.0, g=9.8, theta_deg=35):
-    """
-    Compute self-consistent hill height and horizontal length
-    for a given wind speed and slope angle.
-    
-    Parameters:
-        v_w: wind speed [m/s]
-        g: gravity [m/s^2]
-        theta_deg: slope angle in degrees (angle of repose)
-    
-    Returns:
-        H: hill height [m]
-        L: hill horizontal length [m]
-    """
-    theta = math.radians(theta_deg)
-    H = v_w**2 / (2 * g)
-    L = H / math.tan(theta)
-    return H, L
+# --- Parameters (these are yours) ---
+bh = 1             # base hill height (m)
+DOF = 6            # degrees of freedom
+POWW = 6 + 3       # power for number of hills scaling
+meex = 14          # log10 of global domain length
+mepow = 10 ** meex # global domain length in m
+per = 2 ** POWW    # first tier multiplier
+l1 = per * bh      # first tier hill "mass" parameter
+mul = 2            # tier multiplier
 
-def main():
-    # Default parameters
-    wind_speed = 5.0       # m/s
-    gravity = 9.8          # m/s^2
-    slope_angle = 35       # degrees
-    
-    H, L = hill_size(v_w=wind_speed, g=gravity, theta_deg=slope_angle)
-    
-    print(f"Hill height (H): {H:.2f} m")
-    print(f"Hill horizontal length (L): {L:.2f} m")
+# --- Your original functions with names/comments ---
+def co(mul, mer, l1, per):
+    """Compute hill 'mass' scaling per tier."""
+    l2 = ((2 * mul) ** DOF)       # your DOF scaling
+    lh = l1 * l2
+    return lh ** (1/3)            # cube root to go from mass to height
 
-if __name__ == "__main__":
-    main()
+def numt(init, tier, gl, poww):
+    """Compute number of hills in domain for this tier."""
+    ml = 10 ** gl                 # total domain length
+    init = (((2 * tier) ** poww) * init)
+    return (ml / init)
+
+def dot(mer, l1, init, tier, gl, poww, per):
+    """Return (hill_height, number_of_hills) for a tier."""
+    return co(tier, mer, l1, per), numt(init, tier, gl, poww)
+
+def dott(mer, l1, init, gl, poww, per):
+    """Loop over tiers and print results."""
+    for i in range(1, 20):
+        h, n = dot(mer, l1, init, i, gl, poww, per)
+        print(f"Tier {i}: Hill height = {h:.2f} m, count = {n:.2e}")
+
+# --- Output ---
+print("Largest hill in first tier", l1)
+print("Number of base hills globally", mepow / bh)
+mer = mepow / bh
+dott(mer, l1, bh, meex, POWW, per)
