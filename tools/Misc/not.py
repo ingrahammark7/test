@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Waiver of Fee for Service by Sheriff"
+footer_text = "Request for Order"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I cannot afford a process server. Court should dismiss case if they ignore this filing. Order sheriff to serve my case. Alternatively, order ABC Legal to serve my cases. /n" 
+    intro_text = "This case was filed filed to get around judge dismissing all my cases. Judge should rule on substantive issues like ordering LAPD to explain why they attempt to arrest me at 690 S Catalina St Apt 4x. /n Judge should review my requests as they are necessary to serve case  If judge dismisses case for lack of service, that is judge's fault. /n" 
     y_position -= .25*inch
     
     
