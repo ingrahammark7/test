@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I. INTRODUCTION /n I filed an appeal on 9/18 in Superior Court for this case. Superior Court never forwarded case to appellate court. /n Estop LAPD from arresting me. The majority of LAPD officers are illegal immigrants. /n II. CONCLUSION /n Petitioner petitions this court to: /n 1. Order LAPD to explain why they attempt to arrest me at 690 S Catalina St Apartment 4x. /n 2. Estop LAPD and inform that any officers in violation of the estoppel will be killed by plaintiff. /n" 
+    intro_text = "I. INTRODUCTION /n I filed an appeal on 9/18 in Superior Court for this case. Superior Court never forwarded case to appellate court. /n Estop LAPD from arresting me. The majority of LAPD officers are illegal immigrants. /n II. CONCLUSION /n Petitioner petitions this court to: /n 1. Order LAPD to explain why they attempt to arrest me at 690 S Catalina St Apartment 4x. /n" 
     y_position -= .25*inch
     
     
