@@ -1,74 +1,49 @@
 #!/usr/bin/env python3
-import math
+import argparse
+import numpy as np
+import csv
 
-def neuron_atoms(radius_m=10e-6, include_dendrites=True):
-    """Estimate total number of atoms in a neuron (kg/m3 ~ 1000, avg atom mass 12 amu)."""
-    V_soma = 4/3 * math.pi * radius_m**3
-    if include_dendrites:
-        V_neuron = 2 * V_soma
+def run_simulation(rho_p, rho_f, g, C_d, theta_deg, v_w, H_min, H_max, N, output_file=None):
+    theta = np.radians(theta_deg)
+    tan_theta = np.tan(theta)
+
+    # Self-consistent particle radius from wind-driven transport
+    r = (3 * C_d * rho_f * v_w**2) / (8 * rho_p * g)  # meters
+    r_microns = r * 1e6  # convert to microns
+
+    hill_heights = np.random.uniform(H_min, H_max, N)
+    particle_radii = np.full(N, r_microns)
+
+    if output_file:
+        with open(output_file, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['Hill_height_m', 'Particle_radius_um'])
+            for H, radius in zip(hill_heights, particle_radii):
+                writer.writerow([H, radius])
+        print(f"Results saved to {output_file}")
     else:
-        V_neuron = V_soma
-    m_neuron = 1000 * V_neuron  # kg
-    m_atom = 12 * 1.66e-27  # kg
-    N_atoms = m_neuron / m_atom
-    N_electrons = 6 * N_atoms
-    return N_atoms, N_electrons
+        for H, radius in zip(hill_heights, particle_radii):
+            print(f"Hill height: {H:.3f} m, Particle radius: {radius:.3f} μm")
 
-def protein_particle_limit(N_atoms_total, N_atoms_repair=1e7):
-    """Compute max particle size (atoms) and number of particles."""
-    particles = N_atoms_total / N_atoms_repair
-    particle_size = N_atoms_repair
-    return int(particles), int(particle_size)
-
-def spike_energy(bits=1, energy_per_bit=1e-11, freq_hz=10):
-    """Compute neuron power usage for given spike rate."""
-    energy_per_sec = energy_per_bit * bits * freq_hz
-    return energy_per_sec
-
-def areal_bit_rate(active_neurons=1.8e7, osc_hz=10):
-    """Compute effective bit rate (bits/sec) for given oscillation."""
-    return active_neurons * osc_hz
-
-def ponderomotive_force(q=1.6e-19, m=3.8e-26, E=2e7, freq_hz=10, R_m=1e-5):
-    """Estimate ponderomotive force on ion inside neuron."""
-    omega = 2 * math.pi * freq_hz
-    grad_E2 = E**2 / R_m
-    F = (q**2 / (4 * m * omega**2)) * grad_E2
-    return F
-
-def brain_temperature(R_m=0.08, k=0.6, total_power_W=10, brain_volume_m3=1.3e-3):
-    """Estimate central temperature rise (°C) in brain sphere."""
-    q = total_power_W / brain_volume_m3
-    delta_T = q * R_m**2 / (6 * k)
-    return delta_T
+    print(f"\nTypical particle radius (all samples): {r_microns:.3f} μm")
+    return hill_heights, particle_radii
 
 def main():
-    print("=== Neuron / Brain CLI Analysis ===\n")
-    # Neuron atoms
-    N_atoms, N_electrons = neuron_atoms()
-    print(f"Neuron atoms: {N_atoms:.2e}, electrons: {N_electrons:.2e}")
-    
-    # Protein particle limit
-    particles, particle_size = protein_particle_limit(N_atoms)
-    print(f"Max particles per neuron: {particles}, particle size (atoms): {particle_size}")
-    
-    # Spike energy
-    energy = spike_energy(freq_hz=10)
-    print(f"Neuron energy usage @10Hz: {energy:.2e} W")
-    
-    # Areal bit rate
-    bit_rate = areal_bit_rate()
-    print(f"Effective areal bit rate: {bit_rate:.2e} bits/sec (~20 Mbps realistic)")
-    
-    # Ponderomotive force
-    F_pond = ponderomotive_force()
-    print(f"Ponderomotive force on ion: {F_pond:.2e} N")
-    
-    # Brain temperature rise
-    delta_T = brain_temperature()
-    print(f"Central brain temperature rise (R=8cm): {delta_T:.2f} °C (without perfusion)\n")
-    
-    print("=== End of Analysis ===")
+    parser = argparse.ArgumentParser(description="CLI Monte Carlo wind-driven hill simulation (no plot).")
+    parser.add_argument("--rho_p", type=float, default=3000, help="Particle density (kg/m^3)")
+    parser.add_argument("--rho_f", type=float, default=1.2, help="Air/fluid density (kg/m^3)")
+    parser.add_argument("--g", type=float, default=9.8, help="Gravity (m/s^2)")
+    parser.add_argument("--C_d", type=float, default=0.5, help="Drag coefficient")
+    parser.add_argument("--theta", type=float, default=45.0, help="Slope angle in degrees")
+    parser.add_argument("--v_w", type=float, default=5.0, help="Wind speed (m/s)")
+    parser.add_argument("--H_min", type=float, default=0.0001, help="Minimum hill height (m)")
+    parser.add_argument("--H_max", type=float, default=5000.0, help="Maximum hill height (m)")
+    parser.add_argument("--N", type=int, default=10000, help="Number of Monte Carlo samples")
+    parser.add_argument("--output", type=str, help="Optional CSV output file path")
+
+    args = parser.parse_args()
+    run_simulation(args.rho_p, args.rho_f, args.g, args.C_d, args.theta, args.v_w,
+                   args.H_min, args.H_max, args.N, args.output)
 
 if __name__ == "__main__":
     main()
