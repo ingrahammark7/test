@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>3D Cube + Torus Fields + Electrons</title>
+<title>Exploding Pattern</title>
 <style>
   body { margin:0; overflow:hidden; background:#101020; }
   canvas { display:block; }
@@ -14,149 +14,95 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 window.addEventListener('resize', resize);
 resize();
 
 const centerX = canvas.width/2;
 const centerY = canvas.height/2;
-const scale = 200; // perspective scale
-const distance = 5; // camera distance
 
-// Utility: 3D rotation
-function rotateX(p, angle){ 
-  const cos = Math.cos(angle), sin = Math.sin(angle);
-  return {x: p.x, y: p.y*cos - p.z*sin, z: p.y*sin + p.z*cos};
-}
-function rotateY(p, angle){
-  const cos = Math.cos(angle), sin = Math.sin(angle);
-  return {x: p.x*cos + p.z*sin, y: p.y, z: -p.x*sin + p.z*cos};
-}
-function rotateZ(p, angle){
-  const cos = Math.cos(angle), sin = Math.sin(angle);
-  return {x: p.x*cos - p.y*sin, y: p.x*sin + p.y*cos, z: p.z};
-}
+// Particles
+let particles = [];
+let startTime = performance.now();
+let N0 = 1;
+let fps = 60;
+let lastFrameTime = performance.now();
+const targetFPS = 50;
 
-// Perspective projection
-function project(p){
-  return {
-    x: centerX + (p.x / (p.z + distance)) * scale,
-    y: centerY - (p.y / (p.z + distance)) * scale
-  };
-}
-
-// Cube vertices
-const cubeSize = 1.5;
-const cubeVertices = [];
-for(let dx=-1; dx<=1; dx+=2){
-  for(let dy=-1; dy<=1; dy+=2){
-    for(let dz=-1; dz<=1; dz+=2){
-      cubeVertices.push({x:dx*cubeSize, y:dy*cubeSize, z:dz*cubeSize});
-    }
+// Initialize particles along a cross pattern
+function initParticles(count) {
+  for(let i=0;i<count;i++){
+    const angle = (i/20)*Math.PI/2; // Spread along cross arms
+    const radius = Math.random()*20+10;
+    particles.push({
+      x: centerX + radius*Math.cos(angle),
+      y: centerY + radius*Math.sin(angle),
+      vx: Math.cos(angle)*0.5,
+      vy: Math.sin(angle)*0.5,
+      color: `hsl(${Math.random()*360},100%,60%)`,
+      size: Math.random()*3+2
+    });
   }
 }
-const cubeEdges = [
-  [0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],
-  [4,5],[4,6],[5,7],[6,7]
-];
 
-// Torus definition (parametric)
-function generateTorus(R,r,stepsU,stepsV){
-  const verts = [];
-  for(let i=0;i<stepsU;i++){
-    const u = i/stepsU * 2*Math.PI;
-    for(let j=0;j<stepsV;j++){
-      const v = j/stepsV * 2*Math.PI;
-      const x = (R + r*Math.cos(v)) * Math.cos(u);
-      const y = (R + r*Math.cos(v)) * Math.sin(u);
-      const z = r * Math.sin(v);
-      verts.push({x,y,z});
-    }
+// Update particles with exponential growth
+function updateParticles() {
+  const now = performance.now();
+  const elapsedMs = now - startTime;
+  fps = 1000 / (now - lastFrameTime);
+  lastFrameTime = now;
+
+  // Exponential growth every ms
+  let targetCount = Math.floor(N0 * Math.pow(2, elapsedMs / 50)); // slower than 1ms for performance
+  if(fps <= targetFPS) targetCount = particles.length;
+
+  while(particles.length < targetCount){
+    const angle = Math.random()*2*Math.PI;
+    const radius = Math.random()*10;
+    particles.push({
+      x: centerX + radius*Math.cos(angle),
+      y: centerY + radius*Math.sin(angle),
+      vx: Math.cos(angle)*0.5,
+      vy: Math.sin(angle)*0.5,
+      color: `hsl(${Math.random()*360},100%,60%)`,
+      size: Math.random()*3+2
+    });
   }
-  return verts;
-}
 
-// Create two toruses
-const torus1 = generateTorus(2,0.3,20,10);
-const torus2 = generateTorus(2.2,0.2,20,10);
-
-// Electrons moving along torus paths
-const electrons = [];
-const electronCount = 30;
-for(let i=0;i<electronCount;i++){
-  electrons.push({
-    u: Math.random()*2*Math.PI,
-    v: Math.random()*2*Math.PI,
-    r: Math.random()<0.5?0.3:0.2, // radius depending on torus
-    speedU: 0.01+Math.random()*0.02,
-    speedV: 0.01+Math.random()*0.02,
-    R: Math.random()<0.5?2:2.2
+  // Move particles
+  particles.forEach(p=>{
+    p.x += p.vx;
+    p.y += p.vy;
+    // Optional: slow down or bounce at edges
   });
 }
 
-let t=0;
-function animate(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  t += 0.01;
-
-  // Rotate cube vertices
-  const rotatedCube = cubeVertices.map(v=>{
-    let p = rotateX(v, t*0.5);
-    p = rotateY(p, t*0.3);
-    p = rotateZ(p, t*0.2);
-    return p;
-  });
-
-  // Draw cube edges
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 2;
-  cubeEdges.forEach(e=>{
-    const p1 = project(rotatedCube[e[0]]);
-    const p2 = project(rotatedCube[e[1]]);
+// Draw particles
+function drawParticles() {
+  particles.forEach(p=>{
     ctx.beginPath();
-    ctx.moveTo(p1.x,p1.y);
-    ctx.lineTo(p2.x,p2.y);
-    ctx.stroke();
-  });
-
-  // Draw toruses as wireframe
-  function drawTorus(torus,color){
-    ctx.strokeStyle = color;
-    for(let i=0;i<torus.length;i++){
-      const p1 = rotateX(torus[i], t*0.3);
-      const p2 = rotateY(p1, t*0.2);
-      const proj = project(p2);
-      ctx.beginPath();
-      ctx.arc(proj.x, proj.y, 1,0,2*Math.PI);
-      ctx.fillStyle=color;
-      ctx.fill();
-    }
-  }
-  drawTorus(torus1,'#00ffff');
-  drawTorus(torus2,'#ff00ff');
-
-  // Draw electrons moving along torus
-  electrons.forEach(e=>{
-    e.u += e.speedU;
-    e.v += e.speedV;
-    const x = (e.R + e.r*Math.cos(e.v))*Math.cos(e.u);
-    const y = (e.R + e.r*Math.cos(e.v))*Math.sin(e.u);
-    const z = e.r*Math.sin(e.v);
-    let p = rotateX({x,y,z}, t*0.3);
-    p = rotateY(p, t*0.2);
-    const proj = project(p);
-    ctx.beginPath();
-    ctx.arc(proj.x,proj.y,3,0,2*Math.PI);
-    ctx.fillStyle = '#ffff00';
+    ctx.arc(p.x,p.y,p.size,0,2*Math.PI);
+    ctx.fillStyle = p.color;
     ctx.fill();
   });
-
-  requestAnimationFrame(animate);
 }
 
+// Animate
+function animate(){
+  requestAnimationFrame(animate);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  updateParticles();
+  drawParticles();
+
+  // Display FPS and particle count
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "18px monospace";
+  ctx.fillText(`FPS: ${fps.toFixed(1)}`, 10, 24);
+  ctx.fillText(`Particles: ${particles.length}`, 10, 44);
+}
+
+initParticles(20);
 animate();
 </script>
 </body>
