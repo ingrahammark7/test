@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Writ of Mandamus" 
+footer_text = "Notice of Appeal" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -82,7 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "Case Number: ",
+        "Case Number: 2:2025cv08306",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -159,9 +159,9 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="I. INTRODUCTION /n Order LAPD to arrest me. If court requires, I can kill police or do whatever is necessary to provoke arrest. /n II. CONCLUSION /n Petitioner petitions this Court to: /n 1. Order my arrest. /n"
+    text="Notice is given that the judgement entered on 9/29 in this case is appealed. Proof of service of notice included with filing. /n"
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 8/31/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/4/2025")
 
 
     # Save the PDF
