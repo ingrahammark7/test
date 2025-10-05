@@ -222,8 +222,9 @@ class Material:
     	mpb=getmp(self)
     	mpr=getmp(rounde)
     	rat=mpb/mpr
-    	logl=math.log2(fine)*-1
-    	return rat*logl*roundl
+    	logl=math.log2(fine)
+    	logl=abs(logl)   	
+    	return rat*roundl*logl
     	
     def getbarrelmass(self,rounde,roundl,diam,speed):
     	thick=self.base_hvl_cm
@@ -485,6 +486,7 @@ if __name__ == "__main__":
     	cf.f3=speed/200
     	cf.f4=strength
     	dopen(cf)
+    	print("barrel 7cm")
     	
     def dopaintball():
     	cfa=steel
@@ -495,6 +497,7 @@ if __name__ == "__main__":
     	cfa.f3=speed/60
     	cfa.f4=strength
     	dopen(cfa)
+    	print("barrel 50cm")
     	
     def dorubber():
     	cfa=steel
@@ -505,6 +508,7 @@ if __name__ == "__main__":
     	cfa.f3=speed/60
     	cfa.f4=strength
     	dopen(cfa)
+    	print("barrel 45cm")
     
     def do25acp():
     	cf=steel
@@ -514,6 +518,7 @@ if __name__ == "__main__":
     	cf.f3=speed/230
     	cf.f4=strength
     	dopen(cf)
+    	print("barrel 9.8cm")
     
     def do22long():
     	cf=steel
@@ -523,6 +528,7 @@ if __name__ == "__main__":
     	cf.f3=speed/370
     	cf.f4=strength
     	dopen(cf)
+    	print("barrel 38cm")
     
     def do9mm():
     	cf=du
@@ -533,6 +539,7 @@ if __name__ == "__main__":
     	cf.f4=strength
     	dopen(cf)
     	print("19mm drop in .5mpa clay is .01mm steel. 2000x clay steel ratio is .15mm for 30cm clay.")
+    	print("barrel 11.4cm")
     	
     def do44():
     	cf=du
@@ -543,6 +550,7 @@ if __name__ == "__main__":
     	cf.f4=strength
     	dopen(cf)
     	print("actual 5mm plate. cavity exceeds hvl and enters new regime")
+    	print("barrel 12.5cm")
     
     def do556():
     	cf=du
@@ -553,6 +561,7 @@ if __name__ == "__main__":
     	cf.f4=strength
     	dopen(cf)
     	print("actual 1.5 (scaled from magnun).")
+    	print("barrel 50.8cm")
     	
     def do762():
     	cf=du
@@ -563,6 +572,7 @@ if __name__ == "__main__":
     	cf.f4=strength
     	dopen(cf)
     	print("actual 1.5 (scaled from magnum) ")
+    	print("barrel 41.5cm")
     	
     def do3006():
     	cf=du
@@ -573,6 +583,7 @@ if __name__ == "__main__":
     	cf.f4=strength
     	dopen(cf)
     	print("actual 1.5 (scaled from mangum")
+    	print("barrel 60cm")
     	
     	
     def do50cal():
@@ -584,6 +595,7 @@ if __name__ == "__main__":
     	cf.f4=strength
     	dopen(cf)
     	print("actual 2.3")
+    	print("barrel 51cm")
     	
     def dobradley():
     	cf=du
@@ -596,6 +608,7 @@ if __name__ == "__main__":
     	dopen(cf)
     	cf.fill=1
     	print("actual 10.1")
+    	print("barrel 106.7 cm")
     	
     def dosherman():
     	cf=steel
@@ -606,6 +619,7 @@ if __name__ == "__main__":
     	cf.f4=strength
     	dopen(cf)
     	print("actual 23.9")
+    	print("barrel 304.8cm")
     
     def do88():
     	cf=steel
@@ -617,6 +631,7 @@ if __name__ == "__main__":
     	cf.fill=.25
     	dopen(cf)    	
     	print("actual 17")
+    	print("barrel 493.8 cm")
     	
     def do122():
     	cf=steel
@@ -628,6 +643,7 @@ if __name__ == "__main__":
     	cf.fill=.5
     	dopen(cf)
     	print("actual 17")
+    	print("barrel 276.94 cm")
     	
     def do3vmb3():
     	cf=steel
@@ -639,6 +655,7 @@ if __name__ == "__main__":
     	cf.fill=1
     	dopen(cf)	
     	print("actual 25cm")
+    	print("barrel 600cm")
     	
     def do3bm7():
     	cf=steel
@@ -650,6 +667,7 @@ if __name__ == "__main__":
     	cf.fill=1
     	dopen(cf)
     	print("actual 40cm")
+    	print("barrel 600cm")
     	
     def do3vbm17():
     	cf=du
@@ -661,6 +679,7 @@ if __name__ == "__main__":
     	cf.fill=.3
     	dopen(cf)
     	print("actual 52cm")
+    	print("barrel 600cm")
     	
     def dosvinets():
     	cf=du
@@ -672,6 +691,7 @@ if __name__ == "__main__":
     	cf.fill=.3
     	dopen(cf)
     	print("actual 66cm")
+    	print("barrel 600cm")
     	
     def dotapna():
     	cf=du
@@ -683,6 +703,7 @@ if __name__ == "__main__":
     	cf.fill=.3
     	dopen(cf)
     	print("actual 63cm")
+    	print("barrel 600cm")
     	
     def do5():
     	cf=steel
@@ -694,6 +715,7 @@ if __name__ == "__main__":
     	cf.fill=.25
     	dopen(cf)
     	print("actual 13cm")
+    	print("barrel 475cm")
     	
     def do6():
     	cf=steel
@@ -705,6 +727,7 @@ if __name__ == "__main__":
     	cf.fill=.5
     	dopen(cf)
     	print("actual 30cm")
+    	print("barrel 750cm")
     	
     def do8():
     	cf=steel
@@ -716,6 +739,7 @@ if __name__ == "__main__":
     	cf.fill=.5
     	dopen(cf)
     	print("actual 40cm")
+    	print("barrel 800cm")
     	
     def do16():
     	cf=steel
@@ -727,6 +751,7 @@ if __name__ == "__main__":
     	cf.fill=.5
     	dopen(cf)
     	print("actual 75cm")
+    	print("barrel 2200 cm")
     	
     
 
@@ -754,6 +779,7 @@ if __name__ == "__main__":
     	round_diameter = mat.getdam()
     	round_mas=mat.getmass(round_diameter)
     	round_len=mat.getroundlenmass(round_mas,round_diameter)
+    	print("round",round_diameter)
     	print("mass",round_mas)
     	round_energy = (.5*round_mas*(rspeed**2))
     	print("energy j ",round_energy)
@@ -778,7 +804,7 @@ if __name__ == "__main__":
     	print(f"Penetration depth: {depth:.2f} cm")
     	lethalcalc(armor,round_energy)
     	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed)
-    	print("barrel length cm ",lenn*(1))
+    	print("barrel length cm ",lenn.evalf())
     	
     
     dopen(cf)
