@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Motion for Response to Orders"
+footer_text = "Request for Order"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge should respond to all the orders. Also, I will give judge an opportunity to commit fraud again and make a fake transcript claiming I dismissed the case, as he did in 742 case. /n" 
+    intro_text = "As I stated before, all my order requests are standing requests that apply to all cases. Attached are some orders I am requesting. /n Judge should order UPS store at address on complaint (3553 Atlantic Avenue) to maintain service and not tamper with mail. /n" 
     y_position -= .25*inch
     
     
