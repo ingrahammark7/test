@@ -209,7 +209,7 @@ class Material:
     def getbarrelmat(self):
     	return getsteel()
     	
-    def getbarrellen(self,rounde,roundl,speed):
+    def getbarrellen(self,rounde,roundl,speed,diam):
     	fine=nuct.alpha
     	if(speed==1):
     		fine=fine
@@ -223,13 +223,21 @@ class Material:
     	mpr=getmp(rounde)
     	rat=mpb/mpr
     	logl=math.log2(fine)
-    	logl=abs(logl)   	
-    	return rat*roundl*logl
+    	logl=abs(logl)  
+    	f= rat*roundl*logl
+    	d1=7.85/(1.51)
+    	d1*=1.27	
+    	cut=d1*2
+    	if(diam>cut):
+    		foo=diam/cut
+    		foo**=2/3
+    		f=f*foo
+    	return f
     	
     def getbarrelmass(self,rounde,roundl,diam,speed):
     	thick=self.base_hvl_cm
     	massper=self.density/1_000_000
-    	lenn=self.getbarrellen(rounde,roundl,speed)
+    	lenn=self.getbarrellen(rounde,roundl,speed,diam)
     	side=massper*thick*lenn*diam
     	return side*4/1000
     
@@ -751,7 +759,7 @@ if __name__ == "__main__":
     	cf.fill=.5
     	dopen(cf)
     	print("actual 75cm")
-    	print("barrel 2200 cm")
+    	print("barrel 2020 cm")
     	
     
 
@@ -803,7 +811,7 @@ if __name__ == "__main__":
     	print("ld ",ld/round_diameter)
     	print(f"Penetration depth: {depth:.2f} cm")
     	lethalcalc(armor,round_energy)
-    	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed)
+    	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed,round_diameter)
     	print("barrel length cm ",lenn.evalf())
     	
     
