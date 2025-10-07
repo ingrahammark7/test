@@ -70,7 +70,7 @@ def create_pdf(output_filename):
     #c.drawCentredString(width / 2, top_margin - 3.33 * inch, "UNITED STATES DISTRICT COURT")
     #c.drawCentredString(width / 2, top_margin - 3.66 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
  
 
     # (4) Case Title
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Chase Bank",
+        "Department of Public Social Services",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -95,7 +95,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: CGC-25-625577")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "")
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge already allowed clerk to reject default for no reason. There is no point in continuing case. /n" 
+    intro_text = "I agree to dismiss case if judge agrees to go to jail for faking the transcript in previous case. /n" 
     y_position -= .25*inch
     
     
