@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Proof of Service"
+footer_text = "Request to Dismiss Case"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Order to continue CMC was served to defendant by mail at 270 Park Avenue, New York address by non party Mark Ingraham Sr. /n" 
+    intro_text = "Judge already allowed clerk to reject default for no reason. There is no point in continuing case. /n" 
     y_position -= .25*inch
     
     
