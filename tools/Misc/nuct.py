@@ -65,7 +65,7 @@ class NuclearPenetrationModel:
         w1=self.gethw()*(1/f1)*year
         w1=w1/en
         w1*=alpha_fs
-        print(w1.evalf())
+        return w1
         
         
     def gethw(self):
@@ -123,10 +123,6 @@ class NuclearPenetrationModel:
     
     	return af
     
-    def getelm(self):
-    	ev=self.evpr()
-    	ev=ev*self.shellt
-    	return ev
     	
     def getc(self):
     	p=penn

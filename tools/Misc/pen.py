@@ -496,28 +496,7 @@ if __name__ == "__main__":
     	dopen(cf)
     	print("barrel 7cm")
     	
-    def dopaintball():
-    	cfa=steel
-    	cfa.density=1900
-    	speed=getspeed(cfa)
-    	cfa.bafac=1.1
-    	cfa.f2=1.8
-    	cfa.f3=speed/60
-    	cfa.f4=strength
-    	dopen(cfa)
-    	print("barrel 50cm")
     	
-    def dorubber():
-    	cfa=steel
-    	cfa.density=1900
-    	speed=getspeed(cfa)
-    	cfa.bafac=4
-    	cfa.f2=3.7
-    	cfa.f3=speed/60
-    	cfa.f4=strength
-    	dopen(cfa)
-    	print("barrel 45cm")
-    
     def do25acp():
     	cf=steel
     	speed=getspeed(cf)
@@ -817,8 +796,6 @@ if __name__ == "__main__":
     
     dopen(cf)
     do2mm()
-    dopaintball()
-    dorubber()
     do25acp()
     do22long()
     do9mm()
