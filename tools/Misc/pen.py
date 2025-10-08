@@ -154,12 +154,10 @@ class Material:
     	f=self.melt_one_hvl()
     	hv=self.base_hvl_cm
     	r=(round_energy)/(f*hv)
-    	return r
+    	return r/nuct.picor
 
     def penetration_depth(self, round_energy, round_diameter_cm, angle1, angle2, honeycomb_layers,round_mas,roundmaterial):
         effective_angle = self.combine_angles(angle1, angle2)
-        #pm = nuct.NuclearPenetrationModel(self)
-        #d=nuct.nuclear_penetration(round_energy,round_diameter_cm,honeycomb_layers,round_mas,pm.material,roundmaterial)
         d=-1
         d=self.thermal_max_pen(d,round_energy)
         d = self.pen_angle(d, effective_angle, round_energy, round_diameter_cm)
@@ -181,7 +179,7 @@ class Material:
         n=getn()
         round_diameter1=round_diameter1/100
         ra=round_diameter1**2
-        airperhit=n.density*ra
+        airperhit=n.density*ra*nuct.picor
         aireng=airperhit*getsh(n)*mp
         airvol=self.velfromen(airperhit,aireng)
         airenpers=aireng*airvol
@@ -204,7 +202,7 @@ class Material:
         round_diameter1=round_diameter1*round_diameter1*round_diameter1
         d=self.density
         ff=round_diameter1*ld*d*self.fill
-        return ff
+        return ff*nuct.picor
         
     def getbarrelmat(self):
     	return getsteel()
@@ -238,7 +236,7 @@ class Material:
     	thick=self.base_hvl_cm
     	massper=self.density/1_000_000
     	lenn=self.getbarrellen(rounde,roundl,speed,diam)
-    	side=massper*thick*lenn*diam
+    	side=massper*thick*lenn*diam*nuct.picor
     	return side*4/1000
     
     def getdam(self):
@@ -259,7 +257,7 @@ class Material:
         
     def getroundlenmass(self,mass,diam):
         dens=self.density/1_000_000
-        firstd=diam*diam*dens
+        firstd=diam*diam*dens*nuct.picor
         lens=mass/firstd
         return lens/self.fill
     
@@ -317,7 +315,7 @@ def getsteel():
         atomic_radius_m=126e-12,
         atomic_number=26,
         cohesive_energy_ev=4.28,
-        base_hvl_cm=1.3,
+        base_hvl_cm=1.27,
         material_energy_density_j_per_hvl=1,
         weak_factor=1
     )
@@ -518,7 +516,7 @@ if __name__ == "__main__":
     	print("barrel 38cm")
     
     def do9mm():
-    	cf=du
+    	cf=steel
     	speed=getspeed(cf)
     	cf.bafac=2
     	cf.f2=.9
@@ -529,7 +527,7 @@ if __name__ == "__main__":
     	print("barrel 11.4cm")
     	
     def do44():
-    	cf=du
+    	cf=steel
     	speed=getspeed(cf)
     	cf.bafac=3
     	cf.f2=1.09
@@ -540,7 +538,7 @@ if __name__ == "__main__":
     	print("barrel 12.5cm")
     
     def do556():
-    	cf=du
+    	cf=steel
     	speed=getspeed(cf)	
     	cf.bafac=8.1
     	cf.f2=.556
@@ -551,7 +549,7 @@ if __name__ == "__main__":
     	print("barrel 50.8cm")
     	
     def do762():
-    	cf=du
+    	cf=steel
     	speed=getspeed(cf)
     	cf.bafac=6.7
     	cf.f2=.762
@@ -562,7 +560,7 @@ if __name__ == "__main__":
     	print("barrel 41.5cm")
     	
     def do3006():
-    	cf=du
+    	cf=steel
     	speed=getspeed(cf)
     	cf.bafac=8.25
     	cf.f2=.762
@@ -574,12 +572,13 @@ if __name__ == "__main__":
     	
     	
     def do50cal():
-    	cf=du
+    	cf=steel
     	speed=getspeed(cf)
     	cf.bafac=7.8
     	cf.f2=1.27
     	cf.f3=speed/(860)#explosive
     	cf.f4=strength
+    	cf.fill=.5
     	dopen(cf)
     	print("actual 2.3")
     	print("barrel 51cm")
@@ -663,7 +662,7 @@ if __name__ == "__main__":
     	cf.f2=3.1
     	cf.f3=speed/(1700*.85)
     	cf.f4=strength
-    	cf.fill=.3
+    	cf.fill=.75
     	dopen(cf)
     	print("actual 52cm")
     	print("barrel 600cm")
@@ -675,7 +674,7 @@ if __name__ == "__main__":
     	cf.f2=2.5
     	cf.f3=speed/(1700*.85)
     	cf.f4=strength
-    	cf.fill=.3
+    	cf.fill=1
     	dopen(cf)
     	print("actual 66cm")
     	print("barrel 600cm")
@@ -687,7 +686,7 @@ if __name__ == "__main__":
     	cf.f2=2.5
     	cf.f3=speed/1690
     	cf.f4=strength
-    	cf.fill=.3
+    	cf.fill=1
     	dopen(cf)
     	print("actual 63cm")
     	print("barrel 600cm")
@@ -755,7 +754,7 @@ if __name__ == "__main__":
     	ar=mat.base_hvl_cm
     	hvls**=(1/12)
     	hvls=hvls*ar
-    	print("round lethal at armor cm",hvls)
+    	print("round lethal at armor cm",hvls.evalf())
     	return hvls
     	
     	
@@ -767,9 +766,9 @@ if __name__ == "__main__":
     	round_mas=mat.getmass(round_diameter)
     	round_len=mat.getroundlenmass(round_mas,round_diameter)
     	print("round",round_diameter)
-    	print("mass",round_mas)
+    	print("mass",round_mas.evalf())
     	round_energy = (.5*round_mas*(rspeed**2))
-    	print("energy j ",round_energy)
+    	print("energy j ",round_energy.evalf())
     	angle_vert = 90
     	angle_horz = 90
     	armor=steel
@@ -782,12 +781,12 @@ if __name__ == "__main__":
     		mult=round_diameter/hvl
     	mult=mult**2
     	armor.material_energy_density_j_per_hvl=mat.f4*estfix(steel)
-    	depth= 1#armor.penetration_depth(round_energy, round_diameter, angle_vert, angle_horz,0,round_mas,mat)
+    	depth= 1
     	th=armor.thermalpen(round_energy)
     	depth=th
     	depth=depth/mult
     	ld=mat.getroundlenmass(round_mas,round_diameter)
-    	print("ld ",ld/round_diameter)
+    	print("ld ",ld.evalf()/round_diameter)
     	print(f"Penetration depth: {depth:.2f} cm")
     	lethalcalc(armor,round_energy)
     	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed,round_diameter)
