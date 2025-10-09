@@ -1,64 +1,28 @@
-import json
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score
+import re
+from collections import Counter
 
-# --- Load JSON ---
-with open("clean.json", "r") as f:
-    data = json.load(f)
+# Files to scan
+files = ["pen.py", "nuct.py"]
 
-df = pd.DataFrame(data)
+# Patterns for explicit units in variable names or constants
+unit_patterns = [
+    r'\bcm\b', r'\bkg\b', r'\bm3\b', r'\bs\b', r'\bJ\b', r'\bev\b', r'\bm\b',
+    r'\b\d+e[+-]?\d+\b',            # scientific notation numbers (could indicate conversion)
+    r'/[a-zA-Z_][a-zA-Z0-9_]*',     # division by a variable
+    r'\*\*-\d',                      # negative exponent (reciprocal units)
+    r'\*\*2', r'\*\*3',              # powers of 2 or 3 → derived units (m², m³, etc.)
+]
 
-# --- Compute percent error ---
-df['percent_error'] = df['A_value'] / df['lethal_armor_cm']
+counter = Counter()
 
-# --- Identify extreme outliers ---
-outlier_threshold = 100_000
-outliers = df[df['percent_error'] > outlier_threshold]
-if not outliers.empty:
-    print("=== Removed Outliers (percent_error > {:,}) ===".format(outlier_threshold))
-    print(outliers[['diameter_cm', 'mass_kg', 'percent_error']].to_string(index=False))
+for fname in files:
+    with open(fname) as f:
+        text = f.read()
+        for pat in unit_patterns:
+            matches = re.findall(pat, text)
+            counter[pat] += len(matches)
 
-# --- Keep only reasonable data ---
-df_filtered = df[df['percent_error'] <= outlier_threshold].copy()
-
-# --- Features ---
-features_to_exclude = ['percent_error', 'A_value', 'actual_value', 'penetration_cm','lethal_armor_cm']
-X = df_filtered.drop(columns=features_to_exclude)
-y = np.log1p(df_filtered['percent_error'])  # log-transform target
-
-# --- Fill missing values ---
-X = X.fillna(0)
-
-# --- Train/test split ---
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# --- Train model ---
-model = RandomForestRegressor(n_estimators=500, max_depth=None, random_state=42)
-model.fit(X_train, y_train)
-
-# --- Predictions ---
-y_pred_test = model.predict(X_test)
-y_pred_all = model.predict(X)
-
-# --- Evaluation ---
-mse = mean_squared_error(y_test, y_pred_test)
-r2 = r2_score(y_test, y_pred_test)
-print("\nMean Squared Error:", mse)
-print("R^2 Score:", r2)
-
-# --- Row-by-row comparison ---
-df_filtered['predicted_percent_error'] = np.expm1(y_pred_all)  # revert log-transform
-comparison = df_filtered[['diameter_cm', 'mass_kg', 'percent_error', 'predicted_percent_error']]
-print("\n=== Row-by-Row Comparison ===")
-print(comparison.to_string(index=False))
-
-# --- Feature importance ---
-importances = pd.DataFrame({
-    'feature': X.columns,
-    'importance': model.feature_importances_
-}).sort_values(by='importance', ascending=False)
-print("\n=== Predictor Contribution Ranking ===")
-print(importances.to_string(index=False))
+# Sort by frequency
+print("Unit usage frequency:")
+for pat, count in counter.most_common():
+    print(f"{pat:15s} {count}")
