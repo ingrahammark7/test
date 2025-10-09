@@ -437,10 +437,6 @@ def getmp(self):
     ce=ce/zrule()
     sh=getsh(self)
     return ce/sh/2/(self.f3**2)
-    #at 1.55kms 25mm ld 29
-    #28cm pen du vs steel
-    #863mpa wikipedia rha
-    #68cm pen
 
 def getsh(self):
     sh=self.db
@@ -662,7 +658,7 @@ if __name__ == "__main__":
     	cf.f2=3.1
     	cf.f3=speed/(1700*.85)
     	cf.f4=strength
-    	cf.fill=.75
+    	cf.fill=.63
     	dopen(cf)
     	print("actual 52cm")
     	print("barrel 600cm")
@@ -673,6 +669,18 @@ if __name__ == "__main__":
     	cf.bafac=21.84
     	cf.f2=2.5
     	cf.f3=speed/(1700*.85)
+    	cf.f4=strength
+    	cf.fill=.88
+    	dopen(cf)
+    	print("actual 66cm")
+    	print("barrel 600cm")
+    	
+    def do3bm59_60():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=28.18
+    	cf.f2=2.2
+    	cf.f3=speed/(1660*.85)
     	cf.f4=strength
     	cf.fill=1
     	dopen(cf)
@@ -686,10 +694,22 @@ if __name__ == "__main__":
     	cf.f2=2.5
     	cf.f3=speed/1690
     	cf.f4=strength
-    	cf.fill=1
+    	cf.fill=2/3
     	dopen(cf)
     	print("actual 63cm")
     	print("barrel 600cm")
+    	
+    def dom829():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=35.68
+    	cf.f2=2.5
+    	cf.f3=speed/1555
+    	cf.f4=strength
+    	cf.fill=1
+    	dopen(cf)
+    	print("actual 71cm")
+    	print("barrel 530cm")
     	
     def do5():
     	cf=steel
@@ -811,7 +831,9 @@ if __name__ == "__main__":
     do3bm7()
     do3vbm17()
     dosvinets()
+    do3bm59_60()
     dotapna()
+    dom829()
     do5()
     do6()
     do8()
