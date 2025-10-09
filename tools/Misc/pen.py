@@ -627,6 +627,42 @@ if __name__ == "__main__":
     	print("actual 17")
     	print("barrel 276.94 cm")
     	
+    def dom833():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=17.7
+    	cf.f2=2.46
+    	cf.f3=speed/1494
+    	cf.f4=strength
+    	cf.fill=1
+    	dopen(cf)
+    	print("actual 47cm")
+    	print("barrel 546cm")
+    	
+    def dobr412():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=3.26
+    	cf.f2=10
+    	cf.f3=speed/(895*.93)
+    	cf.f4=strength
+    	cf.fill=.78
+    	dopen(cf)
+    	print("actual 15cm")
+    	print("barrel 535cm")
+    	
+    def do3bm8():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=4.05
+    	cf.f2=5.5
+    	cf.f3=speed/(1415*.85)
+    	cf.f4=strength
+    	cf.fill=1
+    	dopen(cf)
+    	print("actual 29cm")
+    	print("barrel 535cm")
+    	
     def do3vmb3():
     	cf=steel
     	speed=getspeed(cf)
@@ -710,6 +746,17 @@ if __name__ == "__main__":
     	dopen(cf)
     	print("actual 71cm")
     	print("barrel 530cm")
+    	
+    def do140mm():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=32
+    	cf.f2=2.95
+    	cf.f3=speed/1700
+    	cf.f4=strength
+    	cf.fill=.55
+    	dopen(cf)
+    	print("actual 80cm")
     	
     def do5():
     	cf=steel
@@ -827,6 +874,9 @@ if __name__ == "__main__":
     dosherman()
     do88()
     do122()
+    dom833()
+    do3bm8()
+    dobr412()
     do3vmb3()
     do3bm7()
     do3vbm17()
@@ -834,6 +884,7 @@ if __name__ == "__main__":
     do3bm59_60()
     dotapna()
     dom829()
+    do140mm()
     do5()
     do6()
     do8()
