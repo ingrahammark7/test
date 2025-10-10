@@ -1,13 +1,14 @@
 import math
 import nuct
 import sympy as sp
+import cons
 
-mass_g=1000
-cm_m=100
-req=6378137
-crad=7e-11*1.001001777
-avo= 6.02214076e23
-ec=1.60217663047908e-19
+mass_g=cons.mass_g
+cm_m=cons.cm_m
+req=cons.req
+crad=cons.crad
+avo=cons.avo
+ec=cons.ec
 
 class Material:
     def __init__(self, name, molar_mass_kg_mol, density_kg_m3, atomic_radius_m, atomic_number,
@@ -734,6 +735,7 @@ if __name__ == "__main__":
     	cf.fill=.55
     	dopen(cf)
     	print("actual 80cm")
+    	print("barrel 658cm")
     	
     def do5():
     	cf=steel

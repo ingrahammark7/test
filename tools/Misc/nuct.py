@@ -3,6 +3,7 @@ import sympy as sp
 import math 
 import pen
 import ast
+import cons
 
 phi = sp.GoldenRatio
 alpha_fs = 1/((((4*sp.pi)-6)**phi)**phi)  
@@ -28,7 +29,7 @@ class NuclearPenetrationModel:
 
         self.E = sp.symbols('E')        
         self.n_e = sp.symbols('n_e')   
-        self.ec = pen.ec
+        self.ec = cons.ec
         
         self.am = alpha ** phi
         self.osc = 6
@@ -38,11 +39,11 @@ class NuclearPenetrationModel:
         self.compt = self.brem * 2
         self.evperj = self.ec
         self.c3=c**(1/3)
-        self.avogadro = pen.avo
+        self.avogadro = cons.avo
         self.av=(((alpha**phi)**7)/3)
-        self.crad=pen.crad
+        self.crad=cons.crad
         self.pm=pm
-        self.req=pen.req
+        self.req=cons.req
        
     def getearth(self):
     	f=self.geth()
@@ -52,7 +53,7 @@ class NuclearPenetrationModel:
     	
     def geth(self):
     	f=(self.av*3)*(alpha**phi)*8
-    	f=f/self.avogadro/pen.mass_g
+    	f=f/self.avogadro/cons.mass_g
     	return f
     	 
     def getsec(self):
@@ -63,7 +64,7 @@ class NuclearPenetrationModel:
     	
         	
     def getpl(self):
-    	pm=self.pm*pen.mass_g*self.avogadro*self.crad
+    	pm=self.pm*cons.mass_g*self.avogadro*self.crad
     	return pm
     	
     def getbigg(self):
@@ -102,7 +103,7 @@ class NuclearPenetrationModel:
         stel=2*10e9
         corf=1
         sden=7.85
-        shvl=(1.27/pen.cm_m)*(pen.mass_g)
+        shvl=(1.27/cons.cm_m)*(cons.mass_g)
         steelperm=(shvl*sden)
         steelperm*=stel*corf
         f1=wa1/steelperm
@@ -122,7 +123,7 @@ class NuclearPenetrationModel:
     	pr=self.corprma()
     	f=gg*(pr*pr)/(r**2)
     	f=f*crate
-    	f=f*h*self.avogadro*pen.mass_g*2
+    	f=f*h*self.avogadro*cons.mass_g*2
     	return f
     	
     def magc(self):
