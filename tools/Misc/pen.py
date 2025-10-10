@@ -1,5 +1,6 @@
 import math
 import nuct
+import sympy as sp
 
 mass_g=1000
 cm_m=100
@@ -182,10 +183,9 @@ class Material:
         airperhit=n.density*ra*nuct.picor
         aireng=airperhit*getsh_per_kg(n)*mp
         airvol=self.velfromen(airperhit,aireng)
-        airenpers=aireng*airvol
-        ht=airenpers/(ht*mp)
-        ba=ht/airvol
-        roundside=ra*4
+        ht=aireng/(ht*mp)
+        ba=ht
+        roundside=ra*nuct.sp.pi
         ba=ba/roundside
         if(self.bafac==1):
         	return ba,airvol
@@ -215,7 +215,7 @@ class Material:
     			maxs=self.gets()
     			speed=speed/maxs
     			fine=1-speed
-    			if(fine==0):
+    			if(fine<=0):
     				fine=nuct.alpha
     	mpb=getmp(self)
     	mpr=getmp(rounde)
@@ -237,7 +237,7 @@ class Material:
     	massper=self.density
     	lenn=self.getbarrellen(rounde,roundl,speed,diam)
     	side=massper*thick*lenn*diam*nuct.picor
-    	return side*4
+    	return side*nuct.sp.pi
     
     def getdam(self):
         barrel=self.getbarrelmat()
@@ -406,43 +406,43 @@ def getskin():
     
 def getmht(self):
     ht=getht(self)
-    n=getn()
-    return ht*(n.density/getsteel().density)
+    return ht
     
 def getht(self):
-    molv=self.density*self.molar_mass/(cm_m**3)
-    molv=molv*self.avogadro
-    molv=molv**(2/3)
-    ar=self.atomic_radius
+    nm=(self.molar_mass/self.density)/getn().density
+    side=nm**(1/3)
+    ac=self.avogadro**(2/3)
     mp=getmp(self)
-    v=getvel(self,mp)
-    v=v**(1/3)
-    t=v/ar
-    am=amass(self)*molv
-    ke=.5*(v*v)*am
-    w=t*ke
-    w=math.sqrt(self.emr)*w
-    return w
+    vel=getvel(self,mp)
+    ar=self.atomic_radius*2
+    vf=vel/ar
+    vf**=2/3
+    va=vf*ar
+    en=.5*va*va*amass(self)
+    en*=ac
+    t=vf*en
+    t*=(1/side)/2
+    return t
     
 def amass(self):
-    return (self.molar_mass/mass_g)/self.avogadro
+    return (self.molar_mass*mass_g)/self.avogadro
 
 def getvel(self,t):
-    s=3*self.bol*t
-    m=(self.molar_mass/mass_g)/self.avogadro
+    s=3*self.bol*t*self.avogadro
+    m=self.molar_mass
     return math.sqrt(s/m)
 
 def getmp(self):
     ce=self.cohesive_bond_energy
     ce=ce/zrule()
     sh=getsh_per_kg(self)
-    return ce/sh/2/(self.f3**2)
+    sh=ce/sh/2/(self.f3**2)
+    return sh
 
 def getsh_per_kg(self):
     sh=self.db
-    ker=1/self.molar_mass
-    sh=ker*sh
-    return sh
+    ker=self.molar_mass
+    return sh/ker
 
 if __name__ == "__main__":   
     steel=getsteel()
@@ -635,7 +635,19 @@ if __name__ == "__main__":
     	cf.f4=strength
     	cf.fill=1
     	dopen(cf)
-    	print("actual 47cm")
+    	print("actual 37cm")
+    	print("barrel 546cm")
+    
+    def dom900():
+    	cf=du
+    	speed=getspeed(cf)
+    	cf.bafac=71.1/2.31
+    	cf.f2=2.31/cm_m
+    	cf.f3=speed/1505
+    	cf.f4=strength
+    	cf.fill=1
+    	dopen(cf)
+    	print("actual 50cm")
     	print("barrel 546cm")
     	
     def dobr412():
@@ -805,6 +817,15 @@ if __name__ == "__main__":
     	print("actual 75cm")
     	print("barrel 2020 cm")
     	
+    def dosteel():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=1
+    	cf.f2=1
+    	cf.f3=1
+    	cf.f4=1
+    	dopen(cf)
+    	
     
 
     def lethalcalc(mat,en):
@@ -831,10 +852,11 @@ if __name__ == "__main__":
     	round_diameter = mat.getdam()
     	round_mas=mat.getmass(round_diameter)
     	round_len=mat.getroundlenmass(round_mas,round_diameter)
-    	print("round",round_diameter*cm_m)
+    	print("round",sp.N(round_diameter*cm_m))
     	print("mass",round_mas.evalf())
     	round_energy = (.5*round_mas*(rspeed**2))
     	print("energy j ",round_energy.evalf())
+    	print("speed",rspeed)
     	angle_vert = 90
     	angle_horz = 90
     	armor=steel
@@ -851,7 +873,7 @@ if __name__ == "__main__":
     	th=armor.thermalpen(round_energy)
     	depth=th
     	depth=depth/mult
-    	print("ld ",round_len/round_diameter)
+    	print("ld ",(round_len/round_diameter).evalf())
     	print(f"Penetration depth: {depth*100:.2f} cm")
     	lethalcalc(armor,round_energy)
     	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed,round_diameter)
@@ -873,6 +895,7 @@ if __name__ == "__main__":
     do88()
     do122()
     dom833()
+    dom900()
     do3bm8()
     dobr412()
     do3vmb3()
@@ -887,8 +910,7 @@ if __name__ == "__main__":
     do6()
     do8()
     do16()
-    n=nuct.baseobj()
-    n.getpow()
+    dosteel()
     
   
     
