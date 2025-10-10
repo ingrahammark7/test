@@ -86,7 +86,7 @@ class NuclearPenetrationModel:
     	return 4*sp.pi*10e-7
     
     def getelm(self):
-    	return self.evpr()*self.shellt
+    	return self.evpr()*self.brem
     	
     def getema(self):
     	return self.getelm()/(self.getc()**2)
