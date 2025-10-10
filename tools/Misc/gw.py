@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 """
-nose_melting_speed_and_range.py
+nose_melting_speed_and_range_with_cap.py
 
 Standalone program:
  - Material limits & stagnation-temperature based max Mach/speed (nose heating)
  - Missile defaults for AMRAAM and APEX (AA-7/R-23 style)
- - Fuel-fraction (default 90%) -> ideal rocket Δv -> coast range at given altitude
+ - Fuel-fraction -> ideal rocket Δv -> coast range at given altitude
  - Quadratic drag coast model (analytical integration) until v <= v_thresh
+ - Includes target fleeing at Mach 1: computes target distance during missile coast
+ - NEW: optional global speed cap (--speed-cap) to arbitrarily limit speeds (m/s)
  - CLI with options. No plotting.
 
-Notes / assumptions are printed where relevant. This is a simple physics model
-meant for illustrative calculations (see comments in code for caveats).
+Note: Speed cap applies to:
+ - the initial post-burn horizontal speed v0 (min(delta_v, speed_cap))
+ - the reported stagnation-based max speed (used for heating info) is also capped for consistency.
 """
 
 from math import sqrt, log, pi
 import argparse
 import csv
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 
 # ---------- Material database (temperatures in Kelvin)
 MATERIALS: Dict[str, Dict[str, Any]] = {
@@ -30,7 +33,6 @@ MATERIALS: Dict[str, Dict[str, Any]] = {
 }
 
 # ---------- Missile defaults (representative)
-# mass (kg) and diameter (m) approximate public specs used for geometry/mass
 MISSILES: Dict[str, Dict[str, Any]] = {
     "amraam": {"material": "fiberglass_composite", "altitude_m": 10000.0, "recovery_factor": 1.0,
                "m0_kg": 150.7, "diam_m": 0.178},
@@ -45,22 +47,13 @@ g0 = 9.80665  # m/s^2
 
 # ---------- Atmosphere helpers
 def isa_temperature_at_altitude(alt_m: float) -> float:
-    """Simple ISA temperature: troposphere up to 11 km (lapse -6.5 K/km), then isothermal 216.65 K."""
     if alt_m <= 11000.0:
         return 288.15 - 0.0065 * alt_m
     else:
         return 216.65
 
 def isa_density_at_altitude(alt_m: float) -> float:
-    """Very simple ISA density approximation:
-       - use standard sea-level pressure/temperature model for troposphere, else a rough value.
-       This function returns a reasonable density at 10 km for our usage.
-    """
-    # For simplicity and consistency with earlier calculations use a fixed value near 10 km
-    # but provide an approximate formula for troposphere (not highly accurate at high altitudes).
     if alt_m <= 11000.0:
-        # pressure and density via barometric formula (approx). Use isothermal approx for simplicity:
-        # T = T0 + lapse*alt, p = p0*(T/T0)^( -g/(R*lapse) ), rho = p/(R*T)
         T0 = 288.15
         p0 = 101325.0
         lapse = -0.0065
@@ -70,8 +63,6 @@ def isa_density_at_altitude(alt_m: float) -> float:
         rho = p / (R_AIR * T)
         return rho
     else:
-        # approximate stratosphere constant ~ 0.4135 kg/m^3 at 10km; use 216.65 K base and reduce density further
-        # fallback value:
         return 0.4135
 
 def speed_of_sound(temperature_k: float) -> float:
@@ -99,26 +90,14 @@ def material_operational_limit(material_key: str) -> float:
     return min(fiber, matrix)
 
 # ---------- Range model (instantaneous burn -> coast under quadratic drag)
-def delta_v_from_fuel_fraction(m0: float, fuel_fraction: float, Isp_s: float) -> float:
-    """
-    Use ideal rocket equation with fuel_fraction = propellant_mass / m0
-    final mass mf = m0 * (1 - fuel_fraction)
-    Δv = Ve * ln(m0 / mf), Ve = Isp * g0
-    """
+def delta_v_from_fuel_fraction(m0: float, fuel_fraction: float, Isp_s: float) -> Tuple[float, float]:
     if not (0.0 < fuel_fraction < 1.0):
         raise ValueError("fuel_fraction must be between 0 and 1 (exclusive).")
     mf = m0 * (1.0 - fuel_fraction)
     Ve = Isp_s * g0
     return Ve * log(m0 / mf), mf
 
-def coast_range_quadratic_drag(v0: float, mass_kg: float, rho: float, Cd: float, area_m2: float, v_thresh: float = 10.0) -> (float, float):
-    """
-    Analytical integration for dv/dt = -k v^2, where k = 0.5 * rho * Cd * A / m
-    v(t) = v0 / (1 + k v0 t)
-    distance until speed drops to v_thresh:
-      s = (1/k) * ln(v0 / v_thresh)
-    flight_time = (v0/v_thresh - 1) / (k * v0)
-    """
+def coast_range_quadratic_drag(v0: float, mass_kg: float, rho: float, Cd: float, area_m2: float, v_thresh: float = 10.0) -> Tuple[float, float]:
     if v0 <= v_thresh:
         return 0.0, 0.0
     k = 0.5 * rho * Cd * area_m2 / mass_kg
@@ -131,8 +110,9 @@ def coast_range_quadratic_drag(v0: float, mass_kg: float, rho: float, Cd: float,
 # ---------- Presentation & CSV writer
 def format_table(rows: List[Dict[str, Any]]) -> str:
     headers = ["missile", "m0_kg", "dry_mass_kg", "propellant_kg", "delta_v_m_s",
-               "frontal_area_m2", "drag_k", "range_m", "range_km", "flight_time_s",
-               "ambient_temp_K", "material_limit_K", "max_mach", "max_speed_m_s"]
+               "speed_cap_m_s", "frontal_area_m2", "drag_k", "range_m", "range_km", "flight_time_s",
+               "ambient_temp_K", "material_limit_K", "max_mach", "max_speed_m_s",
+               "target_speed_m_s", "target_distance_m", "net_effective_range_m", "net_effective_range_km"]
     col_widths = {h: len(h) for h in headers}
     formatted_rows = []
     for r in rows:
@@ -142,6 +122,7 @@ def format_table(rows: List[Dict[str, Any]]) -> str:
             "dry_mass_kg": f'{r.get("dry_mass_kg",0):.3f}',
             "propellant_kg": f'{r.get("propellant_kg",0):.3f}',
             "delta_v_m_s": f'{r.get("delta_v_m_s",0):.1f}',
+            "speed_cap_m_s": f'{r.get("speed_cap_m_s", "None") if r.get("speed_cap_m_s", None) is None else f"{r.get("speed_cap_m_s"):.1f}"}',
             "frontal_area_m2": f'{r.get("frontal_area_m2",0):.5f}',
             "drag_k": f'{r.get("drag_k",0):.6f}',
             "range_m": f'{r.get("range_m",0):.1f}',
@@ -151,6 +132,10 @@ def format_table(rows: List[Dict[str, Any]]) -> str:
             "material_limit_K": f'{r.get("material_limit_K",0):.2f}',
             "max_mach": f'{r.get("max_mach",0):.3f}',
             "max_speed_m_s": f'{r.get("max_speed_m_s",0):.1f}',
+            "target_speed_m_s": f'{r.get("target_speed_m_s",0):.1f}',
+            "target_distance_m": f'{r.get("target_distance_m",0):.1f}',
+            "net_effective_range_m": f'{r.get("net_effective_range_m",0):.1f}',
+            "net_effective_range_km": f'{r.get("net_effective_range_km",0):.3f}',
         }
         formatted_rows.append(fr)
         for h in headers:
@@ -173,7 +158,7 @@ def write_csv(filename: str, rows: List[Dict[str, Any]]):
 
 # ---------- CLI
 def parse_args():
-    p = argparse.ArgumentParser(description="Estimate nose heating limits and coast range for missiles (no graphs).")
+    p = argparse.ArgumentParser(description="Estimate nose heating limits, coast range and net effective range against a fleeing target (Mach 1).")
     p.add_argument("target", nargs="?", default="all", choices=list(MISSILES.keys()) + ["all"],
                    help="Missile name (amraam, apex) or 'all'")
     p.add_argument("--fuel-fraction", type=float, default=0.90, help="Propellant fraction of launch mass (0..1). Default 0.90")
@@ -181,6 +166,7 @@ def parse_args():
     p.add_argument("--Cd", type=float, default=0.20, help="Drag coefficient (dimensionless). Default 0.20")
     p.add_argument("--v-thresh", type=float, default=10.0, help="Threshold speed (m/s) to end coast. Default 10 m/s")
     p.add_argument("--altitude", type=float, default=None, help="Override altitude (m). If omitted uses missile default (10 km).")
+    p.add_argument("--speed-cap", type=float, default=None, help="Optional global speed cap in m/s. Applies to initial post-burn speed and reported heating speed. Use to trade speed for range.")
     p.add_argument("--csv", type=str, default=None, help="Write results to CSV filename")
     p.add_argument("--show-materials", action="store_true", help="List materials and exit")
     p.add_argument("--show-missiles", action="store_true", help="List missile defaults and exit")
@@ -200,7 +186,7 @@ def main():
         return
 
     targets = [args.target] if args.target != "all" else list(MISSILES.keys())
-    results = []
+    results: List[Dict[str, Any]] = []
 
     for t in targets:
         params = MISSILES[t].copy()
@@ -214,6 +200,7 @@ def main():
         Cd = float(args.Cd)
         altitude = float(params["altitude_m"])
         recovery = float(params.get("recovery_factor", 1.0))
+        speed_cap = float(args.speed_cap) if args.speed_cap is not None else None
 
         # Atmosphere
         Ta = isa_temperature_at_altitude(altitude)
@@ -224,21 +211,34 @@ def main():
         Tlimit = material_operational_limit(mat_key)
         max_mach = mach_from_stagnation_temp(Tlimit, Ta, recovery)
         max_speed_m_s = max_mach * speed_of_sound(Ta)
+        # Apply speed cap to heating info as well (informational)
+        if speed_cap is not None:
+            max_speed_m_s = min(max_speed_m_s, speed_cap)
+            max_mach = max_speed_m_s / speed_of_sound(Ta)
 
         # Delta-v and dry mass after fuel burn (instantaneous ideal rocket)
         delta_v, mf = delta_v_from_fuel_fraction(m0, fuel_frac, Isp)
-        # Note: mf here is dry mass in kg after propellant consumed (m0*(1-fuel_frac))
-        # Use mf as coast mass (no jettison assumed)
         dry_mass = mf
         propellant_kg = m0 - mf
+
+        # Apply speed cap to initial post-burn v0 (to intentionally limit top speed and extend range)
+        v0_uncapped = delta_v
+        v0 = delta_v if speed_cap is None else min(delta_v, speed_cap)
 
         # Frontal area and drag constant k
         area = pi * (diam / 2.0) ** 2
         k = 0.5 * rho * Cd * area / dry_mass
 
         # Coast range using analytic formula until v_thresh
-        v0 = delta_v  # initial horizontal speed after burnout (m/s)
         s_m, t_s = coast_range_quadratic_drag(v0, dry_mass, rho, Cd, area, args.v_thresh)
+
+        # Target fleeing at Mach 1 at the same altitude
+        v_target = speed_of_sound(Ta) * 1.0  # Mach 1
+        target_distance_m = v_target * t_s
+
+        # Net effective range: missile coast range minus distance target flees during missile coast
+        net_effective_range_m = s_m - target_distance_m
+        net_effective_range_km = net_effective_range_m / 1000.0
 
         result = {
             "missile": t,
@@ -246,6 +246,9 @@ def main():
             "dry_mass_kg": round(dry_mass, 3),
             "propellant_kg": round(propellant_kg, 3),
             "delta_v_m_s": round(delta_v, 1),
+            "speed_cap_m_s": None if speed_cap is None else round(speed_cap, 1),
+            "v0_uncapped_m_s": round(v0_uncapped, 1),
+            "v0_used_m_s": round(v0, 1),
             "frontal_area_m2": round(area, 5),
             "drag_k": round(k, 6),
             "range_m": round(s_m, 1),
@@ -255,6 +258,10 @@ def main():
             "material_limit_K": round(Tlimit, 2),
             "max_mach": round(max_mach, 3),
             "max_speed_m_s": round(max_speed_m_s, 1),
+            "target_speed_m_s": round(v_target, 1),
+            "target_distance_m": round(target_distance_m, 1),
+            "net_effective_range_m": round(net_effective_range_m, 1),
+            "net_effective_range_km": round(net_effective_range_km, 3),
         }
         results.append(result)
 
@@ -267,8 +274,14 @@ def main():
     print(f" - Isp: {args.Isp} s, g0: {g0} m/s^2")
     print(f" - Drag model: quadratic, Cd = {args.Cd}")
     print(f" - Coast ends when speed <= {args.v_thresh} m/s")
-    print(" - Instantaneous-burn ideal-rocket Δv, no burn losses, horizontal coast at listed altitude\n")
+    if args.speed_cap is not None:
+        print(f" - Global speed cap applied: {args.speed_cap} m/s (limits v0 and reported heating speed).")
+    else:
+        print(" - No global speed cap applied.")
+    print(" - Instantaneous-burn ideal-rocket Δv, no burn losses, horizontal coast at listed altitude")
+    print(" - Target is fleeing at Mach 1 at the same altitude (target distance = Mach1_speed * missile_coast_time)\n")
 
+    # print table (table format includes speed_cap column)
     print(format_table(results))
 
     if args.csv:
