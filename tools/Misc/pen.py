@@ -4,6 +4,10 @@ import sympy as sp
 
 mass_g=1000
 cm_m=100
+req=6378137
+crad=7e-11*1.001001777
+avo= 6.02214076e23
+ec=1.60217663047908e-19
 
 class Material:
     def __init__(self, name, molar_mass_kg_mol, density_kg_m3, atomic_radius_m, atomic_number,
@@ -19,9 +23,9 @@ class Material:
         self.weak_factor = weak_factor
         
      
-        self.avogadro = 6.02214076e23
+        self.avogadro = avo
         self.k = 9e9  
-        self.elementary_charge = 1.60217663047908e-19
+        self.elementary_charge = ec
         self.ev_to_joule = self.elementary_charge
         self.phi = nuct.phi
         self.ch=(self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
@@ -32,8 +36,8 @@ class Material:
         self.pmas=nuct.prma/2
         self.emr=nuct.alpha**nuct.phi
         self.emr=self.emr/nuct.phi
-        self.crad=7e-11*1.001001777
-        self.req=6378137
+        self.crad=crad
+        self.req=req
        
         self.bafac=1
         self.f2=1
@@ -60,45 +64,7 @@ class Material:
     	lenn=self.getroundlenmass(round_mas,diam)
     	de=self.density/airdens
     	return lenn*de
-    	
-    def getearth(self):
-    	f=self.geth()
-    	#emass=5.9722e24
-    	f=f*self.av/6/(1+1/(16+1/2.2))
-    	return f
-    	
-    def geth(self):
-    	f=(self.av*3)*(nuct.alpha**nuct.phi)*8
-    	f=f/self.avogadro/mass_g
-    	return f
-    	 
-    def getsec(self):
-    	c=nuct.c
-    	pm=self.getpl()
-    	pm=c/pm
-    	pm*=3    	
-    	return pm
-    	
-        	
-    def getpl(self):
-    	pm=nuct.pm*mass_g*self.avogadro*self.crad
-    	return pm
-    	
-    def getbigg(self):
-    	return self.getg()*self.req*self.req/self.getearth()
-    	
-    def getg(self):
-    	req=self.req
-    	pl=self.getpl()
-    	amf=self.am
-    	corr=(1/amf/(2/3)/nuct.alpha/(1+1/(24+(1/(2+(((1-(1/(8.1))))/2))))))
-    	gg=pl*corr
-    	gg*=self.getsec()
-    	ff=pl/req
-    	ff**=2
-    	ff*=(1/gg)
-    	ff/=1+6/amf
-    	return ff
+
     
     def compute_high_estimate(self):
         ch = self.ch
@@ -842,7 +808,6 @@ if __name__ == "__main__":
     	
     def dosteel():
     	cf=steel
-    	speed=getspeed(cf)
     	cf.bafac=1
     	cf.f2=1
     	cf.f3=1

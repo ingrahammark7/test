@@ -1,7 +1,6 @@
 # nuct.py
 import sympy as sp
-import math
-from pen import Material 
+import math 
 import pen
 import ast
 
@@ -15,20 +14,21 @@ prma = prma / 1000
 pm = pm * prma
 c1=299792456.2
 c=c1
-penn=pen.getsteel()
 PRECISION=2**12
 unage=sp.exp(32+2/3)
 year=60*60*24*365
 picor=sp.pi/4
 
+    	
+    
 class NuclearPenetrationModel:
-    def __init__(self, material):
-        self.material = material
+    def __init__(self):
+        
         
 
         self.E = sp.symbols('E')        
         self.n_e = sp.symbols('n_e')   
-        self.ec = material.elementary_charge
+        self.ec = pen.ec
         
         self.am = alpha ** phi
         self.osc = 6
@@ -36,12 +36,56 @@ class NuclearPenetrationModel:
         self.disc = self.brem * 16
         self.shellt = self.brem / 3
         self.compt = self.brem * 2
-        self.evperj = pen.getsteel().ev_to_joule
+        self.evperj = self.ec
         self.c3=c**(1/3)
+        self.avogadro = pen.avo
+        self.av=(((alpha**phi)**7)/3)
+        self.crad=pen.crad
+        self.pm=pm
+        self.req=pen.req
+       
+    def getearth(self):
+    	f=self.geth()
+    	#emass=5.9722e24
+    	f=f*self.av/6/(1+1/(16+1/2.2))
+    	return f
+    	
+    def geth(self):
+    	f=(self.av*3)*(alpha**phi)*8
+    	f=f/self.avogadro/pen.mass_g
+    	return f
+    	 
+    def getsec(self):
+    	pkm=self.getpl()
+    	pkm=c/pkm
+    	pkm*=3    	
+    	return pkm
+    	
+        	
+    def getpl(self):
+    	pm=self.pm*pen.mass_g*self.avogadro*self.crad
+    	return pm
+    	
+    def getbigg(self):
+    	return self.getg()*(self.req**2)/self.getearth()
+    	
+    def getg(self):
+    	req=self.req
+    	pl=self.getpl()
+    	amf=self.am
+    	corr=(1/amf/(2/3)/alpha/(1+1/(24+(1/(2+(((1-(1/(8.1))))/2))))))
+    	gg=pl*corr
+    	gg*=self.getsec()
+    	ff=pl/req
+    	ff**=2
+    	ff*=(1/gg)
+    	ff/=1+6/amf
+    	return ff
+
         
     def getpow(self):
         w=self.gethw()
-        r=penn.req
+        r=self.req
         r=4*sp.pi*r*r
         wa=1361
         wa1=wa*year
@@ -51,8 +95,8 @@ class NuclearPenetrationModel:
         f=wa/w
         f*=1/self.am/3
         f*=alpha_fs        
-        vesc=sp.sqrt((2*penn.getbigg()*penn.getearth())/penn.req)
-        hm=penn.geth()
+        vesc=sp.sqrt((2*self.getbigg()*self.getearth())/self.req)
+        hm=self.geth()
         hm**=2
         en=.5*hm*vesc*vesc
         stel=2*10e9
@@ -69,17 +113,16 @@ class NuclearPenetrationModel:
         
         
     def gethw(self):
-    	p=penn
-    	h=p.geth()
-    	r=p.crad
-    	gg=p.getbigg()
+    	h=self.geth()
+    	r=self.crad
+    	gg=self.getbigg()
     	cc=self.getc()
-    	crate=(cc/p.crad)
-    	r=penn.crad
+    	crate=(cc/self.crad)
+    	r=self.crad
     	pr=self.corprma()
     	f=gg*(pr*pr)/(r**2)
     	f=f*crate
-    	f=f*h*penn.avogadro*pen.mass_g*2
+    	f=f*h*self.avogadro*pen.mass_g*2
     	return f
     	
     def magc(self):
@@ -125,16 +168,15 @@ class NuclearPenetrationModel:
     
     	
     def getc(self):
-    	p=penn
-    	sec=p.getsec()
-    	ll=p.getpl()
+    	sec=self.getsec()
+    	ll=self.getpl()
     	cc=ll/4.8/sec
     	return cc
     
     def gethb(self):
     	tp=self.gettp()
     	tp*=tp
-    	g=penn.getbigg()
+    	g=self.getbigg()
     	cc=self.getc()**5
     	tp*=cc*2*sp.pi
     	tp/=g
@@ -145,7 +187,7 @@ class NuclearPenetrationModel:
     	
     def gettp(self):
     	#tp=5.391247e-44
-    	sec=pen.getsteel().getsec()
+    	sec=self.getsec()
     	r=sec
     	r=r/(self.am**12)/(40+phi*(1/(.999)))
     	return r
@@ -192,8 +234,9 @@ class NuclearPenetrationModel:
 
     
 def baseobj():
-	return NuclearPenetrationModel(penn)
+	return NuclearPenetrationModel()
 
+print(baseobj().getpow().evalf())
 
 
 
