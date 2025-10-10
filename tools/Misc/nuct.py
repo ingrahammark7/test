@@ -58,9 +58,8 @@ class NuclearPenetrationModel:
         stel=2*10e9
         corf=1
         sden=7.85
-        shvl=1.27
-        steelperm=shvl*100*100*sden
-        steelperm/=1000
+        shvl=(1.27/pen.cm_m)*(pen.mass_g)
+        steelperm=(shvl*sden)
         steelperm*=stel*corf
         f1=wa1/steelperm
         w1=self.gethw()*(1/f1)*year
@@ -80,7 +79,7 @@ class NuclearPenetrationModel:
     	pr=self.corprma()
     	f=gg*(pr*pr)/(r**2)
     	f=f*crate
-    	f=f*h*penn.avogadro*1000*2
+    	f=f*h*penn.avogadro*pen.mass_g*2
     	return f
     	
     def magc(self):
