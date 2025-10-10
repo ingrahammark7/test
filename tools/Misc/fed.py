@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Appellant Opening Brief" 
+footer_text = "Preemptive Order to Show Cause" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -159,7 +159,7 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="I. INTRODUCTION /n The majority of LAPD officers are illegal immigrants. All actions by LAPD are illegal. Auction all LAPD property. /n II. CONCLUSION /n Petitioner petitions this Court to: /n 1. Estop LAPD from arresting me. /n 2. Auction all LAPD property. /n 3. Add ICE to case if necessary for jurisdiction. /n 4. Disable all LAPD vehicles to prevent use by illegals. /n 5. Pour concrete into engine block to disable all LAPD vehicles. /n"
+    text="I. CAUSE OF ACTION /n Cause of action is obvious fact that the majority of LAPD officers are illegal immigrants. If court requires additional causes of action, court may order me to kill police offiers or otherwise provoke test cases and engineer causes of action. /n"
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/10/2025")
 
