@@ -19,7 +19,6 @@ PRECISION=2**12
 unage=sp.exp(32+2/3)
 year=60*60*24*365
 picor=sp.pi/4
-
     	
     
 class NuclearPenetrationModel:
@@ -44,6 +43,17 @@ class NuclearPenetrationModel:
         self.crad=cons.crad
         self.pm=pm
         self.req=cons.req
+        self.kk=0
+        
+    def getkk(self):
+       if(self.kk==0):
+       	f= self.evpr()**2
+       	f1=self.getinalp()*self.getrhb()*self.getc()
+       	f1/=f
+       	self.kk=f1
+       	return f1
+       return self.kk
+       
        
     def getearth(self):
     	f=self.geth()
@@ -237,7 +247,7 @@ class NuclearPenetrationModel:
 def baseobj():
 	return NuclearPenetrationModel()
 
-print(baseobj().getpow().evalf())
+print("ratio ",baseobj().getpow().evalf())
 
 
 

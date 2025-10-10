@@ -25,7 +25,7 @@ class Material:
         
      
         self.avogadro = avo
-        self.k = 9e9  
+        self.k = 8987551752.21422
         self.elementary_charge = ec
         self.ev_to_joule = self.elementary_charge
         self.phi = nuct.phi
@@ -903,11 +903,3 @@ if __name__ == "__main__":
     doharp()
     dobab()
     dosteel()
-    
-  
-    
-
-    
-    
-    
-
