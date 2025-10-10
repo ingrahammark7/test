@@ -1,39 +1,30 @@
-import math
+# Budget and costs
+budget = 224
+ice_cream_cost = 4.50
+chicken_cost = 8
+total_days = 18
 
-# --------------------------
-# Constants
-# --------------------------
-g = 9.81                  # gravity (m/s^2)
-m_P = 2.176e-8            # Planck mass (kg)
-rho_s = 2500              # particle density (kg/m^3)
-theta_deg = 45            # launch angle (degrees)
+# Calculate maximum ice cream-only days
+# Let x = ice cream only days
+# y = ice cream + chicken days
+# 4.5*x + 12.5*y = budget and x + y = 30
 
-# --------------------------
-# Particle geometry
-# --------------------------
-r = (3 * m_P / (4 * math.pi * rho_s))**(1/3)  # radius in meters
-A = math.pi * r**2                             # cross-sectional area in m^2
+# Using equations:
+# 4.5*x + 12.5*(30-x) = 290
+# Solve for x
+x = (12.5 * total_days - budget) / (12.5 - 4.5)
+y = total_days - x
 
-# --------------------------
-# First grain: characteristic distance
-# --------------------------
-rho_air = 1.225  # air density kg/m^3 (for reference)
-# Approximate “grain distance” based on density ratio
-grain_distance = (rho_s / rho_air) * r  # meters
+print(f"Approximate solution:")
+print(f"Ice cream only days: {x:.2f}")
+print(f"Ice cream + chicken days: {y:.2f}")
 
-# --------------------------
-# Launch velocity for 45° ballistic trajectory
-# --------------------------
-theta_rad = math.radians(theta_deg)
-v0 = math.sqrt(grain_distance * g)
+# Practical integer solution
+x_int = int(x)  # round down to nearest day
+y_int = total_days - x_int
+total_cost = ice_cream_cost*x_int + (ice_cream_cost + chicken_cost)*y_int
 
-# Maximum horizontal range at 45°
-R_max = (v0**2 / g) * math.sin(2 * theta_rad)
-
-# --------------------------
-# Output results
-# --------------------------
-print(f"Particle radius: {r*1000:.6f} mm")
-print(f"Grain distance (first grain): {grain_distance:.6f} m")
-print(f"Launch velocity (v0) for 45°: {v0:.6f} m/s")
-print(f"Maximum horizontal range (R_max): {R_max:.6f} m")
+print(f"\nPractical integer solution:")
+print(f"Ice cream only days: {x_int}")
+print(f"Ice cream + chicken days: {y_int}")
+print(f"Total cost: ${total_cost:.2f}")
