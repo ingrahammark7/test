@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order" 
+footer_text = "Appellant Opening Brief" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -49,8 +49,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES DISTRICT COURT")
-    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "NINTH CIRCUIT")
  
 
     # (4) Case Title
@@ -82,7 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "Case Number: 2:25-cv-09550-MWC",
+        "Case Number: 25-6407",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -159,9 +159,9 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="All orders I requested on my previous cases apply to all my cases. /n Previous orders attached. /n"
+    text="I. INTRODUCTION /n The majority of LAPD officers are illegal immigrants. All actions by LAPD are illegal. Auction all LAPD property. /n II. CONCLUSION /n Petitioner petitions this Court to: /n 1. Estop LAPD from arresting me. /n 2. Auction all LAPD property. /n 3. Add ICE to case if necessary for jurisdiction. /n 4. Disable all LAPD vehicles to prevent use by illegals. /n 5. Pour concrete into engine block to disable all LAPD vehicles. /n"
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/4/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/10/2025")
 
 
     # Save the PDF
