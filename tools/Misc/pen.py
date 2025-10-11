@@ -351,7 +351,7 @@ def getrp1tenpct():
     cohesive_energy_ev=cohfrommp(60/((1/rpsolidfrac)**2)),
     base_hvl=10/cm_m,
     material_energy_density_j_per_hvl=1,
-    weak_factor=(((getsteel().density)/rp1tendensity)**6)*nuct.alpha.evalf()*(1/rpsolidfrac)
+    weak_factor=(((getsteel().density)/rp1tendensity)**6)*nuct.alpha*(1/rpsolidfrac)
     )
     rp1tenpct.material_energy_density_j_per_hvl=estfix(rp1tenpct)   
     return rp1tenpct
@@ -558,6 +558,103 @@ if __name__ == "__main__":
     	print("actual 10.1")
     	print("barrel 106.7 cm")
     	
+    def do37mmm4():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=3.08
+    	cf.f2=3.7/cm_m
+    	cf.f3=speed/(610)
+    	cf.f4=strength
+    	cf.fill=.91
+    	dopen(cf)
+    	print("actual 3.5cm")
+    	print("barrel 198cm")
+    
+    def do40mmbofor():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=3.775
+    	cf.f2=4/cm_m
+    	cf.f3=speed/(860)
+    	cf.f4=strength
+    	cf.fill=.6
+    	dopen(cf)
+    	print("actual 6.9cm")
+    	print("barrel 225cm")
+    	
+    def dom1937():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=3.82
+    	cf.f2=4.5/cm_m
+    	cf.f3=speed/(760)
+    	cf.f4=strength
+    	cf.fill=.66
+    	dopen(cf)
+    	print("actual 9.4cm")
+    	print("barrel 207cm")
+    	
+    def dos60():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=3.6
+    	cf.f2=5.7/cm_m
+    	cf.f3=speed/(1000)
+    	cf.f4=strength
+    	cf.fill=.69
+    	dopen(cf)
+    	print("actual 10.6cm")
+    	print("barrel 440cm")
+    	
+    def dom72():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=3.12
+    	cf.f2=7.5/cm_m
+    	cf.f3=speed/(618)
+    	cf.f4=strength
+    	cf.fill=1 #8.5kg
+    	dopen(cf)
+    	print("actual 10.9cm")
+    	print("barrel 292cm")
+    	
+    def dom93():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=3.53
+    	cf.f2=7.62/cm_m
+    	cf.f3=speed/(1036)
+    	cf.f4=strength
+    	cf.fill=.44
+    	dopen(cf)
+    	print("actual 23.9cm")
+    	print("barrel 340cm")
+    	
+    def dod48():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=3.02
+    	cf.f2=8.5/cm_m
+    	cf.f3=speed/(1040)
+    	cf.f4=strength
+    	cf.fill=.43
+    	dopen(cf)
+    	print("actual 19.5cm")
+    	print("barrel 629cm")
+    	
+    def dobs3():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=4.1
+    	cf.f2=10/cm_m
+    	cf.f3=speed/(887)
+    	cf.f4=strength
+    	cf.fill=.62
+    	dopen(cf)
+    	print("bse")
+    	print("actual 20cm")
+    	print("barrel 534cm")
+    	
     def dosherman():
     	cf=steel
     	speed=getspeed(cf)
@@ -565,6 +662,7 @@ if __name__ == "__main__":
     	cf.f2=7.6/cm_m
     	cf.f3=speed/(792)#explosive
     	cf.f4=strength
+    	cf.fill=.5
     	dopen(cf)
     	print("actual 23.9")
     	print("barrel 304.8cm")
@@ -820,7 +918,7 @@ if __name__ == "__main__":
 
     def lethalcalc(mat,en):
     	sk=getskin()
-    	sken=sk.material_energy_density_j_per_hvl/(2**nuct.phi.evalf()**6)
+    	sken=sk.material_energy_density_j_per_hvl/(2**nuct.phi**6)
     	if(en<sken):
     		print("round not lethal")
     		return 0
@@ -881,6 +979,14 @@ if __name__ == "__main__":
     do3006()
     do50cal()
     dobradley()
+    do37mmm4()
+    do40mmbofor()
+    dom1937()
+    dos60()
+    dom72()
+    dom93()
+    dod48()
+    dobs3()
     dosherman()
     do88()
     do122()
