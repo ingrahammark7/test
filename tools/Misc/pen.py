@@ -45,6 +45,7 @@ class Material:
         self.f3=1
         self.f4=1
         self.fill=1
+        self.exp=0
                   
         
         self.j_high_estimate = (self.compute_high_estimate() ** 0.5)*self.f4
@@ -120,10 +121,26 @@ class Material:
         return d
         
     def thermalpen(self,round_energy):
+    	return self.thermalpenexp(round_energy,0)
+    
+    def thermalpenexp(self,round_energy,exp):
     	f=self.melt_one_hvl()
     	hv=self.base_hvl
     	r=(round_energy/f)*hv/nuct.phi
-    	return r/nuct.picor
+    	r/=nuct.picor
+    	return self.doexp(r,exp)
+    	
+    def doexp(self,r,exp):
+    	if(exp==0):
+    		return r
+    	print("dx")
+    	rdxdens=5330e3
+    	f1=self
+    	f1.exp=0
+    	exp*=rdxdens
+    	d=f1.thermalpen(exp)
+    	return r+d
+    	
 
     def penetration_depth(self, round_energy, round_diameter, angle1, angle2, honeycomb_layers,round_mas,roundmaterial):
         effective_angle = self.combine_angles(angle1, angle2)
@@ -538,14 +555,16 @@ if __name__ == "__main__":
     	speed=getspeed(cf)
     	cf.bafac=7.8
     	cf.f2=1.27/cm_m
-    	cf.f3=speed/(860)#explosive
+    	cf.f3=speed/(860)
     	cf.f4=strength
     	cf.fill=.5
+    	cf.exp=.005
     	dopen(cf)
+    	cf.exp=0
     	print("actual 2.3")
     	print("barrel 51cm")
     	
-    def dobradley():
+    def dom919():
     	cf=du
     	speed=getspeed(cf)
     	cf.bafac=14
@@ -565,7 +584,9 @@ if __name__ == "__main__":
     	cf.f3=speed/(610)
     	cf.f4=strength
     	cf.fill=.91
+    	cf.exp=0.05
     	dopen(cf)
+    	cf.exp=0
     	print("actual 3.5cm")
     	print("barrel 198cm")
     
@@ -577,7 +598,9 @@ if __name__ == "__main__":
     	cf.f3=speed/(860)
     	cf.f4=strength
     	cf.fill=.6
+    	cf.exp=.1
     	dopen(cf)
+    	cf.exp=0
     	print("actual 6.9cm")
     	print("barrel 225cm")
     	
@@ -589,9 +612,11 @@ if __name__ == "__main__":
     	cf.f3=speed/(760)
     	cf.f4=strength
     	cf.fill=.66
+    	cf.exp=.254/2
     	dopen(cf)
     	print("actual 9.4cm")
     	print("barrel 207cm")
+    	cf.exp=0
     	
     def dos60():
     	cf=steel
@@ -854,7 +879,9 @@ if __name__ == "__main__":
     	cf.f3=speed/640
     	cf.f4=strength
     	cf.fill=.5
+    	cf.exp=2.6/2
     	dopen(cf)
+    	cf.exp=0
     	print("actual 30cm")
     	print("barrel 750cm")
     	
@@ -957,7 +984,11 @@ if __name__ == "__main__":
     	mult=mult**2
     	armor.material_energy_density_j_per_hvl=mat.f4*estfix(steel)
     	depth= 1
-    	th=armor.thermalpen(round_energy)
+    	print("fill",mat.fill)
+    	pcte=mat.exp/round_mas
+    	rdxdens=mat.density/1600
+    	print("exp pct",pcte.evalf()*rdxdens)
+    	th=armor.thermalpenexp(round_energy,mat.exp)
     	depth=th
     	depth=depth/mult
     	print("ld ",(round_len/round_diameter).evalf())
@@ -977,7 +1008,7 @@ if __name__ == "__main__":
     do762()
     do3006()
     do50cal()
-    dobradley()
+    dom919()
     do37mmm4()
     do40mmbofor()
     dom1937()
