@@ -548,13 +548,12 @@ if __name__ == "__main__":
     def dobradley():
     	cf=du
     	speed=getspeed(cf)
-    	cf.bafac=5.5
-    	cf.f2=2.5/cm_m
+    	cf.bafac=14
+    	cf.f2=2.5/3/cm_m
     	cf.f3=speed/1385
     	cf.f4=strength
-    	cf.fill=(100/1670)
+    	cf.fill=.85
     	dopen(cf)
-    	cf.fill=1
     	print("actual 10.1")
     	print("barrel 106.7 cm")
     	
