@@ -164,21 +164,25 @@ class Material:
     def getvel(self,round_diameter1):
         mp=getmp(self)
         ht=getmht(self)
-        n=getn()
         ra=round_diameter1**2
-        airperhit=n.density*ra*nuct.picor
-        aireng=airperhit*getsh_per_kg(n)*mp
-        airvol=self.velfromen(airperhit,aireng)
-        ht=aireng/(ht*mp)
+        airvol,ht=self.getairvol(ht,mp,round_diameter1,ra)
         ba=ht
         roundside=ra*nuct.sp.pi
         ba=ba/roundside
         if(self.bafac==1):
         	return self.domaxld(ba,airvol)
         return self.bafac,airvol
+       
+    def getairvol(self,ht,mp,round_diameter1,ra):
+        n=getn()
+        airperhit=n.density*ra*nuct.picor
+        aireng=airperhit*getsh_per_kg(n)*mp
+        airvol=self.velfromen(airperhit,aireng)
+        ht=aireng/(ht*mp)
+        return airvol,ht
         
     def domaxld(self,ba,airvol):
-    	barma=self.getbarrelmat(0)  	
+    	barma=self.barm(0)  	
     	return ba,airvol
 
     def gets(self,isbarrel):
@@ -239,13 +243,19 @@ class Material:
     def barm(self,isbarrel):
     	barrel=self.getbarrelmat(isbarrel)
     	maxd=barrel.base_hvl
-    	doh=barrel.material_energy_density_j_per_hvl
-    	basevel=self.getmass(maxd)
-    	ff,bases=self.getvel(maxd)
-    	en=self.enfromvel(basevel,bases)
-    	r=doh/en
-    	return r
-
+    	doh=barrel.material_energy_density_j_per_hvl    	
+    	if(isbarrel==1):
+    		basevel=self.getmass(maxd)
+    		return self.dob(maxd,basevel,doh)
+    	len=1
+    	
+    def dob(self,maxd,basevel,doh):
+     	ff,bases=self.getvel(maxd)
+     	en=self.enfromvel(basevel,bases)
+     	r=doh/en
+     	return r
+     	
+    
     def damiter(self,isbarrel):
         r=self.barm(isbarrel)
         r=r**.5
@@ -528,7 +538,7 @@ if __name__ == "__main__":
     	cf.f3=speed/470
     	cf.f4=strength
     	dopen(cf)
-    	print("actual 5mm plate. cavity exceeds hvl and enters new regime")
+    	print("actual .5")
     	print("barrel 12.5cm")
     
     def do556():
@@ -652,7 +662,7 @@ if __name__ == "__main__":
     	cf.f2=7.5/cm_m
     	cf.f3=speed/(618)
     	cf.f4=strength
-    	cf.fill=1 #8.5kg
+    	cf.fill=.78
     	dopen(cf)
     	print("actual 10.9cm")
     	print("barrel 292cm")
@@ -690,7 +700,6 @@ if __name__ == "__main__":
     	cf.f4=strength
     	cf.fill=.62
     	dopen(cf)
-    	print("bse")
     	print("actual 20cm")
     	print("barrel 534cm")
     	
@@ -699,7 +708,7 @@ if __name__ == "__main__":
     	speed=getspeed(cf)
     	cf.bafac=7.07
     	cf.f2=7.6/cm_m
-    	cf.f3=speed/(792)#explosive
+    	cf.f3=speed/(792)
     	cf.f4=strength
     	cf.fill=.5
     	dopen(cf)
@@ -709,12 +718,12 @@ if __name__ == "__main__":
     def do88():
     	cf=steel
     	speed=getspeed(cf)
-    	cf.bafac=10
+    	cf.bafac=3.8
     	cf.f2=8.8/cm_m
     	cf.f3=speed/773
     	cf.f4=strength
-    	cf.fill=.25
-    	dopen(cf)    	
+    	cf.fill=.59#type 18
+    	dopen(cf)  	
     	print("actual 17")
     	print("barrel 493.8 cm")
     	
@@ -881,7 +890,7 @@ if __name__ == "__main__":
     	cf.f2=12.7/cm_m
     	cf.f3=speed/790
     	cf.f4=strength
-    	cf.fill=.25
+    	cf.fill=.33
     	dopen(cf)
     	print("actual 13cm")
     	print("barrel 475cm")
