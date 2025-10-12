@@ -133,15 +133,17 @@ class Material:
     def doexp(self,r,exp):
     	if(exp==0):
     		return r
-    	print("dx")
-    	rdxdens=5330e3
+    	exp=self.exen(exp)
     	f1=self
     	f1.exp=0
-    	exp*=rdxdens
     	d=f1.thermalpen(exp)
     	return r+d
     	
-
+    def exen(self,exp):
+    	rdxdens=5330e3
+    	exp*=rdxdens
+    	return exp    	
+    	
     def penetration_depth(self, round_energy, round_diameter, angle1, angle2, honeycomb_layers,round_mas,roundmaterial):
         effective_angle = self.combine_angles(angle1, angle2)
         d=-1
@@ -172,31 +174,36 @@ class Material:
         roundside=ra*nuct.sp.pi
         ba=ba/roundside
         if(self.bafac==1):
-        	return ba,airvol
+        	return self.domaxld(ba,airvol)
         return self.bafac,airvol
+        
+    def domaxld(self,ba,airvol):
+    	barma=self.getbarrelmat(0)  	
+    	return ba,airvol
 
-    def gets(self):
-        round_diameter1=self.getdam()
+    def gets(self,isbarrel):
+        round_diameter1=self.getdam(isbarrel)
         f,d=self.getvel(round_diameter1)
         return d
         
     def getmass(self,round_diameter1):
         ld,s=self.getvel(round_diameter1)
-     
         round_diameter1=round_diameter1*round_diameter1*round_diameter1
         d=self.density
         ff=round_diameter1*ld*d*self.fill
         return ff*nuct.picor
         
-    def getbarrelmat(self):
-    	return getsteel()
+    def getbarrelmat(self,isbarrel):
+    	if(isbarrel==1):
+    		return getsteel()
+    	return self
     	
     def getbarrellen(self,rounde,roundl,speed,diam):
     	fine=nuct.alpha
     	if(speed==1):
     		fine=fine
     	else:
-    			maxs=self.gets()
+    			maxs=self.gets(1)
     			speed=speed/maxs
     			fine=1-speed
     			if(fine<=0):
@@ -223,21 +230,29 @@ class Material:
     	side=massper*thick*lenn*diam*nuct.picor
     	return side*nuct.sp.pi
     
-    def getdam(self):
-        barrel=self.getbarrelmat()
-        maxd=barrel.base_hvl
-        doh=barrel.material_energy_density_j_per_hvl
+    def getdam(self,isbarrel):
+        
         if(self.f2==1):
-        	return self.damiter(maxd,doh)
+        	return self.damiter(isbarrel)
         return self.f2
+        
+    def barm(self,isbarrel):
+    	barrel=self.getbarrelmat(isbarrel)
+    	maxd=barrel.base_hvl
+    	doh=barrel.material_energy_density_j_per_hvl
+    	basevel=self.getmass(maxd)
+    	ff,bases=self.getvel(maxd)
+    	en=self.enfromvel(basevel,bases)
+    	r=doh/en
+    	return r
 
-    def damiter(self,maxd,doh):
-        basevel=self.getmass(maxd)
-        ff,bases=self.getvel(maxd)
-        en=self.enfromvel(basevel,bases)
-        r=doh/en
+    def damiter(self,isbarrel):
+        r=self.barm(isbarrel)
         r=r**.5
-        return r*maxd
+        return self.barhvl(r,isbarrel)
+        
+    def barhvl(self,r,isbarrel):
+        return r*self.getbarrelmat(isbarrel).base_hvl
         
     def getroundlenmass(self,mass,diam):
         dens=self.density
@@ -445,7 +460,7 @@ if __name__ == "__main__":
     
     def getspeed(mat):
     	mat=basevals(mat)
-    	return mat.gets()
+    	return mat.gets(1)
     	
     def getstr(mat):
     	mat=basevals(mat)
@@ -940,11 +955,10 @@ if __name__ == "__main__":
     	cf.f4=1
     	dopen(cf)
     	
-    
-
-    def lethalcalc(mat,en):
+    def lethalcalc(mat,en,exp):
     	sk=getskin()
     	sken=sk.material_energy_density_j_per_hvl/(2**nuct.phi**6)
+    	en+=sk.exen(exp)
     	if(en<sken):
     		print("round not lethal")
     		return 0
@@ -962,8 +976,8 @@ if __name__ == "__main__":
     
     def dopen(mat):
     	print("")
-    	rspeed=mat.gets()
-    	round_diameter = mat.getdam()
+    	rspeed=mat.gets(1)
+    	round_diameter = mat.getdam(1)
     	round_mas=mat.getmass(round_diameter)
     	round_len=mat.getroundlenmass(round_mas,round_diameter)
     	print("round",sp.N(round_diameter*cm_m))
@@ -984,16 +998,18 @@ if __name__ == "__main__":
     	mult=mult**2
     	armor.material_energy_density_j_per_hvl=mat.f4*estfix(steel)
     	depth= 1
-    	print("fill",mat.fill)
-    	pcte=mat.exp/round_mas
-    	rdxdens=mat.density/1600
-    	print("exp pct",pcte.evalf()*rdxdens)
+    	exer=mat.exp
+    	if(exer!=0):
+    		print("fill",mat.fill)
+    		pcte=mat.exp/round_mas
+    		rdxdens=mat.density/1600
+    		print("exp pct",pcte.evalf()*rdxdens)
     	th=armor.thermalpenexp(round_energy,mat.exp)
     	depth=th
     	depth=depth/mult
     	print("ld ",(round_len/round_diameter).evalf())
     	print(f"Penetration depth: {depth*100:.2f} cm")
-    	lethalcalc(armor,round_energy)
+    	lethalcalc(armor,round_energy,exer)
     	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed,round_diameter)
     	print("barrel length cm ",lenn.evalf()*cm_m)
     	
