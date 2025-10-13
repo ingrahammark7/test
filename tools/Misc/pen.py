@@ -22,8 +22,7 @@ class Material:
         self.base_hvl = base_hvl
         self.material_energy_density_j_per_hvl = material_energy_density_j_per_hvl
         self.weak_factor = weak_factor
-        
-     
+            
         self.avogadro = avo
         self.k = 8987551752.21422
         self.elementary_charge = ec
@@ -48,7 +47,7 @@ class Material:
         self.exp=0
                   
         
-        self.j_high_estimate = (self.compute_high_estimate() ** 0.5)*self.f4
+        self.j_high_estimate = (self.compute_high_estimate())*self.f4
         self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
         self.elmol=self.elementary_charge*self.avogadro
         self.elmol=self.elmol**(1/4)
@@ -70,11 +69,14 @@ class Material:
     
     def compute_high_estimate(self):
         ch = self.ch
-        ch *= self.atomic_number
         ac = self.avogadro * ch
         moles = mass_g/ self.molar_mass
         re = moles * ac
         re=re/self.weak_factor
+        mo=(4*sp.pi)-6
+        mo**=nuct.phi
+        re**=.5
+        re/=mo
         return re
     
     def compute_cohesive_bond_energy(self):
@@ -265,7 +267,7 @@ class Material:
         barh=baro*self.getbarrelmat(1).base_hvl
         if(isbarrel==1):
         	return baro
-        print("av",baro)
+        
     	
     def getbaro(self):
     	b=self.getbarrelmat(1)
@@ -284,7 +286,7 @@ class Material:
    
     def damiter(self,isbarrel):
         r=self.barm(isbarrel)
-        r=r**.5
+        r=r**(.5)
         return self.barhvl(r,isbarrel)
         
     def barhvl(self,r,isbarrel):
