@@ -247,7 +247,7 @@ class NuclearPenetrationModel:
 def baseobj():
 	return NuclearPenetrationModel()
 
-print("ratio ",baseobj().getpow().evalf())
+
 
 
 
