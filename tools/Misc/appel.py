@@ -78,7 +78,9 @@ def create_pdf(output_filename):
         "Plaintiff and Petitioner,",
         "vs",
         "San Francisco Superior Court,",
-        "Respondent."
+        "Respondent,",
+        "Chase Bank,",
+        "Real party in interest.",
     ]
     y_position = top_margin - 4.75* inch
     counter=0
@@ -112,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Consider all filings fraudulent. Ban me from filing. /n Petitioner petitions this court to: /n 1. Ban me. /n" 
+    intro_text = "On October 6 2025 and other dates, Court deleted my attached filings. Additional fraudulent filings exist on case. The filings are no longer visible as pending and were completely deleted. Court refuses communication and all phone lines and emails are unresponsive. /n Consider all filings fraudulent. Ban me from filing. /n Petitioner petitions this court to: /n 1. Ban me. /n" 
     y_position -= .25*inch
     
     
@@ -159,6 +161,7 @@ def create_pdf(output_filename):
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/11/2025")
+    c.drawString(left_margin, y_position - 0.5* inch, "Exhibit A attached below.")
     c=dopage(c,2)
  
 
