@@ -262,8 +262,9 @@ class Material:
         
     def barm(self,isbarrel):	
         baro=self.getbaro()
+        barh=baro*self.getbarrelmat(1).base_hvl
         if(isbarrel==1):
-        	return baro**.5
+        	return baro
         print("av",baro)
     	
     def getbaro(self):
@@ -456,6 +457,13 @@ def getht(self):
     en*=ac
     t=vf*en
     t*=(1/side)/2
+    r=self.avogadro/self.av
+    r**=2/3
+    t/=r
+    ref=nuct.baseobj().am**3
+    ref/=3
+    corr=(1/getsteel().atomic_radius)/ref
+    t/=corr
     return t
     
 def amass(self):
