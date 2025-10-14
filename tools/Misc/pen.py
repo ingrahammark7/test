@@ -166,8 +166,12 @@ class Material:
     def getvel(self,round_diameter1):
         ba,airvol=self.getvol(round_diameter1)
         if(self.bafac==1):
-        	return self.domaxld(ba,airvol)
-        return self.bafac,airvol
+        	v1=airvol
+        	ba,airvol=self.domaxld(ba,airvol)
+        	v1/=airvol
+        	ba/=v1
+        	return ba,airvol,v1
+        return self.bafac,airvol,1
     
     def getvol(self,round_diameter1):
        airvol,ht,ra=self.getv(round_diameter1)
@@ -206,7 +210,11 @@ class Material:
         return n.density*(ra**2)*nuct.picor
         
     def domaxld(self,ba,airvol):
-    	self.barm(0)
+    	ba1=ba
+    	ba=self.barmm(0,ba)
+    	diff=ba1/ba
+    	diff**=1/3
+    	airvol/=diff
     	return ba,airvol
 
     def gets(self,isbarrel):
@@ -260,14 +268,36 @@ class Material:
     def getdam(self,isbarrel):
         if(self.f2==1):
         	return self.damiter(isbarrel)
-        return self.f2
+        return self.f2   
         
-    def barm(self,isbarrel):	
+    def barm(self,isbarrel):
+    	return self.barmm(isbarrel,1)
+    	
+    def barmm(self,isbarrel,ba):	
         baro=self.getbaro()
-        barh=baro*self.getbarrelmat(1).base_hvl
+        ba1=ba
         if(isbarrel==1):
         	return baro
-        
+        ba=self.barhvl(baro**.5,isbarrel)
+        r=self.getbuc(ba,ba1)
+        if(r>1):
+        	print("ld not limited ",sp.N(r))
+        	r=1
+        res=ba1*(r**.5)
+        return res
+
+    def getbuc(self,ba,ba1):
+    	ba1=self.barhvl(ba1,0)
+    	r=ba/2
+    	r**=4
+    	r*=sp.pi/4
+    	r*=(sp.pi**2)
+    	ba*=2
+    	ba**=2
+    	ba*=nuct.picor
+    	r/=(ba1**2)*ba
+    	return r
+    	
     	
     def getbaro(self):
     	b=self.getbarrelmat(1)
@@ -1021,13 +1051,14 @@ if __name__ == "__main__":
     def dopen(mat):
     	print("")
     	round_diameter = mat.getdam(1)
-    	ld,rspeed=mat.getvel(round_diameter)
+    	ld,rspeed,mm=mat.getvel(round_diameter)
+    	round_diameter*=mm
     	round_mas=mat.getmass(round_diameter,ld)    	
     	print("round",sp.N(round_diameter*cm_m))
     	print("mass",round_mas.evalf())
     	round_energy = (.5*round_mas*(rspeed**2))
     	print("energy j ",round_energy.evalf())
-    	print("speed",rspeed)
+    	print("speed",sp.N(rspeed))
     	armor=steel
     	if(round_diameter==.009):
     		armor=getrp1tenpct()
