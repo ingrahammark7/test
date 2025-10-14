@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Deleted Case" 
+footer_text = "Response" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -49,8 +49,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES DISTRICT COURT")
-    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "NINTH CIRCUIT")
  
 
     # (4) Case Title
@@ -82,7 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "Case Number: Case 2:25-cv-09550-MWC",
+        "Case Number: Case 25-6407",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -159,9 +159,9 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="This case seems to have been deleted from pacer. Judge should make it visible. /n"
+    text="My reply was already given in supplemental brief and judge should dismiss case since they struggle with reading. /n"
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/10/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/14/2025")
 
 
     # Save the PDF
