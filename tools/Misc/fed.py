@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Response" 
+footer_text = "Request"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -155,11 +155,11 @@ def create_pdf(output_filename):
     	
     
     h1=""
-    y_position=top_margin-.5*inch
+    y_position=top_margin-.0*inch
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="My reply was already given in supplemental brief and judge should dismiss case since they struggle with reading. /n"
+    text="Court should ban me from filing rather than giving these senile boilerplate dismissals. Judge literally said me killing police officers is 'frivolous'. /n"
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/14/2025")
 
