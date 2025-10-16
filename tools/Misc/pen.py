@@ -531,6 +531,8 @@ if __name__ == "__main__":
     	mat.f2=1
     	mat.f3=1
     	mat.f4=1
+    	mat.fill=1
+    	mat.exp=0
     	return mat
     
     def getspeed(mat):
