@@ -1,52 +1,54 @@
-import numpy as np
+# Creating a day-by-day probabilistic forecast for the government shutdown ending (Oct 16–Oct 30, 2025).
+# This is a heuristic model (not a formal statistical fit). It weights current facts:
+#  - repeated Senate vote failures and current offers (low near-term probability today)
+#  - Thune offer to provide a vote on ACA subsidies (increases chances next week)
+#  - political/economic pressure rising week-to-week (increases hazard over time)
+# The numbers are my best-effort judgmental probabilities based on current reporting.
+import pandas as pd
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from datetime import datetime, timedelta
+dates = [datetime(2025,10,16) + timedelta(days=i) for i in range(15)]  # Oct16 - Oct30
+# Daily resolution probabilities (probability the shutdown is resolved on that specific date)
+# These are modelled to reflect a low chance today (vote failures), a higher chance next week as pressure mounts,
+# and a strong chance cumulatively by Oct 30.
+daily_probs = [
+    0.05,  # Oct 16
+    0.08,  # Oct 17
+    0.10,  # Oct 18
+    0.12,  # Oct 19
+    0.12,  # Oct 20
+    0.13,  # Oct 21
+    0.10,  # Oct 22
+    0.08,  # Oct 23
+    0.07,  # Oct 24
+    0.06,  # Oct 25
+    0.04,  # Oct 26
+    0.03,  # Oct 27
+    0.01,  # Oct 28
+    0.00,  # Oct 29 (negligible new resolution chance beyond Oct28 in this curve)
+    0.00,  # Oct 30 (we'll interpret cumulative by Oct30)
+]
+# Normalize to ensure sum <= 1 (it currently sums to something <1). We'll leave remaining mass as "not resolved by Oct 30".
+s = sum(daily_probs)
+# compute cumulative
+df = pd.DataFrame({
+    "date": [d.strftime("%Y-%m-%d") for d in dates],
+    "daily_resolution_prob": daily_probs
+})
+df["cumulative_prob_by_date"] = df["daily_resolution_prob"].cumsum()
+df["cumulative_percent_by_date"] = (df["cumulative_prob_by_date"]*100).round(1)
+# show table and plot cumulative probability
+from caas_jupyter_tools import display_dataframe_to_user
+display_dataframe_to_user("Shutdown resolution probabilities (Oct 16-30, 2025)", df)
 
-# Define axes ranges
-t = np.logspace(-20, -17, 50)           # Time in seconds
-T = np.linspace(0, 0.1, 50)            # Temperature in Kelvin
-t_grid, T_grid = np.meshgrid(t, T)
-
-# Hypothetical harmonized fraction / runaway probability model
-P_run = np.exp(-T_grid/0.01) * (1 - np.exp(-t_grid*1e19))
-P_run[P_run > 1] = 1
-
-# Plot 3D surface
-fig = plt.figure(figsize=(12,8))
-ax = fig.add_subplot(111, projection='3d')
-
-surf = ax.plot_surface(t_grid, T_grid, P_run, cmap='hot', edgecolor='k', alpha=0.8)
-
-# Safe envelope boundary (semi-transparent)
-ax.plot_wireframe(t_grid, T_grid, P_run*0.9, color='blue', alpha=0.3)
-
-# Contour overlay
-ax.contour(t_grid, T_grid, P_run, levels=[0.1,0.5,0.9], zdir='z', offset=-0.1, colors='k', linestyles='--')
-
-# Arrows indicating clogged paths / environmental noise
-# Draw several arrows from high P_run down to safe envelope
-for i in [0, 10, 20, 30, 40]:
-    ax.quiver(t_grid[0,i], T_grid[0,i], P_run[0,i]+0.05,
-              0, 0, -0.05, color='cyan', arrow_length_ratio=0.2, linewidth=1.5)
-
-# Axis labels
-ax.set_xlabel("Time (s, subatomic scale)")
-ax.set_ylabel("Temperature (K)")
-ax.set_zlabel("Harmonized Fraction / Runaway Probability")
-
-# Axis ticks
-ax.set_xticks([1e-20, 1e-19, 1e-18, 1e-17])
-ax.set_yticks([0, 0.005, 0.01, 0.05, 0.1])
-ax.set_zlim(0,1)
-
-# Color bar
-fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10, label='f / P_run')
-
-# Annotations
-ax.text(1e-20, 0, 1.05, "Critical runaway, ultra-cold, minimal seed", color='red')
-ax.text(1e-18, 0.01, 0.5, "Partial harmonization region", color='orange')
-ax.text(1e-17, 0.1, 0.0, "Safe region, decoherence dominates", color='green')
-ax.text(1e-19, 0.05, 0.6, "Cyan arrows = environmental / clogged path effect", color='cyan')
-
-plt.title("Atomic-Scale Coherence Framework: Harmonization, Runaway Probability, and Safety Mechanisms")
+plt.figure(figsize=(9,4))
+plt.plot(df["date"], df["cumulative_prob_by_date"])
+plt.xticks(rotation=45, ha="right")
+plt.ylabel("Cumulative probability (0–1)")
+plt.title("Heuristic forecast: probability shutdown resolved by each date (Oct 16–30, 2025)")
+plt.tight_layout()
 plt.show()
+
+# Save CSV for download if the user wants it
+df.to_csv("/mnt/data/shutdown_forecast_oct16-30-2025.csv", index=False)
+print("\n[Download the CSV here](/mnt/data/shutdown_forecast_oct16-30-2025.csv)")
