@@ -1,243 +1,603 @@
-"""
-Unified Submarine Littoral Training Simulator
-Run:
-  Terminal CLI: python subgame_all.py --cli
-  Web simulator: python subgame_all.py --web
-Dependencies:
-  - Python 3.8+
-  - reportlab (pip install reportlab)
-  - flask (pip install flask) [web mode]
-  - curses (Windows: pip install windows-curses) [CLI mode]
-"""
+import math
+import nuct
+import sympy as sp
+import cons
 
-import random, datetime, io, sys
+mass_g=cons.mass_g
+cm_m=cons.cm_m
+req=cons.req
+crad=cons.crad
+avo=cons.avo
+ec=cons.ec
 
-# --- COMMON DATA ---
-DECISIONS = {'A':'Stay Submerged','B':'Brief Pop','C':'Deploy USV','D':'Call Escorts','E':'Extended Surface'}
-SCENARIOS = [
-    {'name':'Helo unescorted','threat':'helicopter','distance_km':50,'has_magura':False,'ROE':'Permissive','visibility':'normal','night_ops':False,'sonobuoy_net':'good','torpedo_missile_on_station':False},
-    {'name':'ASW with torpedo-missile','threat':'ASW_aircraft','distance_km':45,'has_magura':False,'ROE':'Restricted','visibility':'normal','night_ops':False,'sonobuoy_net':'good','torpedo_missile_on_station':True},
-    {'name':'Magura defended littoral','threat':'helicopter','distance_km':30,'has_magura':True,'ROE':'Constrained','visibility':'normal','night_ops':False,'sonobuoy_net':'poor','torpedo_missile_on_station':False},
-    {'name':'UAV tracking & USV loiterers','threat':'UAV','distance_km':60,'has_magura':False,'ROE':'Permissive','visibility':'poor','night_ops':True,'sonobuoy_net':'good','torpedo_missile_on_station':False}
-]
-BASE_EFFECT = {'helicopter':{'A':0.8,'B':0.3,'C':0.5,'D':0.6,'E':0.1},
-               'ASW_aircraft':{'A':0.85,'B':0.4,'C':0.5,'D':0.6,'E':0.2},
-               'UAV':{'A':0.8,'B':0.4,'C':0.7,'D':0.6,'E':0.3}}
-MODS = {'escorted':-0.4,'magura':-0.3,'poor_vis':-0.2,'torp_missile':-0.6,'USV_armed':0.2,'sonobuoy_poor':-0.15,'accessory_present':0.25}
+class Material:
+    def __init__(self, name, molar_mass_kg_mol, density_kg_m3, atomic_radius_m, atomic_number,
+                cohesive_energy_ev, base_hvl, material_energy_density_j_per_hvl, weak_factor=1):
+        self.name = name
+        self.molar_mass = molar_mass_kg_mol
+        self.density = density_kg_m3
+        self.atomic_radius = atomic_radius_m
+        self.atomic_number = atomic_number
+        self.cohesive_energy_ev = cohesive_energy_ev
+        self.base_hvl = base_hvl
+        self.material_energy_density_j_per_hvl = material_energy_density_j_per_hvl
+        self.weak_factor = weak_factor
+            
+        self.avogadro = avo
+        self.k = 8987551752.21422
+        self.elementary_charge = ec
+        self.ev_to_joule = self.elementary_charge
+        self.phi = nuct.phi
+        self.ch=(self.elementary_charge ** 2) * self.k / (self.atomic_radius ** 2)
+        self.ch1=self.ch*self.atomic_radius
+        self.bol=1.380649e-23
+        self.db=24.94
+        self.zc=273.15
+        self.pmas=nuct.prma/2
+        self.emr=nuct.alpha**nuct.phi
+        self.emr=self.emr/nuct.phi
+        self.crad=crad
+        self.req=req
+       
+        self.bafac=1
+        self.f2=1
+        self.f3=1
+        self.f4=1
+        self.fill=1
+        self.exp=0
+                  
+        
+        self.j_high_estimate = (self.compute_high_estimate())*self.f4
+        self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
+        self.elmol=self.elementary_charge*self.avogadro
+        self.elmol=self.elmol**(1/4)
+        self.elmol*=self.phi
+        self.te=1-(1/(8))
+        self.elmol*=self.te
+        self.db=self.elmol
+        self.av=(((nuct.alpha**nuct.phi)**7)/3)
+        self.am=nuct.alpha**nuct.phi
+        
+    
+    def getrange(self,round_mas,diam):
+    	airdens=getn().density
+    	de=self.density*self.fill
+    	lenn=self.getroundlenmass(round_mas,diam)
+    	de=self.density/airdens
+    	return lenn*de
 
-INSTRUCTOR_SLIDES = [
-    "Slide 1: Learning objectives — sensor/timing windows, cost asymmetry, unmanned assets, ROE",
-    "Slide 2: Setup — assign player & umpire, preconfigured scenario, logging",
-    "Slide 3: Playthrough — 10-15 min per vignette, decisions announced, run sim",
-    "Slide 4: Debrief — S/M/E/R outcomes, cues used, alternatives",
-    "Slide 5: Assessment — 0.5*S + 0.3*M - 0.1*E - 0.1*R, compare students",
-    "Slide 6: Homework — propose one kit or doctrine change for Magura context"
-]
+    
+    def compute_high_estimate(self):
+        ch = self.ch
+        ac = self.avogadro * ch
+        moles = mass_g/ self.molar_mass
+        re = moles * ac
+        re=re/self.weak_factor
+        mo=(4*sp.pi)-6
+        mo**=nuct.phi
+        re**=.5
+        re/=mo
+        return re
+    
+    def compute_cohesive_bond_energy(self):
+        moles = mass_g / self.molar_mass
+        atoms = moles * self.avogadro
+        bond_energy_per_atom_j = self.cohesive_energy_ev * self.ev_to_joule
+        total_bond_energy_joules = atoms * bond_energy_per_atom_j
+        return total_bond_energy_joules/mass_g
 
-session_log = []
+    def print_summary(self):
+        print(f"Cohesive bond energy total (J): {self.cohesive_bond_energy:.4e}")
+        print(f"Cohesive bond energy total (MJ): {self.cohesive_bond_energy / 1e6:.4f}")
 
-# --- SIMULATOR ---
-def compute_abort(scenario, decision, ephemeral):
-    base = BASE_EFFECT.get(scenario['threat'], {}).get(decision, 0.5)
-    base += min(0.2, max(0, (scenario['distance_km']-10)/200.0))
-    mod = 0.0
-    if scenario.get('has_magura') and decision in ['B','E']: mod += MODS['magura']
-    if scenario.get('torpedo_missile_on_station'): mod += MODS['torp_missile']
-    if scenario.get('visibility')=='poor': mod += MODS['poor_vis']
-    if scenario.get('sonobuoy_net')=='poor': mod += MODS['sonobuoy_poor']
-    if ephemeral.get('escorted'): mod += MODS['escorted']
-    if ephemeral.get('USV_armed'): mod += MODS['USV_armed']
-    if ephemeral.get('accessory_present'): mod += MODS['accessory_present']
-    return max(0,min(1,base+mod))
+    def combine_angles(self, angle1_deg, angle2_deg):
+        a1=self.clean_angle(angle1_deg) 
+        a2=self.clean_angle(angle2_deg) 
+        f2=90-a2 
+        r=f2/90 
+        r=1-r
+        r=(a1)*r
+        return min(r, 90)
+    
+    def hvl_mass_kg(self):
+        h=self.base_hvl
+        dens=self.density
+        v=h**3
+        m=v*dens
+        return m
+    
+    def melt_one_hvl(self):
+        h=self.hvl_mass_kg()
+        bo=self.cohesive_bond_energy
+        bo=h*bo
+        return bo
+        
+    def thermal_max_pen(self,d,round_energy):
+        r=self.thermalpen(round_energy)
+        if(d==-1):
+        	return r
+        if(d>r):
+            print("A ",d,"cm penetration was thermally bound to ", r,"cm.")
+            return r
+        print("A ", d,"cm penetration did not reach thermal bound ", r,"cm.")
+        return d
+        
+    def thermalpen(self,round_energy):
+    	return self.thermalpenexp(round_energy,0)
+    
+    def thermalpenexp(self,round_energy,exp):
+    	f=self.melt_one_hvl()
+    	hv=self.base_hvl
+    	r=(round_energy/f)*hv/nuct.phi
+    	r/=nuct.picor
+    	return self.doexp(r,exp)
+    	
+    def doexp(self,r,exp):
+    	if(exp==0):
+    		return r
+    	exp=self.exen(exp)
+    	f1=self
+    	f1.exp=0
+    	d=f1.thermalpen(exp)
+    	return r+d
+    	
+    def exen(self,exp):
+    	rdxdens=5330e3
+    	exp*=rdxdens
+    	return exp    	
+    	
+    def penetration_depth(self, round_energy, round_diameter, angle1, angle2, honeycomb_layers):
+        effective_angle = self.combine_angles(angle1, angle2)
+        d=-1
+        d=self.thermal_max_pen(d,round_energy)
+        d = self.pen_angle(d, effective_angle, round_energy, round_diameter)
+        d=self.honeycomb_pen(d,round_energy,round_diameter,honeycomb_layers)
+        return d
 
-def simulate_decision(scenario, decision, ephemeral):
-    abort_prob = compute_abort(scenario, decision, ephemeral)
-    r = random.random()
-    if r <= abort_prob: S,M,E,R = 95,40,10,15; outcome='Abort'
-    else: S=random.randint(20,70); M=random.randint(0,30); E=random.randint(30,60); R=random.randint(20,60); outcome='Engaged'
-    return {'scenario':scenario,'decision':decision,'ephemeral':ephemeral,'abort_prob':abort_prob,'S':S,'M':M,'E':E,'R':R,'outcome':outcome}
+    def pen_angle(self, d, angle, round_energy, round_diameter):
+        if(angle==0):
+            return 0
+        r = 90 / angle
+        r = r ** (4 ** self.phi)
+        d = d / r
+        d= self.base_pen(d, round_energy, round_diameter)
+        return d
+        
+    def getvel(self,round_diameter1):
+        ba,airvol=self.getvol(round_diameter1)
+        if(self.bafac==1):
+        	v1=airvol
+        	ba,airvol=self.domaxld(ba,airvol)
+        	v1/=airvol
+        	ba/=v1
+        	return ba,airvol,v1
+        return self.bafac,airvol,1
+    
+    def getvol(self,round_diameter1):
+       airvol,ht,ra=self.getv(round_diameter1)
+       ba=self.getba(ht,ra)
+       return ba,airvol
+       
+    def getv(self,round_diameter1):
+       mp=getmp(self)
+       ht=getmht(self)
+       airvol,ht,ra=self.getairvol(ht,mp,round_diameter1)
+       return airvol,ht,ra
+       
+    def getba(self,ht,ra):
+       ba=ht
+       roundside=ra*nuct.sp.pi
+       ba=ba/roundside
+       return ba
+       
+    def getairvol(self,ht,mp,ra):
+        airvol=self.getav(ra,mp)
+        ht=self.getairen(mp,ra)/(ht*mp)
+        return airvol,ht,ra**2
+    
+    def getav(self,ra,mp):
+        aireng= self.getairen(mp,ra)
+        airvol=self.velfromen(self.getaph(ra),aireng)
+        return airvol
+        
+    def getairen(self,mp,ra):
+        n=getn()
+        airperhit=self.getaph(ra)
+        return airperhit*getsh_per_kg(n)*mp
+        
+    def getaph(self,ra):
+        n=getn()
+        return n.density*(ra**2)*nuct.picor
+        
+    def domaxld(self,ba,airvol):
+    	ba1=ba
+    	ba=self.barmm(0,ba)
+    	diff=ba1/ba
+    	diff**=1/3
+    	airvol/=diff
+    	return ba,airvol
 
-# --- PDF Export ---
-def export_session_pdf(session_data, filename="submarine_session.pdf"):
-    try:
-        from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
-    except ImportError:
-        fname = filename.replace(".pdf",".txt")
-        with open(fname,"w") as f:
-            f.write("Session Log\n")
-            for idx,r in enumerate(session_data):
-                f.write(f"Round {idx+1}: {r['scenario']['name']}, Decision: {r['decision']}, Outcome: {r['outcome']}, Abort Prob: {r['abort_prob']:.2f}, S:{r['S']},M:{r['M']},E:{r['E']},R:{r['R']}\n")
-        print("reportlab not installed. Text export:", fname)
-        return fname
-    buffer = filename
-    c = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-    margin = 40
-    y = height - margin
-    c.setFont("Helvetica-Bold",14)
-    c.drawString(margin,y,"Submarine Littoral Training Session")
-    y -= 20
-    c.setFont("Helvetica",9)
-    c.drawString(margin,y,"Generated: "+datetime.datetime.utcnow().isoformat()+"Z")
-    y -= 16
-    c.line(margin,y,width-margin,y)
-    y -= 18
-    for idx,r in enumerate(session_data):
-        if y<80: c.showPage(); y=height-margin
-        c.setFont("Helvetica-Bold",11)
-        c.drawString(margin,y,f"Round {idx+1}: {r['scenario']['name']}")
-        y-=14
-        c.setFont("Helvetica",10)
-        c.drawString(margin+10,y,f"Decision: {r['decision']} | Outcome: {r['outcome']}")
-        y-=12
-        c.drawString(margin+10,y,f"Abort Prob: {r['abort_prob']:.2f} S:{r['S']} M:{r['M']} E:{r['E']} R:{r['R']}")
-        y-=16
-    c.save()
-    print("Exported PDF:", buffer)
-    return buffer
+    def gets(self,isbarrel):
+        round_diameter1=self.getdam(isbarrel)
+        d=self.getav(round_diameter1,getmp(self))
+        return d
+        
+    def getmass(self,round_diameter1,ld):
+        round_diameter1=round_diameter1*round_diameter1*round_diameter1
+        d=self.density
+        ff=round_diameter1*ld*d*self.fill
+        return ff*nuct.picor
+        
+    def getbarrelmat(self,isbarrel):
+    	if(isbarrel==1):
+    		return getsteel()
+    	return self
+    	
+    def getbarrellen(self,rounde,roundl,speed,diam):
+    	fine=nuct.alpha
+    	if(speed==1):
+    		pass
+    	else:
+    			maxs=self.gets(1)
+    			speed=speed/maxs
+    			fine=1-speed
+    			if(fine<=0):
+    				fine=nuct.alpha
+    	mpb=getmp(self)
+    	mpr=getmp(rounde)
+    	rat=mpb/mpr
+    	logl=math.log2(fine)
+    	logl=abs(logl)  
+    	f= rat*roundl*logl
+    	d1=7.85/(1.51)
+    	d1*=1.27/cm_m	
+    	cut=d1*2
+    	if(diam>cut):
+    		foo=diam/cut
+    		foo**=2/3
+    		f=f*foo
+    	return f
+    	
+    def getbarrelmass(self,rounde,roundl,diam,speed):
+    	thick=self.base_hvl
+    	massper=self.density
+    	lenn=self.getbarrellen(rounde,roundl,speed,diam)
+    	side=massper*thick*lenn*diam*nuct.picor
+    	return side*nuct.sp.pi
+    
+    def getdam(self,isbarrel):
+        if(self.f2==1):
+        	return self.damiter(isbarrel)
+        return self.f2   
+        
+    def barm(self,isbarrel):
+    	return self.barmm(isbarrel,1)
+    	
+    def barmm(self,isbarrel,ba):	
+        baro=self.getbaro()
+        ba1=ba
+        if(isbarrel==1):
+        	return baro
+        ba=self.barhvl(baro**.5,isbarrel)
+        r=self.getbuc(ba,ba1)
+        if(r>1):
+        	print("ld not limited ",sp.N(r))
+        	r=1
+        res=ba1*(r**.5)
+        return res
 
-# --- CLI MODE ---
-def cli_mode():
-    import curses
-    def run_cli(stdscr):
-        curses.curs_set(0)
-        while True:
-            scenario = random.choice(SCENARIOS)
-            stdscr.clear()
-            stdscr.addstr(0,0,f"Scenario: {scenario['name']}")
-            stdscr.addstr(1,0,f"Threat: {scenario['threat']} Distance: {scenario['distance_km']} km Magura:{scenario['has_magura']}")
-            stdscr.addstr(3,0,"Decisions:")
-            for k,v in DECISIONS.items(): stdscr.addstr(f"{k} - {v}\n")
-            stdscr.addstr("Choose decision (A-E) or Q to quit: ")
-            stdscr.refresh()
-            ch = stdscr.getkey().upper()
-            if ch=='Q': break
-            if ch not in DECISIONS: ch='A'
-            ephemeral = {'escorted': random.choice([False, True, False]),
-                         'accessory_present': random.choice([False, False, True]),
-                         'USV_armed': ch=='C' and random.choice([True,False])}
-            result = simulate_decision(scenario,ch,ephemeral)
-            session_log.append(result)
-            stdscr.addstr(f"Outcome: {result['outcome']}, Abort Prob:{result['abort_prob']:.2f}, S:{result['S']} M:{result['M']} E:{result['E']} R:{result['R']}\n")
-            stdscr.addstr("Press any key to continue...")
-            stdscr.getch()
-    curses.wrapper(run_cli)
-    export_session_pdf(session_log)
+    def getbuc(self,ba,ba1):
+    	ba1=self.barhvl(ba1,0)
+    	r=ba/2
+    	r**=4
+    	r*=sp.pi/4
+    	r*=(sp.pi**2)
+    	ba*=2
+    	ba**=2
+    	ba*=nuct.picor
+    	r/=(ba1**2)*ba
+    	return r
+    	
+    	
+    def getbaro(self):
+    	b=self.getbarrelmat(1)
+    	ben=b.getben()
+    	return ben
+    	
+    def getben(self):
+    	maxd=self.base_hvl
+    	mm=self.hvl_mass_kg()
+    	mp=getmp(self)
+    	av=self.getav(maxd,mp)
+    	ben=self.enfromvel(mm,av)
+    	doh=self.material_energy_density_j_per_hvl
+    	return doh/ben
+ 
+   
+    def damiter(self,isbarrel):
+        r=self.barm(isbarrel)
+        r=r**(.5)
+        return self.barhvl(r,isbarrel)
+        
+    def barhvl(self,r,isbarrel):
+        return r*self.getbarrelmat(isbarrel).base_hvl
+        
+    def getroundlenmass(self,mass,diam):
+        dens=self.density
+        firstd=diam*diam*dens*nuct.picor
+        lens=mass/firstd
+        return lens/self.fill
+    
+    def enfromvel(self,mass,vel):
+        return .5*mass*vel*vel
+    
+    def velfromen(self,mass,en):
+        return math.sqrt(2 * (en / mass))
+    
+    
+    def honeycomb_pen(self,d,round_energy_mj,round_diameter,layers):
+        if(layers==0):
+            return d
+        l=(layers*2)**2
+        r=90/l
+        d=self.pen_angle(d,r,round_energy_mj,round_diameter)
+        d=self.base_pen(d,round_energy_mj,round_diameter)
+        return d
+            
+    def clean_angle(self, angle):
+        angle = angle % 180
+        if angle > 90:
+        	angle = 180 - angle
+        return angle
 
-# --- WEB MODE ---
-def web_mode():
-    from flask import Flask, render_template_string, request, send_file
-    app = Flask(__name__)
+    def base_pen(self, d, round_energy_j, round_diameter):
+        e = self.sectional_energy_density(round_energy_j, round_diameter)
+        m = self.material_energy_density_j_per_hvl
+        m= (e/m)*self.base_hvl
+        if(m>d):
+            return m
+        return d
 
-    @app.route("/")
-    def index():
-        scenario = random.choice(SCENARIOS)
-        idx = SCENARIOS.index(scenario)
-        return render_template_string("""
-            <h2>Submarine Littoral Simulator</h2>
-            <h3>Scenario: {{scenario.name}}</h3>
-            <ul>
-                <li>Threat: {{scenario.threat}}</li>
-                <li>Distance: {{scenario.distance_km}} km</li>
-                <li>Magura: {{scenario.has_magura}}</li>
-                <li>Torpmissile: {{scenario.torpedo_missile_on_station}}</li>
-            </ul>
-            <form method="post" action="/decide">
-                <input type="hidden" name="idx" value="{{idx}}">
-                {% for k,v in decisions.items() %}
-                    <input type="radio" name="decision" value="{{k}}" required> {{k}} - {{v}}<br>
-                {% endfor %}
-                <input type="submit" value="Submit Decision">
-            </form>
-            <br><a href="/log">Session Log</a> | <a href="/export">Export PDF</a> | <a href="/instructor">Instructor Dashboard</a>
-        """, scenario=scenario, idx=idx, decisions=DECISIONS)
+    def sectional_energy_density(self, round_energy_j, round_diameter):
+        if round_diameter< self.base_hvl:
+            return round_energy_j / (self.base_hvl** 2)
+        return round_energy_j / ((round_diameter/self.base_hvl) ** 2)
 
-    @app.route("/decide", methods=['POST'])
-    def decide():
-        idx = int(request.form['idx'])
-        scenario = SCENARIOS[idx]
-        decision = request.form['decision']
-        ephemeral = {'escorted': random.choice([False,True,False]),
-                     'accessory_present': random.choice([False,False,True]),
-                     'USV_armed': decision=='C' and random.choice([True,False])}
-        result = simulate_decision(scenario,decision,ephemeral)
-        session_log.append(result)
-        return render_template_string("""
-            <h2>Decision Result</h2>
-            <p>Decision: {{result.decision}} | Outcome: {{result.outcome}}</p>
-            <p>Abort Probability: {{result.abort_prob:.2f}}</p>
-            <p>Scores: S={{result.S}}, M={{result.M}}, E={{result.E}}, R={{result.R}}</p>
-            <p>Ephemeral Factors: {{result.ephemeral}}</p>
-            <br><a href="/">Next Scenario</a> | <a href="/log">View Log</a> | <a href="/export">Export PDF</a> | <a href="/instructor">Instructor Dashboard</a>
-        """, result=result)
+def estfix(self):
+        return (self.j_high_estimate*self.hvl_mass_kg())
+        
+def cohfrommp(mp):
+		he=(getsteel().db*mp)/getsteel().avogadro
+		he=he/getsteel().ev_to_joule
+		return he*2*zrule()
+		
+def zrule():
+	return 6
 
-    @app.route("/log")
-    def log_view():
-        html = "<h2>Session Log</h2><ul>"
-        for r in session_log:
-            html += f"<li>Scenario: {r['scenario']['name']} | Decision: {r['decision']} | Outcome: {r['outcome']} | Abort Prob: {r['abort_prob']:.2f}</li>"
-        html += "</ul><br><a href='/'>Next Scenario</a> | <a href='/export'>Export PDF</a> | <a href='/instructor'>Instructor Dashboard</a>"
-        return html
+def getsteel():
+    steel = Material(
+        name="Iron (Steel)",
+        molar_mass_kg_mol=55.85/mass_g,
+        density_kg_m3=7850,
+        atomic_radius_m=126e-12,
+        atomic_number=26,
+        cohesive_energy_ev=4.28,
+        base_hvl=1.27/cm_m,
+        material_energy_density_j_per_hvl=1,
+        weak_factor=1
+    )
+    steel.material_energy_density_j_per_hvl=estfix(steel)
+    return steel
+    
+def getdu():
+    du=Material(
+    name="Uranium",
+    molar_mass_kg_mol=238/mass_g,
+    density_kg_m3=19500,
+    atomic_radius_m=175e-12,
+    atomic_number=92,
+    cohesive_energy_ev=5.06,
+    base_hvl=0.03/cm_m,
+    material_energy_density_j_per_hvl=1,
+    weak_factor=3
+    )
+    du.material_energy_density_j_per_hvl=estfix(du)
+    return du
+    
+def getcf():
+    cf=Material(
+    name="CF",
+    molar_mass_kg_mol=12/mass_g,
+    density_kg_m3=1930,
+    atomic_radius_m=77e-12,
+    atomic_number=6,
+    cohesive_energy_ev=7.37,
+    base_hvl=7.33/cm_m,
+    material_energy_density_j_per_hvl=1,
+    weak_factor=1
+    )
+    cf.material_energy_density_j_per_hvl=estfix(cf)
+    return cf
 
-    @app.route("/export")
-    def export_pdf():
-        buffer = io.BytesIO()
-        try:
-            from reportlab.lib.pagesizes import letter
-            from reportlab.pdfgen import canvas
-            c = canvas.Canvas(buffer, pagesize=letter)
-            width,height = letter
-            margin=40
-            y=height-margin
-            c.setFont("Helvetica-Bold",14)
-            c.drawString(margin,y,"Submarine Littoral Training Session")
-            y-=20
-            c.setFont("Helvetica",9)
-            c.drawString(margin,y,"Generated: "+datetime.datetime.utcnow().isoformat()+"Z")
-            y-=16
-            c.line(margin,y,width-margin,y)
-            y-=18
-            for idx,r in enumerate(session_log):
-                if y<80: c.showPage(); y=height-margin
-                c.setFont("Helvetica-Bold",11)
-                c.drawString(margin,y,f"Round {idx+1}: {r['scenario']['name']}")
-                y-=14
-                c.setFont("Helvetica",10)
-                c.drawString(margin+10,y,f"Decision: {r['decision']} | Outcome: {r['outcome']}")
-                y-=12
-                c.drawString(margin+10,y,f"Abort Prob: {r['abort_prob']:.2f} S:{r['S']} M:{r['M']} E:{r['E']} R:{r['R']}")
-                y-=16
-            c.save()
-            buffer.seek(0)
-            return send_file(buffer, as_attachment=True, download_name="submarine_session.pdf", mimetype='application/pdf')
-        except ImportError:
-            return "reportlab not installed; cannot export PDF"
+dn=1.25
+rpmo=16
+rp1z=8
+rpsolidfrac=0.1
+rp1tendensity=1400
+waterfrac=.9
+invw=1-waterfrac
 
-    @app.route("/instructor")
-    def instructor_dashboard():
-        avg_abort = sum(r['abort_prob'] for r in session_log)/max(1,len(session_log))
-        avg_S = sum(r['S'] for r in session_log)/max(1,len(session_log))
-        html = "<h2>Instructor Dashboard</h2>"
-        html += f"<p>Average Abort Probability: {avg_abort:.2f}</p>"
-        html += f"<p>Average S Score: {avg_S:.1f}</p>"
-        html += "<h3>Slides</h3><ol>"
-        for slide in INSTRUCTOR_SLIDES:
-            html += f"<li>{slide}</li>"
-        html += "</ol><br><a href='/'>Return to Simulator</a>"
-        return html
+def getn():
+    n=Material(
+    name="N",
+    molar_mass_kg_mol=14/mass_g,
+    density_kg_m3=dn,
+    atomic_radius_m=7e-11,
+    atomic_number=7,
+    cohesive_energy_ev=1,
+    base_hvl=(getsteel().density/dn)*getsteel().base_hvl,
+    material_energy_density_j_per_hvl=1,
+    weak_factor=1
+    )
+    return n
+    
+def getrp1tenpct():
+    rp1tenpct=Material(
+    name="RP1tenpct",
+    molar_mass_kg_mol=rpmo/mass_g,
+    density_kg_m3=rp1tendensity,
+    atomic_radius_m=6e-11,
+    atomic_number=rp1z,
+    cohesive_energy_ev=cohfrommp(60),
+    base_hvl=10/cm_m,
+    material_energy_density_j_per_hvl=1,
+    weak_factor=(((getsteel().density)/rp1tendensity)**6)*nuct.alpha*(1/rpsolidfrac)
+    )
+    rp1tenpct.material_energy_density_j_per_hvl=estfix(rp1tenpct)   
+    return rp1tenpct
+            
+def getskin():
+    skin=Material(
+    name="Organic",
+    molar_mass_kg_mol=1,
+    density_kg_m3=1000,
+    atomic_radius_m=5.3e-11,
+    atomic_number=1,
+    cohesive_energy_ev=-8,
+    base_hvl=4/cm_m,
+    material_energy_density_j_per_hvl=1,
+    weak_factor=((1/invw)**2)**2
+    )
+    skin.material_energy_density_j_per_hvl=estfix(skin)
+    return skin
+    
+def getmht(self):
+    ht=getht(self)
+    return ht
+    
+def getht(self):
+    nm=(self.molar_mass/self.density)/getn().density
+    side=nm**(1/3)
+    ac=self.avogadro**(2/3)
+    mp=getmp(self)
+    vel=getvel(self,mp)
+    ar=self.atomic_radius*2
+    vf=vel/ar
+    vf**=2/3
+    va=vf*ar
+    en=.5*va*va*amass(self)
+    en*=ac
+    t=vf*en
+    t*=(1/side)/2
+    r=self.avogadro/self.av
+    r**=2/3
+    t/=r
+    ref=nuct.baseobj().am**3
+    ref/=3
+    corr=(1/getsteel().atomic_radius)/ref
+    t/=corr
+    return t
+    
+def amass(self):
+    return (self.molar_mass*mass_g)/self.avogadro
 
-    app.run(debug=True)
+def getvel(self,t):
+    s=3*self.bol*t*self.avogadro
+    m=self.molar_mass
+    return math.sqrt(s/m)
 
-# --- ENTRY POINT ---
-if __name__=="__main__":
-    if len(sys.argv)<2:
-        print("Usage: python subgame_all.py --cli | --web")
-        sys.exit(0)
-    mode = sys.argv[1].lower()
-    if mode=='--cli':
-        cli_mode()
-    elif mode=='--web':
-        web_mode()
-    else:
-        print("Unknown mode:", mode)
+def getmp(self):
+    ce=self.cohesive_bond_energy
+    ce=ce/zrule()
+    sh=getsh_per_kg(self)
+    sh=ce/sh/2/(self.f3**2)
+    return sh
+
+def getsh_per_kg(self):
+    sh=self.db
+    ker=self.molar_mass
+    return sh/ker
+
+if __name__ == "__main__":   
+    steel=getsteel()
+    du=getdu()
+    cf=getrp1tenpct()
+    steel.print_summary()
+   
+    
+    
+    def basevals(mat):
+    	mat.bafac=1
+    	mat.f2=1
+    	mat.f3=1
+    	mat.f4=1
+    	mat.fill=1
+    	mat.exp=0
+    	return mat
+    
+    def getspeed(mat):
+    	mat=basevals(mat)
+    	return mat.gets(1)
+    	
+    def getstr(mat):
+    	mat=basevals(mat)
+    	return mat.j_high_estimate
+    	
+    def lethalcalc(mat,en,exp):
+    	sk=getskin()
+    	sken=sk.material_energy_density_j_per_hvl/(2**nuct.phi**6)
+    	en+=sk.exen(exp)
+    	if(en<sken):
+    		print("round not lethal")
+    		return 0
+    	mel=mat.melt_one_hvl()
+    	en=en/mel
+    	sken=sken/mel
+    	hvls=en/sken
+    	ar=mat.base_hvl
+    	hvls**=(1/12)
+    	hvls=hvls*ar
+    	print("round lethal at armor cm",hvls.evalf()*cm_m)
+    	return hvls
+    	
+    	
+    
+    def dopen(mat):
+    	print("")
+    	round_diameter = mat.getdam(1)
+    	ld,rspeed,mm=mat.getvel(round_diameter)
+    	round_diameter*=mm
+    	round_mas=mat.getmass(round_diameter,ld)    	
+    	print("round",sp.N(round_diameter*cm_m))
+    	print("mass",round_mas.evalf())
+    	round_energy = (.5*round_mas*(rspeed**2))
+    	print("energy j ",round_energy.evalf())
+    	print("speed",sp.N(rspeed))
+    	armor=steel
+    	if(round_diameter==.009):
+    		armor=getrp1tenpct()
+    		armor.base_hvl=round_diameter*2	
+    	hvl=armor.base_hvl*zrule()
+    	mult=1
+    	if(round_diameter>hvl):
+    		mult=round_diameter/hvl
+    	mult=mult**2
+    	armor.material_energy_density_j_per_hvl=mat.f4*estfix(steel)
+    	depth= 1
+    	exer=mat.exp
+    	if(exer!=0):
+    		print("fill",mat.fill)
+    		pcte=mat.exp/round_mas
+    		rdxdens=mat.density/1600
+    		print("exp pct",pcte.evalf()*rdxdens)
+    	th=armor.thermalpenexp(round_energy,mat.exp)
+    	depth=th
+    	depth=depth/mult
+    	print("ld ",sp.N(ld))
+    	print(f"Penetration depth: {depth*100:.2f} cm")
+    	lethalcalc(armor,round_energy,exer)
+    	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed,round_diameter)
+    	print("barrel length cm ",lenn.evalf()*cm_m)
+    	
+    
+dopen(steel)
