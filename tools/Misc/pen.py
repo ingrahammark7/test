@@ -448,7 +448,7 @@ def getrp1tenpct():
     density_kg_m3=rp1tendensity,
     atomic_radius_m=6e-11,
     atomic_number=rp1z,
-    cohesive_energy_ev=cohfrommp(60/((1/rpsolidfrac)**2)),
+    cohesive_energy_ev=cohfrommp(60),
     base_hvl=10/cm_m,
     material_energy_density_j_per_hvl=1,
     weak_factor=(((getsteel().density)/rp1tendensity)**6)*nuct.alpha*(1/rpsolidfrac)
