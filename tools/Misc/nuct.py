@@ -243,6 +243,7 @@ class NuclearPenetrationModel:
 def baseobj():
 	return NuclearPenetrationModel()
 
+baseobj().getearth()
 
 
 
