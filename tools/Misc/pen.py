@@ -172,7 +172,7 @@ class Material:
     def barrellen(self,mat):
     	rd,speed,mass,en=self.getroundparam(mat)
     	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(mass,rd),speed,rd)
-    	return lenn
+    	return lenn,rd
     	
     def getroundparam(self,mat):
     	rd=self.getdam(1)
@@ -290,6 +290,13 @@ class Material:
     	thick=self.base_hvl
     	massper=self.density
     	lenn=self.getbarrellen(rounde,roundl,speed,diam)
+    	side=massper*thick*lenn*diam*nuct.picor
+    	return side*nuct.sp.pi
+    	
+    def getbarmass(self,mat):
+    	lenn,diam=self.barrellen(mat)
+    	thick=self.base_hvl
+    	massper=self.density
     	side=massper*thick*lenn*diam*nuct.picor
     	return side*nuct.sp.pi
     
