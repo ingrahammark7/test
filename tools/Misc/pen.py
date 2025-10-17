@@ -153,6 +153,25 @@ class Material:
         d = self.pen_angle(d, effective_angle, round_energy, round_diameter)
         d=self.honeycomb_pen(d,round_energy,round_diameter,honeycomb_layers)
         return d
+        
+    def pen(self,mat,angle1,angle2):
+    	effective_angle = mat.combine_angles(angle1, angle2)
+    	rd=self.getdam(1)
+    	ld,speed,mm=mat.getvel(rd)
+    	rd*=mm
+    	mass=mat.getmass(rd,ld)
+    	en=.5*mass*(speed**2)
+    	armor=self
+    	hvl=armor.base_hvl*zrule()
+    	mult=1
+    	if(rd>hvl):
+    		mult=rd/hvl
+    	mult=mult**2
+    	armor.material_energy_density_j_per_hvl=mat.f4*estfix(armor)
+    	th=self.thermalpen(en)
+    	th=self.pen_angle(th,effective_angle,en,rd)
+    	return th/mult
+    	
 
     def pen_angle(self, d, angle, round_energy, round_diameter):
         if(angle==0):
@@ -1029,6 +1048,7 @@ if __name__ == "__main__":
     	cf.f2=1
     	cf.f3=1
     	cf.f4=1
+    	cf.fill=1
     	dopen(cf)
     	
     def lethalcalc(mat,en,exp):
