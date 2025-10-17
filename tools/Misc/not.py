@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Motion for Response"
+footer_text = "Notice of Motion"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -98,14 +98,14 @@ def create_pdf(output_filename):
     c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "")
+    c.drawString(space, top_margin - 4.25* inch, "CRS ID: Court did not provide CRS receipt")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.5* inch, "")
+    c.drawString(space, top_margin - 4.5* inch, "Hearing Date: 12/23/2025 1:30 PM")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
     c.drawString(space, top_margin - 4.75 * inch, "Judge: ")
-    c.drawString(space, top_margin - 5* inch, "Department: ")
+    c.drawString(space, top_margin - 5* inch, "Department: 86")
 
    
 
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I asked to be banned from filing and arrested. Judge didnt respond. Literally nothing will get the judge to respond. Order judge to compel sheriff to serve case. Order judge to make any decision if they want the case to go to appeals. /n" 
+    intro_text = "I asked to be banned from filing and arrested. Judge didnt respond. Literally nothing will get the judge to respond. Order sheriff to serve case. Order judge to make any decision if they want the case to go to appeals. /n " 
     y_position -= .25*inch
     
     
