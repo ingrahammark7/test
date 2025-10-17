@@ -1,8 +1,5 @@
 # nuct.py
 import sympy as sp
-import math 
-import pen
-import ast
 import cons
 
 phi = sp.GoldenRatio
@@ -167,7 +164,6 @@ class NuclearPenetrationModel:
     	return hb
     
     def evpr(self):
-    	#ra=0.00000000106578891869549
     	an=1/self.am
     	af=an**2.59
     	af=af/(1+alpha_fs*(1+2/3))

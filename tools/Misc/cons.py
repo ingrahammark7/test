@@ -4,3 +4,14 @@ req=6378137
 crad=7e-11*1.001001777
 avo= 6.02214076e23
 ec=1.60217663047908e-19
+
+import pen
+import sympy as sp
+import math
+
+class cons(pen.Material):
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		
+	
+		
