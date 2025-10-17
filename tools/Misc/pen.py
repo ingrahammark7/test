@@ -156,10 +156,7 @@ class Material:
         
     def pen(self,mat,angle1,angle2):
     	effective_angle = mat.combine_angles(angle1, angle2)
-    	rd=self.getdam(1)
-    	ld,speed,mm=mat.getvel(rd)
-    	rd*=mm
-    	mass=mat.getmass(rd,ld)
+    	rd,speed,mass,en=self.getroundparam(mat)
     	en=.5*mass*(speed**2)
     	armor=self
     	hvl=armor.base_hvl*zrule()
@@ -172,6 +169,18 @@ class Material:
     	th=self.pen_angle(th,effective_angle,en,rd)
     	return th/mult
     	
+    def barrellen(self,mat):
+    	rd,speed,mass,en=self.getroundparam(mat)
+    	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(mass,rd),speed,rd)
+    	return lenn
+    	
+    def getroundparam(self,mat):
+    	rd=self.getdam(1)
+    	ld,speed,mm=mat.getvel(rd)
+    	rd*=mm
+    	mass=mat.getmass(rd,ld)
+    	en=.5*mass*(speed**2)
+    	return rd,speed,mass,en
 
     def pen_angle(self, d, angle, round_energy, round_diameter):
         if(angle==0):
