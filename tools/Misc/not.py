@@ -98,9 +98,9 @@ def create_pdf(output_filename):
     c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "CRS ID: Court did not provide CRS receipt")
+#    c.drawString(space, top_margin - 4.25* inch, "CRS ID: Court did not provide CRS receipt")
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.5* inch, "Hearing Date: 12/23/2025 1:30 PM")
+#    c.drawString(space, top_margin - 4.5* inch, "Hearing Date: 12/23/2025 1:30 PM")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
