@@ -1,54 +1,86 @@
-# Creating a day-by-day probabilistic forecast for the government shutdown ending (Oct 16–Oct 30, 2025).
-# This is a heuristic model (not a formal statistical fit). It weights current facts:
-#  - repeated Senate vote failures and current offers (low near-term probability today)
-#  - Thune offer to provide a vote on ACA subsidies (increases chances next week)
-#  - political/economic pressure rising week-to-week (increases hazard over time)
-# The numbers are my best-effort judgmental probabilities based on current reporting.
 import pandas as pd
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
-dates = [datetime(2025,10,16) + timedelta(days=i) for i in range(15)]  # Oct16 - Oct30
-# Daily resolution probabilities (probability the shutdown is resolved on that specific date)
-# These are modelled to reflect a low chance today (vote failures), a higher chance next week as pressure mounts,
-# and a strong chance cumulatively by Oct 30.
-daily_probs = [
-    0.05,  # Oct 16
-    0.08,  # Oct 17
-    0.10,  # Oct 18
-    0.12,  # Oct 19
-    0.12,  # Oct 20
-    0.13,  # Oct 21
-    0.10,  # Oct 22
-    0.08,  # Oct 23
-    0.07,  # Oct 24
-    0.06,  # Oct 25
-    0.04,  # Oct 26
-    0.03,  # Oct 27
-    0.01,  # Oct 28
-    0.00,  # Oct 29 (negligible new resolution chance beyond Oct28 in this curve)
-    0.00,  # Oct 30 (we'll interpret cumulative by Oct30)
-]
-# Normalize to ensure sum <= 1 (it currently sums to something <1). We'll leave remaining mass as "not resolved by Oct 30".
-s = sum(daily_probs)
-# compute cumulative
-df = pd.DataFrame({
-    "date": [d.strftime("%Y-%m-%d") for d in dates],
-    "daily_resolution_prob": daily_probs
-})
-df["cumulative_prob_by_date"] = df["daily_resolution_prob"].cumsum()
-df["cumulative_percent_by_date"] = (df["cumulative_prob_by_date"]*100).round(1)
-# show table and plot cumulative probability
-from caas_jupyter_tools import display_dataframe_to_user
-display_dataframe_to_user("Shutdown resolution probabilities (Oct 16-30, 2025)", df)
+from scipy.stats import pearsonr
 
-plt.figure(figsize=(9,4))
-plt.plot(df["date"], df["cumulative_prob_by_date"])
-plt.xticks(rotation=45, ha="right")
-plt.ylabel("Cumulative probability (0–1)")
-plt.title("Heuristic forecast: probability shutdown resolved by each date (Oct 16–30, 2025)")
-plt.tight_layout()
-plt.show()
+# Define the data
+data = {
+    'Country': [
+        'Austria', 'Belgium', 'France', 'Germany', 'Italy', 'Netherlands', 'Portugal', 'Spain',
+        'South Africa', 'Nigeria', 'Kenya', 'Egypt', 'Ghana'
+    ],
+    'GDP_per_capita': [
+        534791, 664564, 450000, 620000, 1370000, 530000, 250000, 350000,
+        6670, 1200, 2000, 5000, 1500
+    ],
+    'GDP_growth': [
+        1.1, 1.0, 1.2, 1.3, 0.5, 1.4, 1.0, 1.1,
+        0.5, 2.5, 5.0, 3.0, 4.0
+    ],
+    'External_debt_GDP': [
+        81.8, 104.7, 98.0, 69.0, 137.0, 50.0, 60.0, 100.0,
+        76.36, 35.0, 40.0, 30.0, 55.0
+    ],
+    'Fiscal_deficit_GDP': [
+        4.7, 4.5, 3.0, 2.9, 3.4, 2.5, 3.0, 3.5,
+        5.0, 4.0, 5.0, 6.0, 4.5
+    ],
+    'Governance_score': [
+        85, 80, 75, 90, 70, 85, 65, 60,
+        60, 50, 55, 65, 60
+    ],
+    'S&P_rating_numeric': [
+        100, 98, 95, 100, 85, 95, 80, 85,
+        60, 50, 55, 60, 65
+    ]
+}
 
-# Save CSV for download if the user wants it
-df.to_csv("/mnt/data/shutdown_forecast_oct16-30-2025.csv", index=False)
-print("\n[Download the CSV here](/mnt/data/shutdown_forecast_oct16-30-2025.csv)")
+# Create a DataFrame
+df = pd.DataFrame(data)
+
+# Define weights for the scorecard
+weights = {
+    'GDP_per_capita': 0.3,
+    'GDP_growth': 0.2,
+    'External_debt_GDP': 0.2,
+    'Fiscal_deficit_GDP': 0.2,
+    'Governance_score': 0.1
+}
+
+# Normalize the data
+df['GDP_per_capita_norm'] = (df['GDP_per_capita'] - df['GDP_per_capita'].min()) / (df['GDP_per_capita'].max() - df['GDP_per_capita'].min()) * 100
+df['GDP_growth_norm'] = (df['GDP_growth'] - df['GDP_growth'].min()) / (df['GDP_growth'].max() - df['GDP_growth'].min()) * 100
+df['External_debt_GDP_norm'] = (df['External_debt_GDP'] - df['External_debt_GDP'].min()) / (df['External_debt_GDP'].max() - df['External_debt_GDP'].min()) * 100
+df['Fiscal_deficit_GDP_norm'] = (df['Fiscal_deficit_GDP'] - df['Fiscal_deficit_GDP'].min()) / (df['Fiscal_deficit_GDP'].max() - df['Fiscal_deficit_GDP'].min()) * 100
+df['Governance_score_norm'] = (df['Governance_score'] - df['Governance_score'].min()) / (df['Governance_score'].max() - df['Governance_score'].min()) * 100
+
+# Calculate the baseline score
+df['Baseline_score'] = (
+    df['GDP_per_capita_norm'] * weights['GDP_per_capita'] +
+    df['GDP_growth_norm'] * weights['GDP_growth'] +
+    df['External_debt_GDP_norm'] * weights['External_debt_GDP'] +
+    df['Fiscal_deficit_GDP_norm'] * weights['Fiscal_deficit_GDP'] +
+    df['Governance_score_norm'] * weights['Governance_score']
+)
+
+# Define a function to map baseline score to rating
+def score_to_rating(score):
+    if score >= 90:
+        return 'AAA'
+    elif score >= 80:
+        return 'AA'
+    elif score >= 70:
+        return 'A'
+    elif score >= 60:
+        return 'BBB'
+    elif score >= 50:
+        return 'BB'
+    else:
+        return 'B'
+
+df['Hypothetical_rating'] = df['Baseline_score'].apply(score_to_rating)
+
+# Calculate the correlation between baseline score and S&P rating
+correlation, _ = pearsonr(df['Baseline_score'], df['S&P_rating_numeric'])
+
+# Output the results
+print(df[['Country', 'Baseline_score', 'Hypothetical_rating', 'S&P_rating_numeric']])
+print(f"\nCorrelation between baseline score and actual S&P rating: {correlation:.2f}")
