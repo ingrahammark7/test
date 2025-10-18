@@ -1,7 +1,9 @@
 import pandas as pd
 from scipy.stats import pearsonr
 
-# Define the data
+# ---------------------------
+# Step 1: Sample macroeconomic data
+# ---------------------------
 data = {
     'Country': [
         'Austria', 'Belgium', 'France', 'Germany', 'Italy', 'Netherlands', 'Portugal', 'Spain',
@@ -33,10 +35,11 @@ data = {
     ]
 }
 
-# Create a DataFrame
 df = pd.DataFrame(data)
 
-# Define weights for the scorecard
+# ---------------------------
+# Step 2: Scorecard weights
+# ---------------------------
 weights = {
     'GDP_per_capita': 0.3,
     'GDP_growth': 0.2,
@@ -45,14 +48,18 @@ weights = {
     'Governance_score': 0.1
 }
 
-# Normalize the data
+# ---------------------------
+# Step 3: Normalize data 0-100
+# ---------------------------
 df['GDP_per_capita_norm'] = (df['GDP_per_capita'] - df['GDP_per_capita'].min()) / (df['GDP_per_capita'].max() - df['GDP_per_capita'].min()) * 100
 df['GDP_growth_norm'] = (df['GDP_growth'] - df['GDP_growth'].min()) / (df['GDP_growth'].max() - df['GDP_growth'].min()) * 100
 df['External_debt_GDP_norm'] = (df['External_debt_GDP'] - df['External_debt_GDP'].min()) / (df['External_debt_GDP'].max() - df['External_debt_GDP'].min()) * 100
 df['Fiscal_deficit_GDP_norm'] = (df['Fiscal_deficit_GDP'] - df['Fiscal_deficit_GDP'].min()) / (df['Fiscal_deficit_GDP'].max() - df['Fiscal_deficit_GDP'].min()) * 100
 df['Governance_score_norm'] = (df['Governance_score'] - df['Governance_score'].min()) / (df['Governance_score'].max() - df['Governance_score'].min()) * 100
 
-# Calculate the baseline score
+# ---------------------------
+# Step 4: Calculate baseline score
+# ---------------------------
 df['Baseline_score'] = (
     df['GDP_per_capita_norm'] * weights['GDP_per_capita'] +
     df['GDP_growth_norm'] * weights['GDP_growth'] +
@@ -61,7 +68,9 @@ df['Baseline_score'] = (
     df['Governance_score_norm'] * weights['Governance_score']
 )
 
-# Define a function to map baseline score to rating
+# ---------------------------
+# Step 5: Map score to rating
+# ---------------------------
 def score_to_rating(score):
     if score >= 90:
         return 'AAA'
@@ -78,9 +87,18 @@ def score_to_rating(score):
 
 df['Hypothetical_rating'] = df['Baseline_score'].apply(score_to_rating)
 
-# Calculate the correlation between baseline score and S&P rating
+# ---------------------------
+# Step 6: Add actual vs projected difference
+# ---------------------------
+df['Difference'] = df['S&P_rating_numeric'] - df['Baseline_score']
+
+# ---------------------------
+# Step 7: Correlation
+# ---------------------------
 correlation, _ = pearsonr(df['Baseline_score'], df['S&P_rating_numeric'])
 
-# Output the results
-print(df[['Country', 'Baseline_score', 'Hypothetical_rating', 'S&P_rating_numeric']])
+# ---------------------------
+# Step 8: Output results
+# ---------------------------
+print(df[['Country', 'Baseline_score', 'Hypothetical_rating', 'S&P_rating_numeric', 'Difference']])
 print(f"\nCorrelation between baseline score and actual S&P rating: {correlation:.2f}")
