@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Motion"
+footer_text = "Request to Arrest Judge"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I asked to be banned from filing and arrested. Judge didnt respond. Literally nothing will get the judge to respond. Order sheriff to serve case. Order judge to make any decision if they want the case to go to appeals. /n " 
+    intro_text = "Have law enforcement read the transcript from the 742 hearing and get judge to lie and produce a signed affidavit that he didnt fake the transcript. Clerk was already told to do this so both clerk and judge have already committed felony by not doing what I tell them to do. /n " 
     y_position -= .25*inch
     
     
