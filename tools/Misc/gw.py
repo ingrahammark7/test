@@ -1,68 +1,23 @@
-import pandas as pd
+from convertdate import hebrew
+from datetime import date
 
-# ---------------------------
-# Step 1: Sample “weak” country data (approximate)
-# ---------------------------
-data = {
-    'Country': ['Zimbabwe', 'Haiti', 'South Sudan', 'Afghanistan', 'Venezuela'],
-    'GDP_per_capita': [1500, 1300, 900, 500, 5000],      # USD
-    'GDP_growth': [-2, 1, 2, -1, -3],                    # % annual
-    'External_debt_GDP': [60, 30, 50, 30, 150],         # % of GDP
-    'Fiscal_deficit_GDP': [5, 4, 10, 15, 20],           # % of GDP
-    'Governance_score': [30, 25, 20, 15, 35]            # 0-100 scale
-}
+# Known Shmita year reference
+known_shmita_jewish_year = 5782
 
-df = pd.DataFrame(data)
+def shmita_rosh_hashanah_list(start_year, end_year):
+    shmita_dates = []
+    year = start_year
+    while year >= end_year:
+        # Rosh Hashanah is 1 Tishrei -> month 7 in convertdate
+        g_year, g_month, g_day = hebrew.to_gregorian(year, 7, 1)
+        shmita_dates.append((year, date(g_year, g_month, g_day)))
+        year -= 7
+    return list(reversed(shmita_dates))
 
-# ---------------------------
-# Step 2: Global realistic ranges for normalization
-# ---------------------------
-global_ranges = {
-    'GDP_per_capita': (500, 150000),      # USD
-    'GDP_growth': (-5, 10),               # % annual
-    'External_debt_GDP': (0, 250),        # % of GDP
-    'Fiscal_deficit_GDP': (-10, 20),      # % of GDP
-    'Governance_score': (0, 100)          # 0-100 scale
-}
+# Generate Shmita years back to 1800 CE
+# The Jewish year corresponding roughly to 1800 CE is 5560
+shmita_years = shmita_rosh_hashanah_list(5782, 5560)
 
-# ---------------------------
-# Step 3: Scorecard weights
-# ---------------------------
-weights = {'GDP_per_capita':0.3, 'GDP_growth':0.2, 'External_debt_GDP':0.2,
-           'Fiscal_deficit_GDP':0.2, 'Governance_score':0.1}
-
-# ---------------------------
-# Step 4: Normalize metrics
-# ---------------------------
-for metric in weights.keys():
-    min_val, max_val = global_ranges[metric]
-    if metric in ['External_debt_GDP', 'Fiscal_deficit_GDP']:
-        df[f'{metric}_norm'] = (max_val - df[metric]) / (max_val - min_val) * 100
-    else:
-        df[f'{metric}_norm'] = (df[metric] - min_val) / (max_val - min_val) * 100
-
-# ---------------------------
-# Step 5: Compute baseline score
-# ---------------------------
-df['Baseline_score'] = sum(df[f'{m}_norm']*w for m,w in weights.items())
-
-# ---------------------------
-# Step 6: Map to hypothetical rating
-# ---------------------------
-def score_to_rating(score):
-    if score >= 90: return 'AAA'
-    elif score >= 80: return 'AA'
-    elif score >= 70: return 'A'
-    elif score >= 60: return 'BBB'
-    elif score >= 50: return 'BB'
-    elif score >= 40: return 'B'
-    elif score >= 30: return 'CCC'
-    else: return 'CC'
-
-df['Hypothetical_rating'] = df['Baseline_score'].apply(score_to_rating)
-
-# ---------------------------
-# Step 7: Output results
-# ---------------------------
-df_sorted = df.sort_values(by='Baseline_score')
-print(df_sorted[['Country','Baseline_score','Hypothetical_rating']])
+# Print results
+for jy, rh_date in shmita_years:
+    print(f"Jewish year {jy} → Rosh Hashanah: {rh_date}")
