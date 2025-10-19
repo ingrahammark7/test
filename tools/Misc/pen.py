@@ -321,16 +321,9 @@ class Material:
         res=ba1*(r**.5)
         return res
 
-    def getbuc(self,ba,ba1):
-    	ba1=self.barhvl(ba1,0)
-    	r=ba/2
-    	r**=4
-    	r*=sp.pi/4
-    	r*=(sp.pi**2)
-    	ba*=2
-    	ba**=2
-    	ba*=nuct.picor
-    	r/=(ba1**2)*ba
+    def getbuc(self, ba, ba1):
+    	L_eff = self.barhvl(ba1, 0)
+    	r = (sp.pi**2 / 64) * (ba**2 / L_eff**2)
     	return r
     	
     	
