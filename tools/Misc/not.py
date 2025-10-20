@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Arrest Judge"
+footer_text = "Request for Order"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -105,16 +105,16 @@ def create_pdf(output_filename):
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
     c.drawString(space, top_margin - 4.75 * inch, "Judge: ")
-    c.drawString(space, top_margin - 5* inch, "Department: 86")
+    c.drawString(space, top_margin - 5* inch, "Department: ")
 
-   
+  
 
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Have law enforcement read the transcript from the 742 hearing and get judge to lie and produce a signed affidavit that he didnt fake the transcript. Clerk was already told to do this so both clerk and judge have already committed felony by not doing what I tell them to do. /n " 
+    intro_text = "I have a UPS box at listed 3553 Atlantic Avenue address. Order employees to maintain service. Do not tamper with mail. /n Secondly, Google is hacking my account. Order Google to stop assisting the hackers. Deport all employees. /n " 
     y_position -= .25*inch
     
     
