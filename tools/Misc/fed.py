@@ -159,7 +159,7 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="If this case is dismissed I should be banned from filing cases. The given dismissal reasons are absurd. In previous case I mentioned the majority of LAPD officers are illegal immigrants and should be deported. Judge dismissed and said immigration is not under federal jurisdiction. /n Instead of dismissing my cases for incoherent senile reasons, ban me from filing cases. /n"
+    text="Case was filed to get around judge automatically dismissing all cases. The given dismissal reasons are absurd. In previous case I mentioned the majority of LAPD officers are illegal immigrants and should be deported. Judge dismissed and said immigration is not under federal jurisdiction. /n Order judge arrested for senility. /n When this case is dismissed, the court will have proven it dismisses literally everything if it says ''Mark Ingraham'' on it. /n"
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/14/2025")
 
