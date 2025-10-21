@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Writ of Mandate" 
+footer_text = "Petition for Review" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -104,8 +104,9 @@ def create_pdf(output_filename):
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
-    c.drawString(space, top_margin - 4.75 * inch, "Judge: ")
-    c.drawString(space, top_margin - 5* inch, "Department: ")
+    c.drawString(space, top_margin-4.75*inch, "Supreme Court case number: ")
+    c.drawString(space, top_margin - 5 * inch, "Judge: ")
+    c.drawString(space, top_margin - 5.25* inch, "Department: ")
 
    
 
@@ -114,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "On October 6 2025 and other dates, Court deleted my filings. Additional fraudulent filings exist on case. The filings are no longer visible as pending and were completely deleted. Court refuses communication and all phone lines and emails are unresponsive. /n Consider all filings fraudulent. Ban me from filing. /n Petitioner petitions this court to: /n 1. Ban me. /n" 
+    intro_text = "I. TABLE OF CONTENTS /n All on first page. /n II. AUTHORITIES /n None. /n III. CASE /n On October 6 2025 and other dates, Court deleted my filings. Additional fraudulent filings exist on case. The filings are no longer visible as pending and were completely deleted. Court refuses communication and all phone lines and emails are unresponsive. /n Consider all filings fraudulent. Ban me from filing. /n Petitioner petitions this court to: /n 1. Ban me. /n" 
     y_position -= .25*inch
     
     
