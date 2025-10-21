@@ -1031,11 +1031,11 @@ if __name__ == "__main__":
     def dogust():
     	cf=steel
     	speed=getspeed(cf)
-    	cf.bafac=2.25
+    	cf.bafac=3
     	cf.f2=80/cm_m
     	cf.f3=speed/720
     	cf.f4=strength
-    	cf.fill=1
+    	cf.fill=.75
     	dopen(cf)
     	print("barrel 3250cm")
     	
