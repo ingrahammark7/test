@@ -1027,6 +1027,17 @@ if __name__ == "__main__":
     	dopen(cf)
     	print("actual 75cm")
     	print("barrel 2020 cm")
+    
+    def dogust():
+    	cf=steel
+    	speed=getspeed(cf)
+    	cf.bafac=5
+    	cf.f2=80/cm_m
+    	cf.f3=speed/720
+    	cf.f4=strength
+    	cf.fill=.45
+    	dopen(cf)
+    	print("barrel 3250cm")
     	
     def doharp():
     	cf=steel
@@ -1155,6 +1166,7 @@ if __name__ == "__main__":
     do6()
     do8()
     do16()
+    dogust()
     doharp()
     dobab()
     dosteel()
