@@ -1,29 +1,37 @@
-from convertdate import hebrew
-from datetime import date
+import os
+import numpy as np
+from secrets import token_bytes
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+import random
 
-def shmita_calendar_correct(start_year, end_year):
-    shmita_list = []
-    year = start_year
-    while year >= end_year:
-        # Start of Shmita: 1 Tishrei (month 7, day 1)
-        start_greg = hebrew.to_gregorian(year, 7, 1)
-        start_date = date(*start_greg)
+def get_bytes(source, n=50):
+    if source == "getrandom":
+        return np.frombuffer(os.getrandom(n), dtype=np.uint8)
+    elif source == "secrets":
+        return np.frombuffer(token_bytes(n), dtype=np.uint8)
+    elif source == "mersenne":
+        return np.array([int(random.random()) for _ in range(n)], dtype=np.uint8)
 
-        # End of Shmita: 29 Elul (month 6, day 29) of the same Hebrew year
-        end_greg = hebrew.to_gregorian(year, 6, 29)
-        end_date = date(*end_greg)
+def ar1_forest(data):
+    # Lag-1 features: x[t] predicts x[t+1]
+    X = data[:-1].reshape(-1, 1)
+    y = data[1:]
+    split = int(len(X)*.5)
+    X_train, X_test = X[:split], X[split:]
+    y_train, y_test = y[:split], y[split:]
+    
+    clf = RandomForestClassifier(n_estimators=50, n_jobs=-1)
+    clf.fit(X_train, y_train)
+    pred = clf.predict(X_test)
+    acc = accuracy_score(y_test, pred)
+    return acc
 
-        shmita_list.append({
-            'Jewish Year': year,
-            'Start': start_date,
-            'End': end_date
-        })
-        year -= 7
-    return list(reversed(shmita_list))
+# --- Test each source ---
+nbytes = 50
+sources = ["getrandom", "secrets", "mersenne"]
 
-# Generate Shmita years from 5782 back to ~5560 (~1800 CE)
-shmita_years = shmita_calendar_correct(5782, 5560)
-
-# Print results
-for s in shmita_years:
-    print(f"Jewish year {s['Jewish Year']} → {s['Start']} to {s['End']}")
+for s in sources:
+    data = get_bytes(s, nbytes)
+    acc = ar1_forest(data)
+    print(f"{s} AR(1) Random Forest accuracy: {acc:.5f}")
