@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Review" 
+footer_text = "Request" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,8 +67,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPREME COURT OF CALIFORNIA")
-#    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "FIRST DISTRICT")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
     # (4) Case Title
@@ -77,10 +77,10 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "San Francisco Superior Court,",
+        "Los Angeles Superior Court,",
         "Respondent,",
-        "Chase Bank,",
-        "Real party in interest.",
+        "Los Angeles Police Department,",
+        "Real Party In Interest.",        
     ]
     y_position = top_margin - 4.75* inch
     counter=0
@@ -95,18 +95,17 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case: CGC-25-625577")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP00742")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: A174520")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B349749")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
-    c.drawString(space, top_margin-4.75*inch, "Supreme Court case number: ")
-    c.drawString(space, top_margin - 5 * inch, "Judge: ")
-    c.drawString(space, top_margin - 5.25* inch, "Department: ")
+    c.drawString(space, top_margin - 4.75 * inch, "Judge: ")
+    c.drawString(space, top_margin - 5* inch, "Department: ")
 
    
 
@@ -115,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I. TABLE OF CONTENTS /n All on first page. /n II. AUTHORITIES /n None. /n III. CASE /n On October 6 2025 and other dates, Court deleted my filings. Additional fraudulent filings exist on case. The filings are no longer visible as pending and were completely deleted. Court refuses communication and all phone lines and emails are unresponsive. /n Consider all filings fraudulent. Ban me from filing. /n Petitioner petitions this court to: /n 1. Ban me. /n" 
+    intro_text = "Appellate court should dismiss case because superior court is refusing to provide the order being appealed. /n" 
     y_position -= .25*inch
     
     
@@ -161,9 +160,9 @@ def create_pdf(output_filename):
     y_position-=.5*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/11/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/23/2025")
     c=dopage(c,2)
- 
+
 
 
     # Save the PDF
