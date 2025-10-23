@@ -277,8 +277,8 @@ class Material:
     	logl=math.log2(fine)
     	logl=abs(logl)  
     	f= rat*roundl*logl
-    	d1=7.85/(1.51)
-    	d1*=1.27/cm_m	
+    	d1=(getsteel().density)/(1510)
+    	d1*=getsteel().base_hvl
     	cut=d1*2
     	if(diam>cut):
     		foo=diam/cut
@@ -290,7 +290,8 @@ class Material:
     	thick=self.base_hvl
     	massper=self.density
     	lenn=self.getbarrellen(rounde,roundl,speed,diam)
-    	side=massper*thick*lenn*diam*nuct.picor
+    	side=massper*thick*lenn*diam
+    	print(sp.N(side),"df")
     	return side*nuct.sp.pi
     	
     def getbarmass(self,mat):
@@ -304,8 +305,10 @@ class Material:
     	bm=self.getbarmass(mat)
     	rd,speed,mass,en=self.getroundparam(mat)
     	lm=mat.getlm(mass,rd)
+    	lmm=mat.getldfm(mass,rd)
+    	print("in lm",sp.N(lmm))
     	bf=self.getbarrelmass(mat,lm,rd,speed)
-    	print(sp.N(bf))
+    	print("in",sp.N(bf))
     	m1=mass
     	if(bm<barmass):
     		return rd,speed,mass,en
@@ -320,8 +323,9 @@ class Material:
     	mass/=rm
     	rd*=(mass/m1)**(3/8)
     	ld=mat.getldfm(mass,rd)
+    	print("ifd",sp.N(ld))
     	bf=self.getbarrelmass(mat,ld*rd,rd,speed)
-    	print(sp.N(bf))
+    	print(sp.N(bf),"dd")
     	return mass
     	
     def getldfm(self,mass,di):
@@ -362,7 +366,6 @@ class Material:
     	r = (sp.pi**2 / 64) * (ba**2 / L_eff**2)
     	return r
     	
-    	
     def getbaro(self):
     	b=self.getbarrelmat(1)
     	ben=b.getben()
@@ -377,7 +380,6 @@ class Material:
     	doh=self.material_energy_density_j_per_hvl
     	return doh/ben
  
-   
     def damiter(self,isbarrel):
         r=self.barm(isbarrel)
         r=r**(.5)
@@ -1201,5 +1203,5 @@ if __name__ == "__main__":
     dobab()
     dosteel()
     
-    barm=steel.getparp(100,steel)
+    barm=steel.getparp(1,steel)
     print(sp.N(barm))
