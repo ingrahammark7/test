@@ -208,7 +208,7 @@ class Material:
        
     def getv(self,round_diameter1):
        mp=getmp(self)
-       ht=getmht(self)
+       ht=getht(self)
        airvol,ht,ra=self.getairvol(ht,mp,round_diameter1)
        return airvol,ht,ra
        
@@ -298,7 +298,43 @@ class Material:
     	thick=self.base_hvl
     	massper=self.density
     	side=massper*thick*lenn*diam*nuct.picor
-    	return side*nuct.sp.pi
+    	return side*sp.pi
+    	
+    def getparp(self,barmass,mat):
+    	bm=self.getbarmass(mat)
+    	rd,speed,mass,en=self.getroundparam(mat)
+    	lm=mat.getlm(mass,rd)
+    	bf=self.getbarrelmass(mat,lm,rd,speed)
+    	print(sp.N(bf))
+    	m1=mass
+    	if(bm<barmass):
+    		return rd,speed,mass,en
+    	r=bm/barmass
+    	maxs=mat.gets(0)
+    	rf=r**(11/12)
+    	if(speed==maxs):
+    		pass
+    	else: 
+    	    speed*=rf
+    	rm=r**(5/4)
+    	mass/=rm
+    	rd*=(mass/m1)**(3/8)
+    	ld=mat.getldfm(mass,rd)
+    	bf=self.getbarrelmass(mat,ld*rd,rd,speed)
+    	print(sp.N(bf))
+    	return mass
+    	
+    def getldfm(self,mass,di):
+    	le=self.getlm(mass,di)
+    	return le/di
+    	
+    def getlm(self,mass,di):
+    	d=self.density
+    	d=mass/d
+    	di**=2
+    	di*=nuct.picor
+    	d=d/di
+    	return d
     
     def getdam(self,isbarrel):
         if(self.f2==1):
@@ -499,10 +535,6 @@ def getskin():
     skin.material_energy_density_j_per_hvl=estfix(skin)
     return skin
     
-def getmht(self):
-    ht=getht(self)
-    return ht
-    
 def getht(self):
     nm=(self.molar_mass/self.density)/getn().density
     side=nm**(1/3)
@@ -552,8 +584,6 @@ if __name__ == "__main__":
     cf=getrp1tenpct()
     steel.print_summary()
    
-    
-    
     def basevals(mat):
     	mat.bafac=1
     	mat.f2=1
@@ -1170,3 +1200,6 @@ if __name__ == "__main__":
     doharp()
     dobab()
     dosteel()
+    
+    barm=steel.getparp(100,steel)
+    print(sp.N(barm))
