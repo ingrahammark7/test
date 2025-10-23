@@ -291,7 +291,6 @@ class Material:
     	massper=self.density
     	lenn=self.getbarrellen(rounde,roundl,speed,diam)
     	side=massper*thick*lenn*diam
-    	print(sp.N(side),"df")
     	return side*nuct.sp.pi
     	
     def getbarmass(self,mat):
@@ -305,8 +304,6 @@ class Material:
     	bm=self.getbarmass(mat)
     	rd,speed,mass,en=self.getroundparam(mat)
     	lm=mat.getlm(mass,rd)
-    	lmm=mat.getldfm(mass,rd)
-    	print("in lm",sp.N(lmm))
     	bf=self.getbarrelmass(mat,lm,rd,speed)
     	print("in",sp.N(bf))
     	m1=mass
@@ -314,7 +311,7 @@ class Material:
     		return rd,speed,mass,en
     	r=bm/barmass
     	maxs=mat.gets(0)
-    	rf=r**(11/12)
+    	rf=(r**(11/12))/r
     	if(speed==maxs):
     		pass
     	else: 
@@ -322,11 +319,8 @@ class Material:
     	rm=r**(5/4)
     	mass/=rm
     	rd*=(mass/m1)**(3/8)
-    	ld=mat.getldfm(mass,rd)
-    	print("ifd",sp.N(ld))
-    	bf=self.getbarrelmass(mat,ld*rd,rd,speed)
-    	print(sp.N(bf),"dd")
-    	return mass
+    	en=self.enfromvel(mass,speed)
+    	return rd,speed,mass,en
     	
     def getldfm(self,mass,di):
     	le=self.getlm(mass,di)
@@ -1202,6 +1196,3 @@ if __name__ == "__main__":
     doharp()
     dobab()
     dosteel()
-    
-    barm=steel.getparp(1,steel)
-    print(sp.N(barm))
