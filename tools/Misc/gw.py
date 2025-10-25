@@ -1,74 +1,48 @@
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
-import numpy as np
-import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
-# --- Parameters ---
-N = 60          # number of bytes
-lag = 20          # sliding window length
-batch_size = 64
-epochs = 20
-hidden_size = 128
-lr = 0.001
+# Realistic dataset of 50 countries (2021 estimates)
+data = {
+    'Country': [
+        'USA','India','Brazil','China','Australia','Russia','Canada','Argentina','Mexico','Indonesia',
+        'France','Germany','UK','Italy','Spain','Turkey','Iran','Egypt','South Africa','Nigeria',
+        'Kenya','Ethiopia','Sudan','Saudi Arabia','Pakistan','Bangladesh','Thailand','Vietnam','Philippines','Japan',
+        'South Korea','New Zealand','Norway','Sweden','Finland','Poland','Ukraine','Belarus','Chile','Peru',
+        'Colombia','Venezuela','Morocco','Algeria','Tunisia','Iraq','Syria','Afghanistan','Nepal','Sri Lanka'
+    ],
+    'Arable_Land_per_Capita_ha': [
+        0.21,0.12,0.36,0.10,1.01,0.14,0.31,0.45,0.13,0.06,
+        0.18,0.12,0.10,0.12,0.13,0.10,0.08,0.03,0.09,0.04,
+        0.06,0.05,0.10,0.02,0.05,0.01,0.06,0.05,0.04,0.01,
+        0.01,0.56,0.15,0.18,0.14,0.12,0.12,0.10,0.21,0.11,
+        0.09,0.12,0.03,0.08,0.07,0.02,0.01,0.01,0.02,0.02
+    ],
+    'Livestock_per_Capita_LU': [
+        1.2,0.5,1.5,0.8,2.0,1.0,1.3,1.8,0.7,0.4,
+        1.1,1.0,0.9,1.0,1.0,0.7,0.5,0.3,0.6,0.4,
+        0.8,0.5,0.7,0.2,0.5,0.3,0.6,0.5,0.4,0.7,
+        0.6,1.5,1.2,1.3,1.2,1.0,0.9,0.8,1.1,0.9,
+        0.8,0.7,0.5,0.6,0.5,0.4,0.3,0.4,0.4,0.4
+    ]
+}
 
-# --- Load data ---
-data = np.frombuffer(os.getrandom(N), dtype=np.uint8) / 255.0  # normalize to [0,1]
+df = pd.DataFrame(data)
 
-# --- Prepare sliding window dataset ---
-def prepare_lstm_data(data, lag):
-    X = np.array([data[i:i+lag] for i in range(len(data)-lag)])
-    y = np.array([data[i+lag] for i in range(len(data)-lag)])
-    return torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
+# Calculate Pearson correlation coefficient
+correlation = df['Arable_Land_per_Capita_ha'].corr(df['Livestock_per_Capita_LU'])
+print(f"Pearson Correlation Coefficient: {correlation:.2f}")
 
-X, y = prepare_lstm_data(data, lag)
-dataset = TensorDataset(X, y)
-split = int(0.8 * len(dataset))
-train_dataset, test_dataset = torch.utils.data.random_split(dataset, [split, len(dataset)-split])
+# Scatter plot
+plt.figure(figsize=(10,6))
+plt.scatter(df['Arable_Land_per_Capita_ha'], df['Livestock_per_Capita_LU'])
+plt.title('Arable Land per Capita vs Livestock per Capita (50 Countries)')
+plt.xlabel('Arable Land per Capita (ha)')
+plt.ylabel('Livestock per Capita (LU)')
+plt.grid(True)
 
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=batch_size)
+# Annotate a few countries for clarity
+for i, row in df.iterrows():
+    if row['Arable_Land_per_Capita_ha'] > 0.5 or row['Livestock_per_Capita_LU'] > 1.8:
+        plt.text(row['Arable_Land_per_Capita_ha'], row['Livestock_per_Capita_LU'], row['Country'], fontsize=8)
 
-# --- Define LSTM Model ---
-class LSTMRegressor(nn.Module):
-    def __init__(self, input_size, hidden_size):
-        super().__init__()
-        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=True)
-        self.fc = nn.Linear(hidden_size, 1)
-    
-    def forward(self, x):
-        out, _ = self.lstm(x)
-        out = out[:, -1, :]      # take output at last timestep
-        out = self.fc(out)
-        return out.squeeze()
-
-model = LSTMRegressor(input_size=1, hidden_size=hidden_size)
-
-# --- Optimizer and loss ---
-optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-criterion = nn.MSELoss()
-
-# --- Training loop ---
-for epoch in range(epochs):
-    model.train()
-    total_loss = 0
-    for batch_X, batch_y in train_loader:
-        batch_X = batch_X.unsqueeze(-1)  # shape: [batch, lag, 1]
-        optimizer.zero_grad()
-        pred = model(batch_X)
-        loss = criterion(pred, batch_y)
-        loss.backward()
-        optimizer.step()
-        total_loss += loss.item() * batch_X.size(0)
-    print(f"Epoch {epoch+1}/{epochs}, Train MSE: {total_loss/len(train_loader.dataset):.6f}")
-
-# --- Evaluation ---
-model.eval()
-mse_total = 0
-with torch.no_grad():
-    for batch_X, batch_y in test_loader:
-        batch_X = batch_X.unsqueeze(-1)
-        pred = model(batch_X)
-        mse_total += criterion(pred, batch_y).item() * batch_X.size(0)
-mse_test = mse_total / len(test_loader.dataset)
-print("Test MSE:", mse_test)
+plt.show()
