@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order"
+footer_text = "Request to Review Illegal Activity"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I have a UPS box at listed 3553 Atlantic Avenue address. Order employees to maintain service. Do not tamper with mail. /n Secondly, Google is hacking my account. Order Google to stop assisting the hackers. Deport all employees. /n " 
+    intro_text = "Due to large amount of irregularities on this case and related filings, review should be done by someone.  /n " 
     y_position -= .25*inch
     
     
