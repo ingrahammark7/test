@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request" 
+footer_text = "Request to Review Illegal Activity" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Appellate court should dismiss case because superior court is refusing to provide the order being appealed. /n" 
+    intro_text = "Due to large amount of irregularities on this case and related filings, review should be done by someone. /n" 
     y_position -= .25*inch
     
     
