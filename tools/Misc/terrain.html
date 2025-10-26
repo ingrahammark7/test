@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Flywheel Turret Simulation</title>
+<title>High-Speed Turret with Gradient Trails</title>
 <style>
   body { margin: 0; overflow: hidden; background: #202020; }
   canvas { display: block; }
@@ -15,9 +15,9 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.m
 // === Scene Setup ===
 const scene = new THREE.Scene();
 
-// === Camera (fixed) ===
+// === Camera ===
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0, 12, 25);
+camera.position.set(0, 15, 30);
 camera.lookAt(0, 0, 0);
 
 // === Renderer ===
@@ -27,22 +27,21 @@ renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 // === Lights ===
-const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambient);
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 const directional = new THREE.DirectionalLight(0xffffff, 1);
-directional.position.set(10, 20, 15);
+directional.position.set(10, 30, 15);
 directional.castShadow = true;
 scene.add(directional);
 
 // === Ground Plane ===
 const planeGeo = new THREE.PlaneGeometry(50, 50);
 const planeMat = new THREE.MeshStandardMaterial({color: 0x333333, side: THREE.DoubleSide});
-const plane = new THREE.Mesh(planeGeo, planeMat);
-plane.rotation.x = -Math.PI/2;
-plane.receiveShadow = true;
-scene.add(plane);
+const ground = new THREE.Mesh(planeGeo, planeMat);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
 
-// === Turret Setup ===
+// === Turret ===
 const turretRadius = 2;
 const turretHeight = 1.5;
 const turretGeo = new THREE.CylinderGeometry(turretRadius, turretRadius, turretHeight, 32);
@@ -52,67 +51,136 @@ turret.position.y = turretHeight/2;
 turret.castShadow = true;
 scene.add(turret);
 
-// === Rim velocity arrows ===
+// === Rim Arrows ===
 const numArrows = 12;
 const arrows = [];
-for (let i=0; i<numArrows; i++){
+for(let i=0;i<numArrows;i++){
     const arrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(), 2, 0xff0000);
     scene.add(arrow);
-    arrows.push({arrow, theta: i/numArrows * 2*Math.PI});
+    arrows.push({arrow, theta: i/numArrows*2*Math.PI});
+}
+
+// === Debris with Gradient Trails ===
+const debrisCount = 30;
+const debris = [];
+for(let i=0;i<debrisCount;i++){
+    const geo = new THREE.BoxGeometry(0.2,0.2,0.2);
+    const mat = new THREE.MeshStandardMaterial({color:0xffaa00});
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(0,0,0);
+    scene.add(mesh);
+
+    // Gradient trail geometry
+    const trailGeo = new THREE.BufferGeometry();
+    const positions = new Float32Array(50*3); // 50 segments
+    trailGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    // Gradient color
+    const colors = new Float32Array(50*3);
+    for(let j=0;j<50;j++){
+        const factor = j/49;
+        colors[j*3] = 1.0; // red
+        colors[j*3+1] = 1.0 - factor; // yellow to orange
+        colors[j*3+2] = 0.0;
+    }
+    trailGeo.setAttribute('color', new THREE.BufferAttribute(colors,3));
+
+    const trailMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, opacity:0.7});
+    const trailLine = new THREE.Line(trailGeo, trailMat);
+    scene.add(trailLine);
+
+    debris.push({
+        mesh,
+        velocity: new THREE.Vector3((Math.random()-0.5)*15, Math.random()*5+2, (Math.random()-0.5)*15),
+        trailLine,
+        positions,
+        maxTrail:50
+    });
 }
 
 // === Simulation Parameters ===
-let omega = 25; // rad/s axial spin
+let omega = 25; // rad/s spin
 let t = 0;
-const dt = 0.016; // 60fps
-const wobbleAngle = 0.15; // radians
-const wobbleFreq = 1.5; // Hz
-const liftAmplitude = 0.5; // meters
-const driftAmplitude = 1; // meters
-const driftFreq = 0.2; // Hz
+const dt = 0.016;
+const wobbleAngle = 0.2;
+const wobbleFreq = 2;
+const liftAmplitude = 0.8;
+const driftAmplitude = 2;
+const driftFreq = 0.2;
+const gravity = -9.8;
+
+// Camera shake
+const shakeIntensity = 0.5;
+const shakeFreq = 8;
 
 // === Animation Loop ===
 function animate(){
     requestAnimationFrame(animate);
     t += dt;
 
-    // Spin turret
-    turret.rotation.y = omega * t;
+    // Turret rotation & flail
+    turret.rotation.y = omega*t;
+    turret.rotation.x = wobbleAngle*Math.sin(2*Math.PI*wobbleFreq*t);
+    turret.rotation.z = wobbleAngle*Math.cos(2*Math.PI*wobbleFreq*t);
+    turret.position.y = turretHeight/2 + liftAmplitude*Math.abs(Math.sin(2*Math.PI*driftFreq*t));
+    turret.position.x = driftAmplitude*Math.sin(2*Math.PI*driftFreq*t);
+    turret.position.z = driftAmplitude*Math.cos(2*Math.PI*driftFreq*t);
 
-    // Flail/wobble
-    turret.rotation.x = wobbleAngle * Math.sin(2*Math.PI*wobbleFreq*t);
-    turret.rotation.z = wobbleAngle * Math.cos(2*Math.PI*wobbleFreq*t);
-
-    // Free-flight / drift (simulate unconstrained)
-    turret.position.y = turretHeight/2 + liftAmplitude * Math.abs(Math.sin(2*Math.PI*driftFreq*t));
-    turret.position.x = driftAmplitude * Math.sin(2*Math.PI*driftFreq*t);
-    turret.position.z = driftAmplitude * Math.cos(2*Math.PI*driftFreq*t);
-
-    // Update rim velocity arrows
+    // Rim arrows
     arrows.forEach(({arrow, theta})=>{
         const pos = new THREE.Vector3(
-            turretRadius * Math.cos(theta + omega*t),
+            turretRadius*Math.cos(theta+omega*t) + turret.position.x,
             turret.position.y,
-            turretRadius * Math.sin(theta + omega*t)
+            turretRadius*Math.sin(theta+omega*t) + turret.position.z
         );
         arrow.position.copy(pos);
-        const dir = new THREE.Vector3(-Math.sin(theta + omega*t), 0, Math.cos(theta + omega*t)).normalize();
+        const dir = new THREE.Vector3(-Math.sin(theta+omega*t),0,Math.cos(theta+omega*t)).normalize();
         arrow.setDirection(dir);
         arrow.setLength(3);
     });
 
+    // Debris with trails
+    debris.forEach(d=>{
+        d.velocity.y += gravity*dt;
+        d.mesh.position.addScaledVector(d.velocity, dt);
+
+        if(d.mesh.position.y < 0.1){
+            d.mesh.position.y = 0.1;
+            d.velocity.y *= -0.5;
+            d.velocity.x *= 0.8;
+            d.velocity.z *= 0.8;
+        }
+
+        // Update trail positions
+        const positions = d.positions;
+        for(let i=0;i<d.maxTrail-1;i++){
+            positions[i*3] = positions[(i+1)*3];
+            positions[i*3+1] = positions[(i+1)*3+1];
+            positions[i*3+2] = positions[(i+1)*3+2];
+        }
+        positions[(d.maxTrail-1)*3] = d.mesh.position.x;
+        positions[(d.maxTrail-1)*3+1] = d.mesh.position.y;
+        positions[(d.maxTrail-1)*3+2] = d.mesh.position.z;
+        d.trailLine.geometry.attributes.position.needsUpdate = true;
+    });
+
+    // Camera shake
+    camera.position.x = 0 + shakeIntensity*Math.sin(2*Math.PI*shakeFreq*t);
+    camera.position.y = 15 + shakeIntensity*Math.sin(2*Math.PI*shakeFreq*1.1*t);
+    camera.position.z = 30 + shakeIntensity*Math.cos(2*Math.PI*shakeFreq*0.9*t);
+    camera.lookAt(turret.position);
+
     renderer.render(scene, camera);
 }
 
-animate();
-
-// === Handle Resize ===
+// Resize
 window.addEventListener('resize', ()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+animate();
 </script>
 </body>
 </html>
