@@ -52,10 +52,8 @@ class thull:
 		axm=self.engmass()/self.material.density
 		axr=axm**(1/3)
 		mu=self.length/(axr)
-		axr=(axr)/mu
-		axrm=axr*axr
-		return axrm/2
-		
+		axr*=mu**-.5
+		return axr		
 		
 	def engmass(self):
 			enr=self.enperkg()*self.matq
