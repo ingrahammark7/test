@@ -305,7 +305,6 @@ class Material:
     	rd,speed,mass,en=self.getroundparam(mat)
     	lm=mat.getlm(mass,rd)
     	bf=self.getbarrelmass(mat,lm,rd,speed)
-    	print("in",sp.N(bf))
     	m1=mass
     	if(bm<barmass):
     		return rd,speed,mass,en
@@ -550,7 +549,7 @@ def getht(self):
     t/=r
     ref=nuct.baseobj().am**3
     ref/=3
-    corr=(1/getsteel().atomic_radius)/ref
+    corr=(1/self.atomic_radius)/ref
     t/=corr
     return t
     
@@ -573,6 +572,9 @@ def getsh_per_kg(self):
     sh=self.db
     ker=self.molar_mass
     return sh/ker
+    
+def maxshot():
+	return nuct.alpha*nuct.phi
 
 if __name__ == "__main__":   
     steel=getsteel()
@@ -1196,3 +1198,4 @@ if __name__ == "__main__":
     doharp()
     dobab()
     dosteel()
+    

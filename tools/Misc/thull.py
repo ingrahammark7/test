@@ -1,6 +1,5 @@
 import pen
 import nuct
-import math
 import sympy as sp
 
 class thull:
@@ -23,7 +22,6 @@ class thull:
 		
 		
 	def getmass(self):
-			d=self.material.density
 			ff=self.getplate(self.armorfront,self.width,self.height)
 			fs=self.getplate(self.armorside,self.length,self.height)*2
 			fr=self.getplate(self.armorrear,self.width,self.height)
@@ -44,27 +42,20 @@ class thull:
 			return enf/enr
 			
 	def enperkg(self):
-			mm=self.hvlmass()
-			jper=self.material.material_energy_density_j_per_hvl
-			kgs=1/mm
-			jper*=kgs
-			return jper
-			
-	def hvlmass(self):
-			hvl=self.material.base_hvl
-			hvl**=3
-			hvl*=self.material.density
-			return hvl
+			return self.material.j_high_estimate
 			
 	def getfric(self):
-			bo=self.width*self.width
-			coe=.5
 			gr=self.nuc.getg()
 			m=self.mass
-			
-			
-tt=thull("fko",10,1000,2000,1,.1)
-tt.mass=tt.getmass()
+			fo=gr*m
+			print(sp.N(fo))			
+	
+	def init(self):
+			self.mass=self.getmass()
+			return self
+						
+tt=thull("fko",10,1000,2000,1,.01)
+tt=tt.init()
 eng=tt.engmass()
 print(sp.N(tt.mass),"abrams mass")
 print(sp.N(eng),"engine mass")
