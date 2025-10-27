@@ -40,13 +40,16 @@ class thull:
 			lenn=self.length/ba
 			ra=1/(lenn**.5)
 			ba*=ra/2
-			r = (sp.pi**2 / 64) * (ba**2 / self.length**2)
-			r*=self.material.j_high_estimate
+			r = (sp.pi**2 / 64) * (ba**2 / (self.length)**2)
+			hp=self.material.base_hvl**2
+			hp=1/hp
+			r*=self.material.material_energy_density_j_per_hvl*hp
 			return r
 			
 	def axl(self):
-			jp=self.power/self.engmass()
-			return jp/self.axlest()
+			r=self.axlest()
+			jp=self.power
+			return r/jp
 			
 	def fuelcube(self):
 			fh=self.height/2
@@ -86,7 +89,10 @@ class thull:
 			print(sp.N(self.pl()),"piston widrh")
 			print(sp.N(self.getsp()),"speed")
 			print(sp.N(self.power),"power")
-			print(sp.N(self.axl()),"seconds axle break")
+			print(sp.N(self.axl()),"forcr vreak")
+			print(sp.N(1/self.getrps()),"time ro")
+			g1=self.axl()/((1/self.getrps())**self.vp)
+			print(sp.N(g1),"timevvreak")
 			
 	def getsp(self):
 			ac=self.power
@@ -151,4 +157,8 @@ tt=tt.init()
 eng=tt.engmass()
 print(sp.N(tt.mass),"abrams mass")
 print(sp.N(eng),"engine mass")
+tt.getfric()
+tt=thull("f",300,1,.01)
+tt=tt.init()
+print("")
 tt.getfric()
