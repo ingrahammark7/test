@@ -1,126 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Turret vs Wind Turbine Energy Visualization</title>
-<style>
-  body { margin:0; overflow:hidden; background:#202020; }
-  canvas { display:block; }
-</style>
+  <meta charset="UTF-8">
+  <title>Moon Car Full Escape Simulation</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+    #overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: monospace;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
 </head>
 <body>
+<div id="overlay"></div>
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
 
-// === Scene Setup ===
+// Scene
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
-camera.position.set(0,50,100);
-camera.lookAt(0,0,0);
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth,window.innerHeight);
-renderer.shadowMap.enabled=true;
+scene.background = new THREE.Color(0x000000);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 10000);
+camera.position.set(0, 20, 50);
+
+// Renderer
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// === Lights ===
-scene.add(new THREE.AmbientLight(0xffffff,0.5));
-const dirLight = new THREE.DirectionalLight(0xffffff,1);
-dirLight.position.set(50,100,50);
-dirLight.castShadow=true;
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+dirLight.position.set(50, 100, 50);
 scene.add(dirLight);
 
-// === Ground Plane ===
-const planeGeo = new THREE.PlaneGeometry(200,200);
-const planeMat = new THREE.MeshStandardMaterial({color:0x333333});
-const ground = new THREE.Mesh(planeGeo,planeMat);
-ground.rotation.x=-Math.PI/2;
-ground.receiveShadow=true;
-scene.add(ground);
+// Moon
+const moonGeo = new THREE.SphereGeometry(20, 64, 64);
+const loader = new THREE.TextureLoader();
+const moonTex = loader.load('https://threejs.org/examples/textures/moon.jpg');
+const moonMat = new THREE.MeshStandardMaterial({ map: moonTex });
+const moon = new THREE.Mesh(moonGeo, moonMat);
+scene.add(moon);
 
-// === Tank Turret ===
-const turretRadius=2.5, turretHeight=1.8;
-const turretGeo = new THREE.CylinderGeometry(turretRadius,turretRadius,turretHeight,32);
-const turretMat = new THREE.MeshStandardMaterial({color:0x5555ff});
-const turret = new THREE.Mesh(turretGeo,turretMat);
-turret.position.set(-20, turretHeight/2, 0);
-turret.castShadow=true;
-scene.add(turret);
+// Car (cube for simplicity)
+const carGeo = new THREE.BoxGeometry(1, 0.5, 2);
+const carMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+const car = new THREE.Mesh(carGeo, carMat);
+scene.add(car);
 
-// Turret trail
-const turretTrailGeo = new THREE.BufferGeometry();
-const turretTrailLength=50;
-const turretPositions=new Float32Array(turretTrailLength*3);
-turretTrailGeo.setAttribute('position', new THREE.BufferAttribute(turretPositions,3));
-const turretColors=new Float32Array(turretTrailLength*3);
-for(let i=0;i<turretTrailLength;i++){
-    const f=i/(turretTrailLength-1);
-    turretColors[i*3]=1.0; turretColors[i*3+1]=1.0-f; turretColors[i*3+2]=0.0;
+// Physics parameters
+const carMass = 5000; // kg
+const power = 1e6; // W
+const gMoon = 1.62; // m/s²
+const escapeVel = 2380; // m/s
+let carVel = 0; // initial speed
+let carRadius = 20 + 0.25; // radius + half cube height
+let carHeight = carRadius;
+let time = 0; // seconds
+const dt = 0.05; // simulation time step (s)
+
+// Engine & Wheel
+const engineLifeTotal = 19 * 3600; // seconds
+let engineLifeUsed = 0; // seconds
+const wheelMaxTemp = 1500; // C (LOX cooling keeps it far below)
+let wheelTemp = 20; // starting temp
+
+// Overlay
+const overlay = document.getElementById('overlay');
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  // --- Power-limited acceleration ---
+  let acc = 0;
+  if (carVel < escapeVel) {
+    acc = power / (carMass * Math.max(carVel,1)); // avoid div0
+    carVel += acc * dt;
+  }
+
+  // --- Engine life consumption ---
+  engineLifeUsed += dt;
+  const engineLifeFrac = Math.min(engineLifeUsed / engineLifeTotal, 1);
+
+  // --- Wheel temperature (simplified) ---
+  // Friction negligible on Moon, LOX cooling keeps temp low
+  wheelTemp = 20 + carVel*0.01; // just a tiny increase
+
+  // --- Car position on Moon surface ---
+  time += dt;
+  const theta = time * carVel / carRadius; // angle along circumference
+  const phi = 0; // simple equatorial path
+  car.position.x = Math.sin(theta) * carRadius;
+  car.position.z = Math.cos(theta) * carRadius;
+  car.position.y = carHeight * Math.sin(phi);
+
+  // --- Lift off once escape velocity reached ---
+  if (carVel >= escapeVel) {
+    // accelerate upwards using residual power minus gravity
+    const aUp = (power / carMass / carVel) - gMoon;
+    carHeight += carVel * dt + 0.5 * aUp * dt * dt;
+    car.position.y = carHeight;
+    carVel += aUp * dt;
+  }
+
+  // --- Rotate car to show wheels conceptually ---
+  car.rotation.y += carVel * dt / 2;
+
+  // --- Camera follows car ---
+  camera.position.x = car.position.x + 10;
+  camera.position.y = car.position.y + 5;
+  camera.position.z = car.position.z + 15;
+  camera.lookAt(car.position);
+
+  // --- Update overlay ---
+  overlay.innerHTML = `
+    Time: ${time.toFixed(1)} s<br>
+    Speed: ${carVel.toFixed(1)} m/s<br>
+    Engine life used: ${(engineLifeFrac*100).toFixed(1)} %<br>
+    Wheel temp: ${wheelTemp.toFixed(1)} °C<br>
+    Height above Moon surface: ${(carHeight - 20).toFixed(1)} m
+  `;
+
+  // Render
+  renderer.render(scene, camera);
 }
-turretTrailGeo.setAttribute('color', new THREE.BufferAttribute(turretColors,3));
-const turretTrailMat=new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.7});
-const turretTrailLine=new THREE.Line(turretTrailGeo,turretTrailMat);
-scene.add(turretTrailLine);
 
-// === Wind Turbine ===
-const bladeLength=40, bladeWidth=2, bladeMass=10000;
-const hubGeo = new THREE.CylinderGeometry(1,1,3,32);
-const hubMat = new THREE.MeshStandardMaterial({color:0x00ff00});
-const hub = new THREE.Mesh(hubGeo, hubMat);
-hub.position.set(30, bladeLength/2, 0);
-hub.castShadow=true;
-scene.add(hub);
-
-// Three blades
-const blades = [];
-for(let i=0;i<3;i++){
-    const bladeGeo = new THREE.BoxGeometry(bladeLength, 0.5, bladeWidth);
-    const bladeMat = new THREE.MeshStandardMaterial({color:0xffff00});
-    const blade = new THREE.Mesh(bladeGeo, bladeMat);
-    blade.position.set(bladeLength/2,0,0);
-    const pivot = new THREE.Object3D();
-    pivot.add(blade);
-    pivot.rotation.y = i/3*2*Math.PI;
-    hub.add(pivot);
-    blades.push(pivot);
-}
-
-// === Parameters ===
-let t=0, dt=0.016;
-const omegaTurret = 12; // rad/s
-const omegaTurbine = 2; // rad/s
-const wobbleAngle = 0.15, wobbleFreq=2;
-
-// === Animation Loop ===
-function animate(){
-    requestAnimationFrame(animate);
-    t+=dt;
-
-    // Turret rotation & trail
-    turret.rotation.y = omegaTurret*t;
-    turret.rotation.x = wobbleAngle*Math.sin(2*Math.PI*wobbleFreq*t);
-    turret.rotation.z = wobbleAngle*Math.cos(2*Math.PI*wobbleFreq*t);
-
-    for(let i=0;i<turretTrailLength-1;i++){
-        turretPositions[i*3]=turretPositions[(i+1)*3];
-        turretPositions[i*3+1]=turretPositions[(i+1)*3+1];
-        turretPositions[i*3+2]=turretPositions[(i+1)*3+2];
-    }
-    turretPositions[(turretTrailLength-1)*3]=turret.position.x;
-    turretPositions[(turretTrailLength-1)*3+1]=turret.position.y;
-    turretPositions[(turretTrailLength-1)*3+2]=turret.position.z;
-    turretTrailLine.geometry.attributes.position.needsUpdate=true;
-
-    // Wind turbine rotation
-    blades.forEach(blade=>{ blade.rotation.z += omegaTurbine*dt; });
-
-    renderer.render(scene,camera);
-}
-
-// Resize
-window.addEventListener('resize',()=>{
-    camera.aspect=window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth,window.innerHeight);
+// Handle resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 animate();

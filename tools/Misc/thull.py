@@ -52,11 +52,14 @@ class thull:
 	def enperkg(self):
 			return self.material.j_high_estimate
 			
-	def getfric(self):
+	def nfor(self):
 			gr=self.nuc.getg()
 			m=self.mass
 			fo=gr*m
-			pl=fo*self.pl()
+			return fo
+			
+	def getfric(self):
+			fo=self.nfor()
 			to=self.getq()
 			gs=8
 			to*=gs
@@ -64,6 +67,14 @@ class thull:
 			print(sp.N(self.getrps()),"rotate per sec")
 			print(sp.N(self.psize()),"piston mass")
 			print(sp.N(self.pl()),"piston widrh")
+			print(sp.N(self.getsp()),"speed")
+			pow=self.power
+			print(sp.N(pow),"power")
+			
+	def getsp(self):
+			ac=self.power
+			fr=nuct.alpha_fs*self.nfor()
+			return ac/fr
 			
 	def getq(self):
 			s=self.getrps()
