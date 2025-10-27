@@ -19,6 +19,7 @@ class thull:
 		self.matq=1/8
 		self.mass=self.getmass()
 		self.nuc=nuct.baseobj()
+		self.vp=12
 		
 	def getmass(self):
 			ff=self.getplate(self.armorfront,self.width,self.height)
@@ -55,14 +56,45 @@ class thull:
 			gr=self.nuc.getg()
 			m=self.mass
 			fo=gr*m
+			pl=fo*self.pl()
+			to=self.getq()
+			gs=16
+			to*=gs
+			print(sp.N(to/fo))
+			
+	def getq(self):
+			s=self.getrps()
+			p=self.power
+			return (p/(2*sp.pi))/s
+			
+	def getrps(self):
+			ps=self.ps()
+			pl=self.pl()
+			pl=ps/pl
+			pl**=2/3
+			return pl
+			
+	def ps(self):
+			pp=self.power/self.vp
+			pm=self.psize()
+			return (2*pp/pm)**.5
+			
+	def pl(self):
+		m=self.psize()
+		d=self.material.density
+		m=m/d
+		m**=1/3
+		return m*sp.pi
+	
+	def psize(self):
+			vp=self.vp
+			m=self.engmass()/8/vp
+			return m
 			
 	def getpow(self):
 		f=self.gethc()
-		n=self.numenghvl()
-		n**=1/3
-		f/=n
 		f*=self.engmass()
-		return f/2
+		return f*8*(sp.GoldenRatio)
 		
 	def getht(self):
 		return pen.getht(self.material)
@@ -73,9 +105,6 @@ class thull:
 		hvlperkg=1/self.material.hvl_mass_kg()
 		return tr*hvlperkg
 		
-	def numenghvl(self):
-		return self.engmass()/self.material.hvl_mass_kg()
-		
 	def getmp(self):
 		return pen.getmp(self.material)				
 	
@@ -84,7 +113,7 @@ class thull:
 			self.power=self.getpow()
 			return self
 						
-tt=thull("fko",10,1,.01)
+tt=thull("fko",13,1,.01)
 tt=tt.init()
 eng=tt.engmass()
 print(sp.N(tt.mass),"abrams mass")
