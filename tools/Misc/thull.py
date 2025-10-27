@@ -58,9 +58,12 @@ class thull:
 			fo=gr*m
 			pl=fo*self.pl()
 			to=self.getq()
-			gs=16
+			gs=8
 			to*=gs
-			print(sp.N(to/fo))
+			print(sp.N(to/fo),"torque to fric")
+			print(sp.N(self.getrps()),"rotate per sec")
+			print(sp.N(self.psize()),"piston mass")
+			print(sp.N(self.pl()),"piston widrh")
 			
 	def getq(self):
 			s=self.getrps()
@@ -113,7 +116,7 @@ class thull:
 			self.power=self.getpow()
 			return self
 						
-tt=thull("fko",13,1,.01)
+tt=thull("fko",10,1,.01)
 tt=tt.init()
 eng=tt.engmass()
 print(sp.N(tt.mass),"abrams mass")
