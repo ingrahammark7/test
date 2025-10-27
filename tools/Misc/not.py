@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Review Illegal Activity"
+footer_text = "Request for Order"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Department of Public Social Services",
+        "Illegal Immigrant LAPD Officers",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -95,7 +95,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03728")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STRO06765")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
 #    c.drawString(space, top_margin - 4.25* inch, "CRS ID: Court did not provide CRS receipt")
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Due to large amount of irregularities on this case and related filings, review should be done by someone.  /n " 
+    intro_text = "My standing orders apply to all my cases. Order UPS store at 3553 Atlantic Avenue address to not tamper with mail. Respond to orders on previous cases. /n " 
     y_position -= .25*inch
     
     
