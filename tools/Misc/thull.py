@@ -27,9 +27,26 @@ class thull:
 			fr=self.getplate(self.armorrear,self.width,self.height)
 			self=self.fuelcube()
 			em=self.engmass()
-			to=ff+fs+fr+em
+			ex=self.extramass()
+			to=ff+fs+fr+em+ex
 			self.mass=to+self.fuel
 			return self
+			
+	def extramass(self):
+			return self.engmass()*3.5
+			
+	def axlest(self):
+			ba=self.engmass()/self.material.density
+			lenn=self.length/ba
+			ra=1/(lenn**.5)
+			ba*=ra/2
+			r = (sp.pi**2 / 64) * (ba**2 / self.length**2)
+			r*=self.material.j_high_estimate
+			return r
+			
+	def axl(self):
+			jp=self.power/self.engmass()
+			return jp/self.axlest()
 			
 	def fuelcube(self):
 			fh=self.height/2
@@ -68,13 +85,15 @@ class thull:
 			print(sp.N(self.psize()),"piston mass")
 			print(sp.N(self.pl()),"piston widrh")
 			print(sp.N(self.getsp()),"speed")
-			pow=self.power
-			print(sp.N(pow),"power")
+			print(sp.N(self.power),"power")
+			print(sp.N(self.axl()),"seconds axle break")
 			
 	def getsp(self):
 			ac=self.power
 			fr=nuct.alpha_fs*self.nfor()
-			return ac/fr
+			fs=ac/fr
+			rpl=self.getrps()*self.pl()
+			return min(fs,rpl)
 			
 	def getq(self):
 			s=self.getrps()
@@ -127,7 +146,7 @@ class thull:
 			self.power=self.getpow()
 			return self
 						
-tt=thull("fko",10,1,.01)
+tt=thull("fko",3,1,.01)
 tt=tt.init()
 eng=tt.engmass()
 print(sp.N(tt.mass),"abrams mass")
