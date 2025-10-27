@@ -92,6 +92,19 @@ class NuclearPenetrationModel:
 
         
     def getpow(self):
+        vesc=sp.sqrt((2*self.getbigg()*self.getearth())/self.req)
+        hm=self.geth()
+        hm**=2
+        en=.5*hm*vesc*vesc
+        w1=self.getwork()
+        w1=w1/en
+        w1*=alpha_fs
+        return w1
+        
+    def getwork(self):
+        return (self.gettime())*self.gethw()*year
+        
+    def gettime(self):
         w=self.gethw()
         r=self.req
         r=4*sp.pi*r*r
@@ -102,11 +115,7 @@ class NuclearPenetrationModel:
         w=w*dur
         f=wa/w
         f*=1/self.am/3
-        f*=alpha_fs        
-        vesc=sp.sqrt((2*self.getbigg()*self.getearth())/self.req)
-        hm=self.geth()
-        hm**=2
-        en=.5*hm*vesc*vesc
+        f*=alpha_fs               
         stel=2*10e9
         corf=1
         sden=7.85
@@ -114,10 +123,7 @@ class NuclearPenetrationModel:
         steelperm=(shvl*sden)
         steelperm*=stel*corf
         f1=wa1/steelperm
-        w1=self.gethw()*(1/f1)*year
-        w1=w1/en
-        w1*=alpha_fs
-        return w1
+        return 1/f1
         
         
     def gethw(self):
@@ -242,10 +248,6 @@ class NuclearPenetrationModel:
     
 def baseobj():
 	return NuclearPenetrationModel()
-
-baseobj().getearth()
-
-
 
 
     

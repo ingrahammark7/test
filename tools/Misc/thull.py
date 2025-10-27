@@ -4,12 +4,12 @@ import math
 import sympy as sp
 
 class thull:
-	def __init__(self,name,length,width,height,power,fuel,ammo,armorfront):
+	def __init__(self,name,length,power,fuel,ammo,armorfront):
 		self.name=name
 		self.mass=1
 		self.length=length
-		self.width=width
-		self.height=height
+		self.width=self.length/2
+		self.height=self.width/2
 		self.power=power
 		self.fuel=fuel
 		self.ammo=ammo
@@ -17,7 +17,10 @@ class thull:
 		self.armorside=self.armorfront/2
 		self.armorrear=self.armorside/2
 		self.material=pen.getsteel()
+		self.matq=1/8
 		self.mass=self.getmass()
+		self.nuc=nuct.baseobj()
+		
 		
 	def getmass(self):
 			d=self.material.density
@@ -36,7 +39,7 @@ class thull:
 			return self.fuel*defuel
 		
 	def engmass(self):
-			enr=self.enperkg()
+			enr=self.enperkg()*self.matq
 			enf=self.fuelen()
 			return enf/enr
 			
@@ -53,8 +56,16 @@ class thull:
 			hvl*=self.material.density
 			return hvl
 			
-tt=thull("fko",10,3.7,2.4,1000,2000,1,.1)
+	def getfric(self):
+			bo=self.width*self.width
+			coe=.5
+			gr=self.nuc.getg()
+			m=self.mass
+			
+			
+tt=thull("fko",10,1000,2000,1,.1)
+tt.mass=tt.getmass()
 eng=tt.engmass()
-m=tt.getmass()
-print(sp.N(m),"abrams mass")
+print(sp.N(tt.mass),"abrams mass")
 print(sp.N(eng),"engine mass")
+tt.getfric()
