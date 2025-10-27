@@ -35,22 +35,6 @@ class thull:
 	def extramass(self):
 			return self.engmass()*3.5
 			
-	def axlest(self):
-			ba=self.engmass()/self.material.density
-			lenn=self.length/ba
-			ra=1/(lenn**.5)
-			ba*=ra/2
-			r = (sp.pi**2 / 64) * (ba**2 / (self.length)**2)
-			hp=self.material.base_hvl**2
-			hp=1/hp
-			r*=self.material.material_energy_density_j_per_hvl*hp
-			return r
-			
-	def axl(self):
-			r=self.axlest()
-			jp=self.power
-			return r/jp
-			
 	def fuelcube(self):
 			fh=self.height/2
 			fd=850
@@ -63,6 +47,15 @@ class thull:
 	def fuelen(self):
 			defuel=45.6e6
 			return self.fuel*defuel
+			
+	def getaxr(self):
+		axm=self.engmass()/self.material.density
+		axr=axm**(1/3)
+		mu=self.length/(axr)
+		axr=(axr)/mu
+		axrm=axr*axr
+		return axrm/2
+		
 		
 	def engmass(self):
 			enr=self.enperkg()*self.matq
@@ -89,10 +82,7 @@ class thull:
 			print(sp.N(self.pl()),"piston widrh")
 			print(sp.N(self.getsp()),"speed")
 			print(sp.N(self.power),"power")
-			print(sp.N(self.axl()),"forcr vreak")
-			print(sp.N(1/self.getrps()),"time ro")
-			g1=self.axl()/((1/self.getrps())**self.vp)
-			print(sp.N(g1),"timevvreak")
+			print(sp.N(self.getaxr()))
 			
 	def getsp(self):
 			ac=self.power
