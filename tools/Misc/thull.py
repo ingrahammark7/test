@@ -51,9 +51,32 @@ class thull:
 	def getaxr(self):
 		axm=self.engmass()/self.material.density
 		axr=axm**(1/3)
+		axr*=2/(sp.pi**.5)
 		mu=self.length/(axr)
 		axr*=mu**-.5
-		return axr		
+		return axr/2
+		
+	def getur(self):
+		hv=self.material.base_hvl
+		lenn=self.length/hv
+		ra=self.getaxr()/hv
+		return lenn,ra
+		
+	def getbuc(self):
+		L,ba=self.getur()
+		r = (sp.pi**2 / 64) * (ba**2 / L**2)	
+		return r	
+		
+	def getbucm(self):
+		buc=self.getbuc()
+		axa=(self.getaxr()**2)*sp.pi
+		hv=self.material.base_hvl
+		hve=self.material.material_energy_density_j_per_hvl
+		hv**=2
+		axa/=hv
+		axa*=hve
+		axa*=buc
+		return (axa/self.power)*self.getrps()
 		
 	def engmass(self):
 			enr=self.enperkg()*self.matq
@@ -74,13 +97,14 @@ class thull:
 			to=self.getq()
 			gs=8
 			to*=gs
+			print(sp.N(self.mass),"mass")
 			print(sp.N(to/fo),"torque to fric")
 			print(sp.N(self.getrps()),"rotate per sec")
 			print(sp.N(self.psize()),"piston mass")
 			print(sp.N(self.pl()),"piston widrh")
 			print(sp.N(self.getsp()),"speed")
 			print(sp.N(self.power),"power")
-			print(sp.N(self.getaxr()))
+			print(sp.N(self.getbucm()))
 			
 	def getsp(self):
 			ac=self.power
@@ -146,7 +170,7 @@ eng=tt.engmass()
 print(sp.N(tt.mass),"abrams mass")
 print(sp.N(eng),"engine mass")
 tt.getfric()
-tt=thull("f",300,1,.01)
+tt=thull("f",30,1,.01)
 tt=tt.init()
 print("")
 tt.getfric()
