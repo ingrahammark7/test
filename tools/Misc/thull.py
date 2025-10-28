@@ -189,7 +189,21 @@ class thull:
 			poow/=(self.gear**2)/self.vp
 			poow*=self.material.j_high_estimate/self.fen
 			return poow
-						
+			
+def dof(name,l):
+	print("")
+	tt=thull(name,l,1,0)
+	tt=tt.init()
+	tt.getfric()
+	print("")
+
+tt=thull("bacteria",1e-10,1,0)				
+tt=tt.init()
+tt.getfric()
+print("")
+dof("bac",1e-5)
+dof("toy",1)
+dof("bike",2)
 tt=thull("car",3,1,.01)
 tt=tt.init()
 eng=tt.engmass()
@@ -198,10 +212,8 @@ tt=thull("critical engine",5.3,1,0.01)
 tt=tt.init()
 print("")
 tt.getfric()
-tt=thull("abrams",10,1,.01)
-tt=tt.init()
-print("")
-tt.getfric()
+dof("abrams",10)
+dof("marine",20)
 tt=thull("96c",44,1,.01)
 tt=tt.init()
 print("")
