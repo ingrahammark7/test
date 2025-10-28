@@ -182,22 +182,19 @@ class thull:
 			return self
 			
 	def getcc(self):
-			strr=self.material.j_high_estimate
 			he=self.gethc()
 			vv=(2*he)**.5
 			hvv=self.material.base_hvl**3
 			hvd=self.material.base_hvl
 			ti=hvd/vv
 			poow=ti*he
-			poow=strr/poow
+			poow=1/poow
 			poow*=(1/self.matq)
 			poow*=self.material.hvl_mass_kg()
-			fde=self.fden*self.fen
-			fde*=hvv
-			r1=self.material.j_high_estimate/self.fen
+			fde=self.fden*hvv
 			poow/=fde
-			poow/=r1
-			poow/=(self.gear**2)/self.vp		
+			poow/=(self.gear**2)/self.vp	
+			print(sp.N(poow))
 			return poow
 						
 tt=thull("car",3,1,.01)
