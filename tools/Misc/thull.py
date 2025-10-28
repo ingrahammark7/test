@@ -37,7 +37,7 @@ class thull:
 			return self
 			
 	def extramass(self):
-			return self.engmass()*3.5
+			return self.engmassp()*3.5
 			
 	def fuelcube(self):
 			fh=self.height/2
@@ -53,7 +53,7 @@ class thull:
 			return self.fuel*defuel
 			
 	def getaxr(self):
-		axm=self.engmass()/self.material.density
+		axm=self.engmassp()/self.material.density
 		axr=axm**(1/3)
 		axr*=2/(sp.pi**.5)
 		mu=self.length/(axr)
@@ -105,6 +105,8 @@ class thull:
 			to=self.getq()
 			gs=self.gear
 			to*=gs
+			print(self.name)
+			print(sp.N(self.pl()/sp.pi),"pisfon widtg")
 			print(sp.N(self.mass),"mass")
 			print(sp.N(self.engmassp()),"engine")
 			print(sp.N(to/fo),"torque to fric")
@@ -144,7 +146,6 @@ class thull:
 		d=self.material.density
 		m=m/d
 		m**=1/3
-		print(sp.N(m),"ps wid")
 		return m*sp.pi
 	
 	def psize(self):
@@ -196,18 +197,22 @@ class thull:
 			r1=self.material.j_high_estimate/self.fen
 			poow/=fde
 			poow/=r1
-			poow/=self.gear
-			poow/=(1+(1/(self.vp**2)))
-			print(sp.N(poow))
+			poow/=(self.gear**2)/self.vp		
 			return poow
 						
-tt=thull("fko",3,1,.01)
+tt=thull("car",3,1,.01)
 tt=tt.init()
 eng=tt.engmass()
-print(sp.N(tt.mass),"abrams mass")
-print(sp.N(eng),"engine mass")
 tt.getfric()
-tt=thull("f",4.7,1,.01)
+tt=thull("critical engine",5.3,1,0.01)
+tt=tt.init()
+print("")
+tt.getfric()
+tt=thull("abrams",10,1,.01)
+tt=tt.init()
+print("")
+tt.getfric()
+tt=thull("96c",44,1,.01)
 tt=tt.init()
 print("")
 tt.getfric()
