@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of filing"
+footer_text = "Notice"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Attached filing was improperly rejected. /n " 
+    intro_text = "This case was only filed becauss I cant afford a process server. Court should eituer ban me from filing or order ABC Legal to serve my cases. I have open cases the judge is delaying by refusing to decide on these orders.  /n " 
     y_position -= .25*inch
     
     
