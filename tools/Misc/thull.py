@@ -182,16 +182,12 @@ class thull:
 			return self
 			
 	def getcc(self):
-			he=self.gethc()
-			vv=(he)**.5
-			ti=1/vv
-			poow=ti*he
+			poow=self.gethc()**.5
+			poow*=self.matq
 			poow=1/poow
-			poow*=(1/self.matq)
 			poow/=self.material.base_hvl
 			poow/=(self.gear**2)/self.vp
-			hc=self.material.j_high_estimate/self.fen
-			poow*=hc
+			poow*=self.material.j_high_estimate/self.fen
 			print(sp.N(poow),"fdk")
 			return poow
 						
