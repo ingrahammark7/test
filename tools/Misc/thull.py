@@ -7,6 +7,8 @@ class thull:
 		self.name=name
 		self.fden=850
 		self.fen=45.6e6
+		self.vp=12
+		self.gear=8
 		self.mass=1
 		self.length=length
 		self.width=self.length/2
@@ -21,15 +23,14 @@ class thull:
 		self.matq=1/8
 		self.mass=self.getmass()
 		self.nuc=nuct.baseobj()
-		self.vp=12
-		self.gear=8
+		
 		
 	def getmass(self):
 			ff=self.getplate(self.armorfront,self.width,self.height)
 			fs=self.getplate(self.armorside,self.length,self.height)*2
 			fr=self.getplate(self.armorrear,self.width,self.height)
 			self=self.fuelcube()
-			em=self.engmass()
+			em=self.engmassp()
 			ex=self.extramass()
 			to=ff+fs+fr+em+ex
 			self.mass=to+self.fuel
@@ -85,6 +86,10 @@ class thull:
 			enr=self.enperkg()*self.matq
 			enf=self.fuelen()
 			return enf/enr
+	
+	def engmassp(self):
+			pp=self.psize()*self.vp
+			return self.engmass()+pp
 			
 	def enperkg(self):
 			return self.material.j_high_estimate
@@ -101,14 +106,14 @@ class thull:
 			gs=self.gear
 			to*=gs
 			print(sp.N(self.mass),"mass")
-			print(sp.N(self.engmass()),"engine")
+			print(sp.N(self.engmassp()),"engine")
 			print(sp.N(to/fo),"torque to fric")
 			print(sp.N(self.getrps()),"rotate per sec")
 			print(sp.N(self.psize()),"piston mass")
 			print(sp.N(self.pl()),"piston stroke len")
 			print(sp.N(self.getsp()),"speed")
 			print(sp.N(self.power),"power")
-			print(sp.N(self.getbucm()))
+			print(sp.N(self.getbucm()),"buck frac")
 			
 	def getsp(self):
 			ac=self.power
@@ -155,7 +160,7 @@ class thull:
 			
 	def getpow(self):
 		f=self.gethc()
-		f*=self.engmass()
+		f*=self.engmassp()
 		return f*self.gear*(sp.GoldenRatio)
 		
 	def getht(self):
@@ -178,24 +183,23 @@ class thull:
 	def getcc(self):
 			strr=self.material.j_high_estimate
 			he=self.gethc()
-			de=self.material.density
-			hvm=self.material.hvl_mass_kg()
 			vv=(2*he)**.5
-			hvv=hvm/de
-			hvd=hvv**(1/3)
+			hvv=self.material.base_hvl**3
+			hvd=self.material.base_hvl
 			ti=hvd/vv
 			poow=ti*he
 			poow=strr/poow
-			poow**=1
-			poow*=self.gear*(1/self.matq)
+			poow*=(1/self.matq)
 			poow*=self.material.hvl_mass_kg()
 			fde=self.fden*self.fen
 			fde*=hvv
-			r1=self.fden*self.fen/pen.mass_g
-			r1=self.material.j_high_estimate/r1
+			r1=self.material.j_high_estimate/self.fen
 			poow/=fde
 			poow/=r1
-			return poow/(self.vp)
+			poow/=self.gear
+			poow/=(1+(1/(self.vp**2)))
+			print(sp.N(poow))
+			return poow
 						
 tt=thull("fko",3,1,.01)
 tt=tt.init()
@@ -203,7 +207,7 @@ eng=tt.engmass()
 print(sp.N(tt.mass),"abrams mass")
 print(sp.N(eng),"engine mass")
 tt.getfric()
-tt=thull("f",44,1,.01)
+tt=thull("f",4.7,1,.01)
 tt=tt.init()
 print("")
 tt.getfric()
