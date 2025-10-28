@@ -34,8 +34,7 @@ class thull:
 		du.f2=rd
 		du.f3=spee/speed
 		du.f4=1
-		f=du.pen(du,90,90)
-		print(sp.N(f),"pen")
+		pen.dopen(du)
 		return du
 	
 	def getmass(self):

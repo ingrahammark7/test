@@ -589,31 +589,83 @@ def getspeed(mat):
     	mat=basevals(mat)
     	return mat.gets(1)
 
-if __name__ == "__main__":   
-    steel=getsteel()
-    du=getdu()
-    cf=getrp1tenpct()
-    steel.print_summary()
+steel=getsteel()
+du=getdu()
+cf=getrp1tenpct()
+steel.print_summary()
    
+def getstr(mat):
+    mat = basevals(mat)
+    return mat.j_high_estimate
+
+def bhn250():
+    mat = basevals(getsteel())
+    return (863*10**6) / mat.j_high_estimate
+
+def do10gel():
+    mat = basevals(getsteel())
+    gel = getrp1tenpct()
+    return gel.j_high_estimate / mat.j_high_estimate
+
+strength = bhn250()
+gels = do10gel()
+
+def lethalcalc(mat, en, exp):
+    sk = getskin()
+    sken = sk.material_energy_density_j_per_hvl / (2**nuct.phi**6)
+    en += sk.exen(exp)
+    if en < sken:
+        print("round not lethal")
+        return 0
+    mel = mat.melt_one_hvl()
+    en = en / mel
+    sken = sken / mel
+    hvls = en / sken
+    ar = mat.base_hvl
+    hvls **= (1 / 12)
+    hvls = hvls * ar
+    print("round lethal at armor cm", hvls.evalf() * cm_m)
+    return hvls
+
+def dopen(mat):
+    	print("")
+    	round_diameter = mat.getdam(1)
+    	ld,rspeed,mm=mat.getvel(round_diameter)
+    	round_diameter*=mm
+    	round_mas=mat.getmass(round_diameter,ld)    	
+    	print("round",sp.N(round_diameter*cm_m))
+    	print("mass",round_mas.evalf())
+    	round_energy = (.5*round_mas*(rspeed**2))
+    	print("energy j ",round_energy.evalf())
+    	print("speed",sp.N(rspeed))
+    	armor=steel
+    	if(round_diameter==.009):
+    		armor=getrp1tenpct()
+    		armor.base_hvl=round_diameter*2	
+    	hvl=armor.base_hvl*zrule()
+    	mult=1
+    	if(round_diameter>hvl):
+    		mult=round_diameter/hvl
+    	mult=mult**2
+    	armor.material_energy_density_j_per_hvl=mat.f4*estfix(steel)
+    	depth= 1
+    	exer=mat.exp
+    	if(exer!=0):
+    		print("fill",mat.fill)
+    		pcte=mat.exp/round_mas
+    		rdxdens=mat.density/1600
+    		print("exp pct",pcte.evalf()*rdxdens)
+    	th=armor.thermalpenexp(round_energy,mat.exp)
+    	depth=th
+    	depth=depth/mult
+    	print("ld ",sp.N(ld))
+    	print(f"Penetration depth: {depth*100:.2f} cm")
+    	lethalcalc(armor,round_energy,exer)
+    	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed,round_diameter)
+    	print("barrel length cm ",lenn.evalf()*cm_m)
+
+if __name__ == "__main__":   
     
-    
-    
-    	
-    def getstr(mat):
-    	mat=basevals(mat)
-    	return mat.j_high_estimate
-    	
-    def bhn250():
-    	mat=basevals(getsteel())
-    	return (863*10**6)/mat.j_high_estimate
-    	
-    def do10gel():
-    	mat=basevals(getsteel())
-    	gel=getrp1tenpct()
-    	return gel.j_high_estimate/mat.j_high_estimate
-    	
-    strength=bhn250()
-    gels=do10gel()
     
     def do2mm():
     	cf=steel
@@ -1103,61 +1155,8 @@ if __name__ == "__main__":
     	cf.fill=1
     	dopen(cf)
     	
-    def lethalcalc(mat,en,exp):
-    	sk=getskin()
-    	sken=sk.material_energy_density_j_per_hvl/(2**nuct.phi**6)
-    	en+=sk.exen(exp)
-    	if(en<sken):
-    		print("round not lethal")
-    		return 0
-    	mel=mat.melt_one_hvl()
-    	en=en/mel
-    	sken=sken/mel
-    	hvls=en/sken
-    	ar=mat.base_hvl
-    	hvls**=(1/12)
-    	hvls=hvls*ar
-    	print("round lethal at armor cm",hvls.evalf()*cm_m)
-    	return hvls
-    	
-    	
     
-    def dopen(mat):
-    	print("")
-    	round_diameter = mat.getdam(1)
-    	ld,rspeed,mm=mat.getvel(round_diameter)
-    	round_diameter*=mm
-    	round_mas=mat.getmass(round_diameter,ld)    	
-    	print("round",sp.N(round_diameter*cm_m))
-    	print("mass",round_mas.evalf())
-    	round_energy = (.5*round_mas*(rspeed**2))
-    	print("energy j ",round_energy.evalf())
-    	print("speed",sp.N(rspeed))
-    	armor=steel
-    	if(round_diameter==.009):
-    		armor=getrp1tenpct()
-    		armor.base_hvl=round_diameter*2	
-    	hvl=armor.base_hvl*zrule()
-    	mult=1
-    	if(round_diameter>hvl):
-    		mult=round_diameter/hvl
-    	mult=mult**2
-    	armor.material_energy_density_j_per_hvl=mat.f4*estfix(steel)
-    	depth= 1
-    	exer=mat.exp
-    	if(exer!=0):
-    		print("fill",mat.fill)
-    		pcte=mat.exp/round_mas
-    		rdxdens=mat.density/1600
-    		print("exp pct",pcte.evalf()*rdxdens)
-    	th=armor.thermalpenexp(round_energy,mat.exp)
-    	depth=th
-    	depth=depth/mult
-    	print("ld ",sp.N(ld))
-    	print(f"Penetration depth: {depth*100:.2f} cm")
-    	lethalcalc(armor,round_energy,exer)
-    	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed,round_diameter)
-    	print("barrel length cm ",lenn.evalf()*cm_m)
+    	
     	
     
     dopen(cf)
