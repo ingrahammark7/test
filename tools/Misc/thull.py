@@ -188,7 +188,6 @@ class thull:
 			poow/=self.material.base_hvl
 			poow/=(self.gear**2)/self.vp
 			poow*=self.material.j_high_estimate/self.fen
-			print(sp.N(poow),"fdk")
 			return poow
 						
 tt=thull("car",3,1,.01)
