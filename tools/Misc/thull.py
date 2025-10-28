@@ -25,7 +25,7 @@ class thull:
 		self.nuc=nuct.baseobj()
 		
 	def getbar(self):
-		barm=self.engmassp()
+		barm=self.engmassp()/pen.maxshot()
 		du=pen.getdu()
 		spee=pen.getspeed(du)
 		rd,speed,mass,en=du.getparp(barm,du)
@@ -128,6 +128,7 @@ class thull:
 			print(sp.N(self.getsp()),"speed")
 			print(sp.N(self.power),"power")
 			print(sp.N(self.getbucm()),"buck frac")
+			self.getbar()
 			
 	def getsp(self):
 			ac=self.power
@@ -231,4 +232,3 @@ tt=tt.init()
 print("")
 tt.getfric()
 tt.getcc()
-tt.getbar()
