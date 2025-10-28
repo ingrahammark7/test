@@ -304,7 +304,7 @@ class Material:
     	bm=self.getbarmass(mat)
     	rd,speed,mass,en=self.getroundparam(mat)
     	lm=mat.getlm(mass,rd)
-    	bf=self.getbarrelmass(mat,lm,rd,speed)
+    	#bf=self.getbarrelmass(mat,lm,rd,speed)
     	m1=mass
     	if(bm<barmass):
     		return rd,speed,mass,en
