@@ -576,13 +576,7 @@ def getsh_per_kg(self):
 def maxshot():
 	return nuct.alpha*nuct.phi
 
-if __name__ == "__main__":   
-    steel=getsteel()
-    du=getdu()
-    cf=getrp1tenpct()
-    steel.print_summary()
-   
-    def basevals(mat):
+def basevals(mat):
     	mat.bafac=1
     	mat.f2=1
     	mat.f3=1
@@ -590,10 +584,20 @@ if __name__ == "__main__":
     	mat.fill=1
     	mat.exp=0
     	return mat
-    
-    def getspeed(mat):
+
+def getspeed(mat):
     	mat=basevals(mat)
     	return mat.gets(1)
+
+if __name__ == "__main__":   
+    steel=getsteel()
+    du=getdu()
+    cf=getrp1tenpct()
+    steel.print_summary()
+   
+    
+    
+    
     	
     def getstr(mat):
     	mat=basevals(mat)

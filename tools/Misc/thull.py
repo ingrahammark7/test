@@ -24,7 +24,20 @@ class thull:
 		self.mass=self.getmass()
 		self.nuc=nuct.baseobj()
 		
-		
+	def getbar(self):
+		barm=self.engmassp()
+		du=pen.getdu()
+		spee=pen.getspeed(du)
+		rd,speed,mass,en=du.getparp(barm,du)
+		ld=du.getldfm(mass,rd)
+		du.bafac=ld
+		du.f2=rd
+		du.f3=spee/speed
+		du.f4=1
+		f=du.pen(du,90,90)
+		print(sp.N(f),"pen")
+		return du
+	
 	def getmass(self):
 			ff=self.getplate(self.armorfront,self.width,self.height)
 			fs=self.getplate(self.armorside,self.length,self.height)*2
@@ -219,3 +232,4 @@ tt=tt.init()
 print("")
 tt.getfric()
 tt.getcc()
+tt.getbar()
