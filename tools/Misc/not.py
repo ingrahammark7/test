@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "My standing orders apply to all my cases. Order UPS store at 3553 Atlantic Avenue address to not tamper with mail. Respond to orders on previous cases. /n " 
+    intro_text = "As the majority of LAPD officers are illegal immigrants, the entire LAPD is illegal and officers claiming to be citizens is no defense. LAPD cannot game the restraining order by cherrypicking officers who are citizens and using those officers against me. /n Auction and destroy all LAPD vehicles and estop LAPD from taking any action whatsoever against me. /n " 
     y_position -= .25*inch
     
     
