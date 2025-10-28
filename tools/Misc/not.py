@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order"
+footer_text = "Notice of filing"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Illegal Immigrant LAPD Officers",
+        "Jose Gonzalez",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "As the majority of LAPD officers are illegal immigrants, the entire LAPD is illegal and officers claiming to be citizens is no defense. LAPD cannot game the restraining order by cherrypicking officers who are citizens and using those officers against me. /n Auction and destroy all LAPD vehicles and estop LAPD from taking any action whatsoever against me. /n " 
+    intro_text = "Attached filing was improperly rejected. /n " 
     y_position -= .25*inch
     
     
