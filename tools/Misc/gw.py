@@ -1,55 +1,51 @@
-# Semi-empirical penetration (de Marre style) + calibration template
-# Drop into your toolchain. Python 3, requires numpy and sklearn (or use numpy only).
-import numpy as np
-from sklearn.linear_model import LinearRegression
+airmass=10
+thermvel=500
+avogadkg=6e26
+pm=2e-8
+numpm=airmass/pm
+direc=numpm**(1/3)
+aireng=.5*(thermvel**2)*airmass
+print(aireng,"air has 1mj available")
+humpow=10000
+airdens=1
+airvol=airmass/airdens
+enlen=airvol**(1/3)
+print(enlen,"rough engine length")
+dirvel=thermvel**(1/3)
+print(dirvel,"directiinal speed")
+hz=dirvel/enlen
+print(hz,"system frequency")
+poww=hz*aireng
+print(poww,"engine power rate")
+htco=1
+airtemp=(aireng/1000)/airmass
+print(airtemp,"eng temp")
+htl=htco*(enlen**2)*6*airtemp
+print(htl,"heat loss")
 
-def de_marre_predict(mass, velocity, diameter, params=None):
-    """
-    Predict penetration (P, in meters) using a log-linear "de Marre" style law:
-      log P = a0 + a1*log(m) + a2*log(v) + a3*log(d)
-    mass [kg], velocity [m/s], diameter [m]
-    params: dict with 'a0','a1','a2','a3' (if None, uses example defaults)
-    Returns P in meters.
-    """
-    if params is None:
-        # Example initial guesses (you should fit these to a naval dataset)
-        params = {'a0': -2.0, 'a1': 0.4, 'a2': 1.1, 'a3': -0.8}
-    a0,a1,a2,a3 = params['a0'], params['a1'], params['a2'], params['a3']
-    logP = a0 + a1*np.log(mass) + a2*np.log(velocity) + a3*np.log(diameter)
-    return np.exp(logP)
+humanpow=9.81*100*1
+print("a 100kg hunan standing watts",humanpow)
+mutlfortorsothigh=2**3
+humanpow*=mutlfortorsothigh
+print(humanpow,"with loss")
 
-def fit_de_marre(X, P_obs):
-    """
-    Fit the log-linear model to data.
-    X: Nx3 array with columns [mass, velocity, diameter]
-    P_obs: Nx1 observed penetration (meters)
-    Returns params dict and sklearn reg object.
-    """
-    # transform to logs
-    Xlog = np.log(X)
-    ylog = np.log(P_obs)
-    reg = LinearRegression(fit_intercept=True).fit(Xlog, ylog)
-    a0 = reg.intercept_
-    a1,a2,a3 = reg.coef_
-    params = {'a0': float(a0), 'a1': float(a1), 'a2': float(a2), 'a3': float(a3)}
-    return params, reg
+numpmvol=airdens/pm
+mfp=numpmvol**(1/3)
+mfp=1/mfp
+print(mfp,"mean free path of air grains")
+gren=pm*(thermvel**2)*.5
+af=gren*mfp
+print(af,"torque force of free air")
+#a 1 gram piston moving at 1m/s overcomes air torque
 
-# Example usage:
-if __name__ == "__main__":
-    # example dataset (replace with naval test data or paired Tate->observed penetration)
-    # columns: mass (kg), velocity (m/s), diameter (m)
-    X_example = np.array([
-        [204.0, 1500.0, 0.176],   # your 44cm x 17.6cm example (mass from DU)
-        [28.0, 1500.0, 0.03],     # slender APFSDS example
-        [50.0, 1200.0, 0.05],     # example
-        [300.0, 1000.0, 0.2],     # hypothetical
-    ])
-    # observed penetrations (m) — **replace** these with trusted naval test values
-    P_obs = np.array([1.07, 2.0, 1.5, 1.8])  # placeholder values
-
-    params, reg = fit_de_marre(X_example, P_obs)
-    print("Fitted params:", params)
-    # Predict for your round
-    m,v,d = 204.0, 1500.0, 0.176
-    P_pred = de_marre_predict(m, v, d, params=params)
-    print("Predicted penetration (m):", P_pred)
+humhz=1
+humlen=1
+humt=(humanpow/humhz)*humlen
+print(humt,"human torque")
+engw=5000
+engs=1
+enghz=1
+englen=engs/enghz
+engpow=((engs**2)*enghz)*engw*.5
+engt=(engpow/enghz)*englen
+print(engt,"torque of massive marine engine for comparison")
