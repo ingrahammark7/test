@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice"
+footer_text = "Request to Review Illegal Activity"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Jose Gonzalez",
+        "Department of Public Social Services",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -95,7 +95,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STRO06765")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
 #    c.drawString(space, top_margin - 4.25* inch, "CRS ID: Court did not provide CRS receipt")
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "This case was only filed becauss I cant afford a process server. Court should eituer ban me from filing or order ABC Legal to serve my cases. I have open cases the judge is delaying by refusing to decide on these orders.  /n " 
+    intro_text = "Judge shouldn't wait until hearing to decide on requests. Judge should respond to requests when they are filed and not delay until hearing. Judge should make decision on the papers on all my cases since he already committed fraud and will fake the hearing transcript, but he is too dumb to fake filings. /n " 
     y_position -= .25*inch
     
     
