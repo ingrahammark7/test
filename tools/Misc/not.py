@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Preemptive Response to Notice of Default and Request to Waive Fee"
+footer_text = "Request for Decision and Dismissal"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Department of Public Social Services",
+        "Jose Gonzalez",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -95,7 +95,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03728")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STRO06765")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
 #    c.drawString(space, top_margin - 4.25* inch, "CRS ID: Court did not provide CRS receipt")
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I. Response to Notice of Default and Request to Waive Sheriff Service Fee /n 1. I am responding to the Notice of Default the court may issue if judge ignores my request to order the fee waiver for sheriff service. /n 2. The default occurred through no fault of my own, but rather due to the court’s delay in issuing the order for the sheriff to serve the necessary documents. I have filed all required Requests for Order (RFOs) and motions on time, as documented in the court record. /n 3. Given that the default arose from the court’s inaction, I request: /n a. That the court set aside the Notice of Default, if necessary. /n b. Order sheriff to serve case. /n c. Waive the $50 sheriff service fee demanded when I go to the sheriff office at Stanley Mosk Courthouse. /n " 
+    intro_text = "Judge should decide immediately and there is no reason to have the hearing. If LAPD officers are allowed to be illegal immigrants and arrest me, then dismiss the case and order them to arrest. If not, order LAPD estopped from doing anything and all LAPD vehicles auctioned and destroyed. /n The only way this case can go to hearing is if judge doesnt read anything I file. If the hearing happens, judge is a moron. /n Court is requiring me to file this as a declaration but it should be a request for dismissal. /n " 
     y_position -= .25*inch
     
     
