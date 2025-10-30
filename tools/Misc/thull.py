@@ -20,7 +20,7 @@ class thull:
 		self.armorside=self.armorfront/2
 		self.armorrear=self.armorside/2
 		self.material=pen.getsteel()
-		self.matq=1/8
+		self.matq=1/self.gear
 		self.mass=self.getmass()
 		self.nuc=nuct.baseobj()
 		
@@ -36,6 +36,8 @@ class thull:
 		du.f4=1
 		pen.dopen(du)
 		return du
+	
+	
 	
 	def getmass(self):
 			ff=self.getplate(self.armorfront,self.width,self.height)
@@ -95,6 +97,7 @@ class thull:
 		return (axa/self.power)*self.getrps()
 		
 	def engmass(self):
+			self.material=pen.getsteel()
 			enr=self.enperkg()*self.matq
 			enf=self.fuelen()
 			return enf/enr
@@ -203,11 +206,18 @@ class thull:
 			poow*=self.material.j_high_estimate/self.fen
 			return poow
 			
+	def base(self):
+			fu=self.getcc()
+			r=self.enperkg()
+			print(sp.N(r),"fu")
+			print(self.fuel)
+			
 def dof(name,l):
 	print("")
 	tt=thull(name,l,1,0)
 	tt=tt.init()
 	tt.getfric()
+	tt.base()
 	print("")
 
 tt=thull("bacteria",1e-10,1,0)				
