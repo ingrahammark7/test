@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Decision and Dismissal"
+footer_text = "Notice of Appeal of 10/27 Decision"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge should decide immediately and there is no reason to have the hearing. If LAPD officers are allowed to be illegal immigrants and arrest me, then dismiss the case and order them to arrest. If not, order LAPD estopped from doing anything and all LAPD vehicles auctioned and destroyed. /n The only way this case can go to hearing is if judge doesnt read anything I file. If the hearing happens, judge is a moron. /n Court is requiring me to file this as a declaration but it should be a request for dismissal. /n " 
+    intro_text = "I called the Department 25 number at 213-633-0525. I spoke to Karen on the phone and she stated decision on the case is final and appealable. Notice is given that the decision made on 10/27 is appealed. /n " 
     y_position -= .25*inch
     
     
@@ -154,7 +154,7 @@ def create_pdf(output_filename):
     	return cc
     	
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/16/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/30/2025")
     c=dopage(c,2)
 
 
