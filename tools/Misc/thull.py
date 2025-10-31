@@ -10,6 +10,7 @@ class thull:
 		self.vp=12
 		self.gear=8
 		self.mass=1
+		self.f4=1/3
 		self.length=length
 		self.width=self.length/2
 		self.height=self.width/2
@@ -24,6 +25,7 @@ class thull:
 		self.mass=self.getmass()
 		self.nuc=nuct.baseobj()
 		
+		
 	def getbar(self):
 		barm=self.engmassp()/pen.maxshot()
 		du=pen.getdu()
@@ -36,8 +38,6 @@ class thull:
 		du.f4=1
 		pen.dopen(du)
 		return du
-	
-	
 	
 	def getmass(self):
 			ff=self.getplate(self.armorfront,self.width,self.height)
@@ -107,7 +107,7 @@ class thull:
 			return self.engmass()+pp
 			
 	def enperkg(self):
-			return self.material.j_high_estimate
+			return self.material.j_high_estimate*self.f4
 			
 	def nfor(self):
 			gr=self.nuc.getg()
@@ -203,13 +203,12 @@ class thull:
 			poow=1/poow
 			poow/=self.material.base_hvl
 			poow/=(self.gear**2)/self.vp
-			poow*=self.material.j_high_estimate/self.fen
+			poow*=(self.material.j_high_estimate)/self.fen
 			return poow
 			
 	def base(self):
 			fu=self.getcc()
 			r=self.enperkg()
-			print(sp.N(r),"fu")
 			print(self.fuel)
 			
 def dof(name,l):
