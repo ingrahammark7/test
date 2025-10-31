@@ -209,7 +209,6 @@ class thull:
 	def base(self):
 			fu=self.getcc()
 			r=self.enperkg()
-			print(self.fuel)
 			
 def dof(name,l):
 	print("")
