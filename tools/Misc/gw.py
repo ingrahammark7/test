@@ -1,4 +1,29 @@
-popin={
+import nuct
+import sympy as sp
+
+w=14e12
+nnn=nuct.baseobj()
+nn=nnn.gethw()*nuct.year
+ffk=1361*nuct.year
+nn=nn/ffk
+nn/=nuct.alpha_fs
+acs=0.000247105
+avw=acs*w
+nn*=acs
+e=sp.N(sp.E)
+gh=.7
+gj=2.5
+prrl=1/3
+minl=90
+rangge=7
+perl=rangge/minl
+tdif=prrl*minl
+nn=avw*nn
+nn=sp.N(nn)
+print(nn)
+eucen=50
+
+popin1={
 "Easia":[62,12],
 "sea":[77,10],
 "ee":[9,18],
@@ -28,8 +53,12 @@ pop19={
 "la":[63,20],
 "wes":[87,9]
 }
+wp=67
+cp=72
+cr=cp/wp
+ffl=1+(1/137)
 #ywar 1
-print(popin)
+popin=popin1
 for cc in popin.keys():
 	ff=popin.get(cc)
 	print(cc)
@@ -38,4 +67,6 @@ for cc in popin.keys():
 	f3=pop19.get(cc)[0]
 	f4=pop19.get(cc)[1]
 	cagr=((f3/f1)**(1/1900))-1
-	print(cagr)
+	fg=ffl-1
+	print(cr*(cagr/fg))
+	print(cagr/fg)
