@@ -57,8 +57,9 @@ wp=67
 cp=72
 cr=cp/wp
 ffl=1+(1/137)
-#ywar 1
-popin=popin1
+
+popin=popin
+sum=0
 for cc in popin.keys():
 	ff=popin.get(cc)
 	print(cc)
@@ -68,5 +69,4 @@ for cc in popin.keys():
 	f4=pop19.get(cc)[1]
 	cagr=((f3/f1)**(1/1900))-1
 	fg=ffl-1
-	print(cr*(cagr/fg))
-	print(cagr/fg)
+	print(fg/cagr)
