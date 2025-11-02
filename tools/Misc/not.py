@@ -28,6 +28,8 @@ def create_pdf(output_filename):
 
     # Add footer
     def add_footer(page_num):
+        if(page_num==1):
+        	page_num=""
         footer_y = 0.4 * inch  # Position for footer
          # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
