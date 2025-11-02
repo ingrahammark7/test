@@ -1,62 +1,97 @@
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
 # ----------------------------
-# Step 1: Expanded dataset with continent
+# Step 1: Dataset
 # ----------------------------
 data = [
-    ['China', 0.48, 13000, 153, 35.0, 103.8, 'Asia'],
-    ['India', 0.20, 2500, 464, 20.0, 78.0, 'Asia'],
-    ['Brazil', 1.8, 9000, 25, -10.0, -55.0, 'South America'],
-    ['South Africa', 0.31, 7000, 48, -30.0, 25.0, 'Africa'],
-    ['Luxembourg', 4.0, 130000, 250, 49.6, 6.1, 'Europe'],
-    ['Germany', 1.0, 55000, 232, 51.2, 10.4, 'Europe'],
-    ['France', 0.9, 53000, 122, 46.2, 2.2, 'Europe'],
-    ['Japan', 0.7, 45000, 347, 36.2, 138.3, 'Asia'],
-    ['USA', 0.6, 72000, 36, 37.1, -95.7, 'North America'],
-    ['Russia', 0.4, 11000, 9, 61.0, 105.0, 'Europe/Asia'],
-    ['Canada', 0.5, 52000, 4, 56.1, -106.3, 'North America'],
-    ['Australia', 0.8, 60000, 3, -25.3, 133.8, 'Oceania'],
-    ['Mexico', 0.9, 10000, 66, 23.6, -102.5, 'North America'],
-    ['UK', 1.2, 49000, 275, 55.4, -3.4, 'Europe'],
-    ['Italy', 1.1, 45000, 206, 41.9, 12.6, 'Europe'],
-    ['Spain', 1.0, 43000, 94, 40.4, -3.7, 'Europe'],
-    ['South Korea', 0.9, 42000, 527, 36.5, 127.8, 'Asia'],
-    ['Argentina', 0.7, 11000, 16, -38.4, -63.6, 'South America'],
-    ['Egypt', 0.3, 3600, 103, 26.8, 30.8, 'Africa'],
-    ['Nigeria', 0.15, 2500, 223, 9.1, 8.7, 'Africa'],
-    ['Turkey', 0.6, 12000, 109, 38.9, 35.2, 'Europe/Asia'],
-    ['Saudi Arabia', 0.2, 24000, 16, 23.9, 45.0, 'Asia'],
-    ['Norway', 1.5, 80000, 15, 60.5, 8.5, 'Europe'],
-    ['Sweden', 1.4, 55000, 25, 60.1, 18.6, 'Europe'],
-    ['Finland', 1.3, 52000, 18, 61.9, 25.7, 'Europe'],
-    ['Netherlands', 2.0, 53000, 508, 52.1, 5.3, 'Europe'],
-    ['Belgium', 1.9, 51000, 383, 50.8, 4.3, 'Europe'],
-    ['Singapore', 5.0, 72000, 8358, 1.4, 103.8, 'Asia'],
-    ['Thailand', 0.35, 7000, 137, 15.9, 101.0, 'Asia'],
-    ['Vietnam', 0.25, 4000, 311, 14.0, 108.3, 'Asia']
+    ['China', 0.48, 13000, 153],
+    ['India', 0.20, 2500, 464],
+    ['Brazil', 1.8, 9000, 25],
+    ['South Africa', 0.31, 7000, 48],
+    ['Luxembourg', 4.0, 130000, 250],
+    ['Germany', 1.0, 55000, 232],
+    ['France', 0.9, 53000, 122],
+    ['Japan', 0.7, 45000, 347],
+    ['USA', 0.6, 72000, 36],
+    ['Russia', 0.4, 11000, 9],
+    ['Canada', 0.5, 52000, 4],
+    ['Australia', 0.8, 60000, 3],
+    ['Mexico', 0.9, 10000, 66],
+    ['UK', 1.2, 49000, 275],
+    ['Italy', 1.1, 45000, 206],
+    ['Spain', 1.0, 43000, 94],
+    ['South Korea', 0.9, 42000, 527],
+    ['Argentina', 0.7, 11000, 16],
+    ['Egypt', 0.3, 3600, 103],
+    ['Nigeria', 0.15, 2500, 223],
+    ['Turkey', 0.6, 12000, 109],
+    ['Saudi Arabia', 0.2, 24000, 16],
+    ['Norway', 1.5, 80000, 15],
+    ['Sweden', 1.4, 55000, 25],
+    ['Finland', 1.3, 52000, 18],
+    ['Netherlands', 2.0, 53000, 508],
+    ['Belgium', 1.9, 51000, 383],
+    ['Singapore', 5.0, 72000, 8358],
+    ['Thailand', 0.35, 7000, 137],
+    ['Vietnam', 0.25, 4000, 311]
 ]
 
 df = pd.DataFrame(data, columns=[
-    'Country', 'Buses_per_1000', 'GDP_per_capita_USD',
-    'Population_density_per_km2', 'Latitude', 'Longitude', 'Continent'
+    'Country', 'Buses_per_1000', 'GDP_per_capita_USD', 'Population_density_per_km2'
 ])
 
 # ----------------------------
-# Step 2: Scatterplot matrix with regression
+# Step 2: Fit linear regression plane
 # ----------------------------
-sns.set(style="whitegrid")
-plot_vars = ['Buses_per_1000', 'GDP_per_capita_USD', 'Population_density_per_km2']
+X = df[['Population_density_per_km2', 'GDP_per_capita_USD']]
+y = df['Buses_per_1000']
+model = LinearRegression()
+model.fit(X, y)
 
-pairplot = sns.pairplot(df, 
-                        vars=plot_vars, 
-                        hue='Continent', 
-                        kind='reg', 
-                        height=3, 
-                        corner=True,
-                        palette='tab10')
+# Grid for plane
+x_surf = np.linspace(df['Population_density_per_km2'].min(), df['Population_density_per_km2'].max(), 20)
+y_surf = np.linspace(df['GDP_per_capita_USD'].min(), df['GDP_per_capita_USD'].max(), 20)
+x_surf, y_surf = np.meshgrid(x_surf, y_surf)
+z_surf = model.intercept_ + model.coef_[0]*x_surf + model.coef_[1]*y_surf
 
-pairplot.fig.suptitle("Buses per 1000 vs GDP and Population Density", y=1.02)
+# ----------------------------
+# Step 3: Interactive 3D plot
+# ----------------------------
+fig = go.Figure()
 
-plt.show()
+# Scatter points (actual countries)
+fig.add_trace(go.Scatter3d(
+    x=df['Population_density_per_km2'],
+    y=df['GDP_per_capita_USD'],
+    z=df['Buses_per_1000'],
+    mode='markers+text',
+    text=df['Country'],
+    textposition='top center',
+    marker=dict(size=5, color='blue'),
+    name='Countries'
+))
+
+# Regression plane
+fig.add_trace(go.Surface(
+    x=x_surf,
+    y=y_surf,
+    z=z_surf,
+    colorscale='Oranges',
+    opacity=0.5,
+    name='Regression Plane'
+))
+
+# Layout
+fig.update_layout(
+    scene=dict(
+        xaxis_title='Population Density (per km²)',
+        yaxis_title='GDP per Capita (USD)',
+        zaxis_title='Buses per 1000'
+    ),
+    title='Interactive 3D: Buses per Capita vs Density & GDP'
+)
+
+fig.show()
