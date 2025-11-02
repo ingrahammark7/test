@@ -32,6 +32,7 @@ def create_pdf(output_filename):
          # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
         c.drawCentredString(width / 2, footer_y, footer_text)
+        c.drawString(right_margin-0.05*inch,footer_y-.0*inch, str(page_num))
         # Draw a line above the footer
         c.line(left_margin, footer_y + 0.1 * inch, right_margin, footer_y + 0.1 * inch)
 
