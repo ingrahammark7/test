@@ -573,8 +573,13 @@ def getsh_per_kg(self):
     ker=self.molar_mass
     return sh/ker
     
+def baseproj():
+    return getsteel().getparp(getsteel().getbarmass(getsteel()),getsteel())
+    
 def maxshot():
-	return nuct.alpha*nuct.phi
+	rd,speed,mass,en=baseproj()
+	barml=getsteel().getbarrellen(getsteel(),getsteel().getroundlenmass(mass,rd),speed,rd)
+	return (barml/rd)*(nuct.alpha)
 
 def basevals(mat):
     	mat.bafac=1
