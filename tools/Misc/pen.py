@@ -579,7 +579,9 @@ def baseproj():
 def maxshot():
 	rd,speed,mass,en=baseproj()
 	barml=getsteel().getbarrellen(getsteel(),getsteel().getroundlenmass(mass,rd),speed,rd)
-	return (barml/rd)*(nuct.alpha)
+	res=(barml/rd)*(nuct.alpha)
+	print("gun will fire shots ",sp.N(res))
+	return res
 
 def basevals(mat):
     	mat.bafac=1
