@@ -110,7 +110,10 @@ def create_pdf(output_filename):
     c.drawString(space, top_margin - 4.75 * inch, "Judge: ")
     c.drawString(space, top_margin - 5* inch, "Department: ")
 
-    def doer(intro_text,y_position,font,marg):
+    def doer(intro_text,y_position):
+    	return doer1(intro_text,y_position,"Times-Roman",80)
+    
+    def doer1(intro_text,y_position,font,marg):
     	siz=12
     	c.setFont(font, siz)
     	spr=intro_text.split(" ")
@@ -142,7 +145,7 @@ def create_pdf(output_filename):
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    y_position=doer(footer_text.upper() + " /n ",y_position, "Times-Bold",60)
+    y_position=doer1(footer_text.upper() + " /n ",y_position, "Times-Bold",60)
   #  c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
     intro_text = "I. Introduction /n I request that the Court transmit the transcript and related filings from Ingraham vs LAPD to the appropriate law enforcement authority for review. This request arises from procedural actions and inactions that may constitute obstruction of justice or related misconduct under California law. /n II. Factual Background /n 1. On 10/20 in case 25STCP03728, I filed a request that Judge Kin be arrested for faking transcript in 742 case.  /n 2. Despite proper filing and notice, the Court failed to rule on this motion within the statutory or reasonable period. /n 3. As a result of the Court’s inaction, judge delayed case. /n 4. The inaction appears to have affected matters related to potential criminal violations, including judge faking the transcript in the case. /n III. Legal Basis /n Obstruction of justice – Penal Code §§ 136–137 /n Conspiracy to obstruct justice – Penal Code § 182(a)(5) /n Falsification or concealment of court records – Penal Code § 115 /n The Court has authority to refer records or transcripts to law enforcement when procedural irregularities indicate potential criminal activity. (See CCP § 2025(f); Cal. Rules of Court, Rule 8.155(c)) /n IV. Relief Requested /n I request that the Court: /n 1. Transmit the transcript and all related filings from Ingraham vs LAPD to the US Attorney for the Central District of California and any other appropriate law enforcement agencies. /n 2. If the name of this motion is changed, clerk is guilty of fraud for changing the title. /n " 
@@ -163,7 +166,7 @@ def create_pdf(output_filename):
     	return cc
     c=dopage(c,1)
     y_position=top_margin-.25*inch
-    y_position=doer(intro_text,y_position,"Times-Roman",80) 	
+    y_position=doer1(intro_text,y_position,"Times-Roman",80) 	
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/30/2025")
     c=dopage(c,2)

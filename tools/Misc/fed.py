@@ -105,7 +105,11 @@ def create_pdf(output_filename):
     
     
     def doer(intro_text,y_position):
-    	c.setFont("Times-Roman", 12)
+    	return doer1(intro_text,y_position,"Times-Roman",80)
+    
+    def doer1(intro_text,y_position,font,marg):
+    	siz=12
+    	c.setFont(font, siz)
     	spr=intro_text.split(" ")
     	intro_text1=[""]
     	cc=0
@@ -114,17 +118,21 @@ def create_pdf(output_filename):
     		ll=len(s)
     		cc+=ll
     		if(s=="/n"):
-    		    		cc=81
+    		    		cc=marg+1
     		    		s=""
-    		if(cc>80):
+    		if(cc>marg):
     		    		cc=0
     		    		intro_text1.append(tt)
     		    		tt=""
     		tt+=" "
     		tt+=s
     	for line in intro_text1:
+    		if "I." in line or "V." in line:
+    			c.setFont("Times-Bold",siz)
+    		else:
+    			c.setFont(font,siz)
     		c.drawString(left_margin, y_position, line)
-    		y_position -= 0.5* inch
+    		y_position -= 0.25* inch
     	return y_position
     	
     y_position=doer(intro_text,y_position)
@@ -159,7 +167,7 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="Case was filed to get around judge automatically dismissing all cases. The given dismissal reasons are absurd. In previous case I mentioned the majority of LAPD officers are illegal immigrants and should be deported. Judge dismissed and said immigration is not under federal jurisdiction. /n Order judge arrested for senility. /n When this case is dismissed, the court will have proven it dismisses literally everything if it says ''Mark Ingraham'' on it. /n"
+    text="Case was filed to get around judge automatically dismissing all cases. The given dismissal reasons are absurd. In previous case I mentioned the majority of LAPD officers are illegal immigrants and should be deported. Judge dismissed and said immigration is not under federal jurisdiction. /n Order judge arrested for senility. /n"
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/14/2025")
 
