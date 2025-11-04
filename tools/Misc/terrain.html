@@ -2,38 +2,55 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Ultimate Engine Mass Visualization</title>
+<title>Ultimate Engine Mass Animation - Full Features</title>
 <style>
-  body { margin:0; overflow:hidden; font-family:sans-serif; }
-  #info { position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.5); color:white; padding:10px; border-radius:5px; }
+  body { margin:0; overflow:hidden; background:#222; }
+  canvas { display:block; }
+  #info {
+    position:absolute; top:10px; left:10px;
+    color:white; font-family:sans-serif;
+    background:rgba(0,0,0,0.5); padding:5px 10px;
+    border-radius:5px; pointer-events:none;
+  }
 </style>
 </head>
 <body>
-<div id="info">Hover over a bar for details</div>
+<div id="info">Hover over a bar</div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
-  // Scene, Camera, Renderer
+  // -------------------- Scene Setup --------------------
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 10000);
-  camera.position.set(0, 15, 25);
+  scene.background = new THREE.Color(0x222222);
+
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 15, 30);
 
   const renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
 
-  // Lighting
-  const light = new THREE.DirectionalLight(0xffffff,1);
-  light.position.set(10,20,10);
-  light.castShadow = true;
-  scene.add(light);
-  scene.add(new THREE.AmbientLight(0x404040));
+  // -------------------- Lights --------------------
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(20,40,20);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  scene.add(dirLight);
 
-  // Ground plane
-  const grid = new THREE.GridHelper(50,50,0x888888,0x444444);
-  scene.add(grid);
+  scene.add(new THREE.AmbientLight(0x404040,1.5));
+  scene.add(new THREE.HemisphereLight(0x444444,0x222222,0.5));
 
-  // Engine factors
+  // Ground for shadows
+  const groundGeo = new THREE.PlaneGeometry(200,200);
+  const groundMat = new THREE.ShadowMaterial({opacity:0.3});
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI/2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // -------------------- Data --------------------
   const factors = [
     {name:"gethc * 8", value:625},
     {name:"* 8", value:5002},
@@ -44,99 +61,95 @@
     {name:"Final Mass", value:1488}
   ];
 
+  const maxVal = Math.max(...factors.map(f=>f.value));
   const bars = [];
-  const spacing = 4;
-  let raycaster = new THREE.Raycaster();
-  let mouse = new THREE.Vector2();
-  let info = document.getElementById("info");
+  const spacing = 3;
+  const info = document.getElementById('info');
 
-  // Text texture helper
-  function makeTextTexture(text){
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'white';
-    ctx.font = '24px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text,128,32);
-    return new THREE.CanvasTexture(canvas);
-  }
-
-  // Create bars
+  // -------------------- Bar Creation --------------------
   factors.forEach((f,i)=>{
-    const scaledHeight = Math.max(0.1, f.value/1000);
-    const hue = Math.min(240, Math.log10(f.value+1)*40);
-    const color = new THREE.Color(`hsl(${hue},80%,50%)`);
-    const geom = new THREE.BoxGeometry(1,0.1,1);
-    const mat = new THREE.MeshPhongMaterial({color});
-    const bar = new THREE.Mesh(geom, mat);
+    const h = 0.1;
+    const geometry = new THREE.BoxGeometry(1,h,1);
+    const color = new THREE.Color().setHSL(0.6*(f.value/maxVal),0.7,0.5);
+    const material = new THREE.MeshPhongMaterial({color:color});
+    const bar = new THREE.Mesh(geometry,material);
     bar.castShadow = true;
     bar.receiveShadow = true;
-    bar.position.set(i*spacing - factors.length*spacing/2, 0, 0);
+    bar.position.set(i*spacing - factors.length*spacing/2, h/2, 0);
+    bar.userData = {
+      targetHeight: f.value/maxVal*10,
+      name: f.name,
+      value: f.value,
+      baseColor: color.clone()
+    };
     scene.add(bar);
+    bars.push(bar);
 
-    // Text
-    const textTex = makeTextTexture(`${f.name}: ${f.value}`);
-    const textMat = new THREE.MeshBasicMaterial({map:textTex, transparent:true});
-    const textGeom = new THREE.PlaneGeometry(3,0.75);
-    const textMesh = new THREE.Mesh(textGeom,textMat);
-    textMesh.position.set(0,scaledHeight+0.4,0);
-    bar.add(textMesh);
-
-    bars.push({mesh:bar,targetHeight:scaledHeight,factor:f});
+    // Label
+    const canvas = document.createElement('canvas');
+    canvas.width=256; canvas.height=64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle='white';
+    ctx.font='28px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(`${f.name}: ${f.value}`,128,40);
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({map:texture,transparent:true});
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(4,1,1);
+    sprite.position.set(bar.position.x, bar.userData.targetHeight+1, bar.position.z);
+    scene.add(sprite);
   });
 
-  let currentBar = 0;
+  // -------------------- Interaction --------------------
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
 
-  // Animation
-  const animate = function(){
-    requestAnimationFrame(animate);
-
-    // Rotate camera
-    const radius = 25;
-    const angle = Date.now()*0.0001;
-    camera.position.x = radius*Math.sin(angle);
-    camera.position.z = radius*Math.cos(angle);
-    camera.lookAt(0,0,0);
-
-    // Grow bars sequentially with easing
-    if(currentBar < bars.length){
-      const b = bars[currentBar];
-      b.mesh.scale.y += (b.targetHeight - b.mesh.scale.y)*0.1;
-      b.mesh.position.y = b.mesh.scale.y/2;
-      if(Math.abs(b.mesh.scale.y - b.targetHeight)<0.01) currentBar++;
-    }
-
-    // Hover detection
-    raycaster.setFromCamera(mouse,camera);
-    const intersects = raycaster.intersectObjects(bars.map(b=>b.mesh));
-    if(intersects.length>0){
-      const b = bars.find(bi=>bi.mesh===intersects[0].object);
-      intersects[0].object.material.emissive.set(0xff0000);
-      info.innerText = `${b.factor.name}: ${b.factor.value}`;
-    } else {
-      bars.forEach(b=>b.mesh.material.emissive.set(0x000000));
-      info.innerText = "Hover over a bar for details";
-    }
-
-    renderer.render(scene,camera);
-  };
-  animate();
-
-  // Mouse move
-  window.addEventListener('mousemove', e=>{
-    mouse.x = (e.clientX/window.innerWidth)*2 -1;
-    mouse.y = -(e.clientY/window.innerHeight)*2 +1;
+  window.addEventListener('mousemove',(event)=>{
+    mouse.x = (event.clientX/window.innerWidth)*2-1;
+    mouse.y = -(event.clientY/window.innerHeight)*2+1;
   });
 
-  // Resize
   window.addEventListener('resize',()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
+
+  // -------------------- Animation Loop --------------------
+  function animate(){
+    requestAnimationFrame(animate);
+    const time = Date.now()*0.001;
+
+    // Camera auto-rotation
+    camera.position.x = Math.sin(time*0.2)*30;
+    camera.position.z = Math.cos(time*0.2)*30;
+    camera.lookAt(0,5,0);
+
+    // Raycast for hover
+    raycaster.setFromCamera(mouse,camera);
+    const intersects = raycaster.intersectObjects(bars);
+    if(intersects.length>0){
+      const hovered = intersects[0].object;
+      hovered.material.color.set(0xff0000);
+      info.textContent = `${hovered.userData.name}: ${hovered.userData.value}`;
+    } else {
+      info.textContent = 'Hover over a bar';
+    }
+
+    // Bar growth animation + easing
+    bars.forEach(bar=>{
+      const target = bar.userData.targetHeight;
+      bar.scale.y += (target - bar.scale.y)*0.05; // easing
+      bar.position.y = bar.scale.y/2;
+      // reset color if not hovered
+      if(!intersects.includes(bar)) bar.material.color.copy(bar.userData.baseColor);
+    });
+
+    renderer.render(scene,camera);
+  }
+
+  animate();
 </script>
 </body>
 </html>
