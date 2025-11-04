@@ -576,10 +576,16 @@ def getsh_per_kg(self):
 def baseproj():
     return getsteel().getparp(getsteel().getbarmass(getsteel()),getsteel())
     
+def barpm():
+    rd,speed,mass,en=baseproj()
+    barml=getsteel().getbarrellen(getsteel(),getsteel().getroundlenmass(mass,rd),speed,rd)
+    return barml/rd
+    
+def baseshot():
+    return barpm()*sp.pi*nuct.phi
+    
 def maxshot():
-	rd,speed,mass,en=baseproj()
-	barml=getsteel().getbarrellen(getsteel(),getsteel().getroundlenmass(mass,rd),speed,rd)
-	res=(barml/rd)*(nuct.alpha)
+	res=baseshot()**2
 	print("gun will fire shots ",sp.N(res))
 	return res
 
