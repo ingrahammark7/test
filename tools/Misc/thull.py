@@ -24,8 +24,7 @@ class thull:
 		self.matq=1/self.gear
 		self.mass=self.getmass()
 		self.nuc=nuct.baseobj()
-		
-		
+	
 	def getbar(self):
 		barm=self.engmassp()/pen.maxshot()
 		du=pen.getdu()
@@ -198,25 +197,23 @@ class thull:
 			return self
 			
 	def getcc(self):
-			poow=self.gethc()**.5
-			poow*=self.matq
-			poow=1/poow
-			poow/=self.material.base_hvl
-			poow/=(self.gear**2)/self.vp
-			poow*=(self.material.j_high_estimate)/self.fen
+			p0=self.vp**(1/3)
+			p1=self.gethc()*self.gear*nuct.phi*(1/self.matq)
+			p1/=self.material.j_high_estimate
+			poow=p1*((self.fden*self.fen)**(1/3))*p0*4
 			return poow
 			
-	def base(self):
-			fu=self.getcc()
-			r=self.enperkg()
 			
 def dof(name,l):
 	print("")
 	tt=thull(name,l,1,0)
 	tt=tt.init()
 	tt.getfric()
-	tt.base()
-	print("")
+	return tt
+	
+def baseobj():
+	dd=dof("b",1)
+	print(dd)
 
 tt=thull("bacteria",1e-10,1,0)				
 tt=tt.init()
