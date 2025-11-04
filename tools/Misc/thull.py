@@ -201,7 +201,12 @@ class thull:
 			p1/=self.material.j_high_estimate/p1
 			poow=p1*((self.fden*self.fen)**(1/3))*self.vp
 			return poow
-			
+		
+	def getbaseobj(self):
+			enr=self.engmass()/self.getcc()
+			enr**=1/3
+			l2=(self.length/enr)
+			return thull(self.name,l2,self.ammo,0).init()
 			
 def dof(name,l):
 	print("")
@@ -211,15 +216,15 @@ def dof(name,l):
 	return tt
 	
 def baseobj():
-	dd=dof("b",1)
-	print(dd)
+	d=dof("b",1)
+	return d.getbaseobj()
 
 tt=thull("bacteria",1e-10,1,0)				
 tt=tt.init()
 tt.getfric()
 print("")
 dof("bac",1e-5)
-dof("toy",1)
+dof("toy",.3)
 dof("bike",2)
 tt=thull("car",3,1,.01)
 tt=tt.init()
@@ -236,3 +241,6 @@ tt=tt.init()
 print("")
 tt.getfric()
 tt.getcc()
+tt=baseobj()
+print("")
+tt.getfric()
