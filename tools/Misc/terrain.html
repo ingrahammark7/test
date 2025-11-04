@@ -2,71 +2,137 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Engine Mass Animation</title>
+<title>Ultimate Engine Mass Visualization</title>
 <style>
-  body { margin: 0; overflow: hidden; }
-  canvas { display: block; }
+  body { margin:0; overflow:hidden; font-family:sans-serif; }
+  #info { position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.5); color:white; padding:10px; border-radius:5px; }
 </style>
 </head>
 <body>
+<div id="info">Hover over a bar for details</div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
   // Scene, Camera, Renderer
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 10, 20);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 10000);
+  camera.position.set(0, 15, 25);
 
-  const renderer = new THREE.WebGLRenderer({antialias: true});
+  const renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement);
 
-  // Light
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(10, 20, 10);
+  // Lighting
+  const light = new THREE.DirectionalLight(0xffffff,1);
+  light.position.set(10,20,10);
+  light.castShadow = true;
   scene.add(light);
   scene.add(new THREE.AmbientLight(0x404040));
 
-  // Bars to represent each factor
+  // Ground plane
+  const grid = new THREE.GridHelper(50,50,0x888888,0x444444);
+  scene.add(grid);
+
+  // Engine factors
   const factors = [
-    {name: "gethc * 8", value: 625},
-    {name: "* 8", value: 5002},
-    {name: "* phi", value: 8094},
-    {name: "/ tensile", value: 0.0367},
-    {name: "(fden*fen)^(1/3)", value: 3384},
-    {name: "* vp", value: 40611},
-    {name: "Final Mass", value: 1488}
+    {name:"gethc * 8", value:625},
+    {name:"* 8", value:5002},
+    {name:"* phi", value:8094},
+    {name:"/ tensile", value:0.0367},
+    {name:"(fden*fen)^(1/3)", value:3384},
+    {name:"* vp", value:40611},
+    {name:"Final Mass", value:1488}
   ];
 
   const bars = [];
-  const spacing = 3;
+  const spacing = 4;
+  let raycaster = new THREE.Raycaster();
+  let mouse = new THREE.Vector2();
+  let info = document.getElementById("info");
 
-  factors.forEach((f, i) => {
-    const geometry = new THREE.BoxGeometry(1, 0.1, 1);
-    const material = new THREE.MeshPhongMaterial({color: 0x156289});
-    const bar = new THREE.Mesh(geometry, material);
-    bar.position.set(i * spacing - factors.length*spacing/2, 0, 0);
+  // Text texture helper
+  function makeTextTexture(text){
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'white';
+    ctx.font = '24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text,128,32);
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  // Create bars
+  factors.forEach((f,i)=>{
+    const scaledHeight = Math.max(0.1, f.value/1000);
+    const hue = Math.min(240, Math.log10(f.value+1)*40);
+    const color = new THREE.Color(`hsl(${hue},80%,50%)`);
+    const geom = new THREE.BoxGeometry(1,0.1,1);
+    const mat = new THREE.MeshPhongMaterial({color});
+    const bar = new THREE.Mesh(geom, mat);
+    bar.castShadow = true;
+    bar.receiveShadow = true;
+    bar.position.set(i*spacing - factors.length*spacing/2, 0, 0);
     scene.add(bar);
-    bars.push({mesh: bar, targetHeight: f.value / 1000}); // scaled down
+
+    // Text
+    const textTex = makeTextTexture(`${f.name}: ${f.value}`);
+    const textMat = new THREE.MeshBasicMaterial({map:textTex, transparent:true});
+    const textGeom = new THREE.PlaneGeometry(3,0.75);
+    const textMesh = new THREE.Mesh(textGeom,textMat);
+    textMesh.position.set(0,scaledHeight+0.4,0);
+    bar.add(textMesh);
+
+    bars.push({mesh:bar,targetHeight:scaledHeight,factor:f});
   });
 
+  let currentBar = 0;
+
   // Animation
-  const animate = function () {
+  const animate = function(){
     requestAnimationFrame(animate);
 
-    bars.forEach(b => {
-      if(b.mesh.scale.y < b.targetHeight){
-        b.mesh.scale.y += 0.02;
-        b.mesh.position.y = b.mesh.scale.y/2;
-      }
-    });
+    // Rotate camera
+    const radius = 25;
+    const angle = Date.now()*0.0001;
+    camera.position.x = radius*Math.sin(angle);
+    camera.position.z = radius*Math.cos(angle);
+    camera.lookAt(0,0,0);
 
-    renderer.render(scene, camera);
+    // Grow bars sequentially with easing
+    if(currentBar < bars.length){
+      const b = bars[currentBar];
+      b.mesh.scale.y += (b.targetHeight - b.mesh.scale.y)*0.1;
+      b.mesh.position.y = b.mesh.scale.y/2;
+      if(Math.abs(b.mesh.scale.y - b.targetHeight)<0.01) currentBar++;
+    }
+
+    // Hover detection
+    raycaster.setFromCamera(mouse,camera);
+    const intersects = raycaster.intersectObjects(bars.map(b=>b.mesh));
+    if(intersects.length>0){
+      const b = bars.find(bi=>bi.mesh===intersects[0].object);
+      intersects[0].object.material.emissive.set(0xff0000);
+      info.innerText = `${b.factor.name}: ${b.factor.value}`;
+    } else {
+      bars.forEach(b=>b.mesh.material.emissive.set(0x000000));
+      info.innerText = "Hover over a bar for details";
+    }
+
+    renderer.render(scene,camera);
   };
-
   animate();
 
-  // Handle resize
-  window.addEventListener('resize', () => {
+  // Mouse move
+  window.addEventListener('mousemove', e=>{
+    mouse.x = (e.clientX/window.innerWidth)*2 -1;
+    mouse.y = -(e.clientY/window.innerHeight)*2 +1;
+  });
+
+  // Resize
+  window.addEventListener('resize',()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
