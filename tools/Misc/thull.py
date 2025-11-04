@@ -207,14 +207,14 @@ class thull:
 			enr=self.engmass()/self.getcc()
 			enr**=1/3
 			l2=(self.length/enr)
-			return thull(self.name,l2,self.ammo,0).init()
+			return thull(self.name,l2,self.ammo,0.0).init()
 			
 def dof(name,l):
 	print("")
-	tt=thull(name,l,1,0)
-	tt=tt.init()
-	tt.getfric()
-	return tt
+	tt1=thull(name,l,1,0)
+	tt1=tt1.init()
+	tt1.getfric()
+	return tt1
 	
 def baseobj():
 	d=dof("b",1)
