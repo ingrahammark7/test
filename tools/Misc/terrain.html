@@ -2,195 +2,75 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>LAPD vs DOJ Legal Conundrum - Advanced Animation</title>
+<title>Engine Mass Animation</title>
 <style>
-  body { margin: 0; overflow: hidden; background: #111; }
+  body { margin: 0; overflow: hidden; }
   canvas { display: block; }
 </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
-  // Scene setup
+  // Scene, Camera, Renderer
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x111111);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 10, 20);
 
-  const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 0, 40);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({antialias: true});
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // Lights
-  const light = new THREE.PointLight(0xffffff, 1.5);
-  light.position.set(30, 30, 50);
+  // Light
+  const light = new THREE.DirectionalLight(0xffffff, 1);
+  light.position.set(10, 20, 10);
   scene.add(light);
+  scene.add(new THREE.AmbientLight(0x404040));
 
-  const ambient = new THREE.AmbientLight(0x888888);
-  scene.add(ambient);
-
-  // Node creation helper
-  function createNode(name, color=0x00ff00, size=0.7) {
-    const geom = new THREE.SphereGeometry(size, 32, 32);
-    const mat = new THREE.MeshStandardMaterial({ color });
-    const sphere = new THREE.Mesh(geom, mat);
-    scene.add(sphere);
-
-    // Text label
-    const canvas = document.createElement('canvas');
-    canvas.width = 256; canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'white';
-    ctx.font = '24px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(name, 128, 64);
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMat = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(spriteMat);
-    sprite.scale.set(6, 3, 1);
-    sprite.position.set(0, 1.2, 0);
-    sphere.add(sprite);
-
-    return sphere;
-  }
-
-  // Nodes
-  const nodes = {};
-  nodes.doj = createNode("DOJ writes grant", 0xff0000);
-  nodes.lawsuit = createNode("DOJ files lawsuit", 0xff4500);
-  nodes.lapdState = createNode("LAPD state law defense", 0x00ff00);
-  nodes.lapdNovel = createNode("LAPD novel/fundamental argument", 0x00ffff);
-  nodes.dojWin = createNode("DOJ likely wins", 0xff0000);
-  nodes.clownWin = createNode("Clown world LAPD win", 0xffff00);
-
-  // Positions
-  nodes.doj.position.set(0, 8, 0);
-  nodes.lawsuit.position.set(0, 3, 0);
-  nodes.lapdState.position.set(-6, -3, 0);
-  nodes.lapdNovel.position.set(6, -3, 0);
-  nodes.dojWin.position.set(-6, -8, 0);
-  nodes.clownWin.position.set(6, -8, 0);
-
-  // Lines with animated flow
-  const lines = [];
-  function connect(a, b, color=0xffffff, thickness=2) {
-    const geom = new THREE.BufferGeometry();
-    const positions = new Float32Array([a.position.x, a.position.y, a.position.z,
-                                        b.position.x, b.position.y, b.position.z]);
-    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.LineBasicMaterial({ color, linewidth: thickness });
-    const line = new THREE.Line(geom, mat);
-    scene.add(line);
-    lines.push({line, a, b, offset: Math.random()});
-  }
-
-  connect(nodes.doj, nodes.lawsuit);
-  connect(nodes.lawsuit, nodes.lapdState);
-  connect(nodes.lawsuit, nodes.lapdNovel);
-  connect(nodes.lapdState, nodes.dojWin);
-  connect(nodes.lapdNovel, nodes.clownWin);
-
-  // Probability / timing labels
-  const labelData = [
-    {pos: [0, 5.5, 0], text: "DOJ initial advantage 100%"},
-    {pos: [-6, -5.5, 0], text: "State defense ~10%"},
-    {pos: [6, -5.5, 0], text: "Novel/fundamental ~1-5%"},
-    {pos: [-6, -9.5, 0], text: "DOJ wins ~95%"},
-    {pos: [6, -9.5, 0], text: "Clown win <5%"}
+  // Bars to represent each factor
+  const factors = [
+    {name: "gethc * 8", value: 625},
+    {name: "* 8", value: 5002},
+    {name: "* phi", value: 8094},
+    {name: "/ tensile", value: 0.0367},
+    {name: "(fden*fen)^(1/3)", value: 3384},
+    {name: "* vp", value: 40611},
+    {name: "Final Mass", value: 1488}
   ];
 
-  labelData.forEach(ld => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256; canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'white';
-    ctx.font = '20px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(ld.text, 128, 64);
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMat = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(spriteMat);
-    sprite.scale.set(8, 3.5, 1);
-    sprite.position.set(...ld.pos);
-    scene.add(sprite);
+  const bars = [];
+  const spacing = 3;
+
+  factors.forEach((f, i) => {
+    const geometry = new THREE.BoxGeometry(1, 0.1, 1);
+    const material = new THREE.MeshPhongMaterial({color: 0x156289});
+    const bar = new THREE.Mesh(geometry, material);
+    bar.position.set(i * spacing - factors.length*spacing/2, 0, 0);
+    scene.add(bar);
+    bars.push({mesh: bar, targetHeight: f.value / 1000}); // scaled down
   });
 
-  // Timeline visualization
-  const timelinePoints = [];
-  for (let i = 0; i <= 100; i+=5) {
-    const geom = new THREE.SphereGeometry(0.15, 16, 16);
-    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-    const point = new THREE.Mesh(geom, mat);
-    point.position.set(-10 + i*0.2, -12, 0);
-    scene.add(point);
-    timelinePoints.push(point);
-  }
-
-  const timelineLabelCanvas = document.createElement('canvas');
-  timelineLabelCanvas.width = 512; timelineLabelCanvas.height = 64;
-  const timelineCtx = timelineLabelCanvas.getContext('2d');
-  timelineCtx.fillStyle = 'white';
-  timelineCtx.font = '20px Arial';
-  timelineCtx.textAlign = 'center';
-  timelineCtx.fillText("Timeline of events →", 256, 32);
-  const timelineTexture = new THREE.CanvasTexture(timelineLabelCanvas);
-  const timelineSpriteMat = new THREE.SpriteMaterial({ map: timelineTexture });
-  const timelineSprite = new THREE.Sprite(timelineSpriteMat);
-  timelineSprite.scale.set(12, 1.5, 1);
-  timelineSprite.position.set(0, -12.8, 0);
-  scene.add(timelineSprite);
-
   // Animation
-  function animate(time) {
+  const animate = function () {
     requestAnimationFrame(animate);
 
-    // Camera orbit
-    const t = time*0.0003;
-    camera.position.x = Math.sin(t) * 35;
-    camera.position.z = Math.cos(t) * 35;
-    camera.position.y = Math.sin(t*0.5)*10;
-    camera.lookAt(0,0,0);
-
-    // Rotate nodes slightly for dynamism
-    Object.values(nodes).forEach(n => {
-      n.rotation.y += 0.003;
-      n.rotation.x += 0.001;
-    });
-
-    // Animate lines (flowing)
-    lines.forEach(l => {
-      const positions = l.line.geometry.attributes.position.array;
-      const offset = (Math.sin(time*0.002 + l.offset) * 0.5 + 0.5);
-      const midX = l.a.position.x + (l.b.position.x - l.a.position.x) * offset;
-      const midY = l.a.position.y + (l.b.position.y - l.a.position.y) * offset;
-      const midZ = l.a.position.z + (l.b.position.z - l.a.position.z) * offset;
-      positions[3] = midX;
-      positions[4] = midY;
-      positions[5] = midZ;
-      l.line.geometry.attributes.position.needsUpdate = true;
-    });
-
-    // Animate timeline (progress bar)
-    const progress = (time*0.0001) % 1;
-    const activeIndex = Math.floor(progress * timelinePoints.length);
-    timelinePoints.forEach((p, i) => {
-      p.material.color.set(i <= activeIndex ? 0xff0000 : 0xffffff);
-      p.scale.setScalar(i === activeIndex ? 0.3 : 0.15);
+    bars.forEach(b => {
+      if(b.mesh.scale.y < b.targetHeight){
+        b.mesh.scale.y += 0.02;
+        b.mesh.position.y = b.mesh.scale.y/2;
+      }
     });
 
     renderer.render(scene, camera);
-  }
+  };
 
   animate();
 
   // Handle resize
-  window.addEventListener('resize', ()=>{
+  window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
-
 </script>
 </body>
 </html>
