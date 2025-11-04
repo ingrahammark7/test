@@ -148,6 +148,7 @@ class thull:
 			ps=self.ps()
 			pl=self.pl()
 			pl=ps/pl
+			pl/=self.gear
 			pl**=2/3
 			return pl
 			
