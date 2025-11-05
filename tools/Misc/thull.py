@@ -202,12 +202,18 @@ class thull:
 			p1/=self.material.j_high_estimate/p1
 			poow=p1*((self.fden*self.fen)**(1/3))*self.vp
 			return poow
+			
+	def scalet(self):
+		return self.scale(self.getcc())
+	
+	def scale(self,tm):
+		enr=self.engmass()/tm
+		enr**=1/3
+		l2=(self.length/enr)
+		return thull(self.name,l2,self.ammo,self.armorfront).init()
 		
-	def getbaseobj(self):
-			enr=self.engmass()/self.getcc()
-			enr**=1/3
-			l2=(self.length/enr)
-			return thull(self.name,l2,self.ammo,0.0).init()
+	def getbaseobj(self):			
+		return self.scalet()
 			
 def dof(name,l):
 	print("")
