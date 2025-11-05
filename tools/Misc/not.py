@@ -103,12 +103,15 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
 #    c.drawString(space, top_margin - 4.25* inch, "CRS ID: Court did not provide CRS receipt")
     c.setFont("Times-Bold", 12)
-#    c.drawString(space, top_margin - 4.5* inch, "Hearing Date: 12/23/2025 1:30 PM")
+    c.drawString(space, top_margin - 4.25* inch, "Hearing Date: 1/22/2026 1:30 PM")
+    c.drawString(space,top_margin-4.5*inch,"Motion to Refer Transcript to Law")
+    c.drawString(space,top_margin-4.75*inch,"Enforcement for Investigation")
+    c.drawString(space,top_margin-5*inch,"so Judge Can Be Arrested")
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
-    c.drawString(space, top_margin - 4.75 * inch, "Judge: ")
-    c.drawString(space, top_margin - 5* inch, "Department: ")
+    c.drawString(space, top_margin - 5.5 * inch, "Judge: ")
+    c.drawString(space, top_margin - 5.75* inch, "Department: 86")
 
     def doer(intro_text,y_position):
     	return doer1(intro_text,y_position,"Times-Roman",80)
