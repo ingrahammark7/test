@@ -204,13 +204,21 @@ class thull:
 			return poow
 			
 	def scalet(self):
-		return self.scale(self.getcc())
+		return self.scalee(self.getcc())
 	
-	def scale(self,tm):
-		enr=self.engmass()/tm
+	def scalee(self,tm):
+		return self.scale(tm,self.engmass())
+	
+	def scale(self,tm,rm):
+		enr=rm/tm
 		enr**=1/3
 		l2=(self.length/enr)
 		return thull(self.name,l2,self.ammo,self.armorfront).init()
+		
+	def scaleh(self,tm):
+		rm=self.getbaseobj()
+		return self.scale(tm,rm)
+			
 		
 	def getbaseobj(self):			
 		return self.scalet()
@@ -237,7 +245,7 @@ tt=thull("car",3,1,.01)
 tt=tt.init()
 eng=tt.engmass()
 tt.getfric()
-tt=thull("critical engine",5.3,1,0.01)
+tt=thull("critical engine",5,1,0.01)
 tt=tt.init()
 print("")
 tt.getfric()
