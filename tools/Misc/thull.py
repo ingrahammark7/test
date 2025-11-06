@@ -153,7 +153,7 @@ class thull:
 			pl=self.pl()
 			pl=ps/pl
 			pl/=self.gear
-			pl**=2/3
+			pl**=1
 			return pl
 			
 	def ps(self):
@@ -231,6 +231,9 @@ def dof(name,l):
 def baseobj():
 	d=dof("b",1)
 	return d.getbaseobj()
+	
+def scaleobj(tm):
+	return baseobj().scalem(tm)
 
 tt=thull("bacteria",1e-10,1,0)				
 tt=tt.init()
