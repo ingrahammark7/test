@@ -1,238 +1,138 @@
-# Python program to compute deterministic weapon feasibility and ammo tables
-# based on physics limits described in the conversation.
-# This code will produce a pandas DataFrame and display it.
-# It is self-contained and uses conservative default constants.
-# You can modify vehicle list, calibres, or constants below to tune results.
+#!/usr/bin/env python3
+"""
+Educational-only Arrhenius demo adapted with RDX-like numeric parameters (purely theoretical).
 
-import math
+SAFETY NOTICE: This is a purely in-silico, non-operational demonstration for educational/modeling only.
+It does NOT provide instructions for synthesis, handling, storage, or initiation of energetic materials.
+Do NOT use this code to guide any real-world work with explosives. Consult qualified authorities for real testing.
+
+The numeric choices (A, Ea) are representative literature-like magnitudes for RDX thermal decomposition kinetics
+used ONLY to make the simulated curves show realistic temperature sensitivity. They are not exact experimental values.
+"""
+
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from scipy import stats
+import os
 
-# -----------------------------
-# Constants and weapon data
-# -----------------------------
-# Representative projectile data: (mass_kg, muzzle_velocity_m_s)
-calibres = {
-    "5.56_NATO": {"m": 0.004, "v": 940.0},
-    "7.62_NATO": {"m": 0.0095, "v": 800.0},
-    ".50_BMG": {"m": 0.045, "v": 890.0},
-    "20mm": {"m": 0.125, "v": 1000.0},
-    "30mm": {"m": 0.53, "v": 1000.0},
-    "120mm": {"m": 10.0, "v": 1600.0},
-}
+# Representative (theoretical) Arrhenius parameters for RDX-like thermal decomposition (1/s and J/mol)
+A_true = 1e17       # representative pre-exponential (1/s) — for demo only
+Ea_true = 160e3     # representative activation energy (J/mol) — for demo only
+R = 8.31446261815324  # J/mol/K
 
-# Derived per-shot momentum and kinetic energy
-for name, d in calibres.items():
-    d["I"] = d["m"] * d["v"]                       # momentum (kg*m/s)
-    d["E"] = 0.5 * d["m"] * d["v"]**2              # kinetic energy (J)
-    d["vol_est_m3"] = d["m"] / 8000.0              # crude volume estimate (kg / density 8000 kg/m3)
+# Experiment temperatures (°C) chosen to show negligible decay at room-T and measurable decay at elevated T
+temps_C = np.array([25.0, 100.0, 150.0])
+temps_K = temps_C + 273.15
 
-# -----------------------------
-# Vehicle list (example real-ish and conceptual)
-# -----------------------------
-vehicles = [
-    {"name": "toy_rc", "mass": 6.8, "f_ammo": 0.02, "v_int_m3": 0.002},
-    {"name": "bike_sidecar", "mass": 420.0, "f_ammo": 0.05, "v_int_m3": 0.5},
-    {"name": "ATV", "mass": 200.0, "f_ammo": 0.03, "v_int_m3": 0.2},
-    {"name": "UTV_MRZR", "mass": 900.0, "f_ammo": 0.05, "v_int_m3": 0.6},
-    {"name": "jeep_light", "mass": 2500.0, "f_ammo": 0.05, "v_int_m3": 2.0},
-    {"name": "Wiesel", "mass": 2750.0, "f_ammo": 0.05, "v_int_m3": 2.5},
-    {"name": "M1_Abrams", "mass": 70000.0, "f_ammo": 0.05, "v_int_m3": 20.0},
-]
+# Time vector: focus on short-to-intermediate times where decomposition could be observable at elevated T
+t_max = 100000* 3600.0   # simulate 48 hours in seconds
+n_points = 250
+t = np.linspace(0, t_max, n_points)
 
-# -----------------------------
-# Physics / model parameters (defaults from earlier conversation)
-# -----------------------------
-V_tol_map = {
-    "toy_rc": 0.5,          # using a permissive small tolerance for conceptual toy
-    "bike_sidecar": 0.5,
-    "ATV": 0.5,
-    "UTV_MRZR": 0.2,
-    "jeep_light": 0.1,
-    "Wiesel": 0.05,
-    "M1_Abrams": 0.02,
-}
+C0 = 1.0  # normalized initial amount
 
-v_e = 1000.0               # exhaust gas effective velocity (m/s)
-v_c = 10.0                 # countermass ejection velocity (m/s)
-k_P = 100.0                # allowed continuous power per kg (W/kg) for thermal budget
-C_barrel = 5.0e8           # wear budget constant (J) -> gives 30mm ~2000 rounds
-stowage_caps = {
-    "120mm": 40,
-    "30mm": 400,
-    "20mm": 400,
-    ".50_BMG": 2000,  # a high cap by mass but will be volume-limited in small vehicles
-    "7.62_NATO": 5000,
-    "5.56_NATO": 10000,
-}
+def arrhenius_k(A, Ea, T):
+    return A * np.exp(-Ea / (R * T))
 
-# container sizes (practical): approximate volumes per ammo container (m3) for ready loads
-# Example: .50 100-round can volume ~0.02 m3 (very rough), 7.62 drum ~0.01 m3, etc.
-container_volumes = {
-    ".50_BMG": 0.02,       # per 100-round can, we'll compute by scaling
-    "7.62_NATO": 0.008,    # per 200-300 round drum/box
-    "5.56_NATO": 0.005,
-    "20mm": 0.03,
-    "30mm": 0.06,
-    "120mm": 0.5,
-}
+def simulate_decay_first_order(k, t, C0=1.0, noise_std=0.005):
+    C = C0 * np.exp(-k * t)
+    noise = np.random.normal(scale=noise_std, size=C.shape) * C0
+    return np.clip(C + noise, a_min=0, a_max=None)
 
-# practical round-per-container for the container volumes above (for converting vol->rounds)
-rounds_per_container = {
-    ".50_BMG": 100,
-    "7.62_NATO": 200,
-    "5.56_NATO": 200,
-    "20mm": 30,
-    "30mm": 20,
-    "120mm": 5,
-}
+def run_simulation(seed=2025, noise_std=0.003):
+    datasets = []
+    np.random.seed(seed)
+    for T, Tc in zip(temps_K, temps_C):
+        k_true = arrhenius_k(A_true, Ea_true, T)
+        C = simulate_decay_first_order(k_true, t, C0=C0, noise_std=noise_std)
+        datasets.append({"T_C": Tc, "T_K": T, "k_true": k_true, "t": t, "C": C})
+    return datasets
 
-# -----------------------------
-# Helper functions implementing the physics tests
-# -----------------------------
-def recoil_min_vehicle_mass(I_p, V_tol):
-    """Minimal vehicle mass so that single shot recoil velocity Vrec = I_p / M <= V_tol"""
-    if V_tol <= 0:
-        return float("inf")
-    return I_p / V_tol
-
-def r_max_recoilless(M_v, I_p, v_e_local=v_e, kP_local=k_P):
-    """Max sustainable rounds/sec if canceling recoil by venting gas of velocity v_e"""
-    P_safe = kP_local * M_v
-    # r_max = 2 * P_safe / (I_p * v_e)
-    if I_p * v_e_local == 0:
-        return float("inf")
-    return (2.0 * P_safe) / (I_p * v_e_local)
-
-def countermass_per_shot(I_p, v_c_local=v_c):
-    """Mass of countermass to eject per shot at speed v_c to cancel projectile momentum"""
-    if v_c_local == 0:
-        return float("inf")
-    return I_p / v_c_local
-
-def ammo_by_mass(M_v, f_ammo, round_mass):
-    return (f_ammo * M_v) / round_mass
-
-def ammo_by_volume(V_int, per_round_volume):
-    if per_round_volume <= 0:
-        return float("inf")
-    return V_int / per_round_volume
-
-def barrel_life_rounds(E_muzzle, C_local=C_barrel):
-    if E_muzzle <= 0:
-        return float("inf")
-    return C_local / E_muzzle
-
-# crude estimate of per-round packing volume: use density ~8000 kg/m3 for steel-like round ~ projectile volume
-def per_round_volume_est(round_mass, density=8000.0):
-    return round_mass / density
-
-# -----------------------------
-# Build table
-# -----------------------------
-rows = []
-for v in vehicles:
-    name = v["name"]
-    M_v = v["mass"]
-    f_ammo = v["f_ammo"]
-    V_int = v["v_int_m3"]
-    V_tol = V_tol_map.get(name, 0.1)
-    for cal_name, cal in calibres.items():
-        I_p = cal["I"]
-        E = cal["E"]
-        round_m = cal["m"]
-        # recoil single-shot feasibility
-        M_min = recoil_min_vehicle_mass(I_p, V_tol)
-        single_shot_feasible = M_v >= M_min
-        # countermass per shot (for recoilless)
-        cm_per_shot = countermass_per_shot(I_p)
-        # r_max if trying to vent gas continuously
-        rmax = r_max_recoilless(M_v, I_p)
-        # ammo capacity by mass and by volume (est)
-        N_mass = math.floor(ammo_by_mass(M_v, f_ammo, round_m))
-        per_round_vol = per_round_volume_est(round_m)
-        N_vol = math.floor(ammo_by_volume(V_int, per_round_vol))
-        # realistic stowage cap by calibre (if provided)
-        stow_cap = stowage_caps.get(cal_name, None)
-        if stow_cap is None:
-            # default large cap
-            stow_cap = 100000
-        # container-based vol cap estimate (translate container vol to rounds)
-        cont_vol = container_volumes.get(cal_name, None)
-        cont_rounds = None
-        if cont_vol:
-            # how many such containers fit in V_int?
-            containers_fit = math.floor(V_int / cont_vol)
-            cont_rounds = containers_fit * rounds_per_container.get(cal_name, 1)
-        # practical N before barrel wear / stowage
-        N_barrel = math.floor(barrel_life_rounds(E))
-        N_practical = min(N_mass, N_vol, N_barrel, stow_cap if stow_cap is not None else N_mass)
-        # additional metadata for decision
-        # classify mode: auto if rmax >= 5 rps (300 rpm) (very permissive), burst if > 0.1 rps, single if single feasible but rmax tiny
-        if not single_shot_feasible:
-            mode = "infeasible_single"
-            # check recoilless countermass feasibility: if cm_per_shot < round mass * 0.5 accept recoilless_possible
-            recoilless_possible = cm_per_shot <= 0.5 * round_m
-            if recoilless_possible:
-                mode = "recoilless_possible_single"
-        else:
-            if rmax >= 5.0:  # >= 5 rps (300 rpm) allow auto
-                mode = "auto_possible"
-            elif rmax >= 0.1:  # >=0.1 rps (6 rpm) allow burst-limited
-                mode = "burst_limited"
-            else:
-                mode = "single_shot_only"
-        # summary comment
-        comment_parts = []
-        if not single_shot_feasible:
-            comment_parts.append("single-shot recoil exceeds V_tol")
-        if cm_per_shot > round_m * 2.0:  # very large countermass per shot
-            comment_parts.append("countermass per shot impractically large")
-        if cont_rounds is not None and cont_rounds < N_practical:
-            comment_parts.append("volume-limited by container packing")
-        comment = "; ".join(comment_parts) if comment_parts else ""
-        rows.append({
-            "vehicle": name,
-            "vehicle_mass_kg": M_v,
-            "calibre": cal_name,
-            "round_mass_kg": round_m,
-            "momentum_Ip": round(I_p, 6),
-            "muzzle_energy_J": int(E),
-            "V_tol_m_s": V_tol,
-            "M_min_for_single_kg": round(M_min, 3),
-            "single_shot_feasible": single_shot_feasible,
-            "countermass_per_shot_kg": round(cm_per_shot, 4),
-            "r_max_rps_recoilless": round(rmax, 4),
-            "N_mass_est": N_mass,
-            "N_vol_est": N_vol,
-            "N_barrel_est": N_barrel,
-            "stowage_cap": stow_cap,
-            "N_practical": N_practical,
-            "practical_mode": mode,
-            "comment": comment,
-            "container_rounds_est": cont_rounds
+def fit_first_order(datasets):
+    fitted_results = []
+    for data in datasets:
+        mask = data["C"] > 0
+        tt = data["t"][mask]
+        lnC = np.log(data["C"][mask])
+        slope, intercept, r_value, p_value, std_err = stats.linregress(tt, lnC)
+        k_est = -slope
+        C0_est = np.exp(intercept)
+        fitted_results.append({
+            "T_C": data["T_C"],
+            "T_K": data["T_K"],
+            "k_true": data["k_true"],
+            "k_est": k_est,
+            "C0_est": C0_est,
+            "r2": r_value**2
         })
+    return pd.DataFrame(fitted_results)
 
-df = pd.DataFrame(rows)
+def fit_arrhenius(df_results):
+    invT = 1.0 / df_results["T_K"].values
+    lnk = np.log(df_results["k_est"].replace(0, np.nan)).values  # avoid log(0)
+    # If any k_est are non-finite, replace with a very small number for fitting
+    lnk = np.where(np.isfinite(lnk), lnk, np.log(1e-50))
+    slope, intercept, r_value, p_value, std_err = stats.linregress(invT, lnk)
+    Ea_fit = -slope * R
+    A_fit = np.exp(intercept)
+    return {"slope": slope, "intercept": intercept, "r2": r_value**2, "Ea_fit_J_per_mol": Ea_fit, "A_fit_per_s": A_fit, "invT": invT, "lnk": lnk}
 
-# order & nice column names
-cols = [
-    "vehicle", "vehicle_mass_kg", "calibre", "round_mass_kg", "momentum_Ip", "muzzle_energy_J",
-    "V_tol_m_s", "M_min_for_single_kg", "single_shot_feasible", "countermass_per_shot_kg",
-    "r_max_rps_recoilless", "N_mass_est", "N_vol_est", "container_rounds_est", "stowage_cap",
-    "N_barrel_est", "N_practical", "practical_mode", "comment"
-]
-df = df[cols]
+def plot_results(datasets, df_results, arrh_fit, out_dir=None):
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
 
+    # Plot 1: Decay curves (hours on x-axis)
+    plt.figure(figsize=(8,5))
+    for data, row in zip(datasets, df_results.to_dict(orient="records")):
+        plt.plot(data["t"] / 3600.0, data["C"], label=f"{data['T_K']-273.15:.0f} °C data")
+        C_fit = row["C0_est"] * np.exp(-row["k_est"] * data["t"])
+        plt.plot(data["t"] / 3600.0, C_fit, linestyle="--", label=f"{data['T_K']-273.15:.0f} °C fit")
+    plt.xlabel("Time (hours)")
+    plt.ylabel("Relative quantity (arb. units)")
+    plt.title("Simulated first-order decay (RDX-like parameters)")
+    plt.legend()
+    plt.tight_layout()
+    if out_dir:
+        plt.savefig(os.path.join(out_dir, "decay_curves.png"), bbox_inches="tight")
+    plt.show()
 
-# also print a short plaintext summary for quick glance
-summary = df.groupby(["vehicle", "calibre"]).agg({
-    "single_shot_feasible": "first",
-    "practical_mode": "first",
-    "N_practical": "first"
-}).reset_index()
-print("Summary (vehicle x calibre):")
-print(summary.to_string(index=False))
+    # Plot 2: Arrhenius plot (ln(k) vs 1/T)
+    plt.figure(figsize=(6,5))
+    plt.plot(arrh_fit["invT"], arrh_fit["lnk"], marker="o", linestyle="none", label="Estimated ln(k)")
+    x_line = np.linspace(arrh_fit["invT"].min()*0.95, arrh_fit["invT"].max()*1.05, 100)
+    y_line = arrh_fit["intercept"] + arrh_fit["slope"] * x_line
+    plt.plot(x_line, y_line, linestyle="-", label="Arrhenius fit")
+    plt.xlabel("1 / Temperature (1/K)")
+    plt.ylabel("ln(k)")
+    plt.title("Arrhenius fit (RDX-like demo)")
+    plt.legend()
+    plt.tight_layout()
+    if out_dir:
+        plt.savefig(os.path.join(out_dir, "arrhenius_plot.png"), bbox_inches="tight")
+    plt.show()
 
-# Save CSV for download if desired (not required)
-df.to_csv("/mnt/data/weapon_feasibility_table.csv", index=False)
-print("\nSaved full table to /mnt/data/weapon_feasibility_table.csv")
+def main():
+    datasets = run_simulation()
+    df_results = fit_first_order(datasets)
+    arrh_fit = fit_arrhenius(df_results)
+
+    # Display numeric results to console and save CSV
+    print("\nFitted decay rates (RDX-like demo):")
+    print(df_results.to_string(index=False, float_format="{:.3e}".format))
+    df_results.to_csv("fitted_decay_rates.csv", index=False)
+    print("\nSaved fitted_decay_rates.csv")
+
+    print("\nEducational-only fitted Arrhenius parameters (representative magnitudes):")
+    print(f"Estimated A = {arrh_fit['A_fit_per_s']:.3e} 1/s (theoretical demo, not experimental)")
+    print(f"Estimated Ea = {arrh_fit['Ea_fit_J_per_mol']/1000:.2f} kJ/mol")
+    print(f"R^2 of Arrhenius linear fit = {arrh_fit['r2']:.4f}")
+
+    # Remind user of safety boundaries
+    print("\nSAFETY: These numbers are for simulation visualization only. This output does not imply safe handling practices.")
+
+    # Generate plots and optionally save them
+    plot_results(datasets, df_results, arrh_fit, out_dir="figures")
+
+if __name__ == "__main__":
+    main()
