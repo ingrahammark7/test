@@ -2,6 +2,9 @@ import pen
 import nuct
 import sympy as sp
 
+thres=(nuct.baseobj().gethw()*nuct.alpha).evalf()
+
+
 class thull:
 	def __init__(self,name,length,ammo,armorfront):
 		self.name=name
@@ -16,6 +19,7 @@ class thull:
 		self.height=self.width/2
 		self.power=1
 		self.fuel=1
+		self.thres=thres
 		self.ammo=ammo
 		self.armorfront=armorfront
 		self.armorside=self.armorfront/2
@@ -24,7 +28,7 @@ class thull:
 		self.matq=1/self.gear
 		self.mass=self.getmass()
 		self.nuc=nuct.baseobj()
-	
+			
 	def getbar(self):
 		barm=self.engmassp()/pen.maxshot()
 		du=pen.getdu()
@@ -167,11 +171,10 @@ class thull:
 	def psize(self):
 			vp=self.vp
 			m=1
-			ra=self.engmass()/(self.getcc())
-			if(ra<1):
-				ra=1
-			ra**=(1/3)
-			m=self.engmass()/((2**3)/ra)/vp
+			mf=2**3
+			m=self.engmass()/mf/vp
+			if(self.power>self.thres):
+				m*=mf
 			return m
 			
 			
