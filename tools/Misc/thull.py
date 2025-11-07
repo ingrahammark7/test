@@ -260,3 +260,7 @@ tt.getcc()
 tt=baseobj()
 print("")
 tt.getfric()
+tf=tt.nuc.gettw()
+fug=tt.material.j_high_estimate
+tf=sp.N(tf/fug/1e6)
+print(tf)
