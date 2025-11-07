@@ -201,9 +201,12 @@ class thull:
 			return self
 			
 	def getcc(self):
-			p1=self.gethc()*self.gear*nuct.phi*(1/self.matq)
-			p1/=self.material.j_high_estimate/p1
-			poow=p1*((self.fden*self.fen)**(1/3))*self.vp
+			p1=(self.gethc()**-(2/3))/(self.gear**(1/sp.E))
+			p1*=(self.vp**(1/3))
+			p1/=(self.material.j_high_estimate**(1/3))
+			poow=p1*self.length**(1/self.length)
+			poow*=(self.fen*self.fden)**(2)
+			poow/=nuct.baseobj().am**4
 			return poow
 	
 	def scalee(self,tm):
