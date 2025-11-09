@@ -29,6 +29,8 @@ class thull:
 		self.mass=self.getmass()
 		self.nuc=nuct.baseobj()
 		self.rofric=nuct.alpha_fs
+		self.heading=0
+		self.thead=0
 			
 	def getbar(self):
 		barm=self.engmassp()/pen.maxshot()
@@ -264,6 +266,18 @@ class thull:
 		gf=self.power/gf
 		gf**=1/3
 		return gf
+		
+	def timet(self,angle):
+			spe=self.turspe()
+			delta = (angle-self.heading) % 360  # Normalize to 0–360
+			if delta > 180:
+			 delta -= 360  # Choose the shorter rotation direction
+			 ds=delta/180
+			 tim=abs(ds/spe)
+			 self.heading=angle
+			 return self,tim
+
+
 			
 			
 def dof(name,l):
