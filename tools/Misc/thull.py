@@ -243,8 +243,20 @@ class thull:
 			return self.apup()/tur
 			
 	def turspe(self):
-			lenn=self.rotd()/2
-			return lenn/self.turse()
+			rr=self.rotd()/2
+			lenn=rr
+			lenn/=self.turse()
+			spw=(2*self.apup()/self.turm())**.5
+			spp=spw/rr
+			if(spp<lenn):
+				cc=1/spp
+				cc**=.5
+				cc=1/cc
+				c1=1/lenn
+				if(cc<c1):
+					print("turret accel braked")
+					return spp
+			return lenn
 			
 			
 def dof(name,l):
