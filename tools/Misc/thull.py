@@ -269,12 +269,12 @@ class thull:
 		
 	def timet(self,angle):
 			spe=self.turspe()
-			delta = (angle-self.heading) % 360  # Normalize to 0–360
+			delta = (angle-self.thead) % 360  # Normalize to 0–360
 			if delta > 180:
 			 delta -= 360  # Choose the shorter rotation direction
 			 ds=delta/180
 			 tim=abs(ds/spe)
-			 self.heading=angle
+			 self.thead=angle
 			 return self,tim
 
 
