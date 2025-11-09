@@ -75,9 +75,10 @@ class Material:
         re=re/self.weak_factor
         mo=(4*sp.pi)-6
         mo**=nuct.phi
-        mo*=2.5
-        ff=nuct.baseobj().am**(2+2/3)
+        mo*=6
+        ff=nuct.baseobj().am**(2)
         re/=ff
+        re*=self.base_hvl
         return re/mo
     
     def compute_cohesive_bond_energy(self):
