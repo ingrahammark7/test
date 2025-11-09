@@ -136,6 +136,7 @@ class thull:
 			print(sp.N(self.power),"power")
 			print(sp.N(self.getbucm()),"buck frac")
 			print(sp.N(self.turspe()),"tur speed")
+			print(sp.N(self.rspe()),"ms")
 			self.getbar()
 			
 	def getsp(self):
@@ -257,6 +258,12 @@ class thull:
 					print("turret accel braked")
 					return spp
 			return lenn
+			
+	def rspe(self):
+		gf=self.mass*nuct.baseobj().getg()*self.rofric
+		gf=self.power/gf
+		gf**=1/3
+		return gf
 			
 			
 def dof(name,l):
