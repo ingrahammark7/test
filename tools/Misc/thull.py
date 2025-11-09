@@ -28,6 +28,7 @@ class thull:
 		self.matq=1/self.gear
 		self.mass=self.getmass()
 		self.nuc=nuct.baseobj()
+		self.rofric=nuct.alpha_fs
 			
 	def getbar(self):
 		barm=self.engmassp()/pen.maxshot()
@@ -134,6 +135,7 @@ class thull:
 			print(sp.N(self.getsp()),"speed")
 			print(sp.N(self.power),"power")
 			print(sp.N(self.getbucm()),"buck frac")
+			print(sp.N(self.turspe()),"tur speed")
 			self.getbar()
 			
 	def getsp(self):
@@ -223,6 +225,27 @@ class thull:
 		
 	def scalem(self,tm):
 			return self.scale(tm,self.getbaseobj().mass)
+			
+	def turm(self):
+			return self.mass/6
+			
+	def apup(self):
+			return self.power*nuct.alpha_fs
+			
+	def rotd(self):
+			sidel=self.length/3
+			frontl=self.width
+			return sidel*frontl*2
+			
+	def turse(self):
+			turf=self.turm()*nuct.baseobj().getg()
+			tur=turf*self.rofric
+			return self.apup()/tur
+			
+	def turspe(self):
+			lenn=self.rotd()/2
+			return lenn/self.turse()
+			
 			
 def dof(name,l):
 	print("")

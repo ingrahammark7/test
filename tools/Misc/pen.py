@@ -47,7 +47,7 @@ class Material:
         self.exp=0
                   
         
-        self.j_high_estimate = (self.compute_high_estimate())*self.f4*3
+        self.j_high_estimate = (self.compute_high_estimate())*self.f4
         self.cohesive_bond_energy = self.compute_cohesive_bond_energy()
         self.elmol=self.elementary_charge*self.avogadro
         self.elmol=self.elmol**(1/4)
@@ -77,7 +77,7 @@ class Material:
         mo**=nuct.phi
         re**=.5
         re/=mo
-        return re
+        return re*3
     
     def compute_cohesive_bond_energy(self):
         moles = mass_g / self.molar_mass
