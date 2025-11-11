@@ -1,9 +1,46 @@
 import pen
 import nuct
 import sympy as sp
+import copy
+import json
 
 thres=(nuct.baseobj().gethw()*nuct.alpha).evalf()
 
+from collections.abc import Iterable
+
+class MagicEncoder(json.JSONEncoder):
+    def default(self, obj):
+        # SymPy objects
+        if isinstance(obj, sp.Basic):
+            if obj.free_symbols:  # symbolic, keep as string
+                return str(obj)
+            else:  # numeric, evaluate safely
+                return float(sp.N(obj))
+
+        # Custom objects with __dict__
+        elif hasattr(obj, "__dict__"):
+            # Convert attributes safely
+            return {k: self.default(v) for k, v in obj.__dict__.items()}
+
+        # Dictionaries
+        elif isinstance(obj, dict):
+            return {self.default(k): self.default(v) for k, v in obj.items()}
+
+        # Sets and tuples
+        elif isinstance(obj, (set, tuple)):
+            return [self.default(v) for v in obj]
+
+        # Other iterables (lists, etc.) but not strings
+        elif isinstance(obj, Iterable) and not isinstance(obj, str):
+            return [self.default(v) for v in obj]
+
+        # Functions or other callables
+        elif callable(obj):
+            return f"<function {obj.__name__}>"
+
+        # Fallback: convert anything else to string
+        else:
+            return str(obj)
 
 class thull:
 	def __init__(self,name,length,ammo,armorfront):
@@ -155,6 +192,7 @@ class thull:
 			print(sp.N(self.getbucm()),"buck frac")
 			print(sp.N(self.turspe()),"tur speed")
 			print(sp.N(self.rspe()),"ms")
+			print(sp.N(self.numg()),"numg")
 			self.getbar()
 			
 	def getsp(self):
@@ -362,10 +400,19 @@ class thull:
 		ds=delta/180
 		tim=abs(ds/spe)
 		return tim
-
-
-			
-			
+		
+	def numg(self):
+		ging=self.getbar()
+		bm=copy.deepcopy(ging)
+		bm=pen.basevals(bm)
+		bmf=bm.getbarmass(bm)
+		print(json.dumps(bm,cls=MagicEncoder),json.dumps(pen.getdu(),cls=MagicEncoder),"fff")
+		bmd=self.getbarmr()
+		print(sp.N(bmd),"ff")
+		if(bmd<bmf):
+			return 1
+		return bmd/bmf
+		
 def dof(name,l):
 	print("")
 	tt1=thull(name,l,1,0)
