@@ -55,6 +55,9 @@ class thull:
 		
 	def getbarm(self):
 		return self.engmassp()/pen.maxshot()
+		
+	def getbarmr(self):
+		return self.getbarm()*pen.maxshot()
 			
 	def getmass(self):
 			ff=self.getplate(self.armorfront,self.width,self.height)
@@ -142,7 +145,7 @@ class thull:
 			print(sp.N(self.pl()/sp.pi),"pisfon widtg")
 			print(sp.N(self.mass),"mass")
 			print(sp.N(self.engmassp()),"engine")
-			print(sp.N(self.getbarm()),"barrel")
+			print(sp.N(self.getbarmr()),"barrel")
 			print(sp.N(to/fo),"torque to fric")
 			print(sp.N(self.getrps()),"rotate per sec")
 			print(sp.N(self.psize()),"piston mass")
