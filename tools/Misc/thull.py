@@ -31,6 +31,10 @@ class thull:
 		self.rofric=nuct.alpha_fs
 		self.heading=0
 		self.thead=0
+		self.tlen=1/3
+		self.tw=1
+		self.th=1
+		self.tzh=0
 			
 	def getbar(self):
 		barm=self.engmassp()/pen.maxshot()
@@ -230,36 +234,47 @@ class thull:
 			return self.scale(tm,self.getbaseobj().mass)
 			
 	def turm(self):
-			return self.mass/6
+			return self.mass/(self.th*self.tlen*self.tw/2)
 			
 	def apup(self):
 			return self.power*nuct.alpha_fs
 			
 	def rotd(self):
-			sidel=self.length/3
-			frontl=self.width
+			sidel=self.length*self.tlen
+			frontl=self.width*self.tw
 			return sidel*frontl*2
 			
 	def turse(self):
 			turf=self.turm()*nuct.baseobj().getg()
 			tur=turf*self.rofric
 			return self.apup()/tur
+	
+	def hse(self):
+			hurf=self.mass*nuct.baseobj().getg()
+			hur=hurf*self.rofric
+			return self.power/hur
 			
 	def turspe(self):
-			rr=self.rotd()/2
-			lenn=rr
-			lenn/=self.turse()
-			spw=(2*self.apup()/self.turm())**.5
-			spp=spw/rr
-			if(spp<lenn):
-				cc=1/spp
-				cc**=.5
-				cc=1/cc
-				c1=1/lenn
-				if(cc<c1):
-					print("turret accel braked")
-					return spp
-			return lenn
+		return self.ttspe(self.turse(),self.rotd()/2,self.apup(),self.turm())
+		
+	def hspe(self):
+		return self.ttspe(self.hspe(),self.length,self.power,self.mass)		
+			
+	def ttspe(self,spe,d,poww,m):
+		rr=d
+		lenn=rr
+		lenn/=spe
+		spw=(2*poww/m)**.5
+		spp=spw/rr
+		if(spp<lenn):
+			cc=1/spp
+			cc**=.5
+			cc=1/cc
+			c1=1/lenn
+			if(cc<c1):
+				print("turret accel braked")
+				return spp
+		return lenn
 			
 	def rspe(self):
 		gf=self.mass*nuct.baseobj().getg()*self.rofric
@@ -270,18 +285,71 @@ class thull:
 	def timett(self,angle,z):
 		t1=self.timet(angle)
 		t2=self.timet(z)
+		maxm=max(t1,t2)
 		maxr=1
-		return max(t1,t2),maxr
+		ll=self.getbar()
+		roundl=ll.bafac*ll.f2
+		barh=self.geturh()/2
+		if(abs(z)>90):
+			return maxm,0
+		if(barh>roundl and z>0):
+			return maxm,maxr
+		tang=barh/(self.getursetb()+roundl)
+		tfr=abs(z/90)
+		if(tang>tfr and barh>roundl):
+			return maxm,maxr
+		rll=barh/roundl
+		if(rll<tfr):
+			return maxm,0
+		if(z>0):
+			return maxm,maxr
+		if(tang>tfr):
+			return maxm,maxr
+		else:
+			return maxm,0
+	
+	def ttimer(self,angle,z):
+		g,h=self.timett(angle,z)
+		if(h==1):
+			self.tzh=z
+			self.thead=angle
+		return self,g,h
+			
+		
+	def repa(self,angle,z):
+		self,g,h=self.ttimer(angle,z)
+		g=sp.N(g)
+		h=sp.N(h)
+		hh=sp.N(self.geturh()/2)
+		print("barrel height",hh)
+		print("set",sp.N(self.getursetb()))
+		print("moving lateral ",angle," z ",z, " time ", g)
+		if(h==0):
+			print("elevation failed")
+			return self
+		print("success")
+		return self
+			
+	def geturh(self):
+		return (self.th/2)*self.height
+		
+	def getursetb(self):
+		tf=1
+		tf-=self.tlen
+		tf/=2
+		return tf*self.length
 	
 	def timet(self,angle):
 			spe=self.turspe()
-			delta = (angle-self.thead) % 360  # Normalize to 0–360
-			if delta > 180:
-			 delta -= 360  # Choose the shorter rotation direction
-			 ds=delta/180
-			 tim=abs(ds/spe)
-			 self.thead=angle
-			 return self,tim
+			return self.timets(angle,spe)
+			
+	def timets(self,angle,spe):
+		delta = (angle-self.thead) % 360  # Normalize to 0–360
+		if delta > 180:
+			delta -= 360  # Choose the shorter rotation direction
+		ds=delta/180
+		tim=abs(ds/spe)
+		return tim
 
 
 			
@@ -325,3 +393,4 @@ tt.getcc()
 tt=baseobj()
 print("")
 tt.getfric()
+tt.repa(2,90)
