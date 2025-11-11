@@ -50,7 +50,6 @@ class thull:
 	def getdd(self):
 		barm=self.getbarm()
 		du=pen.getdu()
-		print("__",sp.N(barm))
 		rd,speed,mass,en=du.getparp(barm,du)
 		return rd,speed,mass,en,du
 		

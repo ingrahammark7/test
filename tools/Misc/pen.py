@@ -298,7 +298,6 @@ class Material:
     	
     def getfinbar(self,lenn,diam):
     	mm=self.getbarrelmat(1)
-    	print("kk",sp.N(lenn),sp.N(diam))
     	return mm.density*((mm.base_hvl*lenn)-(sp.pi*(mm.base_hvl**2)))*(diam/2)
     	
     def getparp(self,barmass,mat):
@@ -312,7 +311,6 @@ class Material:
     	r=bm/barmass
     	maxs=mat.gets(0)
     	rf=(r**(11/12))/r
-    	print(sp.N(barmass),sp.N(bm),"hh")
     	if(speed==maxs):
     		pass
     	else: 
