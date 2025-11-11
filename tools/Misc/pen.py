@@ -289,18 +289,15 @@ class Material:
     	return f
     	
     def getbarrelmass(self,rounde,roundl,diam,speed):
-    	thick=self.base_hvl
-    	massper=self.density
     	lenn=self.getbarrellen(rounde,roundl,speed,diam)
-    	side=massper*thick*lenn*diam
-    	return side*nuct.sp.pi/baseshot()
+    	return self.getfinbar(lenn,diam)
     	
     def getbarmass(self,mat):
     	lenn,diam=self.barrellen(mat)
-    	thick=self.base_hvl
-    	massper=self.density
-    	side=massper*thick*lenn*diam*nuct.picor
-    	return side*sp.pi
+    	return self.getfinbar(lenn,diam)
+    	
+    def getfinbar(self,lenn,diam):
+    	return self.density*self.base_hvl*lenn*diam*nuct.picor/2
     	
     def getparp(self,barmass,mat):
     	bm=self.getbarmass(mat)
@@ -353,8 +350,10 @@ class Material:
         if(r>1):
         	print("ld not limited ",sp.N(r))
         	r=1
-        res=ba1*(r**.5)
-        return res
+        return self.dobar(ba1,r)
+        
+    def dobar(self,ba1,r):
+    	return ba1*(r**.5)
 
     def getbuc(self, ba, ba1):
     	L_eff = self.barhvl(ba1, 0)
@@ -584,10 +583,10 @@ def barpm():
     return barml/rd
     
 def baseshot():
-    return barpm()*sp.pi*nuct.phi
+    return sp.pi*(nuct.phi**2)
     
 def maxshot():
-	res=baseshot()**2
+	res=(barpm()*baseshot())**2
 	print("gun will fire shots ",sp.N(res))
 	return res
 

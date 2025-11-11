@@ -37,10 +37,8 @@ class thull:
 		self.tzh=0
 			
 	def getbar(self):
-		barm=self.engmassp()/pen.maxshot()
-		du=pen.getdu()
+		rd,speed,mass,en,du=self.getdd()
 		spee=pen.getspeed(du)
-		rd,speed,mass,en=du.getparp(barm,du)
 		ld=du.getldfm(mass,rd)
 		du.bafac=ld
 		du.f2=rd
@@ -48,7 +46,16 @@ class thull:
 		du.f4=1
 		pen.dopen(du)
 		return du
-	
+		
+	def getdd(self):
+		barm=self.getbarm()
+		du=pen.getdu()
+		rd,speed,mass,en=du.getparp(barm,du)
+		return rd,speed,mass,en,du
+		
+	def getbarm(self):
+		return self.engmassp()/pen.maxshot()
+			
 	def getmass(self):
 			ff=self.getplate(self.armorfront,self.width,self.height)
 			fs=self.getplate(self.armorside,self.length,self.height)*2
@@ -393,4 +400,3 @@ tt.getcc()
 tt=baseobj()
 print("")
 tt.getfric()
-tt.repa(2,90)
