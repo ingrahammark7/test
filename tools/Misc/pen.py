@@ -293,7 +293,7 @@ class Material:
     	massper=self.density
     	lenn=self.getbarrellen(rounde,roundl,speed,diam)
     	side=massper*thick*lenn*diam
-    	return side*nuct.sp.pi
+    	return side*nuct.sp.pi/baseshot()
     	
     def getbarmass(self,mat):
     	lenn,diam=self.barrellen(mat)

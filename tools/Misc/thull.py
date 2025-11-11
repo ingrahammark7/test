@@ -267,6 +267,12 @@ class thull:
 		gf**=1/3
 		return gf
 		
+	def timett(self,angle,z):
+		t1=self.timet(angle)
+		t2=self.timet(z)
+		maxr=1
+		return max(t1,t2),maxr
+	
 	def timet(self,angle):
 			spe=self.turspe()
 			delta = (angle-self.thead) % 360  # Normalize to 0–360
