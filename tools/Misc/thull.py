@@ -406,8 +406,7 @@ class thull:
 		bm=copy.deepcopy(ging)
 		bm=pen.basevals(bm)
 		bmf=bm.getbarmass(bm)
-		print(json.dumps(bm,cls=MagicEncoder),json.dumps(pen.getdu(),cls=MagicEncoder),"fff")
-		bmd=self.getbarmr()
+		bmd=ging.getbarmass(ging)
 		print(sp.N(bmd),"ff")
 		if(bmd<bmf):
 			return 1
@@ -426,7 +425,7 @@ def baseobj():
 	
 def scaleobj(tm):
 	return baseobj().scalem(tm)
-
+	
 tt=thull("bacteria",1e-10,1,0)				
 tt=tt.init()
 tt.getfric()
