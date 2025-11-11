@@ -403,14 +403,11 @@ class thull:
 		
 	def numg(self):
 		ging=self.getbar()
-		bm=copy.deepcopy(ging)
-		bm=pen.basevals(bm)
-		bmf=bm.getbarmass(bm)
-		bmd=ging.getbarmass(ging)
-		print(sp.N(bmd),"ff")
-		if(bmd<bmf):
+		actb=self.getbarmr()
+		bmd=pen.getsteel().getbarrelmat(1).getbarmass(ging)
+		if(actb<bmd):
 			return 1
-		return bmd/bmf
+		return (actb/bmd/pen.maxshot()/nuct.phi)
 		
 def dof(name,l):
 	print("")
@@ -425,7 +422,6 @@ def baseobj():
 	
 def scaleobj(tm):
 	return baseobj().scalem(tm)
-	
 tt=thull("bacteria",1e-10,1,0)				
 tt=tt.init()
 tt.getfric()
