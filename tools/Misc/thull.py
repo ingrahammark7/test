@@ -50,6 +50,7 @@ class thull:
 	def getdd(self):
 		barm=self.getbarm()
 		du=pen.getdu()
+		print("__",sp.N(barm))
 		rd,speed,mass,en=du.getparp(barm,du)
 		return rd,speed,mass,en,du
 		
@@ -63,7 +64,8 @@ class thull:
 			self=self.fuelcube()
 			em=self.engmassp()
 			ex=self.extramass()
-			to=ff+fs+fr+em+ex
+			bar=self.getbarm()
+			to=ff+fs+fr+em+ex+bar
 			self.mass=to+self.fuel
 			return self
 			
@@ -141,6 +143,7 @@ class thull:
 			print(sp.N(self.pl()/sp.pi),"pisfon widtg")
 			print(sp.N(self.mass),"mass")
 			print(sp.N(self.engmassp()),"engine")
+			print(sp.N(self.getbarm()),"barrel")
 			print(sp.N(to/fo),"torque to fric")
 			print(sp.N(self.getrps()),"rotate per sec")
 			print(sp.N(self.psize()),"piston mass")

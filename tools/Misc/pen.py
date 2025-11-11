@@ -297,7 +297,9 @@ class Material:
     	return self.getfinbar(lenn,diam)
     	
     def getfinbar(self,lenn,diam):
-    	return self.density*self.base_hvl*lenn*diam*nuct.picor/2
+    	mm=self.getbarrelmat(1)
+    	print("kk",sp.N(lenn),sp.N(diam))
+    	return mm.density*((mm.base_hvl*lenn)-(sp.pi*(mm.base_hvl**2)))*(diam/2)
     	
     def getparp(self,barmass,mat):
     	bm=self.getbarmass(mat)
@@ -310,6 +312,7 @@ class Material:
     	r=bm/barmass
     	maxs=mat.gets(0)
     	rf=(r**(11/12))/r
+    	print(sp.N(barmass),sp.N(bm),"hh")
     	if(speed==maxs):
     		pass
     	else: 
@@ -586,7 +589,7 @@ def baseshot():
     return sp.pi*(nuct.phi**2)
     
 def maxshot():
-	res=(barpm()*baseshot())**2
+	res=(barpm()*baseshot())
 	print("gun will fire shots ",sp.N(res))
 	return res
 
