@@ -43,75 +43,106 @@ class MagicEncoder(json.JSONEncoder):
             return str(obj)
 
 class thull:
-	def __init__(self,name,length,ammo,armorfront):
-		self.name=name
-		self.fden=850
-		self.fen=45.6e6
-		self.vp=12
-		self.gear=8
-		self.mass=1
-		self.f4=1/3
-		self.length=length
-		self.width=self.length/2
-		self.height=self.width/2
-		self.power=1
-		self.fuel=1
-		self.thres=thres
-		self.ammo=ammo
-		self.armorfront=armorfront
-		self.armorside=self.armorfront/2
-		self.armorrear=self.armorside/2
-		self.material=pen.getsteel()
-		self.matq=1/self.gear
-		self.mass=self.getmass()
-		self.nuc=nuct.baseobj()
-		self.rofric=nuct.alpha_fs
-		self.heading=0
-		self.thead=0
-		self.tlen=1/3
-		self.tw=1
-		self.th=1
-		self.tzh=0
-		self.frontgfan=45
-		self.frontbfan=45
-	
-	def takehit(self,xan,zan,round):
-			turfrac=self.th/2
-			turfrac=180*turfrac
-			turfrac=90-turfrac
-			if(zan>turfrac):
-				return self.turhit(xan,zan,round)
-			xfan=xan-self.heading
-			if(xan>45 or xan<-45):
-				xfan=90-xfan
-				efan=90-zan-self.frontbfan
-				return self.material.pen(round.Material,xfan,efan)
-			efan=90-zan
-			if(xfan>135 or xfan<-135):
-				xfan=225-xfan
-				return self.material.pen(round.Material,xfan,efan)
-			else:
-				xfan=225+xfan
-				return self.material.pen(round.Material,xfan,efan)
-			if(xfan>45):
-				xfan=180-xan
-			else:
-				xfan=180+xan
-			return self.material.pen(round.Material,xfan,efan)
-			
-	def turhit(self,xan,zan,round):
-		xfan=90-xan-self.thead+self.frontgfan
-		efan=0
-		if(xfan>135 or xfan<-135):
-			efan=90-zan
-			return self.material.pen(round.Material,xfan,efan)
+	def __init__(self, name, length, ammo, armorfront):
+		self.name = name
+		self.fden = 850
+		self.fen = 45.6e6
+		self.vp = 12
+		self.gear = 8
+		self.mass = 1
+		self.f4 = 1/3
+		self.length = length
+		self.width = self.length / 2
+		self.height = self.width / 2
+		self.power = 1
+		self.fuel = 1
+		self.thres = thres
+		self.ammo = ammo
+		self.armorfront = armorfront
+		self.armorside = self.armorfront / 2
+		self.armorrear = self.armorside / 2
+		self.material = pen.getsteel()
+		self.matq = 1 / self.gear
+		self.mass = self.getmass()
+		self.nuc = nuct.baseobj()
+		self.rofric = nuct.alpha_fs
+		self.heading = 0
+		self.thead = 0
+		self.tlen = 1/3
+		self.tw = 1
+		self.th = 1
+		self.tzh = 0
+		self.frontgfan = 45
+		self.frontbfan = 45
+
+
+	def takehit(self, xan, zan, round):
+		"""
+		Determines whether the projectile hits the hull or turret,
+		then computes penetration angles accordingly.
+		"""
+		# Step 1: Determine if shot hits the turret
+		turret_base_angle = 90 - (self.th / 2) * 180
+		if zan > turret_base_angle:
+			return self.turhit(xan, zan, round)
+
+		# Step 2: Projectile hits the hull
+		relative_x = (xan - self.heading) % 360
+		if relative_x > 180:
+			relative_x -= 360  # Map to -180..180
+
+		# Step 3: Determine which hull face is hit
+		if -45 <= relative_x <= 45:
+			# Front hull
+			xfan = relative_x
+			efan = 90 - zan - getattr(self, "armorfront_slope", 0)
+		elif 45 < relative_x <= 135:
+			# Right hull
+			xfan = relative_x - 90
+			efan = 90 - zan - getattr(self, "armorside_slope", 0)
+		elif -135 <= relative_x < -45:
+			# Left hull
+			xfan = relative_x + 90
+			efan = 90 - zan - getattr(self, "armorside_slope", 0)
 		else:
-			if(xfan>135):
-				xfan=225-xfan
-			else:
-				xfan=225+xfan
-			efan=90-zan-self.thead+self.frontbfan
-			return self.material.pen(round.Material,xfan,efan)
+			# Rear hull
+			xfan = relative_x - 180
+			efan = 90 - zan - getattr(self, "armorrear_slope", 0)
+
+		# Step 4: Compute material penetration
+		return self.material.pen(round.Material, xfan, efan)
+
+
+	def turhit(self, xan, zan, round):
+		"""
+		Compute penetration for a pyramidal turret.
+		"""
+		# Step 1: Normalize horizontal angle relative to turret heading
+		relative_x = (xan - self.heading) % 360
+		if relative_x > 180:
+			relative_x -= 360
+
+		# Step 2: Determine which turret face is hit
+		if -45 <= relative_x <= 45:
+			face_center = 0        # Front face
+			face_slope = getattr(self, "frontbfan", 0)
+		elif 45 < relative_x <= 135:
+			face_center = 90       # Right face
+			face_slope = 0
+		elif -135 <= relative_x < -45:
+			face_center = -90      # Left face
+			face_slope = 0
+		else:
+			face_center = 180      # Rear face
+			face_slope = 0
+
+		# Step 3: Compute local angles
+		xfan = relative_x - face_center
+		efan = 90 - zan - face_slope
+
+		# Step 4: Call penetration function
+		return self.material.pen(round.Material, xfan, efan)
+	
 			
 	
 	def getbar(self):
