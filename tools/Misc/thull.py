@@ -76,42 +76,53 @@ class thull:
 		self.frontbfan = 45
 
 
-	def takehit(self,xan,zan,round):
+	def takehit(self,xan,zan,roundd):
 			xan=xan%360
 			zan=zan%360
 			turfrac=self.th/2
 			turfrac=180*turfrac
 			turfrac=90-turfrac
+			print(self.heading,self.thead)
 			if(zan>turfrac):
+				print("turret")
 				return self.turhit(xan,zan,round)
+			print("hull")
 			xfan=xan-self.heading
 			efan=90-zan
+			print("efan ",efan)
 			if(135>xfan>45 or -135<xfan<-45):
 				xfan=90-xfan
-				return self.material.pen(round,xfan,efan),self.armorside
+				print("xfan side",xfan)
+				return self.material.pen(roundd,xfan,efan),self.armorside
 			if(xfan>135 or xfan<-135):
-				xfan=270-xfan
-				return self.material.pen(round,xfan,efan),self.armorrear
-			else:
-				xfan=270+xfan
-				return self.material.pen(round,xfan,efan),self.armorrear
+				print("rear",xfan)
+				if(xfan>135):
+					xfan=270-xfan
+					return self.material.pen(roundd,xfan,efan),self.armorrear
+				else:
+					xfan=270+xfan
+					return self.material.pen(round,xfan,efan),self.armorrear
 			xfan=90-xan
 			efan-=self.frontbfan
+			print("front hull ",efan)
+			print("xfan",xfan)
 			return self.material.pen(round,xfan,efan),self.armorfront
 			
-	def turhit(self,xan,zan,round):
+	def turhit(self,xan,zan,roundd):
 		xfan=90-xan-self.thead
 		efan=90-zan
-		if(xfan>135 or xfan<-135):
+		if(xfan<45 or xfan>-45):
 			efan-=self.frontbfan
 			xfan-=self.frontgfan
-			return self.material.pen(round,xfan,efan),self.armorfront
-		else:
-			if(xfan>135):
-				xfan=270-xfan
-			else:
-				xfan=270+xfan
-			return self.material.pen(round,xfan,efan),self.armorrear
+			print("front tur",xfan,efan)
+			return self.material.pen(roundd,xfan,efan),self.armorfront
+		if(xfan<135 or xfan>-135):
+			efan-=self.frontbfan
+			xfan%=45
+			print("side tur xfan efan",xfan,efan)
+			return self.material.pen(roundd,xfan,efan),self.armorside
+		print("rear tur",xfan,efan)
+		return self.material.pen(roundd,xfan,efan),self.armorrear
 	
 			
 	
@@ -453,9 +464,8 @@ class thull:
 		
 def dof(name,l):
 	print("")
-	tt1=thull(name,l,1,0)
+	tt1=thull(name,l,1,0.01)
 	tt1=tt1.init()
-	tt1.getfric()
 	return tt1
 	
 def baseobj():
@@ -490,10 +500,8 @@ print("")
 tt=baseobj()
 print("")
 per=dof("dk",100).getbar()
-tt.thead=-10
-tt.heading=10
-tt.frontbfan=90
-tt.frontgfan=90
-penn=tt.takehit(90,90,per)
-print("hut",sp.N(penn))
+tt.thead=0
+tt.heading=100
+penn,k=tt.takehit(-335,0,per)
+print("hut",sp.N(penn),sp.N(k))
 
