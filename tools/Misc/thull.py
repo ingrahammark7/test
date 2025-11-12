@@ -72,7 +72,48 @@ class thull:
 		self.tw=1
 		self.th=1
 		self.tzh=0
+		self.frontgfan=45
+		self.frontbfan=45
+	
+	def takehit(self,xan,zan,round):
+			turfrac=self.th/2
+			turfrac=180*turfrac
+			turfrac=90-turfrac
+			if(zan>turfrac):
+				return self.turhit(xan,zan,round)
+			xfan=xan-self.heading
+			if(xan>45 or xan<-45):
+				xfan=90-xfan
+				efan=90-zan-self.frontbfan
+				return self.material.pen(round.Material,xfan,efan)
+			efan=90-zan
+			if(xfan>135 or xfan<-135):
+				xfan=225-xfan
+				return self.material.pen(round.Material,xfan,efan)
+			else:
+				xfan=225+xfan
+				return self.material.pen(round.Material,xfan,efan)
+			if(xfan>45):
+				xfan=180-xan
+			else:
+				xfan=180+xan
+			return self.material.pen(round.Material,xfan,efan)
 			
+	def turhit(self,xan,zan,round):
+		xfan=90-xan-self.thead+self.frontgfan
+		efan=0
+		if(xfan>135 or xfan<-135):
+			efan=90-zan
+			return self.material.pen(round.Material,xfan,efan)
+		else:
+			if(xfan>135):
+				xfan=225-xfan
+			else:
+				xfan=225+xfan
+			efan=90-zan-self.thead+self.frontbfan
+			return self.material.pen(round.Material,xfan,efan)
+			
+	
 	def getbar(self):
 		rd,speed,mass,en,du=self.getdd()
 		spee=pen.getspeed(du)
@@ -422,6 +463,7 @@ def baseobj():
 	
 def scaleobj(tm):
 	return baseobj().scalem(tm)
+"""
 tt=thull("bacteria",1e-10,1,0)				
 tt=tt.init()
 tt.getfric()
@@ -439,6 +481,7 @@ print("")
 tt.getfric()
 dof("abrams",10)
 dof("marine",20)
+'"""
 tt=thull("96c plus",40,1,.01)
 tt=tt.init()
 print("")
