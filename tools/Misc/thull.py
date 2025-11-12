@@ -88,7 +88,6 @@ class thull:
 			efan=90-zan
 			if(135>xfan>45 or -135<xfan<-45):
 				xfan=90-xfan
-				efan-=self.frontbfan
 				return self.material.pen(round,xfan,efan),self.armorside
 			if(xfan>135 or xfan<-135):
 				xfan=270-xfan
@@ -96,7 +95,8 @@ class thull:
 			else:
 				xfan=270+xfan
 				return self.material.pen(round,xfan,efan),self.armorrear
-			xfan=90-xan-self.frontbfan
+			xfan=90-xan
+			efan-=self.frontbfan
 			return self.material.pen(round,xfan,efan),self.armorfront
 			
 	def turhit(self,xan,zan,round):
