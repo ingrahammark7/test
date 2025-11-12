@@ -91,7 +91,6 @@ class thull:
 			efan=90-zan
 			print("efan ",efan)
 			if(135>xfan>45 or -135<xfan<-45):
-				xfan=90-xfan
 				print("xfan side",xfan)
 				return self.material.pen(roundd,xfan,efan),self.armorside
 			if(xfan>135 or xfan<-135):
@@ -102,23 +101,22 @@ class thull:
 				else:
 					xfan=270+xfan
 					return self.material.pen(round,xfan,efan),self.armorrear
-			xfan=90-xan
+			xfan=90-xfan
 			efan-=self.frontbfan
 			print("front hull ",efan)
 			print("xfan",xfan)
 			return self.material.pen(round,xfan,efan),self.armorfront
 			
 	def turhit(self,xan,zan,roundd):
-		xfan=90-xan-self.thead
+		xfan=xan-self.thead
 		efan=90-zan
-		if(xfan<45 or xfan>-45):
+		if(-45<xfan<45):
 			efan-=self.frontbfan
-			xfan-=self.frontgfan
+			xfan-=self.frontgfan+90
 			print("front tur",xfan,efan)
 			return self.material.pen(roundd,xfan,efan),self.armorfront
-		if(xfan<135 or xfan>-135):
+		if(45<xfan<135 or -45>xfan>-135):
 			efan-=self.frontbfan
-			xfan%=45
 			print("side tur xfan efan",xfan,efan)
 			return self.material.pen(roundd,xfan,efan),self.armorside
 		print("rear tur",xfan,efan)
