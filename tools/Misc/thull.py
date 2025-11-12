@@ -77,27 +77,34 @@ class thull:
 
 
 	def takehit(self,xan,zan,round):
+			xan=xan%360
+			zan=zan%360
 			turfrac=self.th/2
 			turfrac=180*turfrac
 			turfrac=90-turfrac
 			if(zan>turfrac):
+				print("tur")
 				return self.turhit(xan,zan,round)
 			xfan=xan-self.heading
 			if(xan>45 or xan<-45):
+				print("g1")
 				xfan=90-xfan
 				efan=90-zan-self.frontbfan
 				return self.material.pen(round,xfan,efan)
 			efan=90-zan
 			if(xfan>135 or xfan<-135):
+				print("ge")
 				xfan=225-xfan
 				return self.material.pen(round,xfan,efan)
 			else:
 				xfan=225+xfan
+				print("jd")
 				return self.material.pen(round,xfan,efan)
 			if(xfan>45):
 				xfan=180-xan
 			else:
 				xfan=180+xan
+			print("jdm")
 			return self.material.pen(round,xfan,efan)
 			
 	def turhit(self,xan,zan,round):
@@ -105,13 +112,16 @@ class thull:
 		efan=0
 		if(xfan>135 or xfan<-135):
 			efan=90-zan
+			print("jds")
 			return self.material.pen(round,xfan,efan)
 		else:
 			if(xfan>135):
 				xfan=225-xfan
 			else:
 				xfan=225+xfan
+			print("eiei")
 			efan=90-zan-self.thead+self.frontbfan
+			print(efan,xfan)
 			return self.material.pen(round,xfan,efan)
 	
 			
@@ -491,5 +501,7 @@ print("")
 tt=baseobj()
 print("")
 per=tt.getbar()
-penn=tt.takehit(90,90,per)
+tt.heading=-353
+tt.thead=-184
+penn=tt.takehit(-90,-90,per)
 print("penm",sp.N(penn))
