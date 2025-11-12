@@ -492,7 +492,11 @@ tt1=tt1.init()
 print("")
 tt=baseobj()
 print("")
-per=tt1.getbar()
+per=dof("dk",100).getbar()
+tt.thead=-10
+tt.heading=10
+tt.frontbfan=90
+tt.frontgfan=90
 penn=tt.takehit(90,90,per)
 print("hut",sp.N(penn))
 
