@@ -85,7 +85,7 @@ class thull:
 			print(self.heading,self.thead)
 			if(zan>turfrac):
 				print("turret")
-				return self.turhit(xan,zan,round)
+				return self.turhit(xan,zan,roundd)
 			print("hull")
 			xfan=xan-self.heading
 			efan=90-zan
@@ -100,12 +100,12 @@ class thull:
 					return self.material.pen(roundd,xfan,efan),self.armorrear
 				else:
 					xfan=270+xfan
-					return self.material.pen(round,xfan,efan),self.armorrear
+					return self.material.pen(roundd,xfan,efan),self.armorrear
 			xfan=90-xfan
 			efan-=self.frontbfan
 			print("front hull ",efan)
 			print("xfan",xfan)
-			return self.material.pen(round,xfan,efan),self.armorfront
+			return self.material.pen(roundd,xfan,efan),self.armorfront
 			
 	def turhit(self,xan,zan,roundd):
 		xfan=xan-self.thead
