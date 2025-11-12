@@ -85,35 +85,30 @@ class thull:
 			if(zan>turfrac):
 				return self.turhit(xan,zan,round)
 			xfan=xan-self.heading
-			if(xan>45 or xan<-45):
+			if(135>xfan>45 or -135<xfan<-45):
 				xfan=90-xfan
 				efan=90-zan-self.frontbfan
 				return self.material.pen(round,xfan,efan)
 			efan=90-zan
 			if(xfan>135 or xfan<-135):
-				xfan=225-xfan
+				xfan=270-xfan
 				return self.material.pen(round,xfan,efan)
 			else:
-				xfan=225+xfan
+				xfan=270+xfan
 				return self.material.pen(round,xfan,efan)
-			if(xfan>45):
-				xfan=180-xan
-			else:
-				xfan=180+xan
-			return self.material.pen(round,xfan,efan)
 			
 	def turhit(self,xan,zan,round):
-		xfan=90-xan-self.thead+self.frontgfan
-		efan=0
+		xfan=90-xan-self.thead
+		efan=90-zan
 		if(xfan>135 or xfan<-135):
-			efan=90-zan
+			efan-=self.frontbfan
+			xfan-=self.frontgfan
 			return self.material.pen(round,xfan,efan)
 		else:
 			if(xfan>135):
-				xfan=225-xfan
+				xfan=270-xfan
 			else:
-				xfan=225+xfan
-			efan=90-zan-self.thead+self.frontbfan
+				xfan=270+xfan
 			return self.material.pen(round,xfan,efan)
 	
 			
