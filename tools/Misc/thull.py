@@ -456,6 +456,10 @@ def dof(name,l):
 	tt1=tt1.init()
 	return tt1
 	
+def dofarm(l):
+	tt1=dof("b",l)
+	return tt1.addarmor().init()
+	
 def baseobj():
 	d=dof("b",1)
 	return d.getbaseobj().addarmor().init()
@@ -484,9 +488,13 @@ dof("marine",20)
 tt1=thull("96c plus",40,1,.01)
 tt1=tt1.init()
 print("")
-"""
 tt=baseobj()
 print("afger",sp.N(tt.mass))
 tt.getfric()
 print("")
 print(sp.N(tt.armorside))
+"""
+tt=dofarm(2000)
+tt.getfric()
+print("mass",sp.N(tt.mass))
+print("side",sp.N(tt.armorside))
