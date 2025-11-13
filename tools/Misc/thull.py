@@ -1,46 +1,8 @@
 import pen
 import nuct
 import sympy as sp
-import copy
-import json
 
 thres=(nuct.baseobj().gethw()*nuct.alpha).evalf()
-
-from collections.abc import Iterable
-
-class MagicEncoder(json.JSONEncoder):
-    def default(self, obj):
-        # SymPy objects
-        if isinstance(obj, sp.Basic):
-            if obj.free_symbols:  # symbolic, keep as string
-                return str(obj)
-            else:  # numeric, evaluate safely
-                return float(sp.N(obj))
-
-        # Custom objects with __dict__
-        elif hasattr(obj, "__dict__"):
-            # Convert attributes safely
-            return {k: self.default(v) for k, v in obj.__dict__.items()}
-
-        # Dictionaries
-        elif isinstance(obj, dict):
-            return {self.default(k): self.default(v) for k, v in obj.items()}
-
-        # Sets and tuples
-        elif isinstance(obj, (set, tuple)):
-            return [self.default(v) for v in obj]
-
-        # Other iterables (lists, etc.) but not strings
-        elif isinstance(obj, Iterable) and not isinstance(obj, str):
-            return [self.default(v) for v in obj]
-
-        # Functions or other callables
-        elif callable(obj):
-            return f"<function {obj.__name__}>"
-
-        # Fallback: convert anything else to string
-        else:
-            return str(obj)
 
 class thull:
 	def __init__(self, name, length, ammo, armorfront):
@@ -74,8 +36,27 @@ class thull:
 		self.tzh = 0
 		self.frontgfan = 45
 		self.frontbfan = 45
-
-
+		self.x=0
+		self.y=0
+		
+	def turn(self,head):
+		t1=self.timets(head,self.rspe())
+		self.heading=head
+		return t1,self
+	
+	def move(self,t):
+		spe=self.rspe()*t
+		eff=.5
+		poww=self.power()
+		fps=(poww/self.fen)*t/eff
+		self.fuel-=fps
+		rr=sp.rad(self.heading)
+		dx=spe*sp.cos(rr)
+		dy=spe*sp.sin(rr)
+		self.x+=dx
+		self.y+=dy
+		return self
+	
 	def takehit(self,xan,zan,roundd):
 			turfrac=self.th/2
 			turfrac=180*turfrac
@@ -120,8 +101,6 @@ class thull:
 			return self.material.pen(roundd,xfan,efan),self.armorside
 		print("rear tur",xfan,efan)
 		return self.material.pen(roundd,xfan,efan),self.armorrear
-	
-			
 	
 	def getbar(self):
 		rd,speed,mass,en,du=self.getdd()
@@ -497,8 +476,8 @@ print("")
 tt=baseobj()
 print("")
 per=dof("dk",100).getbar()
-tt.thead=210
-tt.heading=210
-penn,k=tt.takehit(220,10,per)
+tt.thead=10
+tt.heading=10
+penn,k=tt.takehit(0,-10,per)
 print("hut",sp.N(penn),sp.N(k))
 
