@@ -1,0 +1,110 @@
+[
+  {
+    "Country": "Netherlands",
+    "Total_Notable": 217,
+    "Population_1850": 3098000,
+    "Notable_Per_Million": 70.0
+  },
+  {
+    "Country": "Switzerland",
+    "Total_Notable": 148,
+    "Population_1850": 2379000,
+    "Notable_Per_Million": 62.2
+  },
+  {
+    "Country": "Sweden",
+    "Total_Notable": 155,
+    "Population_1850": 3703000,
+    "Notable_Per_Million": 41.9
+  },
+  {
+    "Country": "Denmark",
+    "Total_Notable": 101,
+    "Population_1850": 2804000,
+    "Notable_Per_Million": 36.0
+  },
+  {
+    "Country": "United Kingdom",
+    "Total_Notable": 1021,
+    "Population_1850": 27181000,
+    "Notable_Per_Million": 37.6
+  },
+  {
+    "Country": "Germany",
+    "Total_Notable": 1059,
+    "Population_1850": 33718000,
+    "Notable_Per_Million": 31.4
+  },
+  {
+    "Country": "France",
+    "Total_Notable": 1042,
+    "Population_1850": 36340000,
+    "Notable_Per_Million": 28.7
+  },
+  {
+    "Country": "Italy",
+    "Total_Notable": 1037,
+    "Population_1850": 28130000,
+    "Notable_Per_Million": 36.9
+  },
+  {
+    "Country": "Spain",
+    "Total_Notable": 372,
+    "Population_1850": 16410000,
+    "Notable_Per_Million": 22.7
+  },
+  {
+    "Country": "Russia",
+    "Total_Notable": 152,
+    "Population_1850": 70720000,
+    "Notable_Per_Million": 2.2
+  },
+  {
+    "Country": "Poland",
+    "Total_Notable": 37,
+    "Population_1850": 10570000,
+    "Notable_Per_Million": 3.5
+  },
+  {
+    "Country": "Hungary",
+    "Total_Notable": 41,
+    "Population_1850": 14720000,
+    "Notable_Per_Million": 2.8
+  },
+  {
+    "Country": "Portugal",
+    "Total_Notable": 35,
+    "Population_1850": 3435000,
+    "Notable_Per_Million": 10.2
+  },
+  {
+    "Country": "Belgium",
+    "Total_Notable": 84,
+    "Population_1850": 4298000,
+    "Notable_Per_Million": 19.5
+  },
+  {
+    "Country": "Austria",
+    "Total_Notable": 218,
+    "Population_1850": 30990000,
+    "Notable_Per_Million": 7.0
+  },
+  {
+    "Country": "Ukraine",
+    "Total_Notable": 6,
+    "Population_1850": 17113805,
+    "Notable_Per_Million": 0.4
+  },
+  {
+    "Country": "Romania",
+    "Total_Notable": 5,
+    "Population_1850": 4146000,
+    "Notable_Per_Million": 1.2
+  },
+  {
+    "Country": "Belarus",
+    "Total_Notable": 4,
+    "Population_1850": 2900000,
+    "Notable_Per_Million": 1.4
+  }
+]
