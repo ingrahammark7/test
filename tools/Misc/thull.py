@@ -77,8 +77,6 @@ class thull:
 
 
 	def takehit(self,xan,zan,roundd):
-			xan=xan%360
-			zan=zan%360
 			turfrac=self.th/2
 			turfrac=180*turfrac
 			turfrac=90-turfrac
@@ -112,7 +110,8 @@ class thull:
 		efan=90-zan
 		if(-45<xfan<45):
 			efan-=self.frontbfan
-			xfan-=self.frontgfan+90
+			xfan-=self.frontgfan
+			xfan+=90
 			print("front tur",xfan,efan)
 			return self.material.pen(roundd,xfan,efan),self.armorfront
 		if(45<xfan<135 or -45>xfan>-135):
@@ -491,15 +490,15 @@ print("")
 tt.getfric()
 dof("abrams",10)
 dof("marine",20)
-"""
 tt1=thull("96c plus",40,1,.01)
 tt1=tt1.init()
 print("")
+"""
 tt=baseobj()
 print("")
 per=dof("dk",100).getbar()
-tt.thead=0
-tt.heading=100
-penn,k=tt.takehit(-335,0,per)
+tt.thead=210
+tt.heading=210
+penn,k=tt.takehit(220,10,per)
 print("hut",sp.N(penn),sp.N(k))
 
