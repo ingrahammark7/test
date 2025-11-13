@@ -39,6 +39,9 @@ class thull:
 		self.x=0
 		self.y=0
 		
+	def firehead(self):
+		return (self.thead+180)%360
+		
 	def turn(self,head):
 		t1=self.timets(head,self.rspe())
 		self.heading=head
