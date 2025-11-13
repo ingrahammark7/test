@@ -443,22 +443,22 @@ class thull:
 		
 	def addarmor(self):
 		self.init()
+		print("beflre",sp.N(self.mass))
 		m=self.mass
 		tvol=self.length*self.height*self.width*self.material.density
 		r=m/tvol
-		r*=self.length
+		r*=self.width/2
 		return thull(self.name,self.length,self.ammo,r)
 		
 def dof(name,l):
 	print("")
 	tt1=thull(name,l,1,0.0)
-	tt1=tt1.addarmor()
 	tt1=tt1.init()
 	return tt1
 	
 def baseobj():
 	d=dof("b",1)
-	return d.getbaseobj()
+	return d.getbaseobj().addarmor().init()
 	
 def scaleobj(tm):
 	return baseobj().scalem(tm)
@@ -486,5 +486,7 @@ tt1=tt1.init()
 print("")
 """
 tt=baseobj()
+print("afger",sp.N(tt.mass))
+tt.getfric()
 print("")
 print(sp.N(tt.armorside))
