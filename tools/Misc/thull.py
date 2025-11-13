@@ -441,9 +441,18 @@ class thull:
 			return 1
 		return (actb/bmd/pen.maxshot()/nuct.phi)
 		
+	def addarmor(self):
+		self.init()
+		m=self.mass
+		tvol=self.length*self.height*self.width*self.material.density
+		r=m/tvol
+		r*=self.length
+		return thull(self.name,self.length,self.ammo,r)
+		
 def dof(name,l):
 	print("")
-	tt1=thull(name,l,1,0.01)
+	tt1=thull(name,l,1,0.0)
+	tt1=tt1.addarmor()
 	tt1=tt1.init()
 	return tt1
 	
@@ -478,9 +487,4 @@ print("")
 """
 tt=baseobj()
 print("")
-per=dof("dk",100).getbar()
-tt.thead=10
-tt.heading=10
-penn,k=tt.takehit(0,-10,per)
-print("hut",sp.N(penn),sp.N(k))
-
+print(sp.N(tt.armorside))
