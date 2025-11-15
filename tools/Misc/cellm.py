@@ -8,6 +8,24 @@ zc=pen.getsteel().zc
 bol=pen.getsteel().bol
 pm=nuct.baseobj().corprma()*34
 ca=16
+bs=nuct.baseobj().am**7
+bs/=3
+b1=(pen.getskin().atomic_radius*2)*(bs**(1/3))
+amass=5.148e18
+wr=nuct.baseobj().req
+wa=4*sp.pi*(wr**2)
+aper=amass/wa
+ver=nuct.su/aper
+moa=pen.getn().base_hvl
+md=pen.getn().density
+vper=((2*ver)/md)**.5
+vt=(moa/vper)**.5
+vt/=4
+
+
+
+def bucf(ba,l):
+	return (sp.pi**2 / 64) * (ba**2 / l**2)	
 
 class cellm:
 	def __init__(self):
@@ -16,7 +34,11 @@ class cellm:
 	def dof(self):
 		fr=self.evaps()
 		ti=self.ps()/fr
-		print(sp.N(ti))
+		print(sp.N(vt))
+	
+	def mden(self):
+		b2=b1**3
+		return b2*pen.getskin().density
 		
 	def evaps(self):
 		fl=self.cwr()
@@ -37,7 +59,9 @@ class cellm:
 		return 1
 		
 	def cstr(self):
-		return pen.getsteel().j_high_estimate/(pen.getsteel().j_high_estimate/(50*10**6)) #intentionally explicit
+		return pen.getsteel().j_high_estimate/36
+		
+	
 		
 	def ps(self):
 		return self.cwr()*cd*ca
