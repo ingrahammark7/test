@@ -39,16 +39,21 @@ L_max = (sp.pi**2 * yo * R_max**2 / (4 * rho_stalk * g))**(1/3)
 
 def bucf(ba,l):
 	return (sp.pi**2 / 64) * (ba**2 / l**2)	
+	
+def gpow():
+	f=wa*nuct.su
+	f*=nuct.year
+	f*=nuct.alpha_fs**2
+	f/=4
+	return f
 
 class cellm:
 	def __init__(self):
 		pass
 		
 	def dof(self):
-		fr=self.evaps()
-		ti=self.ps()/fr
-		print(sp.N(yo))
-	
+		pass
+		
 	def mden(self):
 		b2=b1**3
 		return b2*rho_stalk
