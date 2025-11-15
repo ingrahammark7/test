@@ -3,6 +3,7 @@ import sympy as sp
 import pen
 
 sk=pen.getskin()
+cstr=pen.getsteel().j_high_estimate/36
 cd=38
 zc=pen.getsteel().zc
 bol=pen.getsteel().bol
@@ -21,8 +22,25 @@ md=pen.getn().density
 vper=((2*ver)/md)**.5
 vt=(moa/vper)**.5
 vt/=4
+yy=nuct.year
+rho_air=md
+C_d=1
+v_wind=vt
+N_gusts=yy
+rho_stalk=sk.density
+k = 0.5 * rho_air * C_d * v_wind**2
+yo=sk.base_hvl*sk.density*cstr/2
+yo/=nuct.alpha
+g=nuct.baseobj().getg()
 
 
+
+# Using your variables
+R_max = ((2*sp.pi)**0.5 * k**1.5 / (rho_stalk * g))**(2/5)
+L_max = (sp.pi**2 * yo * R_max**2 / (4 * rho_stalk * g))**(1/3)
+
+print("R_max (m):", sp.N(R_max))
+print("L_max (m):", sp.N(L_max))
 
 def bucf(ba,l):
 	return (sp.pi**2 / 64) * (ba**2 / l**2)	
@@ -34,11 +52,11 @@ class cellm:
 	def dof(self):
 		fr=self.evaps()
 		ti=self.ps()/fr
-		print(sp.N(vt))
+		print(sp.N(yo))
 	
 	def mden(self):
 		b2=b1**3
-		return b2*pen.getskin().density
+		return b2*rho_stalk
 		
 	def evaps(self):
 		fl=self.cwr()
@@ -57,12 +75,7 @@ class cellm:
 		
 	def pa(self):
 		return 1
-		
-	def cstr(self):
-		return pen.getsteel().j_high_estimate/36
-		
-	
-		
+			
 	def ps(self):
 		return self.cwr()*cd*ca
 		
