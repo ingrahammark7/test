@@ -33,14 +33,9 @@ yo=sk.base_hvl*sk.density*cstr/2
 yo/=nuct.alpha
 g=nuct.baseobj().getg()
 
-
-
-# Using your variables
 R_max = ((2*sp.pi)**0.5 * k**1.5 / (rho_stalk * g))**(2/5)
 L_max = (sp.pi**2 * yo * R_max**2 / (4 * rho_stalk * g))**(1/3)
 
-print("R_max (m):", sp.N(R_max))
-print("L_max (m):", sp.N(L_max))
 
 def bucf(ba,l):
 	return (sp.pi**2 / 64) * (ba**2 / l**2)	
