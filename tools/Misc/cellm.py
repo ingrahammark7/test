@@ -46,6 +46,13 @@ def gpow():
 	f*=nuct.alpha_fs**2
 	f/=4
 	return f
+	
+def avwork():
+	w=gpow()
+	w/=500
+	w/=27
+	w/=1e15
+	print(sp.N(w))
 
 class cellm:
 	def __init__(self):
@@ -87,4 +94,4 @@ class cellm:
 		
 		
 ffl=cellm()
-ffl.dof()
+print(sp.N(gpow()))
