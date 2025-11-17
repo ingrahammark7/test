@@ -48,8 +48,8 @@ class tankin:
         t1 = thull.baseobj()
         t1 = en2(t1)
 
-        f1, _ = t1.turn(90)
-        f2, _ = t1.timett(90, 0)
+        f1 = t1.turn(90)
+        f2,_ = t1.timett(90, 0)
 
         self.times = min(f1, f2) * 16
         self.maxx = self.times * t1.rspe() * nuct.baseobj().am

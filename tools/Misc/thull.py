@@ -40,12 +40,13 @@ class thull:
 		self.y=0
 		
 	def firehead(self):
+		self.ammo-=1
 		return (self.thead+180)%360
 		
 	def turn(self,head):
 		t1=self.timets(head,self.rspe())
 		self.heading=head
-		return t1,self
+		return t1
 	
 	def move(self,t):
 		spe=self.rspe()*t
@@ -387,7 +388,7 @@ class thull:
 		if(h==1):
 			self.tzh=z
 			self.thead=angle
-		return self,g,h
+		return g,h
 			
 		
 	def repa(self,angle,z):
@@ -437,7 +438,7 @@ class thull:
 		return thull(self.name,self.length,self.ammo,r)
 		
 def dof(name,l):
-	tt1=thull(name,l,1,0.0)
+	tt1=thull(name,l,pen.maxshot(),0.0)
 	tt1=tt1.init()
 	return tt1
 	
