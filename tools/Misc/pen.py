@@ -643,11 +643,7 @@ def dopen(mat):
     	ld,rspeed,mm=mat.getvel(round_diameter)
     	round_diameter*=mm
     	round_mas=mat.getmass(round_diameter,ld)    	
-    	print("round",sp.N(round_diameter*cm_m))
-    	print("mass",round_mas.evalf())
     	round_energy = (.5*round_mas*(rspeed**2))
-    	print("energy j ",round_energy.evalf())
-    	print("speed",sp.N(rspeed))
     	armor=steel
     	if(round_diameter==.009):
     		armor=getrp1tenpct()
@@ -668,11 +664,8 @@ def dopen(mat):
     	th=armor.thermalpenexp(round_energy,mat.exp)
     	depth=th
     	depth=depth/mult
-    	print("ld ",sp.N(ld))
-    	print(f"Penetration depth: {depth*100:.2f} cm")
     	lethalcalc(armor,round_energy,exer)
     	lenn=getsteel().getbarrellen(mat,mat.getroundlenmass(round_mas,round_diameter),rspeed,round_diameter)
-    	print("barrel length cm ",lenn.evalf()*cm_m)
 
 if __name__ == "__main__":   
     
