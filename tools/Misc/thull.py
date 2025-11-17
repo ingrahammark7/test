@@ -66,17 +66,12 @@ class thull:
 			turfrac=90-turfrac
 			print(self.heading,self.thead)
 			if(zan>turfrac):
-				print("turret")
 				return self.turhit(xan,zan,roundd)
-			print("hull")
 			xfan=xan-self.heading
 			efan=90-zan
-			print("efan ",efan)
 			if(135>xfan>45 or -135<xfan<-45):
-				print("xfan side",xfan)
 				return self.material.pen(roundd,xfan,efan),self.armorside
 			if(xfan>135 or xfan<-135):
-				print("rear",xfan)
 				if(xfan>135):
 					xfan=270-xfan
 					return self.material.pen(roundd,xfan,efan),self.armorrear
@@ -85,8 +80,6 @@ class thull:
 					return self.material.pen(roundd,xfan,efan),self.armorrear
 			xfan=90-xfan
 			efan-=self.frontbfan
-			print("front hull ",efan)
-			print("xfan",xfan)
 			return self.material.pen(roundd,xfan,efan),self.armorfront
 			
 	def turhit(self,xan,zan,roundd):
@@ -354,7 +347,6 @@ class thull:
 			cc=1/cc
 			c1=1/lenn
 			if(cc<c1):
-				print("turret accel braked")
 				return spp
 		return lenn
 			
@@ -403,13 +395,8 @@ class thull:
 		g=sp.N(g)
 		h=sp.N(h)
 		hh=sp.N(self.geturh()/2)
-		print("barrel height",hh)
-		print("set",sp.N(self.getursetb()))
-		print("moving lateral ",angle," z ",z, " time ", g)
 		if(h==0):
-			print("elevation failed")
 			return self
-		print("success")
 		return self
 			
 	def geturh(self):
@@ -443,7 +430,6 @@ class thull:
 		
 	def addarmor(self):
 		self.init()
-		print("beflre",sp.N(self.mass))
 		m=self.mass
 		tvol=self.length*self.height*self.width*self.material.density
 		r=m/tvol
@@ -451,7 +437,6 @@ class thull:
 		return thull(self.name,self.length,self.ammo,r)
 		
 def dof(name,l):
-	print("")
 	tt1=thull(name,l,1,0.0)
 	tt1=tt1.init()
 	return tt1

@@ -587,7 +587,6 @@ def baseshot():
     
 def maxshot():
 	res=(barpm()*baseshot())
-	print("gun will fire shots ",sp.N(res))
 	return res
 
 def basevals(mat):
@@ -638,11 +637,9 @@ def lethalcalc(mat, en, exp):
     ar = mat.base_hvl
     hvls **= (1 / 12)
     hvls = hvls * ar
-    print("round lethal at armor cm", hvls.evalf() * cm_m)
     return hvls
 
 def dopen(mat):
-    	print("")
     	round_diameter = mat.getdam(1)
     	ld,rspeed,mm=mat.getvel(round_diameter)
     	round_diameter*=mm
