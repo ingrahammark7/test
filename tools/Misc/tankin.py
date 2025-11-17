@@ -41,23 +41,23 @@ class tankin:
 		f2,ff2=t1.timett(90,0)
 		self.times=min(f1,f2)*16
 		self.maxx=self.times*t1.rspe()*nuct.baseobj().am
-		self.maxy=self.maxx
 		self.times=sp.N(self.times)
 		self.maxx=sp.N(self.maxx)
-		self.maxy=sp.N(self.maxy)
+		self.maxy=self.maxx
 		for te in self.teams:
 			maxe=self.maxx
 			if(te==0):
 				maxe=co
 			self=self.dot(te,co,maxe-co,t1)
-		print("times",len(self.cf))
 		
 	def dot(self,st,co,x,t1):
 		for i in range (co):
 			t=en2(t1)
 			t.x=i
 			t.y=0
-			self.cf[i+st]=t		
+			fj=i+st
+			self.cf[fj]=t
+			print(fj,"position",t.x,t.y,"gun mass",sp.N(t.getbarmr()))
 		return self
 		
 tt=tankin()
