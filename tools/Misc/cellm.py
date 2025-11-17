@@ -42,7 +42,7 @@ def bucf(ba,l):
 	
 def gpow():
 	f=wa*nuct.su
-	f*=nuct.year
+	f*=nuct.year*nuct.baseobj().gettime()
 	f*=nuct.alpha_fs**2
 	f/=4
 	return f
@@ -51,8 +51,11 @@ def avwork():
 	w=gpow()
 	w/=500
 	w/=27
-	w/=1e15
-	print(sp.N(w))
+	w/=32
+	return w
+	
+def fullq():
+	return avwork()/81
 
 class cellm:
 	def __init__(self):
@@ -94,4 +97,4 @@ class cellm:
 		
 		
 ffl=cellm()
-print(sp.N(gpow()))
+print(sp.N(fullq()/1e14))
