@@ -493,8 +493,8 @@ print("afger",sp.N(tt.mass))
 tt.getfric()
 print("")
 print(sp.N(tt.armorside))
-"""
 tt=dofarm(2000)
 tt.getfric()
 print("mass",sp.N(tt.mass))
 print("side",sp.N(tt.armorside))
+"""

@@ -349,7 +349,6 @@ class Material:
         ba=self.barhvl(baro**.5,isbarrel)
         r=self.getbuc(ba,ba1)
         if(r>1):
-        	print("ld not limited ",sp.N(r))
         	r=1
         return self.dobar(ba1,r)
         
