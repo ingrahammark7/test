@@ -69,7 +69,7 @@ class tankin:
     def dot(self, st, co, x, t1):
         for i in range(co):
             t = en2(t1)
-            t.x = i
+            t.x = x+i
             t.y = 0
             fj = i + st
             self.cf[fj] = t
