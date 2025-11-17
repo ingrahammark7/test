@@ -89,8 +89,7 @@ class Material:
         return total_bond_energy_joules/mass_g
 
     def print_summary(self):
-        print(f"Cohesive bond energy total (J): {self.cohesive_bond_energy:.4e}")
-        print(f"Cohesive bond energy total (MJ): {self.cohesive_bond_energy / 1e6:.4f}")
+        pass
 
     def combine_angles(self, angle1_deg, angle2_deg):
         a1=self.clean_angle(angle1_deg) 
