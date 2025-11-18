@@ -7,6 +7,7 @@ import nuct
 import thull
 import pen
 from datetime import datetime
+import numpy as np
 
 class en(json.JSONEncoder):
     def default(self, obj):
@@ -97,7 +98,7 @@ class tankin:
         		lt=datetime.now()
         		diff=(lt-ct).total_seconds()
         		dif2+=diff
-        		if(dif2>50):
+        		if(dif2>10000):
         			print(prog,"progress")
         			est=diff/prog
         			print(est*(1-prog),"est")
