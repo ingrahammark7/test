@@ -3,9 +3,9 @@ import sympy as sp
 import copy
 from collections.abc import Iterable
 
-import pen
 import nuct 
 import thull
+import pen
 
 class en(json.JSONEncoder):
     def default(self, obj):
@@ -68,7 +68,34 @@ class tankin:
             t.y = 0
             fj = i + st
             self.cf[fj] = t
-            print(fj, "position", t.x, t.y, "gun mass", sp.N(t.getbarmr()))
         return self
+    
+    def term(self):
+        	dp=6
+        	m=(self.maxx*self.maxy)**dp/2
+        	for i in range(self.maxx):
+        		for j in range(self.maxy):
+        			zper=0
+        			if(i>0 and j>0):
+        				zper=self.term[i-1][j-1]
+        			fd=i*j
+        			fd**=dp
+        			fd%=m
+        			fd/=m
+        			fd-=.5
+        			fd/=.5
+        	pass
+        	
+    def hm(self):
+        	nn=nuct.pm
+        	fr=2**6
+        	fr**=6
+        	nn*=fr
+        	sk=pen.getskin()
+        	nn/=sk.density
+        	nn**=(1/3)
+        	print("r",sp.N(nn))
+        	return nn
 
 tt = tankin()
+tt.hm()
