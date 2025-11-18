@@ -53,9 +53,8 @@ class tankin:
         t1 = en2(t1)
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
-        self.times = min(f1, f2) * 16
+        self.times = (min(f1, f2) * 16).evalf()
         self.maxx = self.times * t1.rspe() * nuct.baseobj().am
-        self.times = self.times.evalf()
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         for te in self.teams:
@@ -100,9 +99,9 @@ class tankin:
         		diff=(lt-ct).total_seconds()
         		dif2+=diff
         		if(dif2>1000):
-        			print(prog,"progress")
+        			print(sp.N(prog),"progress")
         			est=diff/prog
-        			print(est*(1-prog),"est")
+        			print(sp.N(est*(1-prog)),"est")
         			dif2=0
         	pass
         	
