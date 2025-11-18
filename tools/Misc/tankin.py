@@ -48,7 +48,7 @@ class tankin:
         self.times = 0
         self.teams = {0, co}
         self.clo=0
-        self.hmm=self.hm().evalf()
+        self.hmm=float(self.hm())
         t1 = thull.baseobj()
         t1 = en2(t1)
         f1 = t1.turn(90)
@@ -75,34 +75,37 @@ class tankin:
     def termm(self):
         	dp=2
         	m=dp**nuct.phi
-        	m=m.evalf()
+        	m=float(m)
         	rr=round(self.hmm)
         	ct=datetime.now()
         	dif2=0
         	print("st")
+        	pt=ct
         	for i in range(0,round(self.maxx),rr):
         		if not i in self.term:
         			self.term[i]={}
         		zper=0
         		if(i>0 and j>0):
-        			zper=self.term[i-rr][j-rr]
+        		    zper=self.term[i-rr][j-rr]
+        		    zper=float(zper)
         		for j in range(0,round(self.maxy),rr):
         			fd=i*j+i+j
         			fd**=dp
         			fd=fd%m
         			fd/=m
         			fd-=.5
-        			zper+=fd*self.hmm
+        			zper+=(fd*self.hmm)
         			self.term[i][j]=zper
         		prog=i/self.maxx
         		lt=datetime.now()
-        		diff=(lt-ct).total_seconds()
+        		diff=(lt-pt).total_seconds()
         		dif2+=diff
-        		if(dif2>1000):
+        		if(dif2>5):
         			print(sp.N(prog),"progress")
-        			est=diff/prog
+        			est=(lt-ct).total_seconds()/prog
         			print(sp.N(est*(1-prog)),"est")
         			dif2=0
+        			pt=lt
         	pass
         	
     def hm(self):
