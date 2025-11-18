@@ -138,14 +138,16 @@ class tankin:
         	nn**=(1/3)
         	nn*=n1
         	return nn
+        	
+    def savem(self):
+        	filen="f.json"
+        	with open(filen, "w") as f:
+        		json.dump(self.term, f)  # 'tt' is your tankin instance
+        	print("Terrain exported to ",filen)
+        
 
 tt = tankin()
 tt.termm()
-
-import json
+tt.savem()
 
 # Export the terrain to a JSON file
-with open("f.json", "w") as f:
-    json.dump(tt.term, f)  # 'tt' is your tankin instance
-
-print("Terrain exported to f.json")
