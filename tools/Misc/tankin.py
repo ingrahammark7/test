@@ -2,6 +2,7 @@ import json
 import sympy as sp
 import copy
 from collections.abc import Iterable
+import os
 
 import nuct 
 import thull
@@ -58,7 +59,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * nuct.baseobj().am/100
+        self.maxx = self.times * t1.rspe() * nuct.baseobj().am/6
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.rr=round(self.hmm)
@@ -78,16 +79,22 @@ class tankin:
         return self
     
     def termm(self):
+        	if(self.checkif()==1):
+        		return
         	r=self.rr
         	maxx=round(self.maxx)        
-        	maxy=round(self.maxy)	
-        	for i in range(0,round(self.maxx),self.rr):
+        	maxy=round(self.maxy)
+        	for i in range(0,maxx,self.rr):
+        		print(i)
         		self.doj(i,self.rr)
-        	for i in range(round(self.maxx)-r,-1,-r):
+        	for i in range(maxx-r,-1,-r):
+        			print(i,"rr")
         			self.doj(i,-r)
         	for j in range(0,maxy,r):
+        		print(j,"k")
         		self.dov(j,r)
         	for j in range(maxy-r,-1,-r):
+        			print("l",j)
         			self.dov(j,-r)
         			
     def dov(self,j,rr):
@@ -95,13 +102,23 @@ class tankin:
     		for i in self.term:
     			self.term[i][j]=0
     	zper=0
-    	for i in range(0,round(self.maxx),abs(rr)):
-    		if(i>0 and j>0 and (i-abs(rr))<self.maxx and (j-rr)<self.maxy):
-    			zper=self.term[i-abs(rr)][j-rr]
-    			z2=self.term.get(i-rr,{}).get(j,0)
-    			z3=self.term.get(i,{}).get(j-abs(rr),0)
-    			zper=float((zper+z2+z3)/3)
-    		zper=self.dol(i,j,zper)
+    	rf=abs(rr)
+    	mx=round(self.maxx-rf)
+    	my=round(self.maxy-rf)
+    	if(j>=my or j<rf):
+    		self.dol(0,j,0)
+    		return
+    	for i in range(0,mx,rf):
+    		if( i>rf):
+    			print(i,j)
+    			try:
+    				zper=self.term[i-rf][j-rr]
+    				z2=self.term[i-rr][j]
+    				z3=self.term[i][j-rf]
+    				zper=float((zper+z2+z3)/3)
+    				zper=self.dol(i,j,zper)
+    			except Exception:
+    				pass
     
     def doj(self, i,rr):
         if i not in self.term:
@@ -144,6 +161,14 @@ class tankin:
         	with open(filen, "w") as f:
         		json.dump(self.term, f)  # 'tt' is your tankin instance
         	print("Terrain exported to ",filen)
+      
+    def checkif(self):
+        p="fin.json"
+        if os.path.exists(p):
+        	with open(p,'r') as file:
+        		self.term=json.load(file)
+        		return 1
+        return 0
         
 
 tt = tankin()
