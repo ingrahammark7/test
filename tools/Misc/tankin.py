@@ -72,8 +72,9 @@ class tankin:
         return self
     
     def termm(self):
-        	dp=6
-        	m=(self.maxx*self.maxy)**dp/2
+        	dp=2
+        	m=dp**nuct.phi
+        	m=sp.N(m)
         	rr=round(self.hmm)
         	for i in range(0,round(self.maxx),rr):
         		if not i in self.term:
@@ -84,14 +85,12 @@ class tankin:
         		for j in range(0,round(self.maxy),rr):
         			fd=i*j+i+j
         			fd**=dp
-        			"""
-        			fd%=m
+        			fd=fd%m
         			fd/=m
         			fd-=.5
-        			fd/=.5
-        			"""
+        			zper+=fd*self.hmm
         			self.term[i][j]=zper
-        		print(i/self.maxx,"map creation progress")
+        		print(zper)
         	pass
         	
     def hm(self):
