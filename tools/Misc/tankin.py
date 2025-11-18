@@ -9,6 +9,10 @@ import pen
 from datetime import datetime
 import numpy as np
 
+dp=2
+m=dp**nuct.phi
+m=float(m)
+
 class en(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, sp.Basic):
@@ -57,6 +61,7 @@ class tankin:
         self.maxx = self.times * t1.rspe() * nuct.baseobj().am/100
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
+        self.rr=round(self.hmm)
         for te in self.teams:
             maxe = self.maxx
             if te == 0:
@@ -72,30 +77,33 @@ class tankin:
             self.cf[fj] = t
         return self
     
-    def termm(self):
-        	dp=2
-        	m=dp**nuct.phi
-        	m=float(m)
-        	rr=round(self.hmm)
-        	for i in range(0,round(self.maxx),rr):
-        		if not i in self.term:
-        			self.term[i]={}
-        		zper=0
-        		for j in range(0,round(self.maxy),rr):
-        			if(i>0 and j>0):
-        				zper=self.term[i-rr][j-rr]
-        				z2=self.term[i-rr][j]
-        				z3=self.term[i][j-rr]
-        				zper+=z2+z3
-        				zper/=3
-        				zper=float(zper)
-        			fd=i*j+i+j
-        			fd**=dp
-        			fd=fd%m
-        			fd/=m
-        			fd-=.5
-        			zper+=(fd*self.hmm)
-        			self.term[i][j]=zper
+    def termm(self):        	
+        	for i in range(0,round(self.maxx),self.rr):
+        		self.doj(m,i)
+        			
+    def doj(self, m, i):
+        rr=self.rr
+        if i not in self.term:
+        	self.term[i] = {}
+        zper = 0
+        for j in range(0, round(self.maxy), rr):
+            if i > 0 and j > 0:
+                print(i,j)
+                zper = self.term[i - rr][j - rr]
+                z2 = self.term[i - rr][j]
+                z3 = self.term[i][j - rr]
+                zper += z2 + z3
+                zper /= 3
+                zper = float(zper)
+            fd = i * j + i + j
+            fd **= dp
+            fd = fd % m
+            fd /= m
+            fd -= 0.5
+            zper += (fd * self.hmm)
+            self.term[i][j] = zper
+        		
+        		
         
         	
     def hm(self):
