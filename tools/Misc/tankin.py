@@ -77,34 +77,55 @@ class tankin:
             self.cf[fj] = t
         return self
     
-    def termm(self):        	
+    def termm(self):
+        	r=self.rr
+        	maxx=round(self.maxx)        
+        	maxy=round(self.maxy)	
         	for i in range(0,round(self.maxx),self.rr):
-        		self.doj(m,i)
+        		self.doj(i,self.rr)
+        	for i in range(round(self.maxx)-r,-1,-r):
+        			self.doj(i,-r)
+        	for j in range(0,maxy,r):
+        		self.dov(j,r)
+        	for j in range(maxy-r,-1,-r):
+        			self.dov(j,-r)
         			
-    def doj(self, m, i):
-        rr=self.rr
+    def dov(self,j,rr):
+    	if not j in self.term:
+    		for i in self.term:
+    			self.term[i][j]=0
+    	zper=0
+    	for i in range(0,round(self.maxx),abs(rr)):
+    		if(i>0 and j>0 and (i-abs(rr))<self.maxx and (j-rr)<self.maxy):
+    			zper=self.term[i-abs(rr)][j-rr]
+    			z2=self.term.get(i-rr,{}).get(j,0)
+    			z3=self.term.get(i,{}).get(j-abs(rr),0)
+    			zper=float((zper+z2+z3)/3)
+    		zper=self.dol(i,j,zper)
+    
+    def doj(self, i,rr):
         if i not in self.term:
         	self.term[i] = {}
         zper = 0
         for j in range(0, round(self.maxy), rr):
             if i > 0 and j > 0:
-                print(i,j)
                 zper = self.term[i - rr][j - rr]
+                if i in self.term and j in self.term[i]:
+                	zper=(zper+self.term[i][j])/2
                 z2 = self.term[i - rr][j]
                 z3 = self.term[i][j - rr]
-                zper += z2 + z3
-                zper /= 3
-                zper = float(zper)
-            fd = i * j + i + j
-            fd **= dp
-            fd = fd % m
-            fd /= m
-            fd -= 0.5
-            zper += (fd * self.hmm)
-            self.term[i][j] = zper
-        		
-        		
-        
+                zper=float((zper+z2+z3)/3)
+            zper=self.dol(i,j,zper)
+            
+    def dol(self,i,j,zper):
+        	fd = i * j + i + j
+        	fd **= dp
+        	fd = fd % m
+        	fd /= m
+        	fd -= 0.5
+        	zper += (fd * self.hmm)
+        	self.term[i][j] = zper
+        	return zper
         	
     def hm(self):
         	nn=nuct.pm
