@@ -88,12 +88,14 @@ class tankin:
         	
     def hm(self):
         	nn=nuct.pm
-        	fr=2**6
-        	fr**=6
-        	nn*=fr
         	sk=pen.getskin()
-        	nn/=sk.density
+        	n1=nn/sk.density
+        	fr=3**6
+        	fr**=12
+        	nn*=fr
+        	nn/=nuct.pm
         	nn**=(1/3)
+        	nn*=n1
         	print("r",sp.N(nn))
         	return nn
 
