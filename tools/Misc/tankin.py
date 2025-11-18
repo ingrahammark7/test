@@ -42,6 +42,7 @@ class tankin:
     def __init__(self):
         co = 5
         self.cf = {}
+        self.term={}
         self.times = 0
         self.teams = {0, co}
         self.clo=0
@@ -63,12 +64,11 @@ class tankin:
     def dot(self, st, co, x, t1):
         for i in range(co):
             t = en2(t1)
-            t.x = x+i+(st-co)
+            t.x = x+i+(co-st)
             t.y = 0
             fj = i + st
             self.cf[fj] = t
             print(fj, "position", t.x, t.y, "gun mass", sp.N(t.getbarmr()))
         return self
-
 
 tt = tankin()
