@@ -54,7 +54,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * nuct.baseobj().am
+        self.maxx = self.times * t1.rspe() * nuct.baseobj().am/100
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         for te in self.teams:
@@ -77,18 +77,18 @@ class tankin:
         	m=dp**nuct.phi
         	m=float(m)
         	rr=round(self.hmm)
-        	ct=datetime.now()
-        	dif2=0
-        	print("st")
-        	pt=ct
         	for i in range(0,round(self.maxx),rr):
         		if not i in self.term:
         			self.term[i]={}
         		zper=0
-        		if(i>0 and j>0):
-        		    zper=self.term[i-rr][j-rr]
-        		    zper=float(zper)
         		for j in range(0,round(self.maxy),rr):
+        			if(i>0 and j>0):
+        				zper=self.term[i-rr][j-rr]
+        				z2=self.term[i-rr][j]
+        				z3=self.term[i][j-rr]
+        				zper+=z2+z3
+        				zper/=3
+        				zper=float(zper)
         			fd=i*j+i+j
         			fd**=dp
         			fd=fd%m
@@ -96,17 +96,7 @@ class tankin:
         			fd-=.5
         			zper+=(fd*self.hmm)
         			self.term[i][j]=zper
-        		prog=i/self.maxx
-        		lt=datetime.now()
-        		diff=(lt-pt).total_seconds()
-        		dif2+=diff
-        		if(dif2>5):
-        			print(sp.N(prog),"progress")
-        			est=(lt-ct).total_seconds()/prog
-        			print(sp.N(est*(1-prog)),"est")
-        			dif2=0
-        			pt=lt
-        	pass
+        
         	
     def hm(self):
         	nn=nuct.pm
@@ -122,3 +112,11 @@ class tankin:
 
 tt = tankin()
 tt.termm()
+
+import json
+
+# Export the terrain to a JSON file
+with open("f.json", "w") as f:
+    json.dump(tt.term, f)  # 'tt' is your tankin instance
+
+print("Terrain exported to f.json")
