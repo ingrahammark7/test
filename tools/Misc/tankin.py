@@ -46,6 +46,7 @@ class tankin:
         self.times = 0
         self.teams = {0, co}
         self.clo=0
+        self.hmm=sp.N(self.hm())
         t1 = thull.baseobj()
         t1 = en2(t1)
         f1 = t1.turn(90)
@@ -70,20 +71,27 @@ class tankin:
             self.cf[fj] = t
         return self
     
-    def term(self):
+    def termm(self):
         	dp=6
         	m=(self.maxx*self.maxy)**dp/2
-        	for i in range(self.maxx):
-        		for j in range(self.maxy):
-        			zper=0
-        			if(i>0 and j>0):
-        				zper=self.term[i-1][j-1]
-        			fd=i*j
+        	rr=round(self.hmm)
+        	for i in range(0,round(self.maxx),rr):
+        		if not i in self.term:
+        			self.term[i]={}
+        		zper=0
+        		if(i>0 and j>0):
+        			zper=self.term[i-rr][j-rr]
+        		for j in range(0,round(self.maxy),rr):
+        			fd=i*j+i+j
         			fd**=dp
+        			"""
         			fd%=m
         			fd/=m
         			fd-=.5
         			fd/=.5
+        			"""
+        			self.term[i][j]=zper
+        		print(i/self.maxx,"map creation progress")
         	pass
         	
     def hm(self):
@@ -96,8 +104,7 @@ class tankin:
         	nn/=nuct.pm
         	nn**=(1/3)
         	nn*=n1
-        	print("r",sp.N(nn))
         	return nn
 
 tt = tankin()
-tt.hm()
+tt.termm()
