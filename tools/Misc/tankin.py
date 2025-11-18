@@ -6,6 +6,7 @@ from collections.abc import Iterable
 import nuct 
 import thull
 import pen
+from datetime import datetime
 
 class en(json.JSONEncoder):
     def default(self, obj):
@@ -76,6 +77,8 @@ class tankin:
         	m=dp**nuct.phi
         	m=sp.N(m)
         	rr=round(self.hmm)
+        	ct=datetime.now()
+        	dif2=0
         	for i in range(0,round(self.maxx),rr):
         		if not i in self.term:
         			self.term[i]={}
@@ -90,7 +93,15 @@ class tankin:
         			fd-=.5
         			zper+=fd*self.hmm
         			self.term[i][j]=zper
-        		print(zper)
+        		prog=i/self.maxx
+        		lt=datetime.now()
+        		diff=(lt-ct).total_seconds()
+        		dif2+=diff
+        		if(dif2>50):
+        			print(prog,"progress")
+        			est=diff/prog
+        			print(est*(1-prog),"est")
+        			dif2=0
         	pass
         	
     def hm(self):
