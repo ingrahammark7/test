@@ -48,15 +48,15 @@ class tankin:
         self.times = 0
         self.teams = {0, co}
         self.clo=0
-        self.hmm=sp.N(self.hm())
+        self.hmm=self.hm().evalf()
         t1 = thull.baseobj()
         t1 = en2(t1)
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = min(f1, f2) * 16
         self.maxx = self.times * t1.rspe() * nuct.baseobj().am
-        self.times = sp.N(self.times)
-        self.maxx = sp.N(self.maxx)
+        self.times = self.times.evalf()
+        self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         for te in self.teams:
             maxe = self.maxx
@@ -76,10 +76,11 @@ class tankin:
     def termm(self):
         	dp=2
         	m=dp**nuct.phi
-        	m=sp.N(m)
+        	m=m.evalf()
         	rr=round(self.hmm)
         	ct=datetime.now()
         	dif2=0
+        	print("st")
         	for i in range(0,round(self.maxx),rr):
         		if not i in self.term:
         			self.term[i]={}
@@ -98,7 +99,7 @@ class tankin:
         		lt=datetime.now()
         		diff=(lt-ct).total_seconds()
         		dif2+=diff
-        		if(dif2>10000):
+        		if(dif2>1000):
         			print(prog,"progress")
         			est=diff/prog
         			print(est*(1-prog),"est")
