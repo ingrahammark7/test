@@ -66,7 +66,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * nuct.baseobj().am/12
+        self.maxx = self.times * t1.rspe() * nuct.baseobj().am
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.rr=round(self.hmm)
@@ -114,6 +114,8 @@ class tankin:
         			self.dov(j,-r)
         			
     def dov(self,j,rr):
+    	if(j%1000==0):
+    		print("p2",j/self.maxy)
     	if not j in self.term:
     		for i in self.term:
     			self.term[i][j]=0
@@ -132,6 +134,8 @@ class tankin:
     				zper=self.dol(i,j,zper)
     
     def doj(self, i,rr):
+        if(i%1000==0):
+        	print("pct",i/self.maxx)
         if i not in self.term:
         	self.term[i] = {}
         zper = 0
