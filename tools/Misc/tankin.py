@@ -121,6 +121,7 @@ class tankin:
     				z2=self.term[i-rr][j]
     				z3=self.term[i][j-rf]
     				zper=float((zper+z2+z3)/3)
+    				print(zper)
     				zper=self.dol(i,j,zper)
     
     def doj(self, i,rr):
@@ -144,8 +145,18 @@ class tankin:
         	fd /= m
         	fd -= 0.5
         	zper += (fd * self.hmm)
+        	zper=self.hash32(zper)
         	self.term[i][j] = zper
         	return zper
+    
+    def hash32(self,x):
+    	x=round(x)
+    	x = (x ^ 61) ^ (x >> 16)
+    	x = x + (x << 3)
+    	x = x ^ (x >> 4)
+    	x = x * 0x27d4eb2d
+    	x = x ^ (x >> 15)
+    	return x & 0xffffffff
         	
     def hm(self):
         	nn=nuct.pm
