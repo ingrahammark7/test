@@ -95,13 +95,15 @@ class tankin:
         	self.timer()
         	maxx=self.maxx    
         	maxy=self.maxy
-        	for i in range(0,maxx,self.rr):
-        		self.doj(i,self.rr)
-        	for i in range(maxx-r,0,-r):
+        	passes=3
+        	for p in range(passes):
+        		for i in range(0,maxx,self.rr):
+        			self.doj(i,self.rr)
+        		for i in range(maxx-r,0,-r):
         			self.doj(i,-r)
-        	for j in range(0,maxy,r):
-        		self.dov(j,r)
-        	for j in range(maxy-r,0,-r):
+        		for j in range(0,maxy,r):
+        			self.dov(j,r)
+        		for j in range(maxy-r,0,-r):
         			self.dov(j,-r)
         			
     def dov(self,j,rr):
