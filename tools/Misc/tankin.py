@@ -15,14 +15,11 @@ m=float(m)
 am=nuct.baseobj().am
 fif=8*8-5
 fi2=9*11+1+fif
-ran=am*fi2*5
-ran-=2
-ran*=am
+ran=am*(fi2*5-2)
 ran-=32
 ran+=.5
 ran*=am
-ran=round(ran)
-ran=int(ran)
+ran=int(round(ran))
 
 class en(json.JSONEncoder):
     def default(self, obj):
@@ -128,7 +125,6 @@ class tankin:
     		self.dol(0,j,0)
     		return
     	for i in range(rf,mx,rf):
-    				print(i,j)
     				zper=self.term[i-rf][j-rr]
     				z2=self.term[i-rr][j]
     				z3=self.term[i][j-rf]
