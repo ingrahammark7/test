@@ -151,10 +151,10 @@ class tankin:
     
     def hash32(self,x):
     	x=round(x)
-    	x = (x ^ 61) ^ (x >> 16)
+    	x = (x ^ 64) ^ (x >> 16)
     	x = x + (x << 3)
     	x = x ^ (x >> 4)
-    	x = x * 0x27d4eb2d
+    	x = x * 0xffffffff
     	x = x ^ (x >> 15)
     	return x & 0xffffffff
         	
