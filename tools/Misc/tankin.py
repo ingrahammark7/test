@@ -12,6 +12,17 @@ import random
 dp=2
 m=dp**sp.GoldenRatio
 m=float(m)
+am=nuct.baseobj().am
+fif=8*8-5
+fi2=9*11+1+fif
+ran=am*fi2*5
+ran-=2
+ran*=am
+ran-=32
+ran+=.5
+ran*=am
+ran=round(ran)
+ran=int(ran)
 
 class en(json.JSONEncoder):
     def default(self, obj):
@@ -146,7 +157,7 @@ class tankin:
     
     def hash32(self,x):
     	x=int(x)
-    	x = x * 0x27d4eb2d
+    	x = x * ran
     	return x & 0xffffffff
         	
     def hm(self):
