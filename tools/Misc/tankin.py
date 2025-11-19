@@ -10,7 +10,7 @@ import pen
 import random
 
 dp=2
-m=dp**nuct.phi
+m=dp**sp.GoldenRatio
 m=float(m)
 
 class en(json.JSONEncoder):
@@ -58,7 +58,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * nuct.baseobj().am/12
+        self.maxx = self.times * t1.rspe() * nuct.baseobj().am
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.rr=round(self.hmm)
@@ -117,11 +117,11 @@ class tankin:
     		self.dol(0,j,0)
     		return
     	for i in range(rf,mx,rf):
+    				print(i,j)
     				zper=self.term[i-rf][j-rr]
     				z2=self.term[i-rr][j]
     				z3=self.term[i][j-rf]
     				zper=float((zper+z2+z3)/3)
-    				print(zper)
     				zper=self.dol(i,j,zper)
     
     def doj(self, i,rr):
@@ -143,14 +143,13 @@ class tankin:
         	fd **= dp
         	fd = fd % m
         	fd /= m
-        	fd -= 0.5
         	zper += (fd * self.hmm)
         	zper=self.hash32(zper)
         	self.term[i][j] = zper
         	return zper
     
     def hash32(self,x):
-    	x=round(x)
+    	x=int(x)
     	x = (x ^ 64) ^ (x >> 16)
     	x = x + (x << 3)
     	x = x ^ (x >> 4)
