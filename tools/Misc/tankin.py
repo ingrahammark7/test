@@ -152,6 +152,7 @@ class tankin:
     def dol(self,i,j,zper):
         	zper += i * j + i + j
         	zper=self.hash32(zper)
+        	zper/=ran
         	self.term[i][j] = zper
         	return zper
     
