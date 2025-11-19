@@ -78,23 +78,30 @@ class tankin:
             self.cf[fj] = t
         return self
     
+    def tim2(self,x):
+    	x=round(x)
+    	tr=x%round(self.hmm)
+    	x-=tr
+    	return x
+    
+    def timer(self):
+    	self.maxx=self.tim2(self.maxx)
+    	self.maxy=self.tim2(self.maxy)
+    
     def termm(self):
         	if(self.checkif()==1):
         		return
         	r=self.rr
-        	maxx=round(self.maxx)        
-        	maxy=round(self.maxy)
+        	self.timer()
+        	maxx=self.maxx    
+        	maxy=self.maxy
         	for i in range(0,maxx,self.rr):
-        		print(i)
         		self.doj(i,self.rr)
-        	for i in range(maxx-r,-1,-r):
-        			print(i,"rr")
+        	for i in range(maxx-r,0,-r):
         			self.doj(i,-r)
         	for j in range(0,maxy,r):
-        		print(j,"k")
         		self.dov(j,r)
-        	for j in range(maxy-r,-1,-r):
-        			print("l",j)
+        	for j in range(maxy-r,0,-r):
         			self.dov(j,-r)
         			
     def dov(self,j,rr):
@@ -110,15 +117,11 @@ class tankin:
     		return
     	for i in range(0,mx,rf):
     		if( i>rf):
-    			print(i,j)
-    			try:
     				zper=self.term[i-rf][j-rr]
     				z2=self.term[i-rr][j]
     				z3=self.term[i][j-rf]
     				zper=float((zper+z2+z3)/3)
     				zper=self.dol(i,j,zper)
-    			except Exception:
-    				pass
     
     def doj(self, i,rr):
         if i not in self.term:
