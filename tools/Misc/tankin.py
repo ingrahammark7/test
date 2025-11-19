@@ -7,8 +7,7 @@ import os
 import nuct 
 import thull
 import pen
-from datetime import datetime
-import numpy as np
+import random
 
 dp=2
 m=dp**nuct.phi
@@ -59,7 +58,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * nuct.baseobj().am/6
+        self.maxx = self.times * t1.rspe() * nuct.baseobj().am/12
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.rr=round(self.hmm)
@@ -95,8 +94,8 @@ class tankin:
         	self.timer()
         	maxx=self.maxx    
         	maxy=self.maxy
-        	passes=3
-        	for p in range(passes):
+        	passes=3   	
+        	for p in range(passes):	
         		for i in range(0,maxx,self.rr):
         			self.doj(i,self.rr)
         		for i in range(maxx-r,0,-r):
@@ -175,7 +174,7 @@ class tankin:
         return 0
         
 
-tt = tankin()
+tt = tankin() 
 tt.termm()
 tt.savem()
 
