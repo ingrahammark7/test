@@ -115,8 +115,7 @@ class tankin:
     	if(j>=my or j<rf):
     		self.dol(0,j,0)
     		return
-    	for i in range(0,mx,rf):
-    		if( i>rf):
+    	for i in range(rf,mx,rf):
     				zper=self.term[i-rf][j-rr]
     				z2=self.term[i-rr][j]
     				z3=self.term[i][j-rf]
