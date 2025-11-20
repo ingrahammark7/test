@@ -22,14 +22,15 @@ ran*=am
 ran=int(round(ran))
 rc=round(os.sys.getsizeof(ran)/4)
 
-
 def doff(s):
-	str="0x"
+	strr="0x"
 	for i in range(s):
-		str+="f"
-	return str
-
+		strr+="f"
+	return strr
+	
 wc=int(doff(rc),16)
+
+wc1=(wc/ran)
 
 class en(json.JSONEncoder):
     def default(self, obj):
@@ -165,12 +166,13 @@ class tankin:
         	zper += i * j + i + j
         	zper=self.hash32(zper)
         	zper/=ran
-        	self.term[i][j] = zper
+        	zper-=wc1
+        	self.term[i][j] = -1/zper
         	return zper
     
     def hash32(self,x):
     	x=int(x)
-    	x = x * ran
+    	x *= ran
     	return x & wc
         	
     def hm(self):
