@@ -77,7 +77,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * nuct.baseobj().am/4
+        self.maxx = self.times * t1.rspe() * nuct.baseobj().am
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.rr=round(self.hmm)
@@ -166,7 +166,7 @@ class tankin:
         	zper=self.hash32(zper)
         	zper/=ran
         	zper-=wc1
-        	self.term[i][j] = -self.hmm/zper
+        	self.term[i][j] = (-self.hmm/zper)**.5
         	return zper
     
     def hash32(self,x):
