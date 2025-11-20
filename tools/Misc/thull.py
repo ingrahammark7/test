@@ -61,8 +61,11 @@ class thull:
 		self.y+=dy
 		return self
 	
+	def turfrac(self):
+		return self.th/2
+	
 	def takehit(self,xan,zan,roundd):
-			turfrac=self.th/2
+			turfrac=self.turfrac()
 			turfrac=180*turfrac
 			turfrac=90-turfrac
 			print(self.heading,self.thead)
@@ -357,6 +360,16 @@ class thull:
 		gf**=1/3
 		return gf
 		
+	def barrh(self):
+		return (self.geturh()/2)
+	
+	def turh(self):
+		return self.height-(self.turfrac()*self.height)
+	
+	def tbarh(self):
+		ty=self.barrh()
+		return self.turh()+ty
+	
 	def timett(self,angle,z):
 		t1=self.timet(angle)
 		t2=self.timet(z)
@@ -364,7 +377,7 @@ class thull:
 		maxr=1
 		ll=self.getbar()
 		roundl=ll.bafac*ll.f2
-		barh=self.geturh()/2
+		barh=self.barrh()
 		if(abs(z)>90):
 			return maxm,0
 		if(barh>roundl and z>0):
