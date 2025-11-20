@@ -65,7 +65,10 @@ class Material:
     	lenn=self.getroundlenmass(round_mas,diam)
     	de=self.density/airdens
     	return lenn*de
-
+    	
+    def getrang(self):
+    	rm=self.getmass(self.f2,self.bafac)
+    	return self.getrange(rm,self.f2)
     
     def compute_high_estimate(self):
         ch = self.ch
