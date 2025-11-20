@@ -7,7 +7,7 @@ import os
 import nuct 
 import thull
 import pen
-import random
+import numpy as np
 
 dp=2
 m=dp**sp.GoldenRatio
@@ -20,6 +20,16 @@ ran-=32
 ran+=.5
 ran*=am
 ran=int(round(ran))
+rc=round(os.sys.getsizeof(ran)/4)
+
+
+def doff(s):
+	str="0x"
+	for i in range(s):
+		str+="f"
+	return str
+
+wc=int(doff(rc),16)
 
 class en(json.JSONEncoder):
     def default(self, obj):
@@ -70,6 +80,8 @@ class tankin:
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.rr=round(self.hmm)
+        self.ranf=np.log(ran/self.hmm)
+        self.l=0
         for te in self.teams:
             maxe = self.maxx
             if te == 0:
@@ -159,7 +171,7 @@ class tankin:
     def hash32(self,x):
     	x=int(x)
     	x = x * ran
-    	return x & 0xffffffff
+    	return x & wc
         	
     def hm(self):
         	nn=nuct.pm
@@ -174,6 +186,8 @@ class tankin:
         	return nn
         	
     def savem(self):
+        	if(self.l==1):
+        		return
         	filen="f.json"
         	with open(filen, "w") as f:
         		json.dump(self.term, f)  # 'tt' is your tankin instance
@@ -184,6 +198,7 @@ class tankin:
         if os.path.exists(p):
         	with open(p,'r') as file:
         		self.term=json.load(file)
+        		self.l=1
         		return 1
         return 0
         
