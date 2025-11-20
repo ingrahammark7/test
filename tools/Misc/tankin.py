@@ -81,7 +81,6 @@ class tankin:
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.rr=round(self.hmm)
-        self.ranf=np.log(ran/self.hmm)
         self.l=0
         for te in self.teams:
             maxe = self.maxx
@@ -167,7 +166,7 @@ class tankin:
         	zper=self.hash32(zper)
         	zper/=ran
         	zper-=wc1
-        	self.term[i][j] = -1/zper
+        	self.term[i][j] = -self.hmm/zper
         	return zper
     
     def hash32(self,x):
