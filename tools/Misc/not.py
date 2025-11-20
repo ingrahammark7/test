@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice to Court" 
+footer_text = "Letter to Presiding Judge" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -68,7 +68,7 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "SUPERIOR COURT OF CALIFORNIA")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF SAN FRANCISCO")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "COUNTY OF LOS ANGELES")
    
 
     # (4) Case Title
@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Chase Bank",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: CGC-25-625577")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03825")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, footer_text)
@@ -102,8 +102,8 @@ def create_pdf(output_filename):
 
     # (7) Judge and Department
     c.setFont("Times-Roman", 12)
-    c.drawString(space, top_margin - 4.75 * inch, "Judge: Not assigned")
-    c.drawString(space, top_margin - 5* inch, "Department: Not assigned")
+    c.drawString(space, top_margin - 4.75 * inch, "Judge: Curtis Kin (trial judge)")
+    c.drawString(space, top_margin - 5* inch, "Department: 86")
 
    
 
@@ -112,7 +112,8 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I ordered the case dismissed sincd judge committed fraud. I included proof of service for the judge's. My filings have been deleted and there is no point in proceeding with case. /n" 
+    intro_text = "Dear Presiding Judge, /n I am writing formally to request your intervention in above case. I submitted a request to forward the case record to the United States Attorney for the Central District of California so as to arrest Judge Curtis Kin for faking the transcript in case 25STCP00742. I filed cases 3825 and 3728 to get around judge ignoring all filings and automatically routing cases to himself. /n The Request to Arrest Judge will soon pass the mandatory 90 day deadline for judge to reply. I request Presiding Judge intervene to expedite forwarding of the case record to law enforcement with recommendation to arrest Judge Kin. /n The cause of action is the fact that the majority of LAPD officers are illegal immigrants. I requested LAPD to explain why they attempt to arrest me at 690 S Catalina St Apartment 4x. Also, I stated an intention to kill LAPD officers and ordered judge to arrest me. Also, I requested all LAPD vehicles be auctioned and destroyed, so as to prevent LAPD property being used by illegals. /n"
+    str2="Also, waive the $50 fee the sheriff office in room 525 is charging to prevent service of cases. Also, after Judge Kin is replaced, order judge to respond to my filed requests, which are necessary for case to be served. /n" 
     y_position -= .25*inch
     
     
@@ -150,7 +151,13 @@ def create_pdf(output_filename):
     	add_footer(num)
     	cc.showPage()
     	return cc
-    	
+    
+    c=dopage(c,1) 
+    
+    y_position=top_margin
+    intro_text=str2
+    y_position=doer(intro_text,y_position)	
+    			
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 11/19/2025")
     c=dopage(c,2)
