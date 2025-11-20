@@ -25,9 +25,13 @@ for ix, x in enumerate(x_keys):
         else:
             terrain_grid[iy, ix] = 0.0
 
-# Normalize heights for coloring
-min_h, max_h = terrain_grid.min(), terrain_grid.max()
-norm_grid = (terrain_grid - min_h) / (max_h - min_h + 1e-6)
+# Apply logarithmic scaling
+epsilon = 1e-6  # avoid log(0)
+log_grid = np.log(terrain_grid + epsilon)
+
+# Normalize log heights for coloring
+min_h, max_h = log_grid.min(), log_grid.max()
+norm_grid = (log_grid - min_h) / (max_h - min_h + 1e-6)
 
 class TerrainWidget(Widget):
     def __init__(self, **kwargs):
