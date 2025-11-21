@@ -226,7 +226,7 @@ class tankin:
     def nearr(self,x,y):
     	mx=x-x%self.hmm
     	my=y-y%self.hmm
-    	return self.term[mx][my]
+    	return self.term[round(mx)][round(my)]
     	
     def doc(self,x,y):
     	if not x in self.term:
@@ -241,6 +241,7 @@ class tankin:
         starz=round(self.term[starx][stary]+t1.tbarh())
         ex=round(self.maxc(t2.x))
         ey=round(self.maxyc(t2.y))
+        self.doc(ex,ey)
         eh=round(t2.height+self.term[ex][ey])
         dis=self.dcalc(starx,stary,ex,ey,starz,eh)
         rann=t1.getbar().getrang()
@@ -258,6 +259,7 @@ class tankin:
                 print(x)
                 t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
                 hol=starz+t*(eh-starz)
+                self.doc(x,y)
                 if grid[x][y]>hol:
                     return False
                 err-=dy
@@ -268,9 +270,9 @@ class tankin:
             else:
                 err=dy/2
                 while y!=ey:
-                    print(y)
                     t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
                     hol=starz+t*(eh-starz)
+                    self.doc(x,y)
                     if grid[x][y] >hol:
                         return False
                     err -= dx
