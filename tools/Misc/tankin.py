@@ -32,52 +32,6 @@ wc=int(doff(rc),16)
 
 wc1=(wc/ran)
 
-def fill_sparse_fast(self, passes=3):
-    """
-    Fill missing cells in self.term using neighbor averaging.
-    Faster than original nested loops, pure Python, non-breaking.
-    """
-    # Gather all x and y keys
-    xs = list(self.term.keys())
-    ys = {y for sub in self.term.values() for y in sub.keys()}
-    min_x, max_x = min(xs), max(xs)
-    min_y, max_y = min(ys), max(ys)
-
-    # Initialize missing cells to None for filling
-    for i in range(min_x, max_x + 1):
-        if i not in self.term:
-            self.term[i] = {}
-        for j in range(min_y, max_y + 1):
-            if j not in self.term[i]:
-                self.term[i][j] = None
-
-    # Perform iterative neighbor averaging
-    for _ in range(passes):
-        # Store updates separately to avoid overwriting mid-pass
-        updates = {}
-        for i in range(min_x, max_x + 1):
-            updates[i] = {}
-            for j in range(min_y, max_y + 1):
-                if self.term[i][j] is None:
-                    neighbors = []
-                    for dx in [-1, 0, 1]:
-                        for dy in [-1, 0, 1]:
-                            ni, nj = i + dx, j + dy
-                            if ni in self.term and nj in self.term[ni] and self.term[ni][nj] is not None:
-                                neighbors.append(self.term[ni][nj])
-                    if neighbors:
-                        updates[i][j] = sum(neighbors) / len(neighbors)
-        # Apply updates
-        for i in updates:
-            for j in updates[i]:
-                self.term[i][j] = updates[i][j]
-
-    # Fill any remaining None with 0
-    for i in range(min_x, max_x + 1):
-        for j in range(min_y, max_y + 1):
-            if self.term[i][j] is None:
-                self.term[i][j] = 0
-
 
 class en(json.JSONEncoder):
     def default(self, obj):
@@ -171,7 +125,6 @@ class tankin:
                     self.dov(j,r)
                 for j in range(maxy-r,0,-r):
                     self.dov(j,-r)
-            fill_sparse_fast(self)
                     
     def dov(self,j,rr):
         if(j%1000==0):
@@ -270,10 +223,21 @@ class tankin:
     		y=maxx
     	return y
     	
-    
+    def nearr(self,x,y):
+    	mx=x-x%self.hmm
+    	my=y-y%self.hmm
+    	return self.term[mx][my]
+    	
+    def doc(self,x,y):
+    	if not x in self.term:
+    		self.term[x]={}
+    	if not y in self.term[x]:
+    		self.term[x][y] = self.nearr(x,y)
+    	
     def loscheck(self,t1,t2):
         starx=round(self.maxc(t1.x))
         stary=round(self.maxyc(t1.y))
+        self.doc(starx,stary)
         starz=round(self.term[starx][stary]+t1.tbarh())
         ex=round(self.maxc(t2.x))
         ey=round(self.maxyc(t2.y))
@@ -291,6 +255,7 @@ class tankin:
         if dx > dy:
             err=dx/2
             while x != ex:
+                print(x)
                 t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
                 hol=starz+t*(eh-starz)
                 if grid[x][y]>hol:
@@ -303,6 +268,7 @@ class tankin:
             else:
                 err=dy/2
                 while y!=ey:
+                    print(y)
                     t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
                     hol=starz+t*(eh-starz)
                     if grid[x][y] >hol:
@@ -321,7 +287,9 @@ class tankin:
 
 tt = tankin() 
 tt.termm()
+print("ss")
 tt.savem()
+print("sm")
 for i in range(len(tt.cf)):
 	ttf=tt.cf[1]
 	ttw=tt.cf[i]
