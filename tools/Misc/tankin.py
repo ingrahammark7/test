@@ -178,28 +178,20 @@ class tankin:
             y=t.y
             return self.grefx(x,y)
             
-    def torc(self,t):
-            mo=self.gref(t)
-            to=t.tofic()
-            if(mo>to):
-            	return False
-            return True
-            
-    def toch(self,t):
-            ll=[]
-            lx=t.x-self.hmm
-            ly=t.y-self.hmm
-            for il in range(3):
-            	fo=il-1
-            	fo*=self.hmm
-            	mm=lx+fo
-            	ll.append(mm)
-            	for j in range(3):
-            		f2=j-1
-            		f2*=self.hmm
-            		my=ly+f2
-            		ll[mm].append(my)
-            return ll
+    def torc(self,x,y,t):
+    	mo=self.grefx(x,y)
+    	return self.torcc(mo,t)
+    
+    def torcc(self,mo,t):
+      to=t.tofic()
+      if(mo>to):
+            return False
+      return True
+      
+    def torct(self,t):
+      mm=self.gref(t)
+      return self.torcc(mm,t)
+      
             
     def dol(self,i,j,zper):
             zper += i * j + i + j
@@ -338,9 +330,9 @@ tt.termm()
 print("ss")
 tt.savem()
 print("sm")
-for i in range(len(tt.cf)):
+for ig in range(len(tt.cf)):
 	ttf=tt.cf[1]
-	ttw=tt.cf[i]
+	ttw=tt.cf[ig]
 	kl=tt.loscheck(ttf,ttw)
 	print(kl)
 # Export the terrain to a JSON file
