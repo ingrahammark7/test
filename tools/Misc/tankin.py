@@ -8,6 +8,7 @@ import nuct
 import thull
 import pen
 import numpy as np
+from datetime import datetime as dt
 
 dp=2
 m=dp**sp.GoldenRatio
@@ -187,13 +188,20 @@ class tankin:
             nn*=n1
             return nn
             
+    def saved(self,s,fn):
+    	filen=fn
+    	with open(filen, "w") as f:
+                json.dump(s, f)  # 'tt' is your tankin instance
+                print("exported to ",filen)
+    
+    def savet(self):
+    	self.saved(self.cf,str(dt.now().timestamp())+".json")
+    
     def savem(self):
             if(self.l==1):
                 return
-            filen="f.json"
-            with open(filen, "w") as f:
-                json.dump(self.term, f)  # 'tt' is your tankin instance
-            print("Terrain exported to ",filen)
+            self.saved(self.term,"f.json")
+            
     
     def checkif(self):
         p="fin.json"
