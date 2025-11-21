@@ -202,17 +202,18 @@ class thull:
 			fo=gr*m
 			return fo
 			
+	def tofic(self):
+		to=self.getq()*self.gear
+		fo=self.nfor()
+		return to/fo
+	
 	def getfric(self):
-			fo=self.nfor()
-			to=self.getq()
-			gs=self.gear
-			to*=gs
 			print(self.name)
 			print(sp.N(self.pl()/sp.pi),"pisfon widtg")
 			print(sp.N(self.mass),"mass")
 			print(sp.N(self.engmassp()),"engine")
 			print(sp.N(self.getbarmr()),"barrel")
-			print(sp.N(to/fo),"torque to fric")
+			print(sp.N(self.tofic()),"torque to fric")
 			print(sp.N(self.getrps()),"rotate per sec")
 			print(sp.N(self.psize()),"piston mass")
 			print(sp.N(self.pl()),"piston stroke len")
