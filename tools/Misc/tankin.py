@@ -293,7 +293,7 @@ class tankin:
             while x != ex:
                 t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
                 hol=starz+t*(eh-starz)
-                if grid[y][x]>hol:
+                if grid[x][y]>hol:
                     return False
                 err-=dy
                 if err <0:
@@ -305,14 +305,14 @@ class tankin:
                 while y!=ey:
                     t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
                     hol=starz+t*(eh-starz)
-                    if grid[y][x] >hol:
+                    if grid[x][y] >hol:
                         return False
                     err -= dx
                     if err <0:
                         x+=sx
                         err+=dy
                     y+=sy
-            if grid[ey][ex]>eh:
+            if grid[ex][ey]>eh:
                 return False
             return True
     
