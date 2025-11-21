@@ -133,8 +133,11 @@ class thull:
 			em=self.engmassp()
 			ex=self.extramass()
 			bar=self.getbarm()
+			bf=self.getbar()
+			self.ammo=self.numg()*pen.maxshot()
+			ammass=self.ammo*bf.getmass(bf.f2,bf.bafac)
 			to=ff+fs+fr+em+ex+bar
-			self.mass=to+self.fuel
+			self.mass=to+self.fuel+ammass
 			return self
 			
 	def extramass(self):
