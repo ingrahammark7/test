@@ -1,139 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Animated LCG-Seeded Fractal Perlin Terrain</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #87ceeb; }
-        canvas { display: block; }
-    </style>
+<meta charset="UTF-8">
+<title>Debug Terrain Viewer</title>
+<style>
+  body { margin: 0; overflow: hidden; }
+  #log {
+    position: fixed;
+    top: 0; left: 0; width: 100%; max-height: 200px;
+    overflow-y: scroll;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    font-family: monospace;
+    padding: 4px;
+    z-index: 100;
+  }
+  canvas { display: block; }
+</style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<div id="log"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
 <script>
-/* --- LCG Generator --- */
-class LCG {
-    constructor(seed = 12345) {
-        this.m = 2 ** 32;
-        this.a = 1664525;
-        this.c = 1013904223;
-        this.state = seed;
-    }
-    next() {
-        this.state = (this.a * this.state + this.c) % this.m;
-        return this.state / this.m;
-    }
+const logDiv = document.getElementById('log');
+function log(msg) { 
+    console.log(msg); 
+    logDiv.innerHTML += msg + "<br>"; 
+    logDiv.scrollTop = logDiv.scrollHeight;
 }
 
-/* --- Gradient Table --- */
-const size = 256;
-const lcg = new LCG(42); // Change seed for different terrain
-const gradients = new Array(size).fill(0).map(() => lcg.next() * 2 - 1);
-gradients.push(...gradients); // duplicate for wrap-around
+// ===== Sample embedded terrain (coarse) =====
+const terrainData = {
+  "0": {"0": 3.437, "8": 9.242, "16": 4.036},
+  "8": {"0": 3.626, "8": 4.936, "16": 12.85},
+  "16": {"0": 4.236, "8": 6.946, "16": 3.769}
+};
 
-/* --- Perlin Noise Functions --- */
-function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
-function lerp(a, b, t) { return a + t * (b - a); }
-function grad(hash, x, y) { const g = gradients[hash % 256]; return g * x + g * y; }
+let scene, camera, renderer, terrainMesh;
 
-function perlin2D(x, y) {
-    const x0 = Math.floor(x), x1 = x0 + 1;
-    const y0 = Math.floor(y), y1 = y0 + 1;
-    const xf = x - x0, yf = y - y0;
+init();
+animate();
 
-    const h00 = (x0 + y0) % 256;
-    const h01 = (x0 + y1) % 256;
-    const h10 = (x1 + y0) % 256;
-    const h11 = (x1 + y1) % 256;
+function init() {
+    try {
+        log("Step 1: Terrain loaded (embedded).");
 
-    const d00 = grad(h00, xf, yf);
-    const d10 = grad(h10, xf - 1, yf);
-    const d01 = grad(h01, xf, yf - 1);
-    const d11 = grad(h11, xf - 1, yf - 1);
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
 
-    const u = fade(xf), v = fade(yf);
-    const nx0 = lerp(d00, d10, u);
-    const nx1 = lerp(d01, d11, u);
-    return lerp(nx0, nx1, v);
-}
+        log("Step 2: Creating sampled grid...");
+        const xKeys = Object.keys(terrainData).map(k => parseInt(k));
+        const yKeysSet = new Set();
+        xKeys.forEach(x => {
+            Object.keys(terrainData[x]).forEach(y => yKeysSet.add(parseInt(y)));
+        });
+        const yKeys = Array.from(yKeysSet);
 
-/* --- Fractal / Multi-Octave Perlin --- */
-function fractalPerlin2D(x, y, octaves = 5, persistence = 0.5, lacunarity = 2.0) {
-    let total = 0, amplitude = 1, frequency = 1, maxValue = 0;
-    for (let i = 0; i < octaves; i++) {
-        total += perlin2D(x * frequency, y * frequency) * amplitude;
-        maxValue += amplitude;
-        amplitude *= persistence;
-        frequency *= lacunarity;
+        const cols = xKeys.length;
+        const rows = yKeys.length;
+        log(`Grid size: cols=${cols}, rows=${rows}`);
+
+        log("Step 3: Creating PlaneGeometry...");
+        const geometry = new THREE.PlaneGeometry(cols*8, rows*8, cols-1, rows-1);
+        const verts = geometry.attributes.position.array;
+
+        log("Step 4: Filling vertices with heights...");
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const xKey = xKeys[j];
+                const yKey = yKeys[i];
+                let h = terrainData[xKey] && terrainData[xKey][yKey] !== undefined ? terrainData[xKey][yKey] : 0;
+                const idx = 3*(i*cols + j);
+                verts[idx+2] = h;
+            }
+        }
+        geometry.computeVertexNormals();
+        log("Step 5: Geometry ready.");
+
+        const material = new THREE.MeshStandardMaterial({color: 0x228B22, flatShading: true});
+        terrainMesh = new THREE.Mesh(geometry, material);
+        terrainMesh.rotation.x = -Math.PI/2;
+        scene.add(terrainMesh);
+        log("Step 6: Mesh added to scene.");
+
+        log("Step 7: Setting up camera...");
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.set(cols*4, 50, rows*4 + 50);
+        camera.lookAt(cols*4, 0, rows*4);
+
+        log("Step 8: Adding lights...");
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(100, 200, 100);
+        scene.add(dirLight);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        log("Step 9: Initializing renderer...");
+        renderer = new THREE.WebGLRenderer({antialias:true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        log("Step 10: Setting up device orientation...");
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (event) => {
+                const beta = event.beta || 0;
+                const gamma = event.gamma || 0;
+
+                camera.position.x += gamma * 0.05;
+                camera.position.z += beta * 0.05;
+                camera.lookAt(cols*4, 0, rows*4);
+            }, true);
+        }
+
+        log("All steps completed. Ready to render.");
+
+    } catch (err) {
+        log("ERROR: " + err.message);
+        console.error(err);
     }
-    return total / maxValue;
 }
-
-/* --- Three.js Setup --- */
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
-camera.position.set(0, 60, 100);
-camera.lookAt(0, 0, 0);
-
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-/* --- Terrain Geometry --- */
-const planeSize = 100;
-const segments = 100;
-const geometry = new THREE.PlaneGeometry(planeSize, planeSize, segments, segments);
-geometry.rotateX(-Math.PI/2);
-
-// Vertex coloring placeholder
-const colors = new Float32Array(geometry.attributes.position.count * 3);
-
-/* --- Material & Mesh --- */
-const material = new THREE.MeshStandardMaterial({vertexColors:true, flatShading:true});
-const terrain = new THREE.Mesh(geometry, material);
-scene.add(terrain);
-
-/* --- Lights --- */
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(50, 100, 50);
-scene.add(light);
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-
-/* --- Animation / Breathing Effect --- */
-let time = 0;
 
 function animate() {
     requestAnimationFrame(animate);
-    time += 0.005; // slow breathing speed
-
-    for (let i = 0; i < geometry.attributes.position.count; i++) {
-        const x = geometry.attributes.position.getX(i) / 20;
-        const z = geometry.attributes.position.getZ(i) / 20;
-        const y = fractalPerlin2D(x + time, z + time, 5, 0.5, 2) * 15;
-        geometry.attributes.position.setY(i, y);
-
-        // Color by height
-        if (y < 2) { colors[i*3] = 0; colors[i*3+1] = 0.3; colors[i*3+2] = 0; }      // grass
-        else if (y < 8) { colors[i*3] = 0.5; colors[i*3+1] = 0.4; colors[i*3+2] = 0.2; } // dirt/rock
-        else { colors[i*3] = 1; colors[i*3+1] = 1; colors[i*3+2] = 1; }              // snow
-    }
-
-    geometry.attributes.position.needsUpdate = true;
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    geometry.computeVertexNormals();
-
-    renderer.render(scene, camera);
+    if(renderer) renderer.render(scene, camera);
 }
-
-/* --- Start Animation --- */
-animate();
-
-/* --- Responsive Resize --- */
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
 </script>
 </body>
 </html>
