@@ -30,9 +30,7 @@ def doff(s):
     return strr
     
 wc=int(doff(rc),16)
-
 wc1=(wc/ran)
-
 
 class en(json.JSONEncoder):
     def default(self, obj):
@@ -163,6 +161,46 @@ class tankin:
                 zper=float((zper+z2+z3)/3)
             zper=self.dol(i,j,zper)
             
+    def grefx(self,x,y):
+    	self.doc(x,y)
+    	z=self.term[x][y]
+    	x2=x-self.hmm
+    	y2=y-self.hmm
+    	self.doc(x2,y2)
+    	z2=self.term[x2][y2]
+    	dif=z2-z
+    	if(dif==0):
+    	       return 0
+    	return dif/self.hmm
+    
+    def gref(self,t):
+            x=t.x
+            y=t.y
+            return self.grefx(x,y)
+            
+    def torc(self,t):
+            mo=self.gref(t)
+            to=t.tofic()
+            if(mo>to):
+            	return False
+            return True
+            
+    def toch(self,t):
+            ll=[]
+            lx=t.x-self.hmm
+            ly=t.y-self.hmm
+            for il in range(3):
+            	fo=il-1
+            	fo*=self.hmm
+            	mm=lx+fo
+            	ll.append(mm)
+            	for j in range(3):
+            		f2=j-1
+            		f2*=self.hmm
+            		my=ly+f2
+            		ll[mm].append(my)
+            return ll
+            
     def dol(self,i,j,zper):
             zper += i * j + i + j
             zper=self.hash32(zper)
@@ -191,7 +229,7 @@ class tankin:
     def saved(self,s,fn):
     	filen=fn
     	with open(filen, "w") as f:
-                json.dump(s, f)  # 'tt' is your tankin instance
+                json.dump(s, f)  
                 print("exported to ",filen)
     
     def savet(self):
