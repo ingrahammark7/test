@@ -254,13 +254,30 @@ class tankin:
     def dcalc(self,x1,y1,x2,y2,z1,z2):
         return (abs(x2-x1)+1)*(abs(y2-y1)+1)*(abs(z2-z1)+1)
     
+    def maxc(self,x):
+    	if(x<0):
+    		x=0
+    	maxx=max(self.term)
+    	if(x>maxx):
+    		x=maxx
+    	return x
+    	
+    def maxyc(self,y):
+    	if(y<0):
+    		y=0
+    	maxx=max(self.term[max(self.term)])
+    	if(y>maxx):
+    		y=maxx
+    	return y
+    	
+    
     def loscheck(self,t1,t2):
-        starx=t1.x
-        stary=t1.y
-        starz=self.term[starx][stary]+t1.tbarh()
-        ex=t2.x
-        ey=t2.y
-        eh=t2.height+self.term[ex][ey]
+        starx=round(self.maxc(t1.x))
+        stary=round(self.maxyc(t1.y))
+        starz=round(self.term[starx][stary]+t1.tbarh())
+        ex=round(self.maxc(t2.x))
+        ey=round(self.maxyc(t2.y))
+        eh=round(t2.height+self.term[ex][ey])
         dis=self.dcalc(starx,stary,ex,ey,starz,eh)
         rann=t1.getbar().getrang()
         if(dis>rann):
@@ -305,5 +322,8 @@ class tankin:
 tt = tankin() 
 tt.termm()
 tt.savem()
-
+ttf=tt.cf[1]
+ttw=tt.cf[6]
+kl=tt.loscheck(ttf,ttw)
+print(kl)
 # Export the terrain to a JSON file
