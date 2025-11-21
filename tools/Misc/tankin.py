@@ -322,8 +322,9 @@ class tankin:
 tt = tankin() 
 tt.termm()
 tt.savem()
-ttf=tt.cf[1]
-ttw=tt.cf[6]
-kl=tt.loscheck(ttf,ttw)
-print(kl)
+for i in range(len(tt.cf)):
+	ttf=tt.cf[1]
+	ttw=tt.cf[i]
+	kl=tt.loscheck(ttf,ttw)
+	print(kl)
 # Export the terrain to a JSON file
