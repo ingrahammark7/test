@@ -202,6 +202,58 @@ class tankin:
         		self.l=1
         		return 1
         return 0
+   
+    def dcalc(self,x1,y1,x2,y2,z1,z2):
+    	return (abs(x2-x1)+1)*(abs(y2-y1)+1)*(abs(z2-z1)+1)
+    
+    def loscheck(self,t1,t2):
+        starx=t1.x
+        stary=t1.y
+        starz=self.term[starx][stary]+t1.tbarh()
+        ex=t2.x
+        ey=t2.y
+        eh=t2.height+self.term[ex][ey]
+        dis=self.dcalc(starx,stary,ex,ey,starz,eh)
+        rann=t1.getbar().getrang()
+        if(dis>rann):
+        	return False
+        dx=abs(ex-starx)
+        dy=abs(ey-stary)
+        x,y=starx,stary
+        sx=1 if starx<ex else -1
+        sy=1 if stary<ey else -1
+        grid=self.term
+        if dx > dy:
+        	err=dx/2
+        	while x != ex:
+        		t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
+        		hol=starz+t*(eh-starz)
+        		if grid[y][x]>hol:
+        			return False
+        		err-=dy
+        		if err <0:
+        			y+=sy
+        			err+=dx
+        		x+=sx
+        	else:
+        		err=dy/2
+        		while y!=ey:
+        			t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
+        			hol=starz+t*(eh-starz)
+        			if grid[y][x] >hol:
+        				return False
+        			err -= dx
+        			if err <0:
+        				x+=sx
+        				err+=dy
+        			y+=sy
+        	if grid[ey][ex]>eh:
+        		return False
+        	return True
+        		
+        
+        
+     
         
 
 tt = tankin() 
