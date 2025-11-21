@@ -23,14 +23,61 @@ ran=int(round(ran))
 rc=round(os.sys.getsizeof(ran)/4)
 
 def doff(s):
-	strr="0x"
-	for i in range(s):
-		strr+="f"
-	return strr
-	
+    strr="0x"
+    for i in range(s):
+        strr+="f"
+    return strr
+    
 wc=int(doff(rc),16)
 
 wc1=(wc/ran)
+
+def fill_sparse_fast(self, passes=3):
+    """
+    Fill missing cells in self.term using neighbor averaging.
+    Faster than original nested loops, pure Python, non-breaking.
+    """
+    # Gather all x and y keys
+    xs = list(self.term.keys())
+    ys = {y for sub in self.term.values() for y in sub.keys()}
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+
+    # Initialize missing cells to None for filling
+    for i in range(min_x, max_x + 1):
+        if i not in self.term:
+            self.term[i] = {}
+        for j in range(min_y, max_y + 1):
+            if j not in self.term[i]:
+                self.term[i][j] = None
+
+    # Perform iterative neighbor averaging
+    for _ in range(passes):
+        # Store updates separately to avoid overwriting mid-pass
+        updates = {}
+        for i in range(min_x, max_x + 1):
+            updates[i] = {}
+            for j in range(min_y, max_y + 1):
+                if self.term[i][j] is None:
+                    neighbors = []
+                    for dx in [-1, 0, 1]:
+                        for dy in [-1, 0, 1]:
+                            ni, nj = i + dx, j + dy
+                            if ni in self.term and nj in self.term[ni] and self.term[ni][nj] is not None:
+                                neighbors.append(self.term[ni][nj])
+                    if neighbors:
+                        updates[i][j] = sum(neighbors) / len(neighbors)
+        # Apply updates
+        for i in updates:
+            for j in updates[i]:
+                self.term[i][j] = updates[i][j]
+
+    # Fill any remaining None with 0
+    for i in range(min_x, max_x + 1):
+        for j in range(min_y, max_y + 1):
+            if self.term[i][j] is None:
+                self.term[i][j] = 0
+
 
 class en(json.JSONEncoder):
     def default(self, obj):
@@ -77,7 +124,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * nuct.baseobj().am
+        self.maxx = self.times * t1.rspe() * nuct.baseobj().am/50
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.rr=round(self.hmm)
@@ -98,113 +145,114 @@ class tankin:
         return self
     
     def tim2(self,x):
-    	x=round(x)
-    	tr=x%round(self.hmm)
-    	x-=tr
-    	return x
+        x=round(x)
+        tr=x%round(self.hmm)
+        x-=tr
+        return x
     
     def timer(self):
-    	self.maxx=self.tim2(self.maxx)
-    	self.maxy=self.tim2(self.maxy)
+        self.maxx=self.tim2(self.maxx)
+        self.maxy=self.tim2(self.maxy)
     
     def termm(self):
-        	if(self.checkif()==1):
-        		return
-        	r=self.rr
-        	self.timer()
-        	maxx=self.maxx    
-        	maxy=self.maxy
-        	passes=3   	
-        	for p in range(passes):	
-        		for i in range(0,maxx,self.rr):
-        			self.doj(i,self.rr)
-        		for i in range(maxx-r,0,-r):
-        			self.doj(i,-r)
-        		for j in range(0,maxy,r):
-        			self.dov(j,r)
-        		for j in range(maxy-r,0,-r):
-        			self.dov(j,-r)
-        			
+            if(self.checkif()==1):
+                return
+            r=self.rr
+            self.timer()
+            maxx=self.maxx    
+            maxy=self.maxy
+            passes=3   	
+            for p in range(passes):	
+                for i in range(0,maxx,self.rr):
+                    self.doj(i,self.rr)
+                for i in range(maxx-r,0,-r):
+                    self.doj(i,-r)
+                for j in range(0,maxy,r):
+                    self.dov(j,r)
+                for j in range(maxy-r,0,-r):
+                    self.dov(j,-r)
+            fill_sparse_fast(self)
+                    
     def dov(self,j,rr):
-    	if(j%1000==0):
-    		print("p2",j/self.maxy)
-    	if not j in self.term:
-    		for i in self.term:
-    			self.term[i][j]=0
-    	zper=0
-    	rf=abs(rr)
-    	mx=round(self.maxx-rf)
-    	my=round(self.maxy-rf)
-    	if(j>=my or j<rf):
-    		self.dol(0,j,0)
-    		return
-    	for i in range(rf,mx,rf):
-    				zper=self.term[i-rf][j-rr]
-    				z2=self.term[i-rr][j]
-    				z3=self.term[i][j-rf]
-    				zper=float((zper+z2+z3)/3)
-    				zper=self.dol(i,j,zper)
+        if(j%1000==0):
+            print("p2",j/self.maxy)
+        if not j in self.term:
+            for i in self.term:
+                self.term[i][j]=0
+        zper=0
+        rf=abs(rr)
+        mx=round(self.maxx-rf)
+        my=round(self.maxy-rf)
+        if(j>=my or j<rf):
+            self.dol(0,j,0)
+            return
+        for i in range(rf,mx,rf):
+                    zper=self.term[i-rf][j-rr]
+                    z2=self.term[i-rr][j]
+                    z3=self.term[i][j-rf]
+                    zper=float((zper+z2+z3)/3)
+                    zper=self.dol(i,j,zper)
     
     def doj(self, i,rr):
         if(i%1000==0):
-        	print("pct",i/self.maxx)
+            print("pct",i/self.maxx)
         if i not in self.term:
-        	self.term[i] = {}
+            self.term[i] = {}
         zper = 0
         for j in range(0, round(self.maxy), rr):
             if i > 0 and j > 0:
                 zper = self.term[i - rr][j - rr]
                 if i in self.term and j in self.term[i]:
-                	zper=(zper+self.term[i][j])/2
+                    zper=(zper+self.term[i][j])/2
                 z2 = self.term[i - rr][j]
                 z3 = self.term[i][j - rr]
                 zper=float((zper+z2+z3)/3)
             zper=self.dol(i,j,zper)
             
     def dol(self,i,j,zper):
-        	zper += i * j + i + j
-        	zper=self.hash32(zper)
-        	zper/=ran
-        	zper-=wc1
-        	self.term[i][j] = (-self.hmm/zper)**.5
-        	return zper
+            zper += i * j + i + j
+            zper=self.hash32(zper)
+            zper/=ran
+            zper-=wc1
+            self.term[i][j] = (-self.hmm/zper)**.5
+            return zper
     
     def hash32(self,x):
-    	x=int(x)
-    	x *= ran
-    	return x & wc
-        	
+        x=int(x)
+        x *= ran
+        return x & wc
+            
     def hm(self):
-        	nn=nuct.pm
-        	sk=pen.getskin()
-        	n1=nn/sk.density
-        	fr=3**6
-        	fr**=12
-        	nn*=fr
-        	nn/=nuct.pm
-        	nn**=(1/3)
-        	nn*=n1
-        	return nn
-        	
+            nn=nuct.pm
+            sk=pen.getskin()
+            n1=nn/sk.density
+            fr=3**6
+            fr**=12
+            nn*=fr
+            nn/=nuct.pm
+            nn**=(1/3)
+            nn*=n1
+            return nn
+            
     def savem(self):
-        	if(self.l==1):
-        		return
-        	filen="f.json"
-        	with open(filen, "w") as f:
-        		json.dump(self.term, f)  # 'tt' is your tankin instance
-        	print("Terrain exported to ",filen)
-      
+            if(self.l==1):
+                return
+            filen="f.json"
+            with open(filen, "w") as f:
+                json.dump(self.term, f)  # 'tt' is your tankin instance
+            print("Terrain exported to ",filen)
+    
     def checkif(self):
         p="fin.json"
         if os.path.exists(p):
-        	with open(p,'r') as file:
-        		self.term=json.load(file)
-        		self.l=1
-        		return 1
+            with open(p,'r') as file:
+                self.term=json.load(file)
+                self.l=1
+                return 1
         return 0
-   
+    
     def dcalc(self,x1,y1,x2,y2,z1,z2):
-    	return (abs(x2-x1)+1)*(abs(y2-y1)+1)*(abs(z2-z1)+1)
+        return (abs(x2-x1)+1)*(abs(y2-y1)+1)*(abs(z2-z1)+1)
     
     def loscheck(self,t1,t2):
         starx=t1.x
@@ -216,7 +264,7 @@ class tankin:
         dis=self.dcalc(starx,stary,ex,ey,starz,eh)
         rann=t1.getbar().getrang()
         if(dis>rann):
-        	return False
+            return False
         dx=abs(ex-starx)
         dy=abs(ey-stary)
         x,y=starx,stary
@@ -224,36 +272,34 @@ class tankin:
         sy=1 if stary<ey else -1
         grid=self.term
         if dx > dy:
-        	err=dx/2
-        	while x != ex:
-        		t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
-        		hol=starz+t*(eh-starz)
-        		if grid[y][x]>hol:
-        			return False
-        		err-=dy
-        		if err <0:
-        			y+=sy
-        			err+=dx
-        		x+=sx
-        	else:
-        		err=dy/2
-        		while y!=ey:
-        			t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
-        			hol=starz+t*(eh-starz)
-        			if grid[y][x] >hol:
-        				return False
-        			err -= dx
-        			if err <0:
-        				x+=sx
-        				err+=dy
-        			y+=sy
-        	if grid[ey][ex]>eh:
-        		return False
-        	return True
-        		
-        
-        
-     
+            err=dx/2
+            while x != ex:
+                t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
+                hol=starz+t*(eh-starz)
+                if grid[y][x]>hol:
+                    return False
+                err-=dy
+                if err <0:
+                    y+=sy
+                    err+=dx
+                x+=sx
+            else:
+                err=dy/2
+                while y!=ey:
+                    t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
+                    hol=starz+t*(eh-starz)
+                    if grid[y][x] >hol:
+                        return False
+                    err -= dx
+                    if err <0:
+                        x+=sx
+                        err+=dy
+                    y+=sy
+            if grid[ey][ex]>eh:
+                return False
+            return True
+    
+
         
 
 tt = tankin() 
