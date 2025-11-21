@@ -2,127 +2,191 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Debug Terrain Viewer</title>
+<title>Progressive Terrain Loader - File Input</title>
 <style>
-  body { margin: 0; overflow: hidden; }
-  #log {
-    position: fixed;
-    top: 0; left: 0; width: 100%; max-height: 200px;
-    overflow-y: scroll;
-    background: rgba(0,0,0,0.7);
-    color: white;
-    font-family: monospace;
-    padding: 4px;
-    z-index: 100;
-  }
+  body { margin: 0; overflow: hidden; font-family: sans-serif; }
+  #ui { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 10px; color: white; z-index: 100; }
+  #log { position: fixed; bottom: 0; left: 0; width: 100%; max-height: 150px; overflow-y: scroll; background: rgba(0,0,0,0.7); color: white; font-family: monospace; font-size: 12px; padding: 4px; z-index: 101; }
   canvas { display: block; }
 </style>
 </head>
 <body>
+<div id="ui">
+  <label>Select f.json:</label><br>
+  <input type="file" id="fileInput"><br><br>
+  <label>Sample Step: <span id="sampleValue">8</span></label><br>
+  <input type="range" id="sampleSlider" min="1" max="32" value="8">
+</div>
 <div id="log"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
 <script>
 const logDiv = document.getElementById('log');
-function log(msg) { 
-    console.log(msg); 
-    logDiv.innerHTML += msg + "<br>"; 
+function log(msg) {
+    console.log(msg);
+    logDiv.innerHTML += msg + "<br>";
     logDiv.scrollTop = logDiv.scrollHeight;
 }
 
-// ===== Sample embedded terrain (coarse) =====
-const terrainData = {
-  "0": {"0": 3.437, "8": 9.242, "16": 4.036},
-  "8": {"0": 3.626, "8": 4.936, "16": 12.85},
-  "16": {"0": 4.236, "8": 6.946, "16": 3.769}
-};
+const sampleSlider = document.getElementById('sampleSlider');
+const sampleValue = document.getElementById('sampleValue');
 
-let scene, camera, renderer, terrainMesh;
+let terrainData;
+let scene, camera, renderer;
+let terrainMeshes = [];
+let SAMPLE_STEP = parseInt(sampleSlider.value);
+let panX = 0, panZ = 0;
+let panSpeedX = 0.3, panSpeedZ = 0.2;
+const CHUNK_SIZE = 64;
 
+sampleSlider.addEventListener('input', () => {
+    SAMPLE_STEP = parseInt(sampleSlider.value);
+    sampleValue.textContent = SAMPLE_STEP;
+    log("Slider changed. SAMPLE_STEP=" + SAMPLE_STEP);
+    rebuildTerrain();
+});
+
+// ========== FILE INPUT ==========
+document.getElementById('fileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    log("Loading terrain file: " + file.name);
+
+    const reader = new FileReader();
+    reader.onload = evt => {
+        try {
+            terrainData = JSON.parse(evt.target.result);
+            log("Terrain loaded. Columns: " + Object.keys(terrainData).length);
+            rebuildTerrain();
+        } catch(err) {
+            log("ERROR parsing JSON: " + err.message);
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+});
+
+// ========== INIT ==========
 init();
 animate();
 
 function init() {
-    try {
-        log("Step 1: Terrain loaded (embedded).");
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
 
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
+    camera.position.set(0, 50, 0);
 
-        log("Step 2: Creating sampled grid...");
-        const xKeys = Object.keys(terrainData).map(k => parseInt(k));
-        const yKeysSet = new Set();
-        xKeys.forEach(x => {
-            Object.keys(terrainData[x]).forEach(y => yKeysSet.add(parseInt(y)));
-        });
-        const yKeys = Array.from(yKeysSet);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(200, 400, 200);
+    scene.add(dirLight);
+    scene.add(new THREE.AmbientLight(0x404040));
 
-        const cols = xKeys.length;
-        const rows = yKeys.length;
-        log(`Grid size: cols=${cols}, rows=${rows}`);
+    renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+}
 
-        log("Step 3: Creating PlaneGeometry...");
-        const geometry = new THREE.PlaneGeometry(cols*8, rows*8, cols-1, rows-1);
+// ========== TERRAIN ==========
+function rebuildTerrain() {
+    if(!terrainData) {
+        log("No terrain data. Aborting rebuild.");
+        return;
+    }
+
+    // Remove previous meshes
+    terrainMeshes.forEach(m => {
+        scene.remove(m);
+        m.geometry.dispose();
+        m.material.dispose();
+    });
+    terrainMeshes = [];
+    panX = 0;
+    panZ = 0;
+
+    const xKeys = Object.keys(terrainData).map(k => parseInt(k)).filter(k => k % SAMPLE_STEP === 0).sort((a,b)=>a-b);
+    const yKeysSet = new Set();
+    xKeys.forEach(x => {
+        Object.keys(terrainData[x]).map(k => parseInt(k)).filter(k => k % SAMPLE_STEP === 0).forEach(y => yKeysSet.add(y));
+    });
+    const yKeys = Array.from(yKeysSet).sort((a,b)=>a-b);
+
+    const cols = xKeys.length;
+    const rows = yKeys.length;
+    if(cols < 2 || rows < 2) {
+        log("Too few points to build terrain. cols=" + cols + ", rows=" + rows);
+        return;
+    }
+
+    log(`Starting chunked terrain build. cols=${cols}, rows=${rows}, CHUNK_SIZE=${CHUNK_SIZE}`);
+
+    let chunkStartX = 0;
+    function buildChunk() {
+        if(chunkStartX >= cols) {
+            log("All chunks built.");
+            return;
+        }
+
+        const endX = Math.min(chunkStartX + CHUNK_SIZE, cols);
+        const chunkCols = endX - chunkStartX;
+        const chunkRows = rows;
+
+        log(`Building chunk: startX=${chunkStartX}, endX=${endX}, chunkCols=${chunkCols}, rows=${chunkRows}`);
+
+        const geometry = new THREE.PlaneGeometry(chunkCols*8, chunkRows*8, chunkCols-1, chunkRows-1);
         const verts = geometry.attributes.position.array;
 
-        log("Step 4: Filling vertices with heights...");
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cols; j++) {
-                const xKey = xKeys[j];
+        for(let i=0; i<chunkRows; i++){
+            for(let j=0; j<chunkCols; j++){
+                const xKey = xKeys[chunkStartX + j];
                 const yKey = yKeys[i];
                 let h = terrainData[xKey] && terrainData[xKey][yKey] !== undefined ? terrainData[xKey][yKey] : 0;
-                const idx = 3*(i*cols + j);
+                const idx = 3*(i*chunkCols + j);
                 verts[idx+2] = h;
             }
         }
         geometry.computeVertexNormals();
-        log("Step 5: Geometry ready.");
+        const material = new THREE.MeshStandardMaterial({color:0x228B22, flatShading:true});
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.rotation.x = -Math.PI/2;
+        mesh.position.x = chunkStartX*8;
+        terrainMeshes.push(mesh);
+        scene.add(mesh);
 
-        const material = new THREE.MeshStandardMaterial({color: 0x228B22, flatShading: true});
-        terrainMesh = new THREE.Mesh(geometry, material);
-        terrainMesh.rotation.x = -Math.PI/2;
-        scene.add(terrainMesh);
-        log("Step 6: Mesh added to scene.");
+        log(`Chunk added: startX=${chunkStartX}`);
 
-        log("Step 7: Setting up camera...");
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        camera.position.set(cols*4, 50, rows*4 + 50);
-        camera.lookAt(cols*4, 0, rows*4);
-
-        log("Step 8: Adding lights...");
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(100, 200, 100);
-        scene.add(dirLight);
-        scene.add(new THREE.AmbientLight(0x404040));
-
-        log("Step 9: Initializing renderer...");
-        renderer = new THREE.WebGLRenderer({antialias:true});
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        log("Step 10: Setting up device orientation...");
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientation', (event) => {
-                const beta = event.beta || 0;
-                const gamma = event.gamma || 0;
-
-                camera.position.x += gamma * 0.05;
-                camera.position.z += beta * 0.05;
-                camera.lookAt(cols*4, 0, rows*4);
-            }, true);
-        }
-
-        log("All steps completed. Ready to render.");
-
-    } catch (err) {
-        log("ERROR: " + err.message);
-        console.error(err);
+        chunkStartX += CHUNK_SIZE;
+        setTimeout(buildChunk, 10); // schedule next chunk
     }
+
+    buildChunk();
 }
 
+// ========== ANIMATION ==========
 function animate() {
     requestAnimationFrame(animate);
-    if(renderer) renderer.render(scene, camera);
+
+    if(terrainMeshes.length === 0 || !terrainData) return;
+
+    const totalCols = Object.keys(terrainData).length;
+    const yKeysSet = new Set();
+    Object.values(terrainData).forEach(col => Object.keys(col).forEach(y => yKeysSet.add(parseInt(y))));
+    const totalRows = yKeysSet.size;
+
+    const boundsX = totalCols * 8;
+    const boundsZ = totalRows * 8;
+
+    panX += panSpeedX;
+    panZ += panSpeedZ;
+    if(panX > boundsX) panX = 0;
+    if(panZ > boundsZ) panZ = 0;
+
+    camera.position.x = panX;
+    camera.position.z = panZ + 50;
+    camera.position.y = 50;
+    camera.lookAt(boundsX/2, 0, boundsZ/2);
+
+    renderer.render(scene, camera);
 }
 </script>
 </body>
