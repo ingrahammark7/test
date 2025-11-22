@@ -339,7 +339,7 @@ class tankin:
         self.doc(ex,ey)
         eh=round(t2.height+self.term[ex][ey])
         dis=self.dcalc(starx,stary,ex,ey,starz,eh)
-        rann=t1.getbar().getrang()
+        rann=t1.gr
         if(dis>rann):
             return False
         dx=abs(ex-starx)
