@@ -19,6 +19,8 @@ ran=am**3
 ran=int(round(ran))
 rc=round(os.sys.getsizeof(ran)/4)
 boh=thull.baseobj()
+sker=pen.getskin()
+nf=nuct.pm
 
 def doff(s):
     strr="0x"
@@ -66,8 +68,12 @@ class tankin:
         self.teams = {0, co}
         self.clo=0
         self.hmm=float(self.hm())
+        dte=dt.now()
         f1 = t1.turn(90)
+        dte=dt.now()-dte
         f2,_ = t1.timett(90, 0)
+        
+        print(dte.total_seconds(),"fudd")
         self.times = (min(f1, f2) * 16).evalf()
         self.maxx = self.times * t1.rspe() * am/50
         self.maxx = self.maxx.evalf()
@@ -200,13 +206,12 @@ class tankin:
         return x & wc
             
     def hm(self):
-            nn=nuct.pm
-            sk=pen.getskin()
+            nn=nf
+            sk=sker
             n1=nn/sk.density
-            fr=3**6
-            fr**=12
-            nn*=fr
-            nn/=nuct.pm
+            fr=(3**6)**12
+            nn*=fr           
+            nn/=nf
             nn**=(1/3)
             nn*=n1
             return nn
@@ -380,10 +385,8 @@ class tankin:
                 return False
             return True
 from datetime import datetime
-dt=datetime.now()
 tt = tankin()
-dt=dt-datetime.now()
-print(dt.total_seconds()) 
+yt2=tankin()
 tt.termm()
 tt.savem()
 

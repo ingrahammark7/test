@@ -1,6 +1,7 @@
 import pen
 import nuct
 import sympy as sp
+from datetime import datetime as dt
 
 thres=(nuct.baseobj().gethw()*nuct.alpha).evalf()
 
@@ -339,7 +340,8 @@ class thull:
 			return self.power/hur
 			
 	def turspe(self):
-		return self.ttspe(self.turse(),self.rotd()/2,self.apup(),self.turm())
+		foo=self.ttspe(self.turse(),self.rotd()/2,self.apup(),self.turm())
+		return foo
 		
 	def hspe(self):
 		return self.ttspe(self.hspe(),self.length,self.power,self.mass)		
@@ -361,6 +363,7 @@ class thull:
 			
 	def rspe(self):
 		gf=self.mass*nuct.baseobj().getg()*self.rofric
+		gf.evalf()
 		gf=self.power/gf
 		gf**=1/3
 		return gf
