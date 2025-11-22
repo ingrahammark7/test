@@ -240,14 +240,18 @@ class tankin:
     def doc(self,x,y):
     	if not x in self.term:
     		self.term[x]={}
+    	if(x<0 or y<0):
+    		self.term[x][y]=0
     	if not y in self.term[x]:
     		self.term[x][y] = self.nearr(x,y)
     		
     def pethh(self,t,x,y):
+    	if(t.power==0):
+    		return
     	she=str(t.x) +"," + str(t.y)
     	if(t.sh==str):
     		t.power=0
-    		return 
+    		return
     	x1=t.x
     	y1=t.y
     	self.doc(x,y)
