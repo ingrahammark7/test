@@ -42,6 +42,7 @@ class thull:
 		self.sh=""
 		self.bar=0
 		self.gr=0
+		self.tf=0
 		
 	def firehead(self):
 		self.ammo-=1
@@ -208,6 +209,9 @@ class thull:
 			return fo
 			
 	def tofic(self):
+		return self.tof1()
+		
+	def tof1(self):
 		to=self.getq()*self.gear
 		fo=self.nfor()
 		return to/fo
@@ -292,6 +296,7 @@ class thull:
 	def init(self):
 			self=self.getmass()
 			self.power=self.getpow()
+			self.tf=self.tofic().evalf()
 			return self
 			
 	def getcc(self):

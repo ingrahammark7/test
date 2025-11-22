@@ -179,7 +179,8 @@ class tankin:
     	return self.torcc(mo,t)
     
     def torcc(self,mo,t):
-      to=t.tofic()      
+      dte=dt.now()
+      to=t.tf
       if(mo>to):
             return False
       return True
@@ -289,6 +290,7 @@ class tankin:
     		return
     	self.move(t,bl)
     	
+    	
     def mof(self,t,ttl):
     	hj=45
     	for i in range(8):
@@ -296,7 +298,9 @@ class tankin:
     		if(ttl>360):
     			ttl=hj
     		nx,ny=self.nex(t,ttl)
+    		dte=dt.now()
     		tes=self.torc(nx,ny,t)
+    		print("js",(dt.now()-dte).total_seconds())
     		if(tes):
     			return ttl
     	return None
