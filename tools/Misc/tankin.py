@@ -132,18 +132,11 @@ class tankin:
     def grefx(self,x,y):
     	self.doc(x,y)
     	z=self.term[x][y]
-    	if(z!=0):
-    		os.sys.exit()
     	x2=x-self.hmm
     	y2=y-self.hmm
     	self.doc(x2,y2)
     	z2=self.term[x2][y2]
     	dif=z2-z
-    	print(dif)
-    	if(dif!=0):
-    		os.sys.exit()
-    	if(dif==0):
-    	       return 0
     	return dif/self.hmm
     
     def gref(self,t):
@@ -159,12 +152,7 @@ class tankin:
       dte=dt.now()
       to=t.tf
       if(mo>to):
-            print(mo/to)
             return False
-      print(mo/to)
-      if(mo/to>0):
-      	print("jdd")
-      	os.sys.exit()
       return True
       
     def torct(self,t):
