@@ -68,12 +68,8 @@ class tankin:
         self.teams = {0, co}
         self.clo=0
         self.hmm=float(self.hm())
-        dte=dt.now()
         f1 = t1.turn(90)
-        dte=dt.now()-dte
         f2,_ = t1.timett(90, 0)
-        
-        print(dte.total_seconds(),"fudd")
         self.times = (min(f1, f2) * 16).evalf()
         self.maxx = self.times * t1.rspe() * am/50
         self.maxx = self.maxx.evalf()
@@ -183,7 +179,7 @@ class tankin:
     	return self.torcc(mo,t)
     
     def torcc(self,mo,t):
-      to=t.tofic()
+      to=t.tofic()      
       if(mo>to):
             return False
       return True
@@ -223,7 +219,7 @@ class tankin:
                 print("exported to ",filen)
     
     def savet(self):
-    	self.saved(self.cf,str(dt.now().timestamp())+".json")
+    	self.saved(self.cf,"re"+str(dt.now().timestamp())+".json")
     
     def savem(self):
             if(self.l==1):
@@ -284,7 +280,6 @@ class tankin:
     	y1=t.y
     	self.doc(x,y)
     	self.doc(x1,y1)
-    	al=[]
     	if(x==x1 and y==y1):
     		return
     	teh=self.gethx(t,x,y)
@@ -313,6 +308,7 @@ class tankin:
         dy = np.sin(rad)
         nx = t.x + np.where(dx > 0.5, 1, np.where(dx < -0.5, -1, 0))
         ny = t.y + np.where(dy > 0.5, 1, np.where(dy < -0.5, -1, 0))
+
         return nx, ny
 
     def move(self,t, heading_deg):
@@ -384,6 +380,7 @@ class tankin:
             if grid[ex][ey]>eh:
                 return False
             return True
+            
 from datetime import datetime
 tt = tankin()
 yt2=tankin()
@@ -392,10 +389,8 @@ tt.savem()
 
 for ig in range(len(tt.cf)):
 	ttf=tt.cf[1]
-	print("star",ttf.x,ttf.y)
 	dt=datetime.now()
 	tt.pethh(ttf,tt.midx,tt.midy)
 	dt=dt-datetime.now()
-	print(dt.total_seconds())
-	print("en",ttf.x,ttf.y)
+	print("fdk",dt.total_seconds())
 # Export the terrain to a JSON filedt=datetime.now()
