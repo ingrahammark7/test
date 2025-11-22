@@ -115,8 +115,6 @@ class tankin:
             	self.doj(i,self.rr)
     
     def doj(self, i,rr):
-        if(i%1000==0):
-            print("pct",i/self.maxx)
         if i not in self.term:
             self.term[i] = {}
         zper = 0
@@ -152,7 +150,6 @@ class tankin:
     def torcc(self,mo,t):
       dte=dt.now()
       to=t.tf
-      print(mo/to)
       if(mo>to):
             return False
       return True
@@ -246,12 +243,11 @@ class tankin:
     		self.term[x][y] = self.nearr(x,y)
     		
     def pethh(self,t,x,y):
-    	if(t.power==0):
-    		return
     	she=str(t.x) +"," + str(t.y)
-    	if(t.sh==str):
+    	if t.sh.count(she) >1:
     		t.power=0
     		return
+    	she+=t.sh
     	x1=t.x
     	y1=t.y
     	self.doc(x,y)
@@ -261,9 +257,8 @@ class tankin:
     	if bl is None:
     		t.power=0
     		return
-    	t.sh=str(she)
     	self.move(t,bl)
-    	
+    	t.sh=she
     	
     def mof(self,t,ttl):
     	hj=45
@@ -284,9 +279,6 @@ class tankin:
         dy = np.sin(rad)
         nx = t.x + np.where(dx > 0.5, 1, np.where(dx < -0.5, -1, 0))
         ny = t.y + np.where(dy > 0.5, 1, np.where(dy < -0.5, -1, 0))
-        print("curretn",t.x,t.y,"hea",heading_deg,"n",nx,ny)
-        if(t.x<-50):
-        	os.sys.exit()
         return nx, ny
 
     def move(self,t, heading_deg):
@@ -366,7 +358,5 @@ tt.termm()
 tt.savem()
 for ig in range(round(tt.midx+tt.midy)*2):	
 	ttf=tt.cf[1]
-	print("of",ttf.x,ttf.y)
 	tt.pethh(ttf,tt.midx,tt.midy)
-	print("dkd",ttf.x,ttf.y,tt.term[ttf.x][ttf.y])
 # Export the terrain to a JSON filedt=datetime.now()
