@@ -280,7 +280,8 @@ class tankin:
     	dif2=diffy/2
     	dif2x=diffx/2
     	
-    def geth(self,x, y, x1, y1):
+    def geth(self,t1,t2):
+    	x,y,x1,y1=t1.x,t1.y,t2.x,t2.y
     	dx = x1 - x
     	dy = y1 - y
     	if dx == 0 and dy == 0:
