@@ -71,7 +71,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * am/50
+        self.maxx = self.times * t1.rspe() * am
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.midx=self.maxx/2
@@ -110,36 +110,8 @@ class tankin:
             self.timer()
             maxx=self.maxx    
             maxy=self.maxy
-            passes=3   	
-            for p in range(passes):	
-                for i in range(0,maxx,self.rr):
-                    self.doj(i,self.rr)
-                for i in range(maxx-r,0,-r):
-                    self.doj(i,-r)
-                for j in range(0,maxy,r):
-                    self.dov(j,r)
-                for j in range(maxy-r,0,-r):
-                    self.dov(j,-r)
-                    
-    def dov(self,j,rr):
-        if(j%1000==0):
-            print("p2",j/self.maxy)
-        if not j in self.term:
-            for i in self.term:
-                self.term[i][j]=0
-        zper=0
-        rf=abs(rr)
-        mx=round(self.maxx-rf)
-        my=round(self.maxy-rf)
-        if(j>=my or j<rf):
-            self.dol(0,j,0)
-            return
-        for i in range(rf,mx,rf):
-                    zper=self.term[i-rf][j-rr]
-                    z2=self.term[i-rr][j]
-                    z3=self.term[i][j-rf]
-                    zper=float((zper+z2+z3)/3)
-                    zper=self.dol(i,j,zper)
+            for i in range(0,maxx,self.rr):
+            	self.doj(i,self.rr)
     
     def doj(self, i,rr):
         if(i%1000==0):
@@ -298,9 +270,7 @@ class tankin:
     		if(ttl>360):
     			ttl=hj
     		nx,ny=self.nex(t,ttl)
-    		dte=dt.now()
     		tes=self.torc(nx,ny,t)
-    		print("js",(dt.now()-dte).total_seconds())
     		if(tes):
     			return ttl
     	return None
@@ -393,8 +363,5 @@ tt.savem()
 
 for ig in range(len(tt.cf)):
 	ttf=tt.cf[1]
-	dt=datetime.now()
 	tt.pethh(ttf,tt.midx,tt.midy)
-	dt=dt-datetime.now()
-	print("fdk",dt.total_seconds())
 # Export the terrain to a JSON filedt=datetime.now()
