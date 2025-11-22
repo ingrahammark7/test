@@ -356,7 +356,10 @@ tt = tankin()
 yt2=tankin()
 tt.termm()
 tt.savem()
-for ig in range(round(tt.midx+tt.midy)*2):	
-	ttf=tt.cf[1]
+ts=""
+cd=1
+for ig in range(round(tt.midx+tt.midy)):	
+	ttf=tt.cf[cd]
 	tt.pethh(ttf,tt.midx,tt.midy)
-# Export the terrain to a JSON filedt=datetime.now()
+	ts+=f"{cd} tank moved to{ttf.x}{ttf.y}"
+tt.saved(ts,"f2.json")
