@@ -361,5 +361,5 @@ cd=1
 for ig in range(round(tt.midx+tt.midy)):	
 	ttf=tt.cf[cd]
 	tt.pethh(ttf,tt.midx,tt.midy)
-	ts+=f"{cd} tank moved to{ttf.x}{ttf.y}"
+	ts+=f"|{cd} tank moved to {ttf.x},{ttf.y}"
 tt.saved(ts,"f2.json")
