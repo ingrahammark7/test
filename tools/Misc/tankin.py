@@ -71,7 +71,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * am
+        self.maxx = self.times * t1.rspe() * am/4
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.midx=self.maxx/2
@@ -132,11 +132,16 @@ class tankin:
     def grefx(self,x,y):
     	self.doc(x,y)
     	z=self.term[x][y]
+    	if(z!=0):
+    		os.sys.exit()
     	x2=x-self.hmm
     	y2=y-self.hmm
     	self.doc(x2,y2)
     	z2=self.term[x2][y2]
     	dif=z2-z
+    	print(dif)
+    	if(dif!=0):
+    		os.sys.exit()
     	if(dif==0):
     	       return 0
     	return dif/self.hmm
@@ -154,7 +159,12 @@ class tankin:
       dte=dt.now()
       to=t.tf
       if(mo>to):
+            print(mo/to)
             return False
+      print(mo/to)
+      if(mo/to>0):
+      	print("jdd")
+      	os.sys.exit()
       return True
       
     def torct(self,t):
@@ -228,14 +238,13 @@ class tankin:
     	return y
     	
     def nearr(self,x,y):
-    	rj=round(self.hmm+1)
-    	for i in range(rj):
-    		xi=x+i-1
-    		if xi in self.term:
-    			for j in range(rj):
-    				ji=y+j-1
-    				if ji in self.term[xi]:
-    					return self.term[xi][ji]
+    	for k in self.term.keys():
+    		xin=int(k)
+    		if (xin>=x):
+    			for j in self.term[k].keys():
+    				ji=int(j)
+    				if(ji>=y):
+    					return self.term[k][j]
     	return 0
     	
     def doc(self,x,y):
@@ -260,7 +269,7 @@ class tankin:
     	if bl is None:
     		t.power=0
     		return
-    	self.move(t,bl)
+    	t.x,t.y=self.move(t,bl)
     	
     	
     def mof(self,t,ttl):
@@ -360,8 +369,9 @@ tt = tankin()
 yt2=tankin()
 tt.termm()
 tt.savem()
-
-for ig in range(len(tt.cf)):
+for ig in range(round(tt.midx+tt.midy)*2):	
 	ttf=tt.cf[1]
+	print("of",ttf.x,ttf.y)
 	tt.pethh(ttf,tt.midx,tt.midy)
+	print("dkd",ttf.x,ttf.y,tt.term[ttf.x][ttf.y])
 # Export the terrain to a JSON filedt=datetime.now()
