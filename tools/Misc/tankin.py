@@ -242,22 +242,21 @@ class tankin:
     		self.term[x][y] = self.nearr(x,y)
     		
     def pethh(self,t,x,y):
-    	she=str(x) +"," + str(y)
-    	if(she==t.sh):
+    	she=str(t.x) +"," + str(t.y)
+    	if(t.sh==str):
     		t.power=0
-    		return
+    		return 
     	x1=t.x
     	y1=t.y
     	self.doc(x,y)
     	self.doc(x1,y1)
-    	if(x==x1 and y==y1):
-    		return
     	teh=self.gethx(t,x,y)
     	bl=self.mof(t,teh)
     	if bl is None:
     		t.power=0
     		return
-    	t.x,t.y=self.move(t,bl)
+    	t.sh=str(she)
+    	self.move(t,bl)
     	
     	
     def mof(self,t,ttl):
@@ -279,12 +278,14 @@ class tankin:
         dy = np.sin(rad)
         nx = t.x + np.where(dx > 0.5, 1, np.where(dx < -0.5, -1, 0))
         ny = t.y + np.where(dy > 0.5, 1, np.where(dy < -0.5, -1, 0))
-
+        print("curretn",t.x,t.y,"hea",heading_deg,"n",nx,ny)
+        if(t.x<-50):
+        	os.sys.exit()
         return nx, ny
 
     def move(self,t, heading_deg):
         nx, ny = self.nex(t,heading_deg)
-        t.x, t.y = nx, ny
+        t.x,t.y=nx,ny
         return nx, ny
     	
     def gethx(self,t1,x1,y1):
