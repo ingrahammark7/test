@@ -53,6 +53,8 @@ class en(json.JSONEncoder):
 
 def en2(tf):
     return copy.deepcopy(tf)
+t1 = thull.baseobj()
+t1 = en2(t1)
 
 class tankin:
     def __init__(self):
@@ -63,8 +65,6 @@ class tankin:
         self.teams = {0, co}
         self.clo=0
         self.hmm=float(self.hm())
-        t1 = thull.baseobj()
-        t1 = en2(t1)
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
@@ -384,9 +384,13 @@ tt.termm()
 print("ss")
 tt.savem()
 print("sm")
+from datetime import datetime
 for ig in range(len(tt.cf)):
 	ttf=tt.cf[1]
 	print("star",ttf.x,ttf.y)
+	dt=datetime.now()
 	tt.pethh(ttf,tt.midx,tt.midy)
+	dt=dt-datetime.now()
+	print(dt.total_seconds())
 	print("en",ttf.x,ttf.y)
 # Export the terrain to a JSON file
