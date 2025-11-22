@@ -281,11 +281,8 @@ class tankin:
     	al=[]
     	if(x==x1 and y==y1):
     		return
-    	fk=en2(t)
-    	fk2=en2(fk)
-    	fk2.x,fk2.y=x,y
-    	teh=self.geth(fk,fk2)
-    	bl=self.mof(fk,teh)
+    	teh=self.gethx(t,x,y)
+    	bl=self.mof(t,teh)
     	if bl is None:
     		t.power=0
     		return
@@ -317,14 +314,20 @@ class tankin:
         t.x, t.y = nx, ny
         return nx, ny
     	
-    def geth(self,t1,t2):
-    	x,y,x1,y1=t1.x,t1.y,t2.x,t2.y
+    def gethx(self,t1,x1,y1):
+    	x=t1.x
+    	y=t1.y
     	dx = x1 - x
     	dy = y1 - y
     	if dx == 0 and dy == 0:
     		return 0
     	ang = sp.deg(sp.atan2(dy, dx))
     	return ang if ang >= 0 else ang + 360
+    
+    def geth(self,t1,t2):
+    	x1,y1=t2.x,t2.y
+    	return self.gethx(t1,x1,y1)
+    	
     	
     def loscheck(self,t1,t2):
         starx=round(self.maxc(t1.x))
