@@ -14,12 +14,7 @@ dp=2
 m=dp**sp.GoldenRatio
 m=float(m)
 am=nuct.baseobj().am
-fif=8*8-5
-fi2=9*11+1+fif
-ran=am*(fi2*5-2)
-ran-=32
-ran+=.5
-ran*=am
+ran=am**3
 ran=int(round(ran))
 rc=round(os.sys.getsizeof(ran)/4)
 
@@ -51,17 +46,13 @@ class en(json.JSONEncoder):
 
         elif isinstance(obj, Iterable) and not isinstance(obj, str):
             return [self.default(v) for v in obj]
-
         elif callable(obj):
             return f"<function {obj.__name__}>"
-
         else:
             return str(obj)
 
-
 def en2(tf):
     return copy.deepcopy(tf)
-
 
 class tankin:
     def __init__(self):
@@ -231,8 +222,7 @@ class tankin:
             if(self.l==1):
                 return
             self.saved(self.term,"f.json")
-            
-    
+
     def checkif(self):
         p="fin.json"
         if os.path.exists(p):
@@ -321,9 +311,6 @@ class tankin:
             if grid[ex][ey]>eh:
                 return False
             return True
-    
-
-        
 
 tt = tankin() 
 tt.termm()
