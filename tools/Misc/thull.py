@@ -39,6 +39,7 @@ class thull:
 		self.x=0
 		self.y=0
 		self.sh=""
+		self.bar=0
 		
 	def firehead(self):
 		self.ammo-=1
@@ -111,7 +112,7 @@ class thull:
 		du.f2=rd
 		du.f3=spee/speed
 		du.f4=1
-		pen.dopen(du)
+		self.bar=du
 		return du
 		
 	def getdd(self):
