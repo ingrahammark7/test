@@ -261,6 +261,58 @@ class tankin:
     		self.term[x]={}
     	if not y in self.term[x]:
     		self.term[x][y] = self.nearr(x,y)
+    		
+    def pethh(self,t,x,y):
+    	x1=t.x
+    	y1=t.y
+    	self.doc(x,y)
+    	self.doc(x1,y1)
+    	ro=[]
+    	if(x==x1 and y==y1):
+    		t.power=0
+    		ro.append(0)
+    		ro[0].append(x)
+    		ro[0][x].append(y)
+    		return ro
+    	ms=self.term
+    	diffx=x1-x
+    	diffy=y1-y
+    	dif2=diffy/2
+    	dif2x=diffx/2
+    	
+    def geth(self,t1,t2):
+    	x=t1.x
+    	y=t1.y
+    	x1=t2.x
+    	y1=t2.y
+    	if(x1==x and y1==y):
+    		return 0
+    	difx=x1-x
+    	dify=y1-y
+    	if(difx==0 and dify>0):
+    		return 90
+    	if(difx==0 and dify<0):
+    		return 270
+    	if(difx>0 and dify==0):
+    		return 0
+    	if(difx<0 and dify==0):
+    		return 180
+    	ri=dify/difx
+    	res=ri*45
+    	if(x1>x and y1>y):
+    		if(res>90):
+    			res=90
+    		return res
+    	if(x1<x and y1>y):
+    		if(res<-90):
+    			return 90
+    		return 180+res
+    	if(abs(res)>90):
+    		return 270
+    	if(x1>x):
+    		return 360+res
+    	return abs(res)+180
+    	
     	
     def loscheck(self,t1,t2):
         starx=round(self.maxc(t1.x))
