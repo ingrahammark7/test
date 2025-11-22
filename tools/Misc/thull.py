@@ -38,6 +38,7 @@ class thull:
 		self.frontbfan = 45
 		self.x=0
 		self.y=0
+		self.sh=""
 		
 	def firehead(self):
 		self.ammo-=1
