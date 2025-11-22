@@ -185,6 +185,9 @@ class Material:
     	mass=mat.getmass(rd,ld)
     	en=.5*mass*(speed**2)
     	return rd,speed,mass,en
+    	
+    def getmx(self):
+    	return self.getmass(self.f2,self.bafac)
 
     def pen_angle(self, d, angle, round_energy, round_diameter):
         if(angle==0):
