@@ -90,6 +90,7 @@ class tankin:
             t.x = x+i+(co-st)
             t.y = 0
             fj = i + st
+            t.tf*=self.hmm
             self.cf[fj] = t
         return self
     
@@ -151,6 +152,7 @@ class tankin:
     def torcc(self,mo,t):
       dte=dt.now()
       to=t.tf
+      print(mo/to)
       if(mo>to):
             return False
       return True
