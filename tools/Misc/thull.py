@@ -134,11 +134,8 @@ class thull:
 			em=self.engmassp()
 			ex=self.extramass()
 			bar=self.getbarm()
-			bf=self.getbar()
-			self.ammo=self.numg()*pen.maxshot()
-			ammass=self.ammo*bf.getmass(bf.f2,bf.bafac)
 			to=ff+fs+fr+em+ex+bar
-			self.mass=to+self.fuel+ammass
+			self.mass=to+self.fuel
 			return self
 			
 	def extramass(self):
@@ -457,8 +454,7 @@ class thull:
 		
 def dof(name,l):
 	tt1=thull(name,l,pen.maxshot(),0.0)
-	tt1=tt1.init()
-	return tt1
+	return tt1.init()
 	
 def dofarm(l):
 	tt1=dof("b",l)
