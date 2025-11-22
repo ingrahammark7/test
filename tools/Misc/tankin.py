@@ -71,6 +71,8 @@ class tankin:
         self.maxx = self.times * t1.rspe() * nuct.baseobj().am/50
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
+        self.midx=self.maxx/2
+        self.midy=self.maxy/2
         self.rr=round(self.hmm)
         self.l=0
         for te in self.teams:
@@ -182,7 +184,6 @@ class tankin:
     def torct(self,t):
       mm=self.gref(t)
       return self.torcc(mm,t)
-      
             
     def dol(self,i,j,zper):
             zper += i * j + i + j
@@ -252,9 +253,15 @@ class tankin:
     	return y
     	
     def nearr(self,x,y):
-    	mx=x-x%self.hmm
-    	my=y-y%self.hmm
-    	return self.term[round(mx)][round(my)]
+    	rj=round(self.hmm+1)
+    	for i in range(rj):
+    		xi=x+i-1
+    		if xi in self.term:
+    			for j in range(rj):
+    				ji=y+j-1
+    				if ji in self.term[xi]:
+    					return self.term[xi][ji]
+    	return 0
     	
     def doc(self,x,y):
     	if not x in self.term:
@@ -263,22 +270,52 @@ class tankin:
     		self.term[x][y] = self.nearr(x,y)
     		
     def pethh(self,t,x,y):
+    	she=str(x) +"," + str(y)
+    	if(she==t.sh):
+    		t.power=0
+    		return
     	x1=t.x
     	y1=t.y
     	self.doc(x,y)
     	self.doc(x1,y1)
-    	ro=[]
+    	al=[]
     	if(x==x1 and y==y1):
+    		return
+    	fk=en2(t)
+    	fk2=en2(fk)
+    	fk2.x,fk2.y=x,y
+    	teh=self.geth(fk,fk2)
+    	bl=self.mof(fk,teh)
+    	if bl is None:
     		t.power=0
-    		ro.append(0)
-    		ro[0].append(x)
-    		ro[0][x].append(y)
-    		return ro
-    	ms=self.term
-    	diffx=x1-x
-    	diffy=y1-y
-    	dif2=diffy/2
-    	dif2x=diffx/2
+    		return
+    	self.move(t,bl)
+    	
+    def mof(self,t,ttl):
+    	hj=45
+    	for i in range(8):
+    		ttl+=hj
+    		if(ttl>360):
+    			ttl=hj
+    		nx,ny=self.nex(t,ttl)
+    		tes=self.torc(nx,ny,t)
+    		if(tes):
+    			return ttl
+    	return None
+    	
+    def nex(self, t,heading_deg):
+        heading_deg=float(heading_deg)
+        rad = np.radians(heading_deg)
+        dx = np.cos(rad)
+        dy = np.sin(rad)
+        nx = t.x + np.where(dx > 0.5, 1, np.where(dx < -0.5, -1, 0))
+        ny = t.y + np.where(dy > 0.5, 1, np.where(dy < -0.5, -1, 0))
+        return nx, ny
+
+    def move(self,t, heading_deg):
+        nx, ny = self.nex(t,heading_deg)
+        t.x, t.y = nx, ny
+        return nx, ny
     	
     def geth(self,t1,t2):
     	x,y,x1,y1=t1.x,t1.y,t2.x,t2.y
@@ -286,9 +323,8 @@ class tankin:
     	dy = y1 - y
     	if dx == 0 and dy == 0:
     		return 0
-    	ang = np.degrees(np.atan2(dy, dx))
+    	ang = sp.deg(sp.atan2(dy, dx))
     	return ang if ang >= 0 else ang + 360
-    	
     	
     def loscheck(self,t1,t2):
         starx=round(self.maxc(t1.x))
@@ -347,7 +383,7 @@ tt.savem()
 print("sm")
 for ig in range(len(tt.cf)):
 	ttf=tt.cf[1]
-	ttw=tt.cf[ig]
-	kl=tt.loscheck(ttf,ttw)
-	print(kl)
+	print("star",ttf.x,ttf.y)
+	tt.pethh(ttf,tt.midx,tt.midy)
+	print("en",ttf.x,ttf.y)
 # Export the terrain to a JSON file
