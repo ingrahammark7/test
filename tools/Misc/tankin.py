@@ -280,38 +280,13 @@ class tankin:
     	dif2=diffy/2
     	dif2x=diffx/2
     	
-    def geth(self,t1,t2):
-    	x=t1.x
-    	y=t1.y
-    	x1=t2.x
-    	y1=t2.y
-    	if(x1==x and y1==y):
+    def geth(self,x, y, x1, y1):
+    	dx = x1 - x
+    	dy = y1 - y
+    	if dx == 0 and dy == 0:
     		return 0
-    	difx=x1-x
-    	dify=y1-y
-    	if(difx==0 and dify>0):
-    		return 90
-    	if(difx==0 and dify<0):
-    		return 270
-    	if(difx>0 and dify==0):
-    		return 0
-    	if(difx<0 and dify==0):
-    		return 180
-    	ri=dify/difx
-    	res=ri*45
-    	if(x1>x and y1>y):
-    		if(res>90):
-    			res=90
-    		return res
-    	if(x1<x and y1>y):
-    		if(res<-90):
-    			return 90
-    		return 180+res
-    	if(abs(res)>90):
-    		return 270
-    	if(x1>x):
-    		return 360+res
-    	return abs(res)+180
+    	ang = np.degrees(np.atan2(dy, dx))
+    	return ang if ang >= 0 else ang + 360
     	
     	
     def loscheck(self,t1,t2):
