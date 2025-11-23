@@ -1,181 +1,312 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Tank on Terrain - Flask Load</title>
+<meta charset="utf-8" />
+<title>Tank on Terrain — Fixed mapping</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-body { margin:0; overflow:hidden; }
-#log { position:fixed; bottom:0; left:0; width:100%; max-height:150px; overflow-y:scroll; background: rgba(0,0,0,0.7); color:white; font-family:monospace; font-size:12px; padding:4px; }
+  html,body{height:100%;margin:0}
+  canvas{display:block}
+  #overlay{
+    position:fixed; right:8px; top:8px;
+    width:320px; max-height:40vh; overflow:auto;
+    background:rgba(0,0,0,0.6); color:#fff; font-family:monospace;
+    font-size:12px; padding:8px; border-radius:6px;
+  }
+  .edgeCaption {
+    position:fixed; left:8px; background:rgba(0,0,0,0.5);
+    color:white; font-family:monospace; font-size:12px; padding:4px 6px; border-radius:4px;
+  }
+  #viewTop{top:8px; left:50%; transform:translateX(-50%);}
+  #viewBottom{bottom:8px; left:50%; transform:translateX(-50%);}
+  #viewLeft{top:50%; left:8px; transform:translateY(-50%);}
+  #viewRight{top:50%; right:8px; transform:translateY(-50%);}
 </style>
 </head>
 <body>
-<div id="log"></div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
+<div id="overlay">Loading files…</div>
+<div id="viewTop" class="edgeCaption"></div>
+<div id="viewBottom" class="edgeCaption"></div>
+<div id="viewLeft" class="edgeCaption"></div>
+<div id="viewRight" class="edgeCaption"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
 <script>
-const logDiv = document.getElementById('log');
-function log(msg){ console.log(msg); logDiv.innerHTML+=msg+"<br>"; logDiv.scrollTop=logDiv.scrollHeight; }
+(async function(){
+  const overlay = document.getElementById('overlay');
+  const viewTop = document.getElementById('viewTop');
+  const viewBottom = document.getElementById('viewBottom');
+  const viewLeft = document.getElementById('viewLeft');
+  const viewRight = document.getElementById('viewRight');
 
-let terrainData, tanks = {}, tankToFollow = null;
-let scene, camera, renderer, terrainMeshes = [];
+  try{
+    const [terrainResp, movesResp] = await Promise.all([
+      fetch('static/f.json'),
+      fetch('static/f2.json')
+    ]);
+    if(!terrainResp.ok) throw new Error('Failed loading static/f.json');
+    if(!movesResp.ok) throw new Error('Failed loading static/f2.json');
 
-// ---------- INIT ----------
-init();
-loadFiles();
-animate();
+    const terrainData = await terrainResp.json();
+    const movesText = await movesResp.text();
 
-function init(){
-    scene = new THREE.Scene();
+    overlay.innerText = 'Files loaded — building scene...';
+    buildScene(terrainData, movesText);
+  }catch(err){
+    overlay.innerText = 'Error loading files: ' + err;
+    console.error(err);
+  }
+
+  function buildScene(terrainData, movesText){
+    // extract sorted terrain keys
+    const xKeys = Object.keys(terrainData).map(Number).sort((a,b)=>a-b);
+    if(xKeys.length===0){ overlay.innerText='terrain empty'; return; }
+    // gather z keys (union across all x keys)
+    const zSet = new Set();
+    xKeys.forEach(x => {
+      const col = terrainData[String(x)];
+      if(!col) return;
+      Object.keys(col).forEach(z => zSet.add(Number(z)));
+    });
+    const zKeys = Array.from(zSet).sort((a,b)=>a-b);
+    if(zKeys.length===0){ overlay.innerText='terrain z empty'; return; }
+
+    const minX = xKeys[0], maxX = xKeys[xKeys.length-1];
+    const minZ = zKeys[0], maxZ = zKeys[zKeys.length-1];
+
+    // grid sizes
+    const cols = xKeys.length, rows = zKeys.length;
+
+    // build BufferGeometry with exact world coords for each vertex
+    const geom = new THREE.BufferGeometry();
+    const pos = new Float32Array(cols * rows * 3);
+    const idxs = [];
+    let pi = 0;
+    for(let i=0;i<rows;i++){
+      for(let j=0;j<cols;j++){
+        const worldX = xKeys[j];
+        const worldZ = zKeys[i];
+        const h = (terrainData[String(xKeys[j])] && terrainData[String(xKeys[j])][String(zKeys[i])]) || 0;
+        pos[pi++] = worldX;
+        pos[pi++] = h;
+        pos[pi++] = worldZ;
+      }
+    }
+    geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+    // create indices for grid triangles
+    for(let i=0;i<rows-1;i++){
+      for(let j=0;j<cols-1;j++){
+        const a = i*cols + j;
+        const b = a + 1;
+        const c = a + cols;
+        const d = c + 1;
+        // two triangles: a,c,b and b,c,d
+        idxs.push(a,c,b,  b,c,d);
+      }
+    }
+    geom.setIndex(idxs);
+    geom.computeVertexNormals();
+
+    // create material and mesh
+    const mat = new THREE.MeshStandardMaterial({color:0x228B22, flatShading:true});
+    const terrainMesh = new THREE.Mesh(geom, mat);
+    // center terrain around (0,0) by translating mesh so center is at origin
+    const centerX = (minX + maxX)/2;
+    const centerZ = (minZ + maxZ)/2;
+    terrainMesh.position.set(-centerX, 0, -centerZ);
+
+    // scene
+    const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
+    scene.add(terrainMesh);
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
-    camera.position.set(0,200,200);
-
-    const dirLight = new THREE.DirectionalLight(0xffffff,1);
-    dirLight.position.set(200,400,200);
-    scene.add(dirLight);
+    // lights
+    const dir = new THREE.DirectionalLight(0xffffff, 1);
+    dir.position.set(centerX + 200, 400, centerZ + 200);
+    scene.add(dir);
     scene.add(new THREE.AmbientLight(0x404040));
 
-    renderer = new THREE.WebGLRenderer({antialias:true});
+    // renderer + camera (no OrbitControls)
+    const renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
-}
 
-// ---------- LOAD FILES ----------
-function loadFiles(){
-    fetch('f.json').then(r=>r.json()).then(data=>{
-        terrainData = data;
-        log("Terrain loaded");
-        rebuildTerrain();
-    }).catch(e=>log("Error loading terrain: "+e));
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 5000);
+    camera.position.set(0, 150, 300);
 
-    fetch('f2.json').then(r=>r.text()).then(text=>{
-        parseTanks(text);
-        log("Tank moves loaded");
-    }).catch(e=>log("Error loading tanks: "+e));
-}
-
-// ---------- PARSE TANKS ----------
-function parseTanks(raw){
-    const moves = raw.split("|").filter(s=>s.trim());
-    moves.forEach(m=>{
-        try{
-            const parts = m.trim().split(" ");
-            const id = parts[0];
-            const coords = parts[parts.length-1].replace(/"/g,'').split(",");
-            const x = parseFloat(coords[0]);
-            const y = parseFloat(coords[1]);
-            if(!tanks[id]) tanks[id]={path:[],step:0};
-            tanks[id].path.push([x,y]);
-        }catch(e){ console.warn("Skipping invalid move", m, e); }
+    // parse moves text safely
+    const rawMoves = movesText.split('|').filter(s=>s.trim());
+    // sample format: "1 tank moved to 6,1"
+    const tanks = {}; // id -> {path: [[x,z],...], mesh, label}
+    rawMoves.forEach(token => {
+      const m = token.trim();
+      if(!m) return;
+      // find last pair of numbers x,z
+      const match = m.match(/(-?\d+)\s*,\s*(-?\d+)\s*$/);
+      if(!match) return;
+      // id is first token (string before space)
+      const id = m.split(' ')[0];
+      const x = Number(match[1]);
+      const z = Number(match[2]);
+      if(!tanks[id]) tanks[id] = { path: [] };
+      tanks[id].path.push([x,z]);
     });
-    tankToFollow = Object.keys(tanks)[0];
 
-    const colors = [0xff0000,0x0000ff,0xffff00,0xff00ff];
-    let idx=0;
-    for(let id in tanks){
-        const t = tanks[id];
-        const geo = new THREE.BoxGeometry(8,12,8);
-        const mat = new THREE.MeshStandardMaterial({color:colors[idx % colors.length]});
-        const mesh = new THREE.Mesh(geo, mat);
-
-        // Add coordinate label
-        const canvas = document.createElement('canvas'); canvas.width=128; canvas.height=32;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle='white'; ctx.font='24px Arial'; ctx.fillText('0,0',0,24);
-        const tex = new THREE.CanvasTexture(canvas);
-        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
-        sprite.scale.set(20,5,1);
-        sprite.position.set(0,12,0);
-        mesh.add(sprite);
-        t.coordLabel={canvas,ctx,tex,sprite};
-
-        scene.add(mesh);
-        t.mesh = mesh;
-        idx++;
+    // helper: find nearest key in sorted numeric array
+    function findNearest(sortedKeys, v){
+      // linear fallback for small arrays; binary-search for larger
+      let lo=0, hi=sortedKeys.length-1;
+      if(v<=sortedKeys[0]) return sortedKeys[0];
+      if(v>=sortedKeys[hi]) return sortedKeys[hi];
+      while(lo<=hi){
+        const mid = Math.floor((lo+hi)/2);
+        const val = sortedKeys[mid];
+        if(val===v) return val;
+        if(val < v) lo = mid+1; else hi = mid-1;
+      }
+      // after loop, lo is insertion index
+      const a = sortedKeys[Math.max(0, lo-1)];
+      const b = sortedKeys[Math.min(sortedKeys.length-1, lo)];
+      return (Math.abs(a - v) <= Math.abs(b - v)) ? a : b;
     }
-}
 
-// ---------- BUILD TERRAIN ----------
-function rebuildTerrain(){
-    if(!terrainData) return;
-    terrainMeshes.forEach(m=>{ scene.remove(m); m.geometry.dispose(); m.material.dispose(); });
-    terrainMeshes=[];
+    // create tank meshes (lightweight) and labels (canvas sprites)
+    const colorPalette = [0xff0000,0x0000ff,0xffff00,0xff00ff,0x00ffff,0xff8800];
+    let colorIdx = 0;
+    for(const id in tanks){
+      const t = tanks[id];
+      const geo = new THREE.BoxGeometry(6, 4, 6);
+      const matTank = new THREE.MeshStandardMaterial({color: colorPalette[colorIdx % colorPalette.length]});
+      colorIdx++;
+      const mesh = new THREE.Mesh(geo, matTank);
+      mesh.castShadow = true;
+      mesh.position.set(0, 2, 0);
+      scene.add(mesh);
+      t.mesh = mesh;
 
-    const xKeys = Object.keys(terrainData).map(Number).sort((a,b)=>a-b);
-    const ySet = new Set();
-    xKeys.forEach(x=>Object.keys(terrainData[x]).forEach(y=>ySet.add(Number(y))));
-    const yKeys = Array.from(ySet).sort((a,b)=>a-b);
+      // simple label as canvas sprite
+      const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 32;
+      const ctx = canvas.getContext('2d');
+      ctx.font = '20px monospace'; ctx.fillStyle = 'white';
+      ctx.fillText(id, 0, 20);
+      const tex = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true}));
+      sprite.scale.set(20, 6, 1);
+      sprite.position.set(0, 6, 0);
+      mesh.add(sprite);
+      t.label = {canvas, ctx, tex, sprite};
+    }
 
-    let startX=0;
-    const CHUNK_SIZE=64;
-    function buildChunk(){
-        if(startX>=xKeys.length) return;
-        const endX=Math.min(startX+CHUNK_SIZE,xKeys.length);
-        const cols = endX-startX;
-        const rows = yKeys.length;
-        const geo = new THREE.PlaneGeometry(cols*8, rows*8, cols-1, rows-1);
-        const verts = geo.attributes.position.array;
-        for(let i=0;i<rows;i++){
-            for(let j=0;j<cols;j++){
-                const x = xKeys[startX+j];
-                const y = yKeys[i];
-                verts[3*(i*cols+j)+2] = terrainData[x][y] || 0;
-            }
+    // Precompute mapped path coordinates (map tank grid coords to nearest terrain keys)
+    for(const id in tanks){
+      const t = tanks[id];
+      t.mappedPath = t.path.map(([tx, tz])=>{
+        // find nearest terrain key for x and z
+        const nx = findNearest(xKeys, tx);
+        const nz = findNearest(zKeys, tz);
+        // world position adjusted by center offset (terrainMesh.position is -center)
+        const worldX = nx - centerX;
+        const worldZ = nz - centerZ;
+        const h = (terrainData[String(nx)] && terrainData[String(nx)][String(nz)]) || 0;
+        return { tx, tz, nx, nz, x: worldX, y: h, z: worldZ };
+      });
+      // if mappedPath empty, ensure at least one point at nearest (0,0)
+      if(t.mappedPath.length===0){
+        const nx = xKeys[0], nz = zKeys[0];
+        t.mappedPath.push({tx:0,tz:0,nx, nz, x: nx-centerX, y: terrainData[String(nx)][String(nz)]||0, z: nz-centerZ});
+      }
+      t.step = 0;
+    }
+
+    // Animation timing
+    const msPerStep = 150; // advance every 150ms (configurable)
+    let lastAdvance = performance.now();
+
+    // view edge helper: compute camera frustum intersection with ground plane (y = terrain height approximation)
+    function updateViewEdges(){
+      // we'll intersect NDC corners with plane y = average terrain height (approx)
+      const avgH = 0; // we display camera frustum in world coordinates (terrain centered), user can interpret
+      const ndc = [[-1,1],[1,1],[-1,-1],[1,-1]]; // TL,TR,BL,BR
+      const corners = ndc.map(([nx,ny])=>{
+        const vec = new THREE.Vector3(nx, ny, -1).unproject(camera);
+        const dir = vec.clone().sub(camera.position).normalize();
+        // intersect with y = avgH plane: t = (avgH - camY)/dirY
+        const t = (avgH - camera.position.y) / dir.y;
+        const p = camera.position.clone().add(dir.multiplyScalar(t));
+        // reverse terrain centering offset to get original f.json coordinates
+        return { x: p.x + centerX, z: p.z + centerZ };
+      });
+      // top: TL,TR ; bottom: BL,BR ; left: TL,BL ; right: TR,BR
+      viewTop.textContent = `Top X:[${Math.round(corners[0].x)},${Math.round(corners[1].x)}] Z:[${Math.round(corners[0].z)},${Math.round(corners[1].z)}]`;
+      viewBottom.textContent = `Bottom X:[${Math.round(corners[2].x)},${Math.round(corners[3].x)}] Z:[${Math.round(corners[2].z)},${Math.round(corners[3].z)}]`;
+      viewLeft.textContent = `Left X:[${Math.round(corners[0].x)},${Math.round(corners[2].x)}] Z:[${Math.round(corners[0].z)},${Math.round(corners[2].z)}]`;
+      viewRight.textContent = `Right X:[${Math.round(corners[1].x)},${Math.round(corners[3].x)}] Z:[${Math.round(corners[1].z)},${Math.round(corners[3].z)}]`;
+    }
+
+    // main loop
+    function renderLoop(now){
+      requestAnimationFrame(renderLoop);
+
+      // advance steps at msPerStep
+      if(now - lastAdvance >= msPerStep){
+        lastAdvance = now;
+        for(const id in tanks){
+          const t = tanks[id];
+          if(t.step < t.mappedPath.length - 1) t.step++;
+          // update mesh position to mappedPath[t.step]
+          const p = t.mappedPath[t.step];
+          if(p){
+            t.mesh.position.set(p.x, p.y + 2, p.z); // +2 to lift tank above ground a bit
+            // update label text with original tank coords (tx,tz)
+            const text = `${p.tx},${p.tz}`;
+            t.label.ctx.clearRect(0,0,t.label.canvas.width, t.label.canvas.height);
+            t.label.ctx.fillStyle = 'white';
+            t.label.ctx.font = '20px monospace';
+            t.label.ctx.fillText(text, 0, 20);
+            t.label.tex.needsUpdate = true;
+          }
         }
-        geo.computeVertexNormals();
-        const mat = new THREE.MeshStandardMaterial({color:0x228B22, flatShading:true});
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.rotation.x = -Math.PI/2;
-        mesh.position.x = startX*8 - xKeys[xKeys.length-1]/2;
-        mesh.position.z = -yKeys[yKeys.length-1]/2;
-        terrainMeshes.push(mesh);
-        scene.add(mesh);
-        startX+=CHUNK_SIZE;
-        setTimeout(buildChunk,10);
-    }
-    buildChunk();
-}
+      }
 
-// ---------- ANIMATE ----------
-function animate(){
-    requestAnimationFrame(animate);
-    if(!terrainData) return;
+      // camera follows first tank
+      const firstId = Object.keys(tanks)[0];
+      if(firstId){
+        const follow = tanks[firstId].mesh;
+        // smooth camera follow
+        const desired = new THREE.Vector3(follow.position.x + 60, follow.position.y + 80, follow.position.z + 120);
+        camera.position.lerp(desired, 0.15);
+        camera.lookAt(follow.position);
+      }
 
-    const maxX = Math.max(...Object.keys(terrainData));
-    const maxY = Math.max(...Object.values(terrainData).map(col=>Math.max(...Object.keys(col))));
+      // update overlay info
+      const totalTanks = Object.keys(tanks).length;
+      const maxSteps = Math.max(...Object.values(tanks).map(t=>t.mappedPath.length));
+      overlay.innerHTML = `Tanks: ${totalTanks}<br>Frame steps (per-tank): ${maxSteps}<br>`;
+      // show a short recent move list (first tank)
+      if(firstId){
+        const t0 = tanks[firstId];
+        const step = t0.step;
+        const p = t0.mappedPath[step] || {};
+        overlay.innerHTML += `<br>Following tank: ${firstId}<br>Step ${step+1}/${t0.mappedPath.length}<br>Pos (orig): ${p.tx||''},${p.tz||''}<br>Mapped: ${p.nx||''},${p.nz||''}`;
+      }
 
-    for(let id in tanks){
-        const t = tanks[id];
-        if(t.mesh && t.step < t.path.length){
-            const [x,y] = t.path[t.step];
-            const z = terrainData[Math.floor(x)]?.[Math.floor(y)] || 0;
-            t.mesh.position.set(x - maxX/2, z+6, y - maxY/2);
-
-            const text = `${Math.round(x)},${Math.round(y)}`;
-            const ctx = t.coordLabel.ctx;
-            ctx.clearRect(0,0,128,32);
-            ctx.fillText(text,0,24);
-            t.coordLabel.tex.needsUpdate = true;
-
-            t.step++;
-        }
+      updateViewEdges();
+      renderer.render(scene, camera);
     }
 
-    // Camera follows first tank
-    if(tankToFollow && tanks[tankToFollow]){
-        const t = tanks[tankToFollow].mesh;
-        camera.position.set(t.position.x+150, t.position.y+120, t.position.z+150);
-        camera.lookAt(t.position);
-    }
+    // resize handling
+    window.addEventListener('resize', ()=>{
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+    });
 
-    renderer.render(scene,camera);
-}
-
-window.addEventListener('resize',()=>{
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
+    // start render
+    requestAnimationFrame(renderLoop);
+  } // end buildScene
+})();
 </script>
 </body>
 </html>
