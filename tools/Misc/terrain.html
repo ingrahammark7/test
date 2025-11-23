@@ -2,83 +2,36 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Progressive Terrain Loader - File Input</title>
+<title>Tank on Terrain - Flask Load</title>
 <style>
-  body { margin: 0; overflow: hidden; font-family: sans-serif; }
-  #ui { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 10px; color: white; z-index: 100; }
-  #log { position: fixed; bottom: 0; left: 0; width: 100%; max-height: 150px; overflow-y: scroll; background: rgba(0,0,0,0.7); color: white; font-family: monospace; font-size: 12px; padding: 4px; z-index: 101; }
-  canvas { display: block; }
+body { margin:0; overflow:hidden; }
+#log { position:fixed; bottom:0; left:0; width:100%; max-height:150px; overflow-y:scroll; background: rgba(0,0,0,0.7); color:white; font-family:monospace; font-size:12px; padding:4px; }
 </style>
 </head>
 <body>
-<div id="ui">
-  <label>Select f.json:</label><br>
-  <input type="file" id="fileInput"><br><br>
-  <label>Sample Step: <span id="sampleValue">8</span></label><br>
-  <input type="range" id="sampleSlider" min="1" max="32" value="8">
-</div>
 <div id="log"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
 <script>
 const logDiv = document.getElementById('log');
-function log(msg) {
-    console.log(msg);
-    logDiv.innerHTML += msg + "<br>";
-    logDiv.scrollTop = logDiv.scrollHeight;
-}
+function log(msg){ console.log(msg); logDiv.innerHTML+=msg+"<br>"; logDiv.scrollTop=logDiv.scrollHeight; }
 
-const sampleSlider = document.getElementById('sampleSlider');
-const sampleValue = document.getElementById('sampleValue');
+let terrainData, tanks = {}, tankToFollow = null;
+let scene, camera, renderer, terrainMeshes = [];
 
-let terrainData;
-let scene, camera, renderer;
-let terrainMeshes = [];
-let SAMPLE_STEP = parseInt(sampleSlider.value);
-let panX = 0, panZ = 0;
-let panSpeedX = 0.3, panSpeedZ = 0.2;
-const CHUNK_SIZE = 64;
-
-sampleSlider.addEventListener('input', () => {
-    SAMPLE_STEP = parseInt(sampleSlider.value);
-    sampleValue.textContent = SAMPLE_STEP;
-    log("Slider changed. SAMPLE_STEP=" + SAMPLE_STEP);
-    rebuildTerrain();
-});
-
-// ========== FILE INPUT ==========
-document.getElementById('fileInput').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if(!file) return;
-    log("Loading terrain file: " + file.name);
-
-    const reader = new FileReader();
-    reader.onload = evt => {
-        try {
-            terrainData = JSON.parse(evt.target.result);
-            log("Terrain loaded. Columns: " + Object.keys(terrainData).length);
-            rebuildTerrain();
-        } catch(err) {
-            log("ERROR parsing JSON: " + err.message);
-            console.error(err);
-        }
-    };
-    reader.readAsText(file);
-});
-
-// ========== INIT ==========
+// ---------- INIT ----------
 init();
+loadFiles();
 animate();
 
-function init() {
+function init(){
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
-    camera.position.set(0, 50, 0);
+    camera.position.set(0,200,200);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(200, 400, 200);
+    const dirLight = new THREE.DirectionalLight(0xffffff,1);
+    dirLight.position.set(200,400,200);
     scene.add(dirLight);
     scene.add(new THREE.AmbientLight(0x404040));
 
@@ -87,107 +40,142 @@ function init() {
     document.body.appendChild(renderer.domElement);
 }
 
-// ========== TERRAIN ==========
-function rebuildTerrain() {
-    if(!terrainData) {
-        log("No terrain data. Aborting rebuild.");
-        return;
-    }
+// ---------- LOAD FILES ----------
+function loadFiles(){
+    fetch('f.json').then(r=>r.json()).then(data=>{
+        terrainData = data;
+        log("Terrain loaded");
+        rebuildTerrain();
+    }).catch(e=>log("Error loading terrain: "+e));
 
-    // Remove previous meshes
-    terrainMeshes.forEach(m => {
-        scene.remove(m);
-        m.geometry.dispose();
-        m.material.dispose();
+    fetch('f2.json').then(r=>r.text()).then(text=>{
+        parseTanks(text);
+        log("Tank moves loaded");
+    }).catch(e=>log("Error loading tanks: "+e));
+}
+
+// ---------- PARSE TANKS ----------
+function parseTanks(raw){
+    const moves = raw.split("|").filter(s=>s.trim());
+    moves.forEach(m=>{
+        try{
+            const parts = m.trim().split(" ");
+            const id = parts[0];
+            const coords = parts[parts.length-1].replace(/"/g,'').split(",");
+            const x = parseFloat(coords[0]);
+            const y = parseFloat(coords[1]);
+            if(!tanks[id]) tanks[id]={path:[],step:0};
+            tanks[id].path.push([x,y]);
+        }catch(e){ console.warn("Skipping invalid move", m, e); }
     });
-    terrainMeshes = [];
-    panX = 0;
-    panZ = 0;
+    tankToFollow = Object.keys(tanks)[0];
 
-    const xKeys = Object.keys(terrainData).map(k => parseInt(k)).filter(k => k % SAMPLE_STEP === 0).sort((a,b)=>a-b);
-    const yKeysSet = new Set();
-    xKeys.forEach(x => {
-        Object.keys(terrainData[x]).map(k => parseInt(k)).filter(k => k % SAMPLE_STEP === 0).forEach(y => yKeysSet.add(y));
-    });
-    const yKeys = Array.from(yKeysSet).sort((a,b)=>a-b);
+    const colors = [0xff0000,0x0000ff,0xffff00,0xff00ff];
+    let idx=0;
+    for(let id in tanks){
+        const t = tanks[id];
+        const geo = new THREE.BoxGeometry(8,12,8);
+        const mat = new THREE.MeshStandardMaterial({color:colors[idx % colors.length]});
+        const mesh = new THREE.Mesh(geo, mat);
 
-    const cols = xKeys.length;
-    const rows = yKeys.length;
-    if(cols < 2 || rows < 2) {
-        log("Too few points to build terrain. cols=" + cols + ", rows=" + rows);
-        return;
+        // Add coordinate label
+        const canvas = document.createElement('canvas'); canvas.width=128; canvas.height=32;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle='white'; ctx.font='24px Arial'; ctx.fillText('0,0',0,24);
+        const tex = new THREE.CanvasTexture(canvas);
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
+        sprite.scale.set(20,5,1);
+        sprite.position.set(0,12,0);
+        mesh.add(sprite);
+        t.coordLabel={canvas,ctx,tex,sprite};
+
+        scene.add(mesh);
+        t.mesh = mesh;
+        idx++;
     }
+}
 
-    log(`Starting chunked terrain build. cols=${cols}, rows=${rows}, CHUNK_SIZE=${CHUNK_SIZE}`);
+// ---------- BUILD TERRAIN ----------
+function rebuildTerrain(){
+    if(!terrainData) return;
+    terrainMeshes.forEach(m=>{ scene.remove(m); m.geometry.dispose(); m.material.dispose(); });
+    terrainMeshes=[];
 
-    let chunkStartX = 0;
-    function buildChunk() {
-        if(chunkStartX >= cols) {
-            log("All chunks built.");
-            return;
-        }
+    const xKeys = Object.keys(terrainData).map(Number).sort((a,b)=>a-b);
+    const ySet = new Set();
+    xKeys.forEach(x=>Object.keys(terrainData[x]).forEach(y=>ySet.add(Number(y))));
+    const yKeys = Array.from(ySet).sort((a,b)=>a-b);
 
-        const endX = Math.min(chunkStartX + CHUNK_SIZE, cols);
-        const chunkCols = endX - chunkStartX;
-        const chunkRows = rows;
-
-        log(`Building chunk: startX=${chunkStartX}, endX=${endX}, chunkCols=${chunkCols}, rows=${chunkRows}`);
-
-        const geometry = new THREE.PlaneGeometry(chunkCols*8, chunkRows*8, chunkCols-1, chunkRows-1);
-        const verts = geometry.attributes.position.array;
-
-        for(let i=0; i<chunkRows; i++){
-            for(let j=0; j<chunkCols; j++){
-                const xKey = xKeys[chunkStartX + j];
-                const yKey = yKeys[i];
-                let h = terrainData[xKey] && terrainData[xKey][yKey] !== undefined ? terrainData[xKey][yKey] : 0;
-                const idx = 3*(i*chunkCols + j);
-                verts[idx+2] = h;
+    let startX=0;
+    const CHUNK_SIZE=64;
+    function buildChunk(){
+        if(startX>=xKeys.length) return;
+        const endX=Math.min(startX+CHUNK_SIZE,xKeys.length);
+        const cols = endX-startX;
+        const rows = yKeys.length;
+        const geo = new THREE.PlaneGeometry(cols*8, rows*8, cols-1, rows-1);
+        const verts = geo.attributes.position.array;
+        for(let i=0;i<rows;i++){
+            for(let j=0;j<cols;j++){
+                const x = xKeys[startX+j];
+                const y = yKeys[i];
+                verts[3*(i*cols+j)+2] = terrainData[x][y] || 0;
             }
         }
-        geometry.computeVertexNormals();
-        const material = new THREE.MeshStandardMaterial({color:0x228B22, flatShading:true});
-        const mesh = new THREE.Mesh(geometry, material);
+        geo.computeVertexNormals();
+        const mat = new THREE.MeshStandardMaterial({color:0x228B22, flatShading:true});
+        const mesh = new THREE.Mesh(geo, mat);
         mesh.rotation.x = -Math.PI/2;
-        mesh.position.x = chunkStartX*8;
+        mesh.position.x = startX*8 - xKeys[xKeys.length-1]/2;
+        mesh.position.z = -yKeys[yKeys.length-1]/2;
         terrainMeshes.push(mesh);
         scene.add(mesh);
-
-        log(`Chunk added: startX=${chunkStartX}`);
-
-        chunkStartX += CHUNK_SIZE;
-        setTimeout(buildChunk, 10); // schedule next chunk
+        startX+=CHUNK_SIZE;
+        setTimeout(buildChunk,10);
     }
-
     buildChunk();
 }
 
-// ========== ANIMATION ==========
-function animate() {
+// ---------- ANIMATE ----------
+function animate(){
     requestAnimationFrame(animate);
+    if(!terrainData) return;
 
-    if(terrainMeshes.length === 0 || !terrainData) return;
+    const maxX = Math.max(...Object.keys(terrainData));
+    const maxY = Math.max(...Object.values(terrainData).map(col=>Math.max(...Object.keys(col))));
 
-    const totalCols = Object.keys(terrainData).length;
-    const yKeysSet = new Set();
-    Object.values(terrainData).forEach(col => Object.keys(col).forEach(y => yKeysSet.add(parseInt(y))));
-    const totalRows = yKeysSet.size;
+    for(let id in tanks){
+        const t = tanks[id];
+        if(t.mesh && t.step < t.path.length){
+            const [x,y] = t.path[t.step];
+            const z = terrainData[Math.floor(x)]?.[Math.floor(y)] || 0;
+            t.mesh.position.set(x - maxX/2, z+6, y - maxY/2);
 
-    const boundsX = totalCols * 8;
-    const boundsZ = totalRows * 8;
+            const text = `${Math.round(x)},${Math.round(y)}`;
+            const ctx = t.coordLabel.ctx;
+            ctx.clearRect(0,0,128,32);
+            ctx.fillText(text,0,24);
+            t.coordLabel.tex.needsUpdate = true;
 
-    panX += panSpeedX;
-    panZ += panSpeedZ;
-    if(panX > boundsX) panX = 0;
-    if(panZ > boundsZ) panZ = 0;
+            t.step++;
+        }
+    }
 
-    camera.position.x = panX;
-    camera.position.z = panZ + 50;
-    camera.position.y = 50;
-    camera.lookAt(boundsX/2, 0, boundsZ/2);
+    // Camera follows first tank
+    if(tankToFollow && tanks[tankToFollow]){
+        const t = tanks[tankToFollow].mesh;
+        camera.position.set(t.position.x+150, t.position.y+120, t.position.z+150);
+        camera.lookAt(t.position);
+    }
 
-    renderer.render(scene, camera);
+    renderer.render(scene,camera);
 }
+
+window.addEventListener('resize',()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
 </script>
 </body>
 </html>
