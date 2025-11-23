@@ -2,42 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Tank on Terrain — Fixed mapping</title>
+<title>Tank on Terrain — Smooth Movement</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
   html,body{height:100%;margin:0}
   canvas{display:block}
   #overlay{
     position:fixed; right:8px; top:8px;
-    width:320px; max-height:40vh; overflow:auto;
-    background:rgba(0,0,0,0.6); color:#fff; font-family:monospace;
+    width:320px; background:rgba(0,0,0,0.6);
+    color:#fff; font-family:monospace;
     font-size:12px; padding:8px; border-radius:6px;
   }
-  .edgeCaption {
-    position:fixed; left:8px; background:rgba(0,0,0,0.5);
-    color:white; font-family:monospace; font-size:12px; padding:4px 6px; border-radius:4px;
-  }
-  #viewTop{top:8px; left:50%; transform:translateX(-50%);}
-  #viewBottom{bottom:8px; left:50%; transform:translateX(-50%);}
-  #viewLeft{top:50%; left:8px; transform:translateY(-50%);}
-  #viewRight{top:50%; right:8px; transform:translateY(-50%);}
 </style>
 </head>
 <body>
 <div id="overlay">Loading files…</div>
-<div id="viewTop" class="edgeCaption"></div>
-<div id="viewBottom" class="edgeCaption"></div>
-<div id="viewLeft" class="edgeCaption"></div>
-<div id="viewRight" class="edgeCaption"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
 <script>
 (async function(){
   const overlay = document.getElementById('overlay');
-  const viewTop = document.getElementById('viewTop');
-  const viewBottom = document.getElementById('viewBottom');
-  const viewLeft = document.getElementById('viewLeft');
-  const viewRight = document.getElementById('viewRight');
 
   try{
     const [terrainResp, movesResp] = await Promise.all([
@@ -49,7 +32,6 @@
 
     const terrainData = await terrainResp.json();
     const movesText = await movesResp.text();
-
     overlay.innerText = 'Files loaded — building scene...';
     buildScene(terrainData, movesText);
   }catch(err){
@@ -58,254 +40,165 @@
   }
 
   function buildScene(terrainData, movesText){
-    // extract sorted terrain keys
+    // Terrain keys
     const xKeys = Object.keys(terrainData).map(Number).sort((a,b)=>a-b);
-    if(xKeys.length===0){ overlay.innerText='terrain empty'; return; }
-    // gather z keys (union across all x keys)
     const zSet = new Set();
-    xKeys.forEach(x => {
-      const col = terrainData[String(x)];
-      if(!col) return;
-      Object.keys(col).forEach(z => zSet.add(Number(z)));
+    xKeys.forEach(x=>{
+      Object.keys(terrainData[String(x)]||{}).forEach(z=>zSet.add(Number(z)));
     });
     const zKeys = Array.from(zSet).sort((a,b)=>a-b);
-    if(zKeys.length===0){ overlay.innerText='terrain z empty'; return; }
-
-    const minX = xKeys[0], maxX = xKeys[xKeys.length-1];
-    const minZ = zKeys[0], maxZ = zKeys[zKeys.length-1];
-
-    // grid sizes
+    const minX=xKeys[0], maxX=xKeys[xKeys.length-1];
+    const minZ=zKeys[0], maxZ=zKeys[zKeys.length-1];
+    const centerX=(minX+maxX)/2, centerZ=(minZ+maxZ)/2;
     const cols = xKeys.length, rows = zKeys.length;
 
-    // build BufferGeometry with exact world coords for each vertex
+    // Terrain geometry
     const geom = new THREE.BufferGeometry();
-    const pos = new Float32Array(cols * rows * 3);
-    const idxs = [];
-    let pi = 0;
+    const pos = new Float32Array(cols*rows*3);
+    let pi=0;
     for(let i=0;i<rows;i++){
       for(let j=0;j<cols;j++){
-        const worldX = xKeys[j];
-        const worldZ = zKeys[i];
-        const h = (terrainData[String(xKeys[j])] && terrainData[String(xKeys[j])][String(zKeys[i])]) || 0;
-        pos[pi++] = worldX;
-        pos[pi++] = h;
-        pos[pi++] = worldZ;
+        const worldX = xKeys[j], worldZ = zKeys[i];
+        const h = terrainData[String(worldX)]?.[String(worldZ)]||0;
+        pos[pi++] = worldX; pos[pi++] = h; pos[pi++] = worldZ;
       }
     }
-    geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-
-    // create indices for grid triangles
+    geom.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    const idxs = [];
     for(let i=0;i<rows-1;i++){
       for(let j=0;j<cols-1;j++){
-        const a = i*cols + j;
-        const b = a + 1;
-        const c = a + cols;
-        const d = c + 1;
-        // two triangles: a,c,b and b,c,d
-        idxs.push(a,c,b,  b,c,d);
+        const a=i*cols+j, b=a+1, c=a+cols, d=c+1;
+        idxs.push(a,c,b,b,c,d);
       }
     }
     geom.setIndex(idxs);
     geom.computeVertexNormals();
 
-    // create material and mesh
     const mat = new THREE.MeshStandardMaterial({color:0x228B22, flatShading:true});
     const terrainMesh = new THREE.Mesh(geom, mat);
-    // center terrain around (0,0) by translating mesh so center is at origin
-    const centerX = (minX + maxX)/2;
-    const centerZ = (minZ + maxZ)/2;
-    terrainMesh.position.set(-centerX, 0, -centerZ);
+    terrainMesh.position.set(-centerX,0,-centerZ);
 
-    // scene
+    // Scene + lights
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
     scene.add(terrainMesh);
-
-    // lights
-    const dir = new THREE.DirectionalLight(0xffffff, 1);
-    dir.position.set(centerX + 200, 400, centerZ + 200);
+    const dir = new THREE.DirectionalLight(0xffffff,1);
+    dir.position.set(centerX+200,400,centerZ+200);
     scene.add(dir);
     scene.add(new THREE.AmbientLight(0x404040));
 
-    // renderer + camera (no OrbitControls)
     const renderer = new THREE.WebGLRenderer({antialias:true});
-    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    renderer.setPixelRatio(window.devicePixelRatio||1);
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 5000);
-    camera.position.set(0, 150, 300);
+    const camera = new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,5000);
 
-    // parse moves text safely
+    // Parse tank moves
     const rawMoves = movesText.split('|').filter(s=>s.trim());
-    // sample format: "1 tank moved to 6,1"
-    const tanks = {}; // id -> {path: [[x,z],...], mesh, label}
-    rawMoves.forEach(token => {
+    const tanks = {};
+    rawMoves.forEach(token=>{
       const m = token.trim();
       if(!m) return;
-      // find last pair of numbers x,z
       const match = m.match(/(-?\d+)\s*,\s*(-?\d+)\s*$/);
       if(!match) return;
-      // id is first token (string before space)
-      const id = m.split(' ')[0];
-      const x = Number(match[1]);
-      const z = Number(match[2]);
-      if(!tanks[id]) tanks[id] = { path: [] };
+      const id = m.split(' ')[0], x=Number(match[1]), z=Number(match[2]);
+      if(!tanks[id]) tanks[id]={path:[]};
       tanks[id].path.push([x,z]);
     });
 
-    // helper: find nearest key in sorted numeric array
-    function findNearest(sortedKeys, v){
-      // linear fallback for small arrays; binary-search for larger
-      let lo=0, hi=sortedKeys.length-1;
-      if(v<=sortedKeys[0]) return sortedKeys[0];
-      if(v>=sortedKeys[hi]) return sortedKeys[hi];
+    // helper: nearest terrain key
+    function findNearest(sorted,v){
+      let lo=0,hi=sorted.length-1;
+      if(v<=sorted[0]) return sorted[0];
+      if(v>=sorted[hi]) return sorted[hi];
       while(lo<=hi){
-        const mid = Math.floor((lo+hi)/2);
-        const val = sortedKeys[mid];
-        if(val===v) return val;
-        if(val < v) lo = mid+1; else hi = mid-1;
+        const mid=Math.floor((lo+hi)/2);
+        if(sorted[mid]===v) return v;
+        if(sorted[mid]<v) lo=mid+1; else hi=mid-1;
       }
-      // after loop, lo is insertion index
-      const a = sortedKeys[Math.max(0, lo-1)];
-      const b = sortedKeys[Math.min(sortedKeys.length-1, lo)];
-      return (Math.abs(a - v) <= Math.abs(b - v)) ? a : b;
+      const a=sorted[Math.max(0,lo-1)], b=sorted[Math.min(sorted.length-1,lo)];
+      return (Math.abs(a-v)<=Math.abs(b-v))?a:b;
     }
 
-    // create tank meshes (lightweight) and labels (canvas sprites)
-    const colorPalette = [0xff0000,0x0000ff,0xffff00,0xff00ff,0x00ffff,0xff8800];
-    let colorIdx = 0;
+    // Create tank meshes and mapped path
+    const colors=[0xff0000,0x0000ff,0xffff00,0xff00ff,0x00ffff,0xff8800];
+    let colorIdx=0;
     for(const id in tanks){
-      const t = tanks[id];
-      const geo = new THREE.BoxGeometry(6, 4, 6);
-      const matTank = new THREE.MeshStandardMaterial({color: colorPalette[colorIdx % colorPalette.length]});
-      colorIdx++;
-      const mesh = new THREE.Mesh(geo, matTank);
-      mesh.castShadow = true;
-      mesh.position.set(0, 2, 0);
+      const t=tanks[id];
+      const geo=new THREE.BoxGeometry(6,4,6);
+      const matTank = new THREE.MeshStandardMaterial({color:colors[colorIdx++%colors.length]});
+      const mesh = new THREE.Mesh(geo,matTank);
+      mesh.position.set(0,2,0);
       scene.add(mesh);
-      t.mesh = mesh;
+      t.mesh=mesh;
 
-      // simple label as canvas sprite
-      const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 32;
-      const ctx = canvas.getContext('2d');
-      ctx.font = '20px monospace'; ctx.fillStyle = 'white';
-      ctx.fillText(id, 0, 20);
-      const tex = new THREE.CanvasTexture(canvas);
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true}));
-      sprite.scale.set(20, 6, 1);
-      sprite.position.set(0, 6, 0);
-      mesh.add(sprite);
-      t.label = {canvas, ctx, tex, sprite};
-    }
-
-    // Precompute mapped path coordinates (map tank grid coords to nearest terrain keys)
-    for(const id in tanks){
-      const t = tanks[id];
-      t.mappedPath = t.path.map(([tx, tz])=>{
-        // find nearest terrain key for x and z
-        const nx = findNearest(xKeys, tx);
-        const nz = findNearest(zKeys, tz);
-        // world position adjusted by center offset (terrainMesh.position is -center)
-        const worldX = nx - centerX;
-        const worldZ = nz - centerZ;
-        const h = (terrainData[String(nx)] && terrainData[String(nx)][String(nz)]) || 0;
-        return { tx, tz, nx, nz, x: worldX, y: h, z: worldZ };
+      // Map path to terrain world positions
+      t.worldPath = t.path.map(([tx,tz])=>{
+        const nx=findNearest(xKeys,tx), nz=findNearest(zKeys,tz);
+        const h = terrainData[String(nx)]?.[String(nz)]||0;
+        return {tx,tz,x:nx-centerX,y:h+2,z:nz-centerZ};
       });
-      // if mappedPath empty, ensure at least one point at nearest (0,0)
-      if(t.mappedPath.length===0){
-        const nx = xKeys[0], nz = zKeys[0];
-        t.mappedPath.push({tx:0,tz:0,nx, nz, x: nx-centerX, y: terrainData[String(nx)][String(nz)]||0, z: nz-centerZ});
+      // Start tank at first point
+      if(t.worldPath.length) {
+        const p0 = t.worldPath[0];
+        mesh.position.set(p0.x,p0.y,p0.z);
       }
-      t.step = 0;
+      t.currentIndex=0;
+      t.progress=0;
     }
 
-    // Animation timing
-    const msPerStep = 150; // advance every 150ms (configurable)
-    let lastAdvance = performance.now();
-
-    // view edge helper: compute camera frustum intersection with ground plane (y = terrain height approximation)
-    function updateViewEdges(){
-      // we'll intersect NDC corners with plane y = average terrain height (approx)
-      const avgH = 0; // we display camera frustum in world coordinates (terrain centered), user can interpret
-      const ndc = [[-1,1],[1,1],[-1,-1],[1,-1]]; // TL,TR,BL,BR
-      const corners = ndc.map(([nx,ny])=>{
-        const vec = new THREE.Vector3(nx, ny, -1).unproject(camera);
-        const dir = vec.clone().sub(camera.position).normalize();
-        // intersect with y = avgH plane: t = (avgH - camY)/dirY
-        const t = (avgH - camera.position.y) / dir.y;
-        const p = camera.position.clone().add(dir.multiplyScalar(t));
-        // reverse terrain centering offset to get original f.json coordinates
-        return { x: p.x + centerX, z: p.z + centerZ };
-      });
-      // top: TL,TR ; bottom: BL,BR ; left: TL,BL ; right: TR,BR
-      viewTop.textContent = `Top X:[${Math.round(corners[0].x)},${Math.round(corners[1].x)}] Z:[${Math.round(corners[0].z)},${Math.round(corners[1].z)}]`;
-      viewBottom.textContent = `Bottom X:[${Math.round(corners[2].x)},${Math.round(corners[3].x)}] Z:[${Math.round(corners[2].z)},${Math.round(corners[3].z)}]`;
-      viewLeft.textContent = `Left X:[${Math.round(corners[0].x)},${Math.round(corners[2].x)}] Z:[${Math.round(corners[0].z)},${Math.round(corners[2].z)}]`;
-      viewRight.textContent = `Right X:[${Math.round(corners[1].x)},${Math.round(corners[3].x)}] Z:[${Math.round(corners[1].z)},${Math.round(corners[3].z)}]`;
+    // Initialize camera above first tank
+    const firstId = Object.keys(tanks)[0];
+    if(firstId){
+      const f = tanks[firstId].mesh;
+      camera.position.set(f.position.x+60, f.position.y+80, f.position.z+120);
+      camera.lookAt(f.position);
     }
 
-    // main loop
-    function renderLoop(now){
-      requestAnimationFrame(renderLoop);
-
-      // advance steps at msPerStep
-      if(now - lastAdvance >= msPerStep){
-        lastAdvance = now;
-        for(const id in tanks){
-          const t = tanks[id];
-          if(t.step < t.mappedPath.length - 1) t.step++;
-          // update mesh position to mappedPath[t.step]
-          const p = t.mappedPath[t.step];
-          if(p){
-            t.mesh.position.set(p.x, p.y + 2, p.z); // +2 to lift tank above ground a bit
-            // update label text with original tank coords (tx,tz)
-            const text = `${p.tx},${p.tz}`;
-            t.label.ctx.clearRect(0,0,t.label.canvas.width, t.label.canvas.height);
-            t.label.ctx.fillStyle = 'white';
-            t.label.ctx.font = '20px monospace';
-            t.label.ctx.fillText(text, 0, 20);
-            t.label.tex.needsUpdate = true;
-          }
+    // Animation
+    const speed = 0.05; // 0 < speed <= 1, fraction per frame
+    function animate(){
+      requestAnimationFrame(animate);
+      for(const id in tanks){
+        const t = tanks[id];
+        const wp = t.worldPath;
+        if(!wp.length) continue;
+        const idx = t.currentIndex;
+        const nextIdx = Math.min(idx+1,wp.length-1);
+        const cur = wp[idx], next = wp[nextIdx];
+        // increment progress
+        t.progress += speed;
+        if(t.progress>=1){ 
+          t.progress=0; 
+          t.currentIndex = nextIdx; 
         }
+        const px = THREE.MathUtils.lerp(cur.x,next.x,t.progress);
+        const py = THREE.MathUtils.lerp(cur.y,next.y,t.progress);
+        const pz = THREE.MathUtils.lerp(cur.z,next.z,t.progress);
+        t.mesh.position.set(px,py,pz);
       }
 
-      // camera follows first tank
-      const firstId = Object.keys(tanks)[0];
+      // Camera follow first tank smoothly
       if(firstId){
-        const follow = tanks[firstId].mesh;
-        // smooth camera follow
-        const desired = new THREE.Vector3(follow.position.x + 60, follow.position.y + 80, follow.position.z + 120);
-        camera.position.lerp(desired, 0.15);
-        camera.lookAt(follow.position);
+        const f = tanks[firstId].mesh;
+        const desired = new THREE.Vector3(f.position.x+60,f.position.y+80,f.position.z+120);
+        camera.position.lerp(desired,0.1);
+        camera.lookAt(f.position);
       }
 
-      // update overlay info
-      const totalTanks = Object.keys(tanks).length;
-      const maxSteps = Math.max(...Object.values(tanks).map(t=>t.mappedPath.length));
-      overlay.innerHTML = `Tanks: ${totalTanks}<br>Frame steps (per-tank): ${maxSteps}<br>`;
-      // show a short recent move list (first tank)
-      if(firstId){
-        const t0 = tanks[firstId];
-        const step = t0.step;
-        const p = t0.mappedPath[step] || {};
-        overlay.innerHTML += `<br>Following tank: ${firstId}<br>Step ${step+1}/${t0.mappedPath.length}<br>Pos (orig): ${p.tx||''},${p.tz||''}<br>Mapped: ${p.nx||''},${p.nz||''}`;
-      }
-
-      updateViewEdges();
-      renderer.render(scene, camera);
+      renderer.render(scene,camera);
     }
+    animate();
 
-    // resize handling
-    window.addEventListener('resize', ()=>{
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    // Resize
+    window.addEventListener('resize',()=>{
+      renderer.setSize(window.innerWidth,window.innerHeight);
       camera.aspect = window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
     });
-
-    // start render
-    requestAnimationFrame(renderLoop);
-  } // end buildScene
+    overlay.style.display='none';
+  }
 })();
 </script>
 </body>
