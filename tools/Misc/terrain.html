@@ -24,11 +24,11 @@
 
   try{
     const [terrainResp, movesResp] = await Promise.all([
-      fetch('static/f.json'),
-      fetch('static/f2.json')
+      fetch('f.json'),
+      fetch('f2.json')
     ]);
-    if(!terrainResp.ok) throw new Error('Failed loading static/f.json');
-    if(!movesResp.ok) throw new Error('Failed loading static/f2.json');
+    if(!terrainResp.ok) throw new Error('Failed loading f.json');
+    if(!movesResp.ok) throw new Error('Failed loading f2.json');
 
     const terrainData = await terrainResp.json();
     const movesText = await movesResp.text();

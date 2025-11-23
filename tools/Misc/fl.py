@@ -10,7 +10,7 @@ def index():
 # Serve JSON files automatically
 @app.route('/<path:filename>')
 def serve_files(filename):
-    return send_from_directory('static', filename)
+    return send_from_directory('', filename)
 
 if __name__ == '__main__':
     app.run(debug=True)
