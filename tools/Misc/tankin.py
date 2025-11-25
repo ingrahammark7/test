@@ -242,11 +242,11 @@ class tankin:
     		self.term[x][y] = self.nearr(x,y)
     		
     def pethh(self,t,x,y):
-    	she=str(t.x) +"," + str(t.y)
-    	if t.sh.count(she) >1:
+    	she=(t.x,t.y)
+    	if she in t.sh:
     		t.power=0
     		return
-    	she+=t.sh+"|"
+    	t.sh.append(she)
     	x1=t.x
     	y1=t.y
     	self.doc(x,y)
@@ -257,7 +257,6 @@ class tankin:
     		t.power=0
     		return
     	self.move(t,bl)
-    	t.sh=she
     	
     def mof(self,t,ttl):
     	hj=45
