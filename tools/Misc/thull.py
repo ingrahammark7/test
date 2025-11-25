@@ -39,7 +39,7 @@ class thull:
 		self.frontbfan = 45
 		self.x=0
 		self.y=0
-		self.sh=""
+		self.sh=[]
 		self.bar=0
 		self.gr=0
 		self.tf=0
