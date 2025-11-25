@@ -148,7 +148,6 @@ class tankin:
     	return self.torcc(mo,t)
     
     def torcc(self,mo,t):
-      dte=dt.now()
       to=t.tf
       if(mo>to):
             return False
@@ -247,7 +246,7 @@ class tankin:
     	if t.sh.count(she) >1:
     		t.power=0
     		return
-    	she+=t.sh
+    	she+=t.sh+"|"
     	x1=t.x
     	y1=t.y
     	self.doc(x,y)
