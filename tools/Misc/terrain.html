@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Tank on Terrain — Smooth Movement + Rotation + Tilt + Camera Spring + Paths</title>
+<title>Tank on Terrain — Smooth Movement + Shots</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
   html, body { height: 100%; margin: 0; overflow: hidden; }
@@ -33,6 +33,9 @@
   <span id="speedVal">1</span>
   &nbsp; | &nbsp;
   Rotation smooth: <input id="rotSmooth" type="range" min="0.01" max="1" step="0.01" value="0.12">
+  &nbsp; | &nbsp;
+  Tilt blend: <input id="tiltBlend" type="range" min="0" max="1" step="0.01" value="0.5">
+  <span id="tiltVal">0.50</span>
 </div>
 <div id="overlay">Loading files…</div>
 
@@ -42,103 +45,76 @@
   const overlay = document.getElementById('overlay');
 
   try {
-    const [terrainResp, movesResp] = await Promise.all([
+    const [terrainResp, movesResp, shotsResp] = await Promise.all([
       fetch('f.json'),
-      fetch('f2.json')
+      fetch('f2.json'),
+      fetch('f3.json')
     ]);
     if(!terrainResp.ok) throw new Error('Failed loading f.json');
     if(!movesResp.ok) throw new Error('Failed loading f2.json');
+    if(!shotsResp.ok) throw new Error('Failed loading f3.json');
 
     const terrainData = await terrainResp.json();
     const movesText = await movesResp.text();
+    const shotsText = await shotsResp.text();
     overlay.innerText = 'Files loaded — building scene...';
-    buildScene(terrainData, movesText);
+    buildScene(terrainData, movesText, shotsText);
   } catch(err) {
     overlay.innerText = 'Error loading files: ' + err;
     console.error(err);
   }
 
-  function buildScene(terrainData, movesText){
-    // --- Build grid keys + helpers ---
+  function buildScene(terrainData, movesText, shotsText){
+    const DEFAULT_TILT_BLEND = 0.5;
+
+    // --------------------------
+    // Terrain keys and maps
+    // --------------------------
     const xKeys = Object.keys(terrainData).map(Number).sort((a,b)=>a-b);
     const zSet = new Set();
     xKeys.forEach(x => {
       Object.keys(terrainData[String(x)]||{}).forEach(z => zSet.add(Number(z)));
     });
     const zKeys = Array.from(zSet).sort((a,b)=>a-b);
-
     const minX = xKeys[0], maxX = xKeys[xKeys.length-1];
     const minZ = zKeys[0], maxZ = zKeys[zKeys.length-1];
-    const centerX = (minX + maxX) / 2;
-    const centerZ = (minZ + maxZ) / 2;
-    const cols = xKeys.length, rows = zKeys.length;
+    const centerX = (minX + maxX)/2;
+    const centerZ = (minZ + maxZ)/2;
 
-    function findNearest(sorted, v){
+    function findNearestIndex(sorted, v){
       let lo=0, hi=sorted.length-1;
-      if(v<=sorted[0]) return sorted[0];
-      if(v>=sorted[hi]) return sorted[hi];
+      if(v<=sorted[0]) return 0;
+      if(v>=sorted[hi]) return hi;
       while(lo<=hi){
-        const mid = Math.floor((lo+hi)/2);
-        if(sorted[mid] === v) return v;
-        if(sorted[mid] < v) lo = mid+1; else hi = mid-1;
+        const mid=(lo+hi)>>1;
+        if(sorted[mid]===v) return mid;
+        if(sorted[mid]<v) lo=mid+1; else hi=mid-1;
       }
-      const a = sorted[Math.max(0, lo-1)], b = sorted[Math.min(sorted.length-1, lo)];
-      return (Math.abs(a-v) <= Math.abs(b-v)) ? a : b;
+      const a=Math.max(0,lo-1), b=Math.min(sorted.length-1,lo);
+      return Math.abs(sorted[a]-v)<=Math.abs(sorted[b]-v)?a:b;
     }
 
-    // quick height sampling function (uses grid keys) - OPTION B
-    function sampleHeightAtWorld(xWorld, zWorld){
-      // xWorld,zWorld in original world coords (NOT center-shifted)
-      const nx = findNearest(xKeys, xWorld);
-      const nz = findNearest(zKeys, zWorld);
-      return terrainData[String(nx)]?.[String(nz)] || 0;
+    function heightAtIndex(ix, iz){
+      const x=xKeys[ix], z=zKeys[iz];
+      return terrainData[String(x)]?.[String(z)]||0;
     }
 
-    // For slope/tilt: sample four neighbouring heights around current position
-    function computeNormalFast(xWorld, zWorld){
-      // find nearest grid indices
-      const nx = findNearest(xKeys, xWorld);
-      const nz = findNearest(zKeys, zWorld);
-
-      // pick neighbor offsets in index space (±1 index if available)
-      const ix = xKeys.indexOf(nx);
-      const iz = zKeys.indexOf(nz);
-      const ixm = Math.max(0, ix-1), ixp = Math.min(xKeys.length-1, ix+1);
-      const izm = Math.max(0, iz-1), izp = Math.min(zKeys.length-1, iz+1);
-
-      // coords
-      const x_m = xKeys[ixm], x_p = xKeys[ixp];
-      const z_m = zKeys[izm], z_p = zKeys[izp];
-
-      // heights
-      const h_xm = terrainData[String(x_m)]?.[String(nz)] || 0;
-      const h_xp = terrainData[String(x_p)]?.[String(nz)] || 0;
-      const h_zm = terrainData[String(nx)]?.[String(z_m)] || 0;
-      const h_zp = terrainData[String(nx)]?.[String(z_p)] || 0;
-
-      // compute partial derivatives
-      const dx = (h_xp - h_xm) / (x_p - x_m || 1);
-      const dz = (h_zp - h_zm) / (z_p - z_m || 1);
-
-      // normal approximation: n = (-dx, 1, -dz) then normalize
-      const nxn = -dx, nyn = 1, nzn = -dz;
-      const len = Math.sqrt(nxn*nxn + nyn*nyn + nzn*nzn) || 1;
-      return new THREE.Vector3(nxn/len, nyn/len, nzn/len);
-    }
-
-    // --- Terrain geometry (same as before) ---
+    // --------------------------
+    // Terrain geometry
+    // --------------------------
+    const cols=xKeys.length, rows=zKeys.length;
     const geom = new THREE.BufferGeometry();
     const pos = new Float32Array(cols*rows*3);
     let pi=0;
     for(let i=0;i<rows;i++){
       for(let j=0;j<cols;j++){
-        const worldX = xKeys[j], worldZ = zKeys[i];
+        const worldX = xKeys[j], worldZ=zKeys[i];
         const h = terrainData[String(worldX)]?.[String(worldZ)]||0;
         pos[pi++] = worldX; pos[pi++] = h; pos[pi++] = worldZ;
       }
     }
     geom.setAttribute('position', new THREE.BufferAttribute(pos,3));
-    const idxs = [];
+    const idxs=[];
     for(let i=0;i<rows-1;i++){
       for(let j=0;j<cols-1;j++){
         const a=i*cols+j, b=a+1, c=a+cols, d=c+1;
@@ -147,251 +123,221 @@
     }
     geom.setIndex(idxs);
     geom.computeVertexNormals();
-
-    const mat = new THREE.MeshStandardMaterial({color:0x228B22, flatShading:true});
-    const terrainMesh = new THREE.Mesh(geom, mat);
+    const mat=new THREE.MeshStandardMaterial({color:0x228B22, flatShading:true});
+    const terrainMesh=new THREE.Mesh(geom, mat);
     terrainMesh.position.set(-centerX,0,-centerZ);
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
+    const scene=new THREE.Scene();
+    scene.background=new THREE.Color(0x87ceeb);
     scene.add(terrainMesh);
-    const dir = new THREE.DirectionalLight(0xffffff,1);
+    const dir=new THREE.DirectionalLight(0xffffff,1);
     dir.position.set(centerX+200,400,centerZ+200);
     scene.add(dir);
     scene.add(new THREE.AmbientLight(0x404040));
 
-    const renderer = new THREE.WebGLRenderer({antialias:true});
+    const renderer=new THREE.WebGLRenderer({antialias:true});
     renderer.setPixelRatio(window.devicePixelRatio||1);
     renderer.setSize(window.innerWidth,window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    const camera = new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,5000);
+    const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,5000);
 
-    // Parse tank moves (f2.json content)
+    // --------------------------
+    // Parse tanks
+    // --------------------------
     const rawMoves = movesText.split('|').filter(s=>s.trim());
     const tanks = {};
     rawMoves.forEach(token=>{
       const m = token.trim();
-      if(!m) return;
-      const match = m.match(/(-?\d+)\s*,\s*(-?\d+)\s*$/);
+      const match=m.match(/(-?\d+)\s*,\s*(-?\d+)\s*$/);
       if(!match) return;
-      const id = m.split(' ')[0], x = Number(match[1]), z = Number(match[2]);
-      if(!tanks[id]) tanks[id] = { path: [] };
+      const id = m.split(' ')[0], x=Number(match[1]), z=Number(match[2]);
+      if(!tanks[id]) tanks[id]={path:[]};
       tanks[id].path.push([x,z]);
     });
 
-    function makePathLine(worldPathPoints, color=0x000000){
-      const pts = [];
-      for(const p of worldPathPoints){
-        pts.push(new THREE.Vector3(p.x, p.y-1, p.z)); // slightly below tank center
-      }
-      const g = new THREE.BufferGeometry().setFromPoints(pts);
-      const mat = new THREE.LineBasicMaterial({linewidth: 2, color});
-      const line = new THREE.Line(g, mat);
-      return line;
-    }
-
-    // Create tanks, compute worldPath (center-shifted coordinates)
-    const colors = [0xff0000,0x0000ff,0xffff00,0xff00ff,0x00ffff,0xff8800];
-    let colorIdx = 0;
+    const colors=[0xff0000,0x0000ff,0xffff00,0xff00ff,0x00ffff,0xff8800];
+    let colorIdx=0;
     for(const id in tanks){
-      const t = tanks[id];
-      const geo = new THREE.BoxGeometry(6,4,6);
-      const matTank = new THREE.MeshStandardMaterial({color: colors[colorIdx++ % colors.length]});
-      const mesh = new THREE.Mesh(geo, matTank);
-      mesh.castShadow = true;
+      const t=tanks[id];
+      const geo=new THREE.BoxGeometry(6,4,6);
+      const matTank = new THREE.MeshStandardMaterial({color:colors[colorIdx++%colors.length]});
+      const mesh=new THREE.Mesh(geo,matTank);
       mesh.position.set(0,2,0);
       scene.add(mesh);
-      t.mesh = mesh;
-
+      t.mesh=mesh;
       t.worldPath = t.path.map(([tx,tz])=>{
-        const nx = findNearest(xKeys, tx), nz = findNearest(zKeys, tz);
-        const h = terrainData[String(nx)]?.[String(nz)] || 0;
-        return { tx:nx, nz:nz, x:nx-centerX, y:h+2, z:nz-centerZ };
+        const ix=findNearestIndex(xKeys, tx), iz=findNearestIndex(zKeys, tz);
+        const nx=xKeys[ix], nz=zKeys[iz];
+        const h = terrainData[String(nx)]?.[String(nz)]||0;
+        return {ix, iz, x:nx-centerX, y:h+2, z:nz-centerZ};
       });
-
-      // add a path preview line (use same color but darker)
-      const line = makePathLine(t.worldPath, 0x000000 ^ (colors[(colorIdx-1) % colors.length] & 0x333333));
-      scene.add(line);
-      t.pathLine = line;
-
       if(t.worldPath.length){
-        const p0 = t.worldPath[0];
-        mesh.position.set(p0.x, p0.y, p0.z);
+        const p0=t.worldPath[0];
+        mesh.position.set(p0.x,p0.y,p0.z);
       }
-      t.currentIndex = 0;
-      t.progress = 0;
+      t.currentIndex=0;
+      t.progress=0;
+      t._tmp={
+        forward:new THREE.Vector3(),
+        tangentFwd:new THREE.Vector3(),
+        right:new THREE.Vector3(),
+        normal:new THREE.Vector3()
+      };
     }
 
-    // initial camera target
+    // --------------------------
+    // Parse shots (f3.json)
+    // --------------------------
+    const shotsRaw = shotsText.split('|').filter(s => s.trim());
+    const shots = shotsRaw.map(s => {
+      const nums = s.split(',').map(Number);
+      if(nums.length!==4) return null;
+      const [x1,z1,x2,z2] = nums;
+      const nx1 = findNearestIndex(xKeys,x1), nz1=findNearestIndex(zKeys,z1);
+      const h1  = terrainData[xKeys[nx1]]?.[zKeys[nz1]]||0;
+      const nx2 = findNearestIndex(xKeys,x2), nz2=findNearestIndex(zKeys,z2);
+      const h2  = terrainData[xKeys[nx2]]?.[zKeys[nz2]]||0;
+      const p1 = new THREE.Vector3(xKeys[nx1]-centerX, h1+1, zKeys[nz1]-centerZ);
+      const p2 = new THREE.Vector3(xKeys[nx2]-centerX, h2+1, zKeys[nz2]-centerZ);
+      const geom = new THREE.BufferGeometry().setFromPoints([p1,p2]);
+      const mat = new THREE.LineBasicMaterial({color:0xffffff});
+      const line = new THREE.Line(geom, mat);
+      scene.add(line);
+      return {mesh: line};
+    }).filter(s=>s);
+
+    // --------------------------
+    // Camera spring follow
+    // --------------------------
     const firstId = Object.keys(tanks)[0];
-    let camPos = new THREE.Vector3();
-    let camVel = new THREE.Vector3();
+    let camPos = new THREE.Vector3(), camVel=new THREE.Vector3();
     if(firstId){
-      const f = tanks[firstId].mesh;
+      const f=tanks[firstId].mesh;
       camPos.set(f.position.x+60, f.position.y+80, f.position.z+120);
       camera.position.copy(camPos);
       camera.lookAt(f.position);
     }
 
+    // --------------------------
     // UI
-    let speed = 1;
-    const speedSlider = document.getElementById('speedSlider');
-    const speedVal = document.getElementById('speedVal');
+    // --------------------------
+    let speed=1;
+    const speedSlider=document.getElementById('speedSlider');
+    const speedVal=document.getElementById('speedVal');
     speedSlider.addEventListener('input', ()=>{
-      speed = parseFloat(speedSlider.value);
-      speedVal.innerText = speed.toFixed(1);
+      speed=parseFloat(speedSlider.value);
+      speedVal.innerText=speed.toFixed(1);
     });
     const rotSmoothInput = document.getElementById('rotSmooth');
+    const tiltBlendInput = document.getElementById('tiltBlend');
+    const tiltValSpan = document.getElementById('tiltVal');
+    tiltBlendInput.addEventListener('input', ()=>{
+      tiltValSpan.innerText=parseFloat(tiltBlendInput.value).toFixed(2);
+    });
 
-    // Frame-rate independent animation
-    let lastTime = performance.now();
-    function animate(){
-      requestAnimationFrame(animate);
-      const now = performance.now();
-      const dt = Math.min(50, now - lastTime) / 1000; // clamp dt for stability (s)
-      lastTime = now;
-
-      // convert dt to 60FPS baseline multiplier (preserves previous delta behavior)
-      const delta60 = dt / (1/60);
-
-      // --- Movement & rotation & tilt ---
-      for(const id in tanks){
-        const t = tanks[id];
-        const wp = t.worldPath;
-        if(wp.length < 2) continue;
-
-        // Precompute segment lengths
-        if(!t._len){
-          t._len = [];
-          for(let i=0;i<wp.length-1;i++){
-            const dx = wp[i+1].x - wp[i].x;
-            const dy = wp[i+1].y - wp[i].y;
-            const dz = wp[i+1].z - wp[i].z;
-            t._len[i] = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            // avoid zero-length
-            if(t._len[i] === 0) t._len[i] = 0.0001;
-          }
-        }
-
-        let remaining = speed * delta60; // movement units per frame (distance units)
-        while(remaining > 0 && t.currentIndex < wp.length - 1){
-          const segLen = t._len[t.currentIndex];
-          const distLeft = segLen * (1 - t.progress);
-          if(remaining >= distLeft){
-            remaining -= distLeft;
-            t.currentIndex++;
-            t.progress = 0;
-          } else {
-            t.progress += remaining / segLen;
-            remaining = 0;
-          }
-        }
-
-        // positions
-        const cur = wp[t.currentIndex];
-        const nxt = wp[Math.min(t.currentIndex + 1, wp.length - 1)];
-        const px = THREE.MathUtils.lerp(cur.x, nxt.x, t.progress);
-        const py = THREE.MathUtils.lerp(cur.y, nxt.y, t.progress);
-        const pz = THREE.MathUtils.lerp(cur.z, nxt.z, t.progress);
-        t.mesh.position.set(px, py, pz);
-
-        // compute forward direction (world coords) - small epsilon fallback
-        const dirX = (nxt.x - cur.x) || 0.0001;
-        const dirZ = (nxt.z - cur.z) || 0.0001;
-        const forward = new THREE.Vector3(dirX, 0, dirZ).normalize();
-
-        // desired yaw (rotation around Y) - note three's +Z forward, +X right
-        const desiredYaw = Math.atan2(forward.x, forward.z); // swap to get heading
-
-        // compute normal from nearby heights using Option B (fast)
-        // We need to convert to original world coords (undo center shift)
-        const worldX = px + centerX;
-        const worldZ = pz + centerZ;
-        const normal = computeNormalFast(worldX, worldZ);
-
-        // build desired quaternion from normal + yaw:
-        // We want the tank's local Y axis to align with 'normal' and face desiredYaw.
-        // Build a basis: z' = forward flattened and rotated to lie tangent plane.
-        // Simpler approach: construct a lookAt matrix using a target ahead projected onto tangent plane.
-
-        // Create a target point ahead in world coords (small lookahead)
-        const lookAheadDist = 1.5;
-        const aheadX = worldX + forward.x * lookAheadDist;
-        const aheadZ = worldZ + forward.z * lookAheadDist;
-        // sample ahead height to approximate looking direction on terrain
-        const aheadH = sampleHeightAtWorld(aheadX, aheadZ) + 2; // tank height offset
-        const ahead = new THREE.Vector3(aheadX - centerX, aheadH, aheadZ - centerZ);
-
-        // current tank world position in shifted coords
-        const centerPos = new THREE.Vector3(px, py, pz);
-
-        // compute tangent-forward vector (ahead - pos) and make it orthogonal to normal
-        const tangentFwd = ahead.clone().sub(centerPos);
-        // project tangentFwd onto plane orthogonal to normal
-        const proj = normal.clone().multiplyScalar(tangentFwd.dot(normal));
-        tangentFwd.sub(proj).normalize();
-
-        // compute right vector
-        const right = new THREE.Vector3().crossVectors(tangentFwd, normal).normalize();
-
-        // create rotation matrix columns: right, normal (up), -tangentFwd (forward)
-        // three uses column-major with elements mapping to basis vectors
-        const m = new THREE.Matrix4();
-        m.makeBasis(right, normal.clone().normalize(), tangentFwd.clone().negate());
-
-        const desiredQuat = new THREE.Quaternion().setFromRotationMatrix(m);
-
-        // apply a yaw correction so tank faces forward direction exactly on the tangent plane
-        // (optional: blend yaw separately)
-        // Smoothly slerp current rotation toward desired rotation
-        const rotSmooth = parseFloat(rotSmoothInput.value) || 0.12; // 0.01..1
-        t.mesh.quaternion.slerp(desiredQuat, Math.min(1, rotSmooth * delta60));
-
-        // small tilt override: if normal is near vertical, ensure tank stays upright stable
-        // (handled by desiredQuat already)
-      }
-
-      // --- Camera spring follow (position + velocity) ---
-      if(firstId){
-        const f = tanks[firstId].mesh;
-
-        // desired camera position relative to the tank (offset in world/shifted coords)
-        const desired = new THREE.Vector3(f.position.x + 60, f.position.y + 80, f.position.z + 120);
-
-        // spring parameters
-        const k = 60;            // stiffness
-        const damping = 12;     // damping
-        // convert to mass-spring: a = (k * (target - x) - damping * v) * dt
-        // scale to make stable for our dt (dt in seconds)
-        const dtSec = dt;
-        const displacement = desired.clone().sub(camPos);
-        // acceleration:
-        const acc = displacement.clone().multiplyScalar(k).sub(camVel.clone().multiplyScalar(damping));
-        acc.multiplyScalar(dtSec); // scale by dt
-        camVel.add(acc);
-        // integrate position
-        camPos.add(camVel.clone().multiplyScalar(dtSec));
-
-        camera.position.copy(camPos);
-        // look at the followed tank smoothly by interpolating lookAt target too
-        const lookTarget = f.position.clone();
-        camera.lookAt(lookTarget);
-      }
-
-      renderer.render(scene, camera);
+    // --------------------------
+    // 4-point finite difference normal
+    // --------------------------
+    function computeNormalStencil(ix, iz, outVec){
+      const ixm=Math.max(0,ix-1), ixp=Math.min(xKeys.length-1, ix+1);
+      const izm=Math.max(0,iz-1), izp=Math.min(zKeys.length-1, iz+1);
+      const hL = heightAtIndex(ixm,iz), hR=heightAtIndex(ixp,iz);
+      const hD = heightAtIndex(ix,izm), hU=heightAtIndex(ix,izp);
+      const dx=(xKeys[ixp]-xKeys[ixm])||1;
+      const dz=(zKeys[izp]-zKeys[izm])||1;
+      const nxn = -(hR-hL)/dx, nyn=2, nzn=-(hU-hD)/dz;
+      const len=Math.sqrt(nxn*nxn+nyn*nyn+nzn*nzn)||1;
+      outVec.set(nxn/len,nyn/len,nzn/len);
+      return outVec;
     }
 
+    // --------------------------
+    // Animation loop
+    // --------------------------
+    let lastTime=performance.now();
+    function animate(){
+      requestAnimationFrame(animate);
+      const now=performance.now();
+      let dt=(now-lastTime)/1000;
+      if(dt<=0) dt=1/60;
+      dt=Math.min(dt,0.05);
+      lastTime=now;
+      const delta60=dt/(1/60);
+
+      for(const id in tanks){
+        const t=tanks[id];
+        const wp=t.worldPath;
+        if(!wp||wp.length<2) continue;
+        let remaining = speed*delta60;
+        if(!t._len){
+          t._len=[];
+          for(let i=0;i<wp.length-1;i++){
+            const dx=wp[i+1].x-wp[i].x;
+            const dy=wp[i+1].y-wp[i].y;
+            const dz=wp[i+1].z-wp[i].z;
+            t._len[i]=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.0001;
+          }
+        }
+        while(remaining>0 && t.currentIndex<wp.length-1){
+          const segLen=t._len[t.currentIndex];
+          const distLeft=segLen*(1-t.progress);
+          if(remaining>=distLeft){remaining-=distLeft; t.currentIndex++; t.progress=0;}
+          else {t.progress+=remaining/segLen; remaining=0;}
+        }
+        const cur=wp[t.currentIndex], nxt=wp[Math.min(t.currentIndex+1, wp.length-1)];
+        const px=THREE.MathUtils.lerp(cur.x,nxt.x,t.progress);
+        const py=THREE.MathUtils.lerp(cur.y,nxt.y,t.progress);
+        const pz=THREE.MathUtils.lerp(cur.z,nxt.z,t.progress);
+        t.mesh.position.set(px,py,pz);
+
+        const fdx=nxt.x-cur.x, fdz=nxt.z-cur.z;
+        const tmp=t._tmp;
+        tmp.forward.set(fdx||0.0001,0,fdz||0.0001).normalize();
+
+        const ix=findNearestIndex(xKeys, px+centerX), iz=findNearestIndex(zKeys, pz+centerZ);
+        computeNormalStencil(ix, iz, tmp.normal);
+        const fDotN=tmp.forward.dot(tmp.normal);
+        tmp.tangentFwd.copy(tmp.forward).sub(tmp.normal.clone().multiplyScalar(fDotN)).normalize();
+        tmp.right.crossVectors(tmp.tangentFwd,tmp.normal).normalize();
+
+        const m=new THREE.Matrix4();
+        m.makeBasis(tmp.right,tmp.normal.clone().normalize(),tmp.tangentFwd.clone().negate());
+        const desiredQuat=new THREE.Quaternion().setFromRotationMatrix(m);
+
+        const yaw=Math.atan2(tmp.forward.x,tmp.forward.z);
+        const yawQuat=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
+        const TILT_BLEND=parseFloat(tiltBlendInput.value||DEFAULT_TILT_BLEND);
+        const blendedQuat=yawQuat.clone().slerp(desiredQuat,TILT_BLEND);
+        const rotSmooth=parseFloat(rotSmoothInput.value)||0.12;
+        const slerpFactor=Math.min(1,rotSmooth*delta60);
+        t.mesh.quaternion.slerp(blendedQuat,slerpFactor);
+      }
+
+      // Camera spring follow
+      if(firstId){
+        const f=tanks[firstId].mesh;
+        const desired=new THREE.Vector3(f.position.x+60,f.position.y+80,f.position.z+120);
+        const k=60, damping=12;
+        const displacement=desired.clone().sub(camPos);
+        const acc=displacement.multiplyScalar(k).sub(camVel.clone().multiplyScalar(damping)).multiplyScalar(dt);
+        camVel.add(acc);
+        camPos.add(camVel.clone().multiplyScalar(dt));
+        camera.position.copy(camPos);
+        camera.lookAt(f.position);
+      }
+
+      renderer.render(scene,camera);
+    }
     animate();
 
-    // handle resize
-    window.addEventListener('resize', ()=>{
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      camera.aspect = window.innerWidth / window.innerHeight;
+    window.addEventListener('resize',()=>{
+      renderer.setSize(window.innerWidth,window.innerHeight);
+      camera.aspect=window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
     });
 
-    overlay.style.display = 'none';
+    overlay.style.display='none';
   }
 })();
 </script>
