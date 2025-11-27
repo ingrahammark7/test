@@ -107,18 +107,18 @@
       tanks[id].path.push([x,z]);
     });
 
-    // helper: nearest terrain key
-    function findNearest(sorted,v){
-      let lo=0,hi=sorted.length-1;
-      if(v<=sorted[0]) return sorted[0];
-      if(v>=sorted[hi]) return sorted[hi];
-      while(lo<=hi){
-        const mid=Math.floor((lo+hi)/2);
-        if(sorted[mid]===v) return v;
-        if(sorted[mid]<v) lo=mid+1; else hi=mid-1;
-      }
-      const a=sorted[Math.max(0,lo-1)], b=sorted[Math.min(sorted.length-1,lo)];
-      return (Math.abs(a-v)<=Math.abs(b-v))?a:b;
+    // Helper: Bilinear terrain height
+    function getTerrainHeight(x, z) {
+      const findNearestIdx = (arr, v) => {
+        for (let i = 0; i < arr.length - 1; i++) if (v >= arr[i] && v <= arr[i+1]) return i;
+        return arr.length-2;
+      };
+      const ix = findNearestIdx(xKeys, x), iz = findNearestIdx(zKeys, z);
+      const x0=xKeys[ix], x1=xKeys[ix+1], z0=zKeys[iz], z1=zKeys[iz+1];
+      const h00=terrainData[x0]?.[z0]||0, h10=terrainData[x1]?.[z0]||0;
+      const h01=terrainData[x0]?.[z1]||0, h11=terrainData[x1]?.[z1]||0;
+      const tx=(x-x0)/(x1-x0), tz=(z-z0)/(z1-z0);
+      return (h00*(1-tx)+h10*tx)*(1-tz) + (h01*(1-tx)+h11*tx)*tz;
     }
 
     // Create tank meshes and mapped path
@@ -133,19 +133,18 @@
       scene.add(mesh);
       t.mesh=mesh;
 
-      // Map path to terrain world positions
+      // Map path to world coordinates
       t.worldPath = t.path.map(([tx,tz])=>{
-        const nx=findNearest(xKeys,tx), nz=findNearest(zKeys,tz);
-        const h = terrainData[String(nx)]?.[String(nz)]||0;
-        return {tx,tz,x:nx-centerX,y:h+2,z:nz-centerZ};
+        const x = tx - centerX;
+        const z = tz - centerZ;
+        const y = getTerrainHeight(tx, tz) + 2;
+        return {x,y,z};
       });
-      // Start tank at first point
       if(t.worldPath.length) {
         const p0 = t.worldPath[0];
-        mesh.position.set(p0.x,p0.y,p0.z);
+        mesh.position.set(p0.x, p0.y, p0.z);
       }
-      t.currentIndex=0;
-      t.progress=0;
+      t.currentIndex = 0;
     }
 
     // Initialize camera above first tank
@@ -156,30 +155,43 @@
       camera.lookAt(f.position);
     }
 
-    // Animation
-    const speed = 1; // 0 < speed <= 1, fraction per frame
+    // Clock for delta time
+    const clock = new THREE.Clock();
+    const moveSpeed = 15; // units per second
+
     function animate(){
       requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+
       for(const id in tanks){
         const t = tanks[id];
         const wp = t.worldPath;
-        if(!wp.length) continue;
-        const idx = t.currentIndex;
-        const nextIdx = Math.min(idx+1,wp.length-1);
-        const cur = wp[idx], next = wp[nextIdx];
-        // increment progress
-        t.progress += speed;
-        if(t.progress>=1){ 
-          t.progress=0; 
-          t.currentIndex = nextIdx; 
+        if(wp.length<2) continue;
+
+        const cur = wp[t.currentIndex];
+        const next = wp[Math.min(t.currentIndex+1, wp.length-1)];
+        const dir = new THREE.Vector3(next.x-cur.x,0,next.z-cur.z);
+        const dist = dir.length();
+        dir.normalize();
+
+        const move = moveSpeed*delta;
+        if(move >= dist){
+          t.currentIndex = Math.min(t.currentIndex+1, wp.length-1);
+          t.mesh.position.set(next.x,next.y,next.z);
+        } else {
+          t.mesh.position.x += dir.x*move;
+          t.mesh.position.z += dir.z*move;
+          const worldX = t.mesh.position.x+centerX;
+          const worldZ = t.mesh.position.z+centerZ;
+          t.mesh.position.y = getTerrainHeight(worldX, worldZ)+2;
         }
-        const px = THREE.MathUtils.lerp(cur.x,next.x,t.progress);
-        const py = THREE.MathUtils.lerp(cur.y,next.y,t.progress);
-        const pz = THREE.MathUtils.lerp(cur.z,next.z,t.progress);
-        t.mesh.position.set(px,py,pz);
+
+        // Smooth rotation
+        const targetRotation = Math.atan2(dir.x, dir.z);
+        t.mesh.rotation.y = THREE.MathUtils.lerp(t.mesh.rotation.y, targetRotation, 0.1);
       }
 
-      // Camera follow first tank smoothly
+      // Camera follow
       if(firstId){
         const f = tanks[firstId].mesh;
         const desired = new THREE.Vector3(f.position.x+60,f.position.y+80,f.position.z+120);
@@ -191,7 +203,6 @@
     }
     animate();
 
-    // Resize
     window.addEventListener('resize',()=>{
       renderer.setSize(window.innerWidth,window.innerHeight);
       camera.aspect = window.innerWidth/window.innerHeight;
