@@ -5,24 +5,39 @@
 <title>Tank on Terrain — Smooth Movement</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  html,body{height:100%;margin:0}
-  canvas{display:block}
-  #overlay{
-    position:fixed; right:8px; top:8px;
-    width:320px; background:rgba(0,0,0,0.6);
-    color:#fff; font-family:monospace;
-    font-size:12px; padding:8px; border-radius:6px;
+  html, body { height: 100%; margin: 0; }
+  canvas { display: block; }
+  #overlay {
+    position: fixed; right: 8px; top: 8px;
+    width: 320px; background: rgba(0,0,0,0.6);
+    color: #fff; font-family: monospace;
+    font-size: 12px; padding: 8px; border-radius: 6px;
   }
+  #controls {
+    position: fixed; left: 8px; top: 8px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    padding: 6px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 12px;
+  }
+  #controls input { vertical-align: middle; }
 </style>
 </head>
 <body>
+<div id="controls">
+  Speed: <input type="range" id="speedSlider" min="0.1" max="10" step="0.1" value="1">
+  <span id="speedVal">1</span>
+</div>
 <div id="overlay">Loading files…</div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
 <script>
 (async function(){
   const overlay = document.getElementById('overlay');
 
-  try{
+  try {
     const [terrainResp, movesResp] = await Promise.all([
       fetch('f.json'),
       fetch('f2.json')
@@ -34,22 +49,21 @@
     const movesText = await movesResp.text();
     overlay.innerText = 'Files loaded — building scene...';
     buildScene(terrainData, movesText);
-  }catch(err){
+  } catch(err) {
     overlay.innerText = 'Error loading files: ' + err;
     console.error(err);
   }
 
-  function buildScene(terrainData, movesText){
-    // Terrain keys
+  function buildScene(terrainData, movesText) {
     const xKeys = Object.keys(terrainData).map(Number).sort((a,b)=>a-b);
     const zSet = new Set();
-    xKeys.forEach(x=>{
-      Object.keys(terrainData[String(x)]||{}).forEach(z=>zSet.add(Number(z)));
+    xKeys.forEach(x => {
+      Object.keys(terrainData[String(x)]||{}).forEach(z => zSet.add(Number(z)));
     });
     const zKeys = Array.from(zSet).sort((a,b)=>a-b);
-    const minX=xKeys[0], maxX=xKeys[xKeys.length-1];
-    const minZ=zKeys[0], maxZ=zKeys[zKeys.length-1];
-    const centerX=(minX+maxX)/2, centerZ=(minZ+maxZ)/2;
+    const minX = xKeys[0], maxX = xKeys[xKeys.length-1];
+    const minZ = zKeys[0], maxZ = zKeys[zKeys.length-1];
+    const centerX = (minX+maxX)/2, centerZ = (minZ+maxZ)/2;
     const cols = xKeys.length, rows = zKeys.length;
 
     // Terrain geometry
@@ -78,7 +92,6 @@
     const terrainMesh = new THREE.Mesh(geom, mat);
     terrainMesh.position.set(-centerX,0,-centerZ);
 
-    // Scene + lights
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
     scene.add(terrainMesh);
@@ -89,7 +102,7 @@
 
     const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setPixelRatio(window.devicePixelRatio||1);
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth,window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
     const camera = new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,5000);
@@ -107,21 +120,20 @@
       tanks[id].path.push([x,z]);
     });
 
-    // Helper: Bilinear terrain height
-    function getTerrainHeight(x, z) {
-      const findNearestIdx = (arr, v) => {
-        for (let i = 0; i < arr.length - 1; i++) if (v >= arr[i] && v <= arr[i+1]) return i;
-        return arr.length-2;
-      };
-      const ix = findNearestIdx(xKeys, x), iz = findNearestIdx(zKeys, z);
-      const x0=xKeys[ix], x1=xKeys[ix+1], z0=zKeys[iz], z1=zKeys[iz+1];
-      const h00=terrainData[x0]?.[z0]||0, h10=terrainData[x1]?.[z0]||0;
-      const h01=terrainData[x0]?.[z1]||0, h11=terrainData[x1]?.[z1]||0;
-      const tx=(x-x0)/(x1-x0), tz=(z-z0)/(z1-z0);
-      return (h00*(1-tx)+h10*tx)*(1-tz) + (h01*(1-tx)+h11*tx)*tz;
+    function findNearest(sorted,v){
+      let lo=0,hi=sorted.length-1;
+      if(v<=sorted[0]) return sorted[0];
+      if(v>=sorted[hi]) return sorted[hi];
+      while(lo<=hi){
+        const mid=Math.floor((lo+hi)/2);
+        if(sorted[mid]===v) return v;
+        if(sorted[mid]<v) lo=mid+1; else hi=mid-1;
+      }
+      const a=sorted[Math.max(0,lo-1)], b=sorted[Math.min(sorted.length-1,lo)];
+      return (Math.abs(a-v)<=Math.abs(b-v))?a:b;
     }
 
-    // Create tank meshes and mapped path
+    // Tanks
     const colors=[0xff0000,0x0000ff,0xffff00,0xff00ff,0x00ffff,0xff8800];
     let colorIdx=0;
     for(const id in tanks){
@@ -133,21 +145,21 @@
       scene.add(mesh);
       t.mesh=mesh;
 
-      // Map path to world coordinates
       t.worldPath = t.path.map(([tx,tz])=>{
-        const x = tx - centerX;
-        const z = tz - centerZ;
-        const y = getTerrainHeight(tx, tz) + 2;
-        return {x,y,z};
+        const nx=findNearest(xKeys,tx), nz=findNearest(zKeys,tz);
+        const h = terrainData[String(nx)]?.[String(nz)]||0;
+        return {tx,nz,x:nx-centerX,y:h+2,z:nz-centerZ};
       });
-      if(t.worldPath.length) {
+
+      if(t.worldPath.length){
         const p0 = t.worldPath[0];
-        mesh.position.set(p0.x, p0.y, p0.z);
+        mesh.position.set(p0.x,p0.y,p0.z);
       }
-      t.currentIndex = 0;
+      t.currentIndex=0;
+      t.progress=0;
     }
 
-    // Initialize camera above first tank
+    // Camera
     const firstId = Object.keys(tanks)[0];
     if(firstId){
       const f = tanks[firstId].mesh;
@@ -155,43 +167,44 @@
       camera.lookAt(f.position);
     }
 
-    // Clock for delta time
-    const clock = new THREE.Clock();
-    const moveSpeed = 15; // units per second
+    // Speed slider
+    let speed = 1;
+    const speedSlider = document.getElementById('speedSlider');
+    const speedVal = document.getElementById('speedVal');
+    speedSlider.addEventListener('input', ()=>{
+      speed = parseFloat(speedSlider.value);
+      speedVal.innerText = speed.toFixed(1);
+    });
 
+    // Frame-rate independent animation
+    let lastTime = performance.now();
     function animate(){
       requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+      const now = performance.now();
+      const delta = (now - lastTime)/16.67; // 60FPS baseline
+      lastTime = now;
 
       for(const id in tanks){
         const t = tanks[id];
         const wp = t.worldPath;
-        if(wp.length<2) continue;
+        if(!wp.length) continue;
+        let cur = wp[t.currentIndex];
+        let next = wp[Math.min(t.currentIndex+1, wp.length-1)];
 
-        const cur = wp[t.currentIndex];
-        const next = wp[Math.min(t.currentIndex+1, wp.length-1)];
-        const dir = new THREE.Vector3(next.x-cur.x,0,next.z-cur.z);
-        const dist = dir.length();
-        dir.normalize();
-
-        const move = moveSpeed*delta;
-        if(move >= dist){
-          t.currentIndex = Math.min(t.currentIndex+1, wp.length-1);
-          t.mesh.position.set(next.x,next.y,next.z);
-        } else {
-          t.mesh.position.x += dir.x*move;
-          t.mesh.position.z += dir.z*move;
-          const worldX = t.mesh.position.x+centerX;
-          const worldZ = t.mesh.position.z+centerZ;
-          t.mesh.position.y = getTerrainHeight(worldX, worldZ)+2;
+        t.progress += speed * delta;
+        while(t.progress >= 1 && t.currentIndex < wp.length-1){
+          t.progress -= 1;
+          t.currentIndex++;
+          cur = wp[t.currentIndex];
+          next = wp[Math.min(t.currentIndex+1, wp.length-1)];
         }
 
-        // Smooth rotation
-        const targetRotation = Math.atan2(dir.x, dir.z);
-        t.mesh.rotation.y = THREE.MathUtils.lerp(t.mesh.rotation.y, targetRotation, 0.1);
+        const px = THREE.MathUtils.lerp(cur.x,next.x,t.progress);
+        const py = THREE.MathUtils.lerp(cur.y,next.y,t.progress);
+        const pz = THREE.MathUtils.lerp(cur.z,next.z,t.progress);
+        t.mesh.position.set(px,py,pz);
       }
 
-      // Camera follow
       if(firstId){
         const f = tanks[firstId].mesh;
         const desired = new THREE.Vector3(f.position.x+60,f.position.y+80,f.position.z+120);
@@ -203,11 +216,12 @@
     }
     animate();
 
-    window.addEventListener('resize',()=>{
+    window.addEventListener('resize', ()=>{
       renderer.setSize(window.innerWidth,window.innerHeight);
       camera.aspect = window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
     });
+
     overlay.style.display='none';
   }
 })();
