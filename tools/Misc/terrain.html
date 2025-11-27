@@ -159,7 +159,7 @@
       t.progress=0;
     }
 
-    // Camera
+    // Camera initial
     const firstId = Object.keys(tanks)[0];
     if(firstId){
       const f = tanks[firstId].mesh;
@@ -181,33 +181,60 @@
     function animate(){
       requestAnimationFrame(animate);
       const now = performance.now();
-      const delta = (now - lastTime)/16.67; // 60FPS baseline
+      const delta = (now - lastTime)/16.67; 
       lastTime = now;
 
+      // >>>>>>> SMOOTH MOVEMENT SYSTEM <<<<<<<<
       for(const id in tanks){
         const t = tanks[id];
         const wp = t.worldPath;
-        if(!wp.length) continue;
-        let cur = wp[t.currentIndex];
-        let next = wp[Math.min(t.currentIndex+1, wp.length-1)];
+        if(wp.length < 2) continue;
 
-        t.progress += speed * delta;
-        while(t.progress >= 1 && t.currentIndex < wp.length-1){
-          t.progress -= 1;
-          t.currentIndex++;
-          cur = wp[t.currentIndex];
-          next = wp[Math.min(t.currentIndex+1, wp.length-1)];
+        // Precompute segment lengths
+        if(!t._len){
+          t._len = [];
+          for(let i=0;i<wp.length-1;i++){
+            const dx = wp[i+1].x - wp[i].x;
+            const dy = wp[i+1].y - wp[i].y;
+            const dz = wp[i+1].z - wp[i].z;
+            t._len[i] = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          }
         }
 
-        const px = THREE.MathUtils.lerp(cur.x,next.x,t.progress);
-        const py = THREE.MathUtils.lerp(cur.y,next.y,t.progress);
-        const pz = THREE.MathUtils.lerp(cur.z,next.z,t.progress);
+        let remaining = speed * delta; // movement per frame
+
+        while(remaining > 0 && t.currentIndex < wp.length-1){
+          const segLen = t._len[t.currentIndex];
+          const distLeft = segLen * (1 - t.progress);
+
+          if(remaining >= distLeft){
+            remaining -= distLeft;
+            t.currentIndex++;
+            t.progress = 0;
+          } else {
+            t.progress += remaining / segLen;
+            remaining = 0;
+          }
+        }
+
+        const cur = wp[t.currentIndex];
+        const nxt = wp[Math.min(t.currentIndex+1, wp.length-1)];
+
+        const px = THREE.MathUtils.lerp(cur.x, nxt.x, t.progress);
+        const py = THREE.MathUtils.lerp(cur.y, nxt.y, t.progress);
+        const pz = THREE.MathUtils.lerp(cur.z, nxt.z, t.progress);
+
         t.mesh.position.set(px,py,pz);
       }
 
+      // Smooth camera follow
       if(firstId){
         const f = tanks[firstId].mesh;
-        const desired = new THREE.Vector3(f.position.x+60,f.position.y+80,f.position.z+120);
+        const desired = new THREE.Vector3(
+          f.position.x+60,
+          f.position.y+80,
+          f.position.z+120
+        );
         camera.position.lerp(desired,0.1);
         camera.lookAt(f.position);
       }
