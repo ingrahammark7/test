@@ -43,6 +43,8 @@ class thull:
 		self.bar=0
 		self.gr=0
 		self.tf=0
+		self.tte=0
+		self.ttr=0
 		
 	def firehead(self):
 		self.ammo-=1
@@ -345,7 +347,10 @@ class thull:
 			return self.power/hur
 			
 	def turspe(self):
+		if self.ttr!=0:
+			return self.ttr
 		foo=self.ttspe(self.turse(),self.rotd()/2,self.apup(),self.turm())
+		self.ttr=foo.evalf()
 		return foo
 		
 	def hspe(self):
@@ -367,10 +372,13 @@ class thull:
 		return lenn
 			
 	def rspe(self):
+		if(self.tte!=0):
+			return self.tte
 		gf=self.mass*nuct.baseobj().getg()*self.rofric
 		gf.evalf()
 		gf=self.power/gf
 		gf**=1/3
+		self.tte=gf.evalf()
 		return gf
 		
 	def barrh(self):
