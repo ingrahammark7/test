@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Dismiss Case" 
+footer_text = "Petition for Writ of Mandate"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Chase Bank",
+        "John Doe",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: CGC25625577")
+    c.drawString(space, top_margin - 4* inch, "Case Number: ")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, footer_text)
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "This dismissal is only valid if judge agrees to go to jail for deleting filings. /n" 
+    intro_text = "I requested case Ingraham vs Chase Bank dismissed because judge committed fraud. Judge deletes all filings. Ban me from San Francisco Court and close all my cases. /n" 
     y_position -= .25*inch
     
     
