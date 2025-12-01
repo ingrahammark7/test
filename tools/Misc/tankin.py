@@ -349,7 +349,7 @@ class tankin:
                 return False
             return True
             
-from datetime import datetime
+
 tt = tankin()
 yt2=tankin()
 tt.termm()

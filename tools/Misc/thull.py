@@ -45,6 +45,7 @@ class thull:
 		self.tf=0
 		self.tte=0
 		self.ttr=0
+		self.dd=[]
 		
 	def firehead(self):
 		self.ammo-=1
@@ -122,9 +123,17 @@ class thull:
 		return du
 		
 	def getdd(self):
+		if len(self.dd)!=0:
+			fr=self.dd
+			return fr[0],fr[1],fr[2],fr[3],fr[4]
 		barm=self.getbarm()
 		du=pen.getdu()
 		rd,speed,mass,en=du.getparp(barm,du)
+		self.dd.append(rd.evalf())
+		self.dd.append(speed.evalf())
+		self.dd.append(mass.evalf())
+		self.dd.append(en)
+		self.dd.append(du)
 		return rd,speed,mass,en,du
 		
 	def getbarm(self):
@@ -299,6 +308,8 @@ class thull:
 			self=self.getmass()
 			self.power=self.getpow()
 			self.tf=self.tofic().evalf()
+			self.turspe()
+			self.rspe()
 			return self
 			
 	def getcc(self):
