@@ -6,7 +6,6 @@ import re
 import os
 import tkinter as tk
 from tkinter import ttk
-import time
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # ------------------------------
@@ -71,7 +70,7 @@ scale_x = display_rows / max_i
 scale_y = display_cols / max_j
 
 # ------------------------------
-# Fast fill zeros for display
+# Fast zero-fill for sparse display
 # ------------------------------
 def fill_display(sparse_dict, shape, factor_rows, factor_cols):
     display = np.zeros(shape, dtype=np.float32)
@@ -82,7 +81,7 @@ def fill_display(sparse_dict, shape, factor_rows, factor_cols):
             dj = j // factor_cols
             if dj >= shape[1]: continue
             display[di, dj] = h
-    # propagate last known value
+    # propagate last known value row-wise
     for i in range(shape[0]):
         last = 1e-6
         for j in range(shape[1]):
@@ -90,6 +89,7 @@ def fill_display(sparse_dict, shape, factor_rows, factor_cols):
                 display[i,j]=last
             else:
                 last = display[i,j]
+    # propagate last known value column-wise
     for j in range(shape[1]):
         last = 1e-6
         for i in range(shape[0]):
@@ -116,28 +116,44 @@ im = ax.imshow(display_terrain.T, origin='lower', cmap='terrain',
                norm=LogNorm(vmin=np.min(display_terrain), vmax=np.max(display_terrain)))
 plt.colorbar(im, ax=ax, label="Height (log scale)")
 
+# ------------------------------
+# Tank visualization
+# ------------------------------
 colors = ['red','blue','yellow','cyan','magenta','orange','green','purple']
 tank_lines = {}
 tank_dots = {}
+trail_length = 20
 for idx, tank_id in enumerate(sorted(tank_paths.keys())):
     line, = ax.plot([],[], color=colors[idx%len(colors)], label=f"Tank {tank_id}", linewidth=2)
     dot, = ax.plot([],[], 'o', color=colors[idx%len(colors)], markersize=6)
     tank_lines[tank_id] = line
     tank_dots[tank_id] = dot
 
-clock_text = ax.text(0.02,0.95,"", transform=ax.transAxes, fontsize=12,
-                     verticalalignment='top',
-                     bbox=dict(boxstyle="round", facecolor="white", alpha=0.7))
-
-# Shots
+# ------------------------------
+# Shots visualization
+# ------------------------------
 permanent_shots = True
+flash_duration = 5
+active_flashes = []
+proximity_radius = 3  # distance to trigger flash
 shot_markers = []
+
 if permanent_shots:
     for (x1,y1,x2,y2) in shots:
         line, = ax.plot([x1*scale_x, x2*scale_x],[y1*scale_y, y2*scale_y],
                         color="black", linewidth=1, linestyle="--")
         shot_markers.append(line)
 
+# ------------------------------
+# Clock
+# ------------------------------
+clock_text = ax.text(0.02,0.95,"", transform=ax.transAxes, fontsize=12,
+                     verticalalignment='top',
+                     bbox=dict(boxstyle="round", facecolor="white", alpha=0.7))
+
+# ------------------------------
+# Axes setup
+# ------------------------------
 ax.set_xlim(0, display_rows)
 ax.set_ylim(0, display_cols)
 ax.set_title("Top-down game view")
@@ -146,7 +162,6 @@ ax.set_ylabel("Y")
 ax.legend()
 
 max_steps = max(len(path) for path in tank_paths.values())
-trail_length = 20
 
 # ------------------------------
 # Update function
@@ -165,7 +180,33 @@ def update_frame(frame):
             tail_coords[:,1] *= scale_y
             if len(tail_coords)>0:
                 tank_dots[tank_id].set_data([tail_coords[-1,0]], [tail_coords[-1,1]])
+
     clock_text.set_text(f"Time step: {frame}")
+
+    # Temporary hit flashes
+    if not permanent_shots:
+        for (x1,y1,x2,y2) in shots:
+            for path in tank_paths.values():
+                if len(path)==0: continue
+                tank_pos = path[min(frame,len(path)-1)]
+                if np.hypot(tank_pos[0]-x2, tank_pos[1]-y2)<=proximity_radius:
+                    active_flashes.append((ax.plot([x1*scale_x, x2*scale_x],
+                                                   [y1*scale_y, y2*scale_y],
+                                                   color="black", linewidth=1, linestyle="--")[0],
+                                          flash_duration))
+    # Update flash timers
+    for flash in active_flashes[:]:
+        line, remaining = flash
+        remaining -= 1
+        alpha = remaining / flash_duration
+        line.set_alpha(alpha)
+        if remaining <= 0:
+            line.remove()
+            active_flashes.remove(flash)
+        else:
+            idx = active_flashes.index(flash)
+            active_flashes[idx] = (line, remaining)
+
     canvas.draw_idle()
 
 # ------------------------------
@@ -180,7 +221,7 @@ slider = tk.Scale(root, from_=0, to=max_steps, orient=tk.HORIZONTAL,
 slider.pack(side=tk.BOTTOM)
 
 # ------------------------------
-# Automatic playback (optional)
+# Auto-play loop
 # ------------------------------
 auto_play = True
 def autoplay_loop():
