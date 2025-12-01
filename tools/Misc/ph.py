@@ -15,6 +15,7 @@ import time
 # ------------------------------
 terrain_file = "f.json"
 movement_file = "f2.json"
+shot_file = "f3.json"  # optional
 
 # ------------------------------
 # Loading screen
@@ -52,7 +53,6 @@ time.sleep(0.05)
 with open(terrain_file, "r") as f:
     terrain_raw = json.load(f)
 
-# Sparse storage
 terrain_sparse = {}
 max_i = 0
 max_j = 0
@@ -92,6 +92,17 @@ for idx, (tank_id, x_str, y_str) in enumerate(matches):
     loading_screen.set_progress(50 + int(40*(idx+1)/len(matches)))
     loading_screen.root.update()
 
+# ------------------------------
+# Load optional shots
+# ------------------------------
+shots = []
+if os.path.exists(shot_file):
+    loading_screen.set_text("Loading shots...")
+    with open(shot_file,"r") as f:
+        raw = f.read()
+    shot_pattern = r"\|(\d+),(\d+),(\d+),(\d+)"
+    shots = [tuple(map(int, m)) for m in re.findall(shot_pattern, raw)]
+
 loading_screen.set_progress(100)
 loading_screen.set_text("Done!")
 loading_screen.root.update()
@@ -101,11 +112,9 @@ loading_screen.close()
 # ------------------------------
 # Determine display shape
 # ------------------------------
-# Approximate: fit terrain to screen size
 screen_rows, screen_cols = 400, 400  # approximate
 rows_factor = max(1, max_i // screen_rows)
 cols_factor = max(1, max_j // screen_cols)
-
 display_rows = (max_i + rows_factor - 1)//rows_factor
 display_cols = (max_j + cols_factor - 1)//cols_factor
 
@@ -152,7 +161,6 @@ plt.colorbar(im, label="Height (log scale)")
 colors = ['red','blue','yellow','cyan','magenta','orange','green','purple']
 tank_lines = {}
 tank_dots = {}
-
 for idx, tank_id in enumerate(sorted(tank_paths.keys())):
     line, = ax.plot([],[], color=colors[idx%len(colors)], label=f"Tank {tank_id}", linewidth=2)
     dot, = ax.plot([],[], 'o', color=colors[idx%len(colors)], markersize=6)
@@ -162,6 +170,16 @@ for idx, tank_id in enumerate(sorted(tank_paths.keys())):
 clock_text = ax.text(0.02,0.95,"", transform=ax.transAxes, fontsize=12,
                      verticalalignment='top',
                      bbox=dict(boxstyle="round", facecolor="white", alpha=0.7))
+
+# Shots
+permanent_shots = True  # set False for conditional display
+proximity_radius = 5    # conditional shots radius
+shot_markers = []
+
+if permanent_shots:
+    for (x1,y1,x2,y2) in shots:
+        line, = ax.plot([x1,x2],[y1,y2], color="black", linewidth=1, linestyle="--")
+        shot_markers.append(line)
 
 ax.set_xlim(0, display_rows)
 ax.set_ylim(0, display_cols)
@@ -174,10 +192,10 @@ max_steps = max(len(path) for path in tank_paths.values())
 trail_length = 20
 
 # ------------------------------
-# Animation function
+# Animation
 # ------------------------------
 def animate(frame):
-    # Update tanks
+    # Tanks
     for tank_id, path in tank_paths.items():
         current_step = min(frame, len(path))
         if current_step>0:
@@ -187,12 +205,29 @@ def animate(frame):
             tail_coords = np.array(path[start_idx:current_step])
             if len(tail_coords)>0:
                 tank_dots[tank_id].set_data([tail_coords[-1,0]], [tail_coords[-1,1]])
-    # Update clock
+    # Shots (conditional)
+    if not permanent_shots:
+        for idx, (x1,y1,x2,y2) in enumerate(shots):
+            active = False
+            for path in tank_paths.values():
+                if len(path)==0:
+                    continue
+                tank_pos = path[min(frame,len(path)-1)]
+                if np.hypot(tank_pos[0]-x2, tank_pos[1]-y2)<=proximity_radius:
+                    active = True
+                    break
+            if active:
+                if idx>=len(shot_markers):
+                    line, = ax.plot([x1,x2],[y1,y2], color="black", linewidth=1, linestyle="--")
+                    shot_markers.append(line)
+                else:
+                    shot_markers[idx].set_data([x1,x2],[y1,y2])
+            else:
+                if idx<len(shot_markers):
+                    shot_markers[idx].set_data([],[])
+    # Clock
     clock_text.set_text(f"Time step: {frame}")
-    return list(tank_lines.values()) + list(tank_dots.values()) + [clock_text]
+    return list(tank_lines.values()) + list(tank_dots.values()) + shot_markers + [clock_text]
 
-# ------------------------------
-# Run animation (Tkinter safe)
-# ------------------------------
 ani = FuncAnimation(fig, animate, frames=max_steps+5, interval=200, blit=False)
 plt.show()
