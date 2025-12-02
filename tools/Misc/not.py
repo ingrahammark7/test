@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Curtis Kin is disqualified from hearing this case and all other cases by me. I requested court forward case records to law enforcement including the transcript he faked. /n" 
+    intro_text = "Curtis Kin is disqualified from hearing this case and all other cases by me. I requested court forward case records to law enforcement including the transcript judge faked. /n Petitioner petitions this Court to: /n 1. Arrest judge. /n" 
     y_position -= .25*inch
     
     
