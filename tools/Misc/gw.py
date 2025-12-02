@@ -1,46 +1,62 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from ipywidgets import interact, FloatSlider
 
-# --- Parameters ---
-# Aircraft path: simple climb, cruise, and descent
-t = np.linspace(0, 100, 500)  # seconds
-x = t * 100                   # ground distance (m)
-y = 50*np.sin(0.05*t)         # lateral maneuver
-z = 20000 + 500*np.sin(0.1*t) # altitude (m)
+# ---------------------------
+# Base parameters
+# ---------------------------
+E0 = 500.0            # Initial kinetic energy (arbitrary units)
+m = 6.0               # Shock multiplier (empirical)
+k_att = 0.15          # Attenuation constant (1/cm)
+k_v = 1.0             # Cavity volume coefficient
+T_list = np.linspace(0, 2, 100)  # Armor thicknesses (arbitrary units)
+Delta_max = 0.6       # Max fraction of energy removed by thickest armor
+threshold = 0.5       # Fraction of energy loss considered protective
 
-# Air-relative Mach along path (example)
-mach_air = 0.9 + 0.15*np.sin(0.05*t)  # varies 0.9-1.05
+# Armor effect function
+def F(T):
+    return np.clip(1 - 0.5*T, 0.5, 1.2)
 
-# Ground-relative Mach with tailwind (constant 100 m/s)
-speed_of_sound = 295  # m/s at altitude
-V_air = mach_air * speed_of_sound
-V_ground = V_air + 100
-mach_ground = V_ground / speed_of_sound
+# Energy removed by armor
+def energy_post(T, Delta_max):
+    return E0 * (1 - np.clip((Delta_max/2)*T, 0, Delta_max))
 
-# --- 3D Plot ---
-fig = plt.figure(figsize=(12,8))
-ax = fig.add_subplot(111, projection='3d')
+# Compute trapped energy
+def trapped_energy(T, r_yaw, f_eff, L, Delta_max):
+    d_yaw = r_yaw / f_eff * F(T)
+    d_shock = m * d_yaw
+    E_post = energy_post(T, Delta_max)
+    E_trapped = E_post * (1 - np.exp(-k_att*(L - d_shock)))
+    return E_trapped
 
-# Color by air-relative Mach
-colors = plt.cm.plasma((mach_air - mach_air.min()) / (mach_air.max() - mach_air.min()))
+# ---------------------------
+# Interactive plot with crossover highlight
+# ---------------------------
+def interactive_plot(r_yaw=1.0, f_eff=0.4, L=30.0):
+    E_trap_list = np.array([trapped_energy(T, r_yaw, f_eff, L, Delta_max) for T in T_list])
+    E_loss_fraction = 1 - E_trap_list / E0
+    
+    # Find crossover index (armor just becomes protective)
+    idx = np.argmax(E_loss_fraction >= threshold)
+    T_crossover = T_list[idx] if idx > 0 else None
+    
+    plt.figure(figsize=(10,5))
+    plt.plot(T_list, E_trap_list, label='Trapped Energy')
+    plt.axhline(E0, color='gray', linestyle='--', label='Initial Energy')
+    
+    # Highlight crossover
+    if T_crossover is not None:
+        plt.axvline(T_crossover, color='red', linestyle='--', label=f'Crossover ~{T_crossover:.2f}')
+    
+    plt.xlabel('Armor Thickness (arbitrary units)')
+    plt.ylabel('Trapped Energy (arbitrary units)')
+    plt.title(f'Yaw={r_yaw} cm, Friction={f_eff}, Medium Thickness={L} cm')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
-ax.scatter(x, y, z, c=colors, s=20)
-
-# Labels and aesthetics
-ax.set_xlabel('Ground X (m)')
-ax.set_ylabel('Lateral Y (m)')
-ax.set_zlabel('Altitude Z (m)')
-ax.set_title('Aircraft Maneuver with Air & Ground Mach Visualization')
-
-# Colorbar for Mach
-mappable = plt.cm.ScalarMappable(cmap='plasma')
-mappable.set_array(mach_air)
-cbar = plt.colorbar(mappable, ax=ax, shrink=0.5)
-cbar.set_label('Air-relative Mach')
-
-# Plot tailwind vector at starting point
-ax.quiver(x[0], y[0], z[0], 100, 0, 0, color='cyan', length=500, normalize=True, linewidth=2, label='Jet Stream Tailwind')
-ax.legend()
-
-plt.show()
+# Create sliders for r_yaw, f_eff, and L
+interact(interactive_plot,
+         r_yaw=FloatSlider(value=1.0, min=0.5, max=3.0, step=0.1, description='Yaw Radius (cm)'),
+         f_eff=FloatSlider(value=0.4, min=0.1, max=1.0, step=0.05, description='Friction'),
+         L=FloatSlider(value=30.0, min=10.0, max=50.0, step=1.0, description='Medium Thickness (cm)'));
