@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Writ of Mandate"
+footer_text = "Request to Dismiss Case"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: ")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP04621")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, footer_text)
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Curtis Kin is disqualified from hearing this case and all other cases by me. I requested court forward case records to law enforcement including the transcript judge faked. /n Petitioner petitions this Court to: /n 1. Arrest judge. /n" 
+    intro_text = "The purpose of this case was to turn off the automatic routing of my cases to Curtis Kin. Because that has been achieved, judge should dismiss or merge case with 25STCP03825. /n" 
     y_position -= .25*inch
     
     
