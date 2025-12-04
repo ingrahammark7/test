@@ -62,11 +62,13 @@ class thull:
 		poww=self.power
 		fps=(poww/self.fen)*t/eff
 		self.fuel-=fps
-		rr=sp.rad(self.heading)
-		dx=spe*sp.cos(rr)
-		dy=spe*sp.sin(rr)
+		rr=sp.rad(self.heading).evalf(nuct.PRECISION)
+		dx=spe*sp.cos(rr).evalf(nuct.PRECISION)
+		dy=spe*sp.sin(rr).evalf(nuct.PRECISION)
 		self.x+=dx
 		self.y+=dy
+		self.x=round(self.x)
+		self.y=round(self.y)
 		return self
 	
 	def turfrac(self):

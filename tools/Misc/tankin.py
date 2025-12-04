@@ -242,6 +242,8 @@ class tankin:
     		self.term[x][y] = self.nearr(x,y)
     		
     def pethh(self,t,x,y):
+    	if(t.power==0):
+    		return
     	she=(t.x,t.y)
     	if she in t.sh:
     		t.power=0
@@ -258,6 +260,17 @@ class tankin:
     		return
     	self.move(t,bl)
     	
+    def nex(self, t,heading_deg):
+        dte=dt.now()
+        heading_deg=float(heading_deg)
+        rad = np.radians(heading_deg)
+        dx = np.cos(rad)
+        dy = np.sin(rad)
+        nx = t.x + np.where(dx > 0.5, 1, np.where(dx < -0.5, -1, 0))
+        ny = t.y + np.where(dy > 0.5, 1, np.where(dy < -0.5, -1, 0))
+        print(t,heading_deg,(dte-dt.now()).total_seconds())
+        return nx, ny
+    
     def mof(self,t,ttl):
     	hj=45
     	for i in range(8):
@@ -269,20 +282,10 @@ class tankin:
     		if(tes):
     			return ttl
     	return None
-    	
-    def nex(self, t,heading_deg):
-        heading_deg=float(heading_deg)
-        rad = np.radians(heading_deg)
-        dx = np.cos(rad)
-        dy = np.sin(rad)
-        nx = t.x + np.where(dx > 0.5, 1, np.where(dx < -0.5, -1, 0))
-        ny = t.y + np.where(dy > 0.5, 1, np.where(dy < -0.5, -1, 0))
-        return nx, ny
 
     def move(self,t, heading_deg):
-        nx, ny = self.nex(t,heading_deg)
-        t.x,t.y=nx,ny
-        return nx, ny
+        t.heading=heading_deg
+        t.move(self.times)
     	
     def gethx(self,t1,x1,y1):
     	x=t1.x
@@ -321,7 +324,6 @@ class tankin:
         if dx > dy:
             err=dx/2
             while x != ex:
-                print(x)
                 t=np.hypot(x-starx,y-stary)/np.hypot(ex-starx,ey-stary)
                 hol=starz+t*(eh-starz)
                 self.doc(x,y)
@@ -356,8 +358,12 @@ tt.termm()
 tt.savem()
 ts=""
 cd=1
+prx=0
+pry=0
 for ig in range(round(tt.midx+tt.midy)):	
 	ttf=tt.cf[cd]
 	tt.pethh(ttf,tt.midx,tt.midy)
 	ts+=f"|{cd} tank moved to {ttf.x},{ttf.y}"
+	print(round(ttf.x,3),round(ttf.y,3))
+	print(ig)
 tt.saved(ts,"f2.json")
