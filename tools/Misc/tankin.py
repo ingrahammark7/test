@@ -23,6 +23,17 @@ sker=pen.getskin()
 nf=nuct.pm
 hj=45
 
+def saf(x):
+	if isinstance(x,sp.Basic):
+		if(x.is_number):
+			return int(float(x))
+	if isinstance(x,dict):
+		return {saf(k): saf(v) for k,v in x.items()}
+	if isinstance(x,(list,tuple,set)):
+		t=type(x)
+		return t(saf(v) for v in x)
+	return x
+
 def doff(s):
     strr="0x"
     for i in range(s):
@@ -72,7 +83,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * am/4
+        self.maxx = self.times * t1.rspe() * am/40
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.midx=self.maxx/2
@@ -190,9 +201,9 @@ class tankin:
     def ck(self,s):
         if isinstance(s,dict):
             newd={}
-            print(len(s.items()))
             for k,v in s.items():
             	k=int(k)
+            	v=saf(v)
             	newd[k]=self.ck(v)
             return newd
         elif isinstance(s,(list,tuple,set)):
@@ -421,19 +432,18 @@ class tankin:
 tt = tankin()
 yt2=tankin()
 tt.termm()
-tt.savem()
 ts=""
 cd=1
 prx=0
 pry=0
 dte=dt.now()
-for ig in range(200):	
+for ig in range(int(tt.midx)):
     ttf=tt.cf[cd]
     tt.peto(ttf,tt.midx,tt.midy)
-    print(round(ttf.x),round(ttf.y))
 ts=tt.tse
 dte=dte-dt.now()
 dte=dte.total_seconds()
 print(dte)
-tt.savedd(ts,"f2.json")
 tt.saved(tt.term,"f.json")
+tt.savedd(ts,"f2.json")
+
