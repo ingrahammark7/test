@@ -70,7 +70,7 @@ class tankin:
         self.hmm=float(self.hm())
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
-        self.times = (min(f1, f2) * 16).evalf()
+        self.times = (min(f1, f2) * 16).evalf()*2
         self.maxx = self.times * t1.rspe() * am/4
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
@@ -269,23 +269,19 @@ class tankin:
     		self.pethh(t,x,y)
     	
     def nex(self, t,heading_deg):
-        heading_deg=float(heading_deg)
-        rad = np.radians(heading_deg)
-        dx = np.cos(rad)
-        dy = np.sin(rad)
-        nx = t.x + np.where(dx > 0.5, 1, np.where(dx < -0.5, -1, 0))
-        ny = t.y + np.where(dy > 0.5, 1, np.where(dy < -0.5, -1, 0))
+        dx,dy=t.dotr(heading_deg)
+        nx = t.x + dx
+        ny = t.y + dy
         return nx, ny
     
     def mof(self,t,ttl):
     	hj=45
-    	for i in range(8):
-    		ttl+=hj
-    		if(ttl>360):
-    			ttl=hj
+    	ttl%=360
+    	for _ in range(8):
     		t.heading=ttl
     		nx,ny=self.nex(t,ttl)
     		tes=self.torc(nx,ny,t)
+    		ttl+=hj
     		if(tes):
     			return ttl
     	return None
@@ -308,8 +304,28 @@ class tankin:
     	dy = y1 - y
     	if dx == 0 and dy == 0:
     		return 0
-    	ang = sp.deg(sp.atan2(dy, dx))
-    	return ang if ang >= 0 else ang + 360
+    	if(dy<0):
+    		if(dx<0):
+    			if(dx/dy>1):
+    				return 180
+    			else:
+    				return 225
+    		else:
+    			if(dx/dy>-1):
+    				return 0
+    			else:
+    				return 315
+    	else:
+    			if(dx<0):
+    				if(dx/dy>-1):
+    					return 135
+    				else:
+    					return 90
+    			else:
+    				if(dx/dy>1):
+    					return 0
+    				else:
+    					return 45		
     
     def geth(self,t1,t2):
     	x1,y1=t2.x,t2.y
@@ -379,7 +395,6 @@ for ig in range(round(tt.midx+tt.midy)):
 	tt.peto(ttf,tt.midx,tt.midy)
 	ts+=f"|{cd} tank moved to {ttf.x},{ttf.y}"
 	print(round(ttf.x),round(ttf.y))
-	print("de",tt.midx,tt.midy)
 dte=dte-dt.now()
 dte=dte.total_seconds()
 print(dte)

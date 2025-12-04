@@ -2,8 +2,10 @@ import pen
 import nuct
 import sympy as sp
 from datetime import datetime as dt
+import numpy as np
 
 thres=(nuct.baseobj().gethw()*nuct.alpha).evalf()
+pro=nuct.PRECISION
 
 class thull:
 	def __init__(self, name, length, ammo, armorfront):
@@ -63,15 +65,28 @@ class thull:
 			return
 		self.x,self.y=self.nm(t)
 		
+	def dotr(self,he):
+		he%=360
+		dx,dy=0,0
+		if(45>he or he>315):
+			dx=1
+		else:
+			if(135<he<225):
+				dx=-1
+		if(135>he>45):
+			dy=1
+		else:
+			if(215<he<315):
+				dy=-1
+		return dx,dy
+		
+	
 	def nm(self,t):
-		spe=self.getrs(t)*t
 		eff=.5
 		poww=self.power
 		fps=(poww/self.fen)*t/eff
 		self.fuel-=fps
-		rr=sp.rad(self.heading).evalf(nuct.PRECISION)
-		dx=spe*sp.cos(rr).evalf(nuct.PRECISION)
-		dy=spe*sp.sin(rr).evalf(nuct.PRECISION)
+		dx,dy=self.dotr(self.heading)
 		fx=round(self.x+dx)
 		fy=round(self.y+dy)
 		return fx,fy
