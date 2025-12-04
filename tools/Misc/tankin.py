@@ -187,47 +187,23 @@ class tankin:
             nn*=n1
             return nn
             
-
-    def ck(self, s):
-        """
-        Recursively convert a structure for JSON:
-        - SymPy numbers as keys or values → Python floats
-        - Nested dicts/lists/sets handled recursively
-        """
-        if isinstance(s, dict):
-            new_d = {}
-            for k, v in s.items():
-                # Convert key if SymPy
-                if isinstance(k, sp.Basic):
-                    k = float(k.evalf())
-                elif isinstance(k, np.generic):
-                    k = k.item()
-                new_d[k] = self.ck(v)  # recursively process value
-            return new_d
-        elif isinstance(s, (list, tuple, set)):
-            return [self.ck(x) for x in s]
-        elif isinstance(s, sp.Basic):
-            return float(s.evalf())
-        else:
-            return s
-
-    def saved(self, s, fn):
-        """
-        Save the structure s to JSON file fn after converting keys and values.
-        """
-        s_clean = self.ck(s)  # wrap everything safely
-        with open(fn, "w") as f:
-            json.dump(s_clean, f, indent=2)
-            print("exported to", fn)
-
-    # Remove savem() completely; use ck() instead
-    def ck_save_term(self):
-        """
-        Save self.term to f.json for Three.js using ck().
-        """
-        if self.l == 1:
-            return
-        self.saved(self.term, "f.json")
+    def ck(self,s):
+        if isinstance(s,dict):
+            newd={}
+            print(len(s.items()))
+            for k,v in s.items():
+            	k=int(k)
+            	newd[k]=self.ck(v)
+            return newd
+        elif isinstance(s,(list,tuple,set)):
+          	return [self.ck(x) for x in s]
+        return s
+            
+    def savedd(self,s,fn):
+    	filen=fn
+    	with open(filen, "w") as f:
+                f.write(s)
+                print("exported to ",filen)
     
     def saved(self,s,fn):
         filen=fn
@@ -451,7 +427,7 @@ cd=1
 prx=0
 pry=0
 dte=dt.now()
-for ig in range(round(tt.midx+tt.midy)):	
+for ig in range(200):	
     ttf=tt.cf[cd]
     tt.peto(ttf,tt.midx,tt.midy)
     print(round(ttf.x),round(ttf.y))
@@ -459,5 +435,5 @@ ts=tt.tse
 dte=dte-dt.now()
 dte=dte.total_seconds()
 print(dte)
-tt.saved(ts,"f2.json")
+tt.savedd(ts,"f2.json")
 tt.saved(tt.term,"f.json")
