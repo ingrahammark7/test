@@ -59,7 +59,7 @@ class thull:
 	def move(self,t):
 		spe=self.rspe()*t
 		eff=.5
-		poww=self.power()
+		poww=self.power
 		fps=(poww/self.fen)*t/eff
 		self.fuel-=fps
 		rr=sp.rad(self.heading)
@@ -306,7 +306,7 @@ class thull:
 	
 	def init(self):
 			self=self.getmass()
-			self.power=self.getpow()
+			self.power=self.getpow().evalf()
 			self.tf=self.tofic().evalf()
 			self.turspe()
 			self.rspe()
