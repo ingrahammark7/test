@@ -46,6 +46,7 @@ class thull:
 		self.tte=0
 		self.ttr=0
 		self.dd=[]
+		self.so=0
 		
 	def firehead(self):
 		self.ammo-=1
@@ -57,7 +58,13 @@ class thull:
 		return t1
 	
 	def move(self,t):
-		spe=self.rspe()*t
+		if self.fuel<=0:
+			self.power=0
+			return
+		self.x,self.y=self.nm(t)
+		
+	def nm(self,t):
+		spe=self.getrs(t)/t
 		eff=.5
 		poww=self.power
 		fps=(poww/self.fen)*t/eff
@@ -65,11 +72,16 @@ class thull:
 		rr=sp.rad(self.heading).evalf(nuct.PRECISION)
 		dx=spe*sp.cos(rr).evalf(nuct.PRECISION)
 		dy=spe*sp.sin(rr).evalf(nuct.PRECISION)
-		self.x+=dx
-		self.y+=dy
-		self.x=round(self.x)
-		self.y=round(self.y)
-		return self
+		fx=round(self.x+dx)
+		fy=round(self.y+dy)
+		return fx,fy
+		
+	def getrs(self,t):
+		if(self.so==0):
+			self.so=round(sp.N(self.rspe()*t))
+			return self.so
+		return self.so
+		
 	
 	def turfrac(self):
 		return self.th/2

@@ -243,6 +243,7 @@ class tankin:
     		
     def pethh(self,t,x,y):
     	if(t.power==0):
+    		os.sys.exit()
     		return
     	she=(t.x,t.y)
     	if she in t.sh:
@@ -260,15 +261,17 @@ class tankin:
     		return
     	self.move(t,bl)
     	
+    def peto(self,t,x,y):
+    	for _ in range(self.getmo(t)):
+    		self.pethh(t,x,y)
+    	
     def nex(self, t,heading_deg):
-        dte=dt.now()
         heading_deg=float(heading_deg)
         rad = np.radians(heading_deg)
         dx = np.cos(rad)
         dy = np.sin(rad)
         nx = t.x + np.where(dx > 0.5, 1, np.where(dx < -0.5, -1, 0))
         ny = t.y + np.where(dy > 0.5, 1, np.where(dy < -0.5, -1, 0))
-        print(t,heading_deg,(dte-dt.now()).total_seconds())
         return nx, ny
     
     def mof(self,t,ttl):
@@ -277,15 +280,23 @@ class tankin:
     		ttl+=hj
     		if(ttl>360):
     			ttl=hj
+    		t.heading=ttl
     		nx,ny=self.nex(t,ttl)
     		tes=self.torc(nx,ny,t)
     		if(tes):
     			return ttl
     	return None
+    	
+    def getmo(self,t):
+    	return t.getrs(self.times)
+    	
+    def gettf(self,t):
+    	return self.times/self.getmo(t)
 
     def move(self,t, heading_deg):
         t.heading=heading_deg
-        t.move(self.times)
+        ter=self.gettf(t)
+        t.move(ter)
     	
     def gethx(self,t1,x1,y1):
     	x=t1.x
@@ -300,7 +311,6 @@ class tankin:
     def geth(self,t1,t2):
     	x1,y1=t2.x,t2.y
     	return self.gethx(t1,x1,y1)
-    	
     	
     def loscheck(self,t1,t2):
         starx=round(self.maxc(t1.x))
@@ -364,6 +374,5 @@ for ig in range(round(tt.midx+tt.midy)):
 	ttf=tt.cf[cd]
 	tt.pethh(ttf,tt.midx,tt.midy)
 	ts+=f"|{cd} tank moved to {ttf.x},{ttf.y}"
-	print(round(ttf.x,3),round(ttf.y,3))
-	print(ig)
+	print(round(ttf.x),round(ttf.y))
 tt.saved(ts,"f2.json")
