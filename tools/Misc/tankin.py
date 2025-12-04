@@ -80,6 +80,7 @@ class tankin:
         self.rr=round(self.hmm)
         self.l=0
         self.inw(t1)
+        self.tse=""
         for te in self.teams:
             maxe = self.maxx
             if te == 0:
@@ -276,6 +277,7 @@ class tankin:
             return
         for _ in range(self.getmo(t)):
             self.pethh(t,x,y)
+            self.tse+=f"|1 tank moved to {t.x},{t.y}"
         
     def nex(self, t,heading_deg):
         dx,dy=t.dotr(heading_deg)
@@ -409,8 +411,8 @@ dte=dt.now()
 for ig in range(round(tt.midx+tt.midy)):	
     ttf=tt.cf[cd]
     tt.peto(ttf,tt.midx,tt.midy)
-    ts+=f"|{cd} tank moved to {ttf.x},{ttf.y}"
     print(round(ttf.x),round(ttf.y))
+ts=tt.tse
 dte=dte-dt.now()
 dte=dte.total_seconds()
 print(dte)
