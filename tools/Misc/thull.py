@@ -90,7 +90,6 @@ class thull:
 			turfrac=self.turfrac()
 			turfrac=180*turfrac
 			turfrac=90-turfrac
-			print(self.heading,self.thead)
 			if(zan>turfrac):
 				return self.turhit(xan,zan,roundd)
 			xfan=xan-self.heading
@@ -115,17 +114,14 @@ class thull:
 			efan-=self.frontbfan
 			xfan-=self.frontgfan
 			xfan+=90
-			print("front tur",xfan,efan)
 			return self.material.pen(roundd,xfan,efan),self.armorfront
 		if(45<xfan<135 or -45>xfan>-135):
 			efan-=self.frontbfan
-			print("side tur xfan efan",xfan,efan)
 			return self.material.pen(roundd,xfan,efan),self.armorside
-		print("rear tur",xfan,efan)
 		return self.material.pen(roundd,xfan,efan),self.armorrear
 	
 	def getbar(self):
-		rd,speed,mass,en,du=self.getdd()
+		rd,speed,mass,_,du=self.getdd()
 		spee=pen.getspeed(du)
 		ld=du.getldfm(mass,rd)
 		du.bafac=ld
