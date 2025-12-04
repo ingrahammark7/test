@@ -247,7 +247,6 @@ class tankin:
     		
     def pethh(self,t,x,y):
     	if(t.power==0):
-    		os.sys.exit()
     		return
     	she=(t.x,t.y)
     	if she in t.sh:
