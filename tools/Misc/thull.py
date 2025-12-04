@@ -64,7 +64,7 @@ class thull:
 		self.x,self.y=self.nm(t)
 		
 	def nm(self,t):
-		spe=self.getrs(t)/t
+		spe=self.getrs(t)*t
 		eff=.5
 		poww=self.power
 		fps=(poww/self.fen)*t/eff
