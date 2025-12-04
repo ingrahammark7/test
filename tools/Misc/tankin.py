@@ -78,11 +78,15 @@ class tankin:
         self.midy=self.maxy/2
         self.rr=round(self.hmm)
         self.l=0
+        self.inw(t1)
         for te in self.teams:
             maxe = self.maxx
             if te == 0:
                 maxe = co
             self.dot(te, co, maxe - co, t1)
+            
+    def inw(self,t):
+            t.getrs(self.times)
             
     def dot(self, st, co, x, t1):
         for i in range(co):
@@ -287,7 +291,7 @@ class tankin:
     	return None
     	
     def getmo(self,t):
-    	return t.getrs(self.times)
+    	return t.so
     	
     def gettf(self,t):
     	return self.times/self.getmo(t)
@@ -369,10 +373,14 @@ ts=""
 cd=1
 prx=0
 pry=0
+dte=dt.now()
 for ig in range(round(tt.midx+tt.midy)):	
 	ttf=tt.cf[cd]
-	tt.pethh(ttf,tt.midx,tt.midy)
+	tt.peto(ttf,tt.midx,tt.midy)
 	ts+=f"|{cd} tank moved to {ttf.x},{ttf.y}"
 	print(round(ttf.x),round(ttf.y))
 	print("de",tt.midx,tt.midy)
+dte=dte-dt.now()
+dte=dte.total_seconds()
+print(dte)
 tt.saved(ts,"f2.json")
