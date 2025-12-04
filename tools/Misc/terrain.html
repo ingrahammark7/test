@@ -55,7 +55,7 @@
     if(!shotsResp.ok) throw new Error('Failed loading f3.json');
 
     const terrainData = await terrainResp.json();
-    const movesText = await movesResp;
+    const movesText = await movesResp.text();
     const shotsText = await shotsResp.text();
     overlay.innerText = 'Files loaded — building scene...';
     buildScene(terrainData, movesText, shotsText);
