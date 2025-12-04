@@ -68,15 +68,15 @@ class thull:
 	def dotr(self,he):
 		he%=360
 		dx,dy=0,0
-		if(45>he or he>315):
+		if(45>=he or he>=315):
 			dx=1
 		else:
-			if(135<he<225):
+			if(135<=he<=225):
 				dx=-1
-		if(135>he>45):
+		if(135>=he>=45):
 			dy=1
 		else:
-			if(215<he<315):
+			if(215<=he<=315):
 				dy=-1
 		return dx,dy
 		
@@ -87,8 +87,8 @@ class thull:
 		fps=(poww/self.fen)*t/eff
 		self.fuel-=fps
 		dx,dy=self.dotr(self.heading)
-		fx=round(self.x+dx)
-		fy=round(self.y+dy)
+		fx=self.x+dx
+		fy=self.y+dy
 		return fx,fy
 		
 	def getrs(self,t):
