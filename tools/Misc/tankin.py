@@ -187,8 +187,17 @@ class tankin:
             nn*=n1
             return nn
             
+    def ck(self,d):
+    	if isinstance(d,dict):
+    		return {str(k): self.ck(v) for k,v in d.items()}
+    	elif isinstance(d,list):
+    		return [self.ck(x) for x in d]
+    	else:
+    		return d
+    
     def saved(self,s,fn):
         filen=fn
+        s=self.ck(s)
         with open(filen, "w") as f:
                 json.dump(s, f)  
                 print("exported to ",filen)
@@ -417,3 +426,4 @@ dte=dte-dt.now()
 dte=dte.total_seconds()
 print(dte)
 tt.saved(ts,"f2.json")
+tt.saved(tt.term,"f.json")
