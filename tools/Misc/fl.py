@@ -1,21 +1,33 @@
-from flask import Flask, send_from_directory
+# debug_server.py
+import http.server
+import socketserver
 import os
 
-app = Flask(__name__, static_folder='static')
+PORT = 8000
+FILENAME = "static/f.json"
 
-# Serve the HTML page at the root
-@app.route('/')
-def index():
-    return send_from_directory(app.static_folder, 'terrain.html')
+class DebugHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        print(f"Request path: {self.path}")
+        if self.path.endswith(FILENAME):
+            try:
+                filesize = os.path.getsize(FILENAME)
+                print(f"Serving {FILENAME} ({filesize} bytes)")
+                with open(FILENAME, 'rb') as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+            except Exception as e:
+                print("Error reading file:", e)
+                self.send_error(500, "Internal Server Error")
+        else:
+            # fallback to default behavior
+            super().do_GET()
 
-# Serve any file from the static folder, including subfolders
-@app.route('/<path:filename>')
-def serve_files(filename):
-    file_path = os.path.join(app.static_folder, filename)
-    if os.path.exists(file_path):
-        return send_from_directory(app.static_folder, filename)
-    else:
-        return "File not found", 404
-
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    with socketserver.TCPServer(("", PORT), DebugHandler) as httpd:
+        print(f"Serving at http://localhost:{PORT}")
+        httpd.serve_forever()
