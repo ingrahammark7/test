@@ -154,14 +154,14 @@ class tankin:
         return self.torcc(mo,t)
     
     def torcc(self,mo,t):
-    	to=t.tf
-    	if(mo>to):
-    		return False
-    	return True
+        to=t.tf
+        if(mo>to):
+            return False
+        return True
     
     def torct(self,t):
-    	mm=self.gref(t)
-    	return self.torcc(mm,t)
+        mm=self.gref(t)
+        return self.torcc(mm,t)
             
     def dol(self,i,j,zper):
             zper += i * j + i + j
@@ -187,13 +187,47 @@ class tankin:
             nn*=n1
             return nn
             
-    def ck(self,d):
-    	if isinstance(d,dict):
-    		return {str(k): self.ck(v) for k,v in d.items()}
-    	elif isinstance(d,list):
-    		return [self.ck(x) for x in d]
-    	else:
-    		return d
+
+    def ck(self, s):
+        """
+        Recursively convert a structure for JSON:
+        - SymPy numbers as keys or values → Python floats
+        - Nested dicts/lists/sets handled recursively
+        """
+        if isinstance(s, dict):
+            new_d = {}
+            for k, v in s.items():
+                # Convert key if SymPy
+                if isinstance(k, sp.Basic):
+                    k = float(k.evalf())
+                elif isinstance(k, np.generic):
+                    k = k.item()
+                new_d[k] = self.ck(v)  # recursively process value
+            return new_d
+        elif isinstance(s, (list, tuple, set)):
+            return [self.ck(x) for x in s]
+        elif isinstance(s, sp.Basic):
+            return float(s.evalf())
+        else:
+            return s
+
+    def saved(self, s, fn):
+        """
+        Save the structure s to JSON file fn after converting keys and values.
+        """
+        s_clean = self.ck(s)  # wrap everything safely
+        with open(fn, "w") as f:
+            json.dump(s_clean, f, indent=2)
+            print("exported to", fn)
+
+    # Remove savem() completely; use ck() instead
+    def ck_save_term(self):
+        """
+        Save self.term to f.json for Three.js using ck().
+        """
+        if self.l == 1:
+            return
+        self.saved(self.term, "f.json")
     
     def saved(self,s,fn):
         filen=fn
