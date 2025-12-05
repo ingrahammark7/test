@@ -79,11 +79,11 @@ class tankin:
         self.times = 0
         self.teams = {0, co}
         self.clo=0
-        self.hmm=float(self.hm())
+        self.hmm=round(self.hm())
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * am/40
+        self.maxx = self.times * t1.rspe() * am/400
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.midx=self.maxx/2
@@ -146,7 +146,8 @@ class tankin:
             zper=self.dol(i,j,zper)
             
     def grefx(self,x,y):
-        return 0
+        x=round(x)
+        y=round(y)
         self.doc(x,y)
         z=self.term[x][y]
         x2=x-self.hmm
@@ -180,7 +181,7 @@ class tankin:
             zper=self.hash32(zper)
             zper/=ran
             zper-=wc1
-            self.term[i][j] =(-self.hmm/zper)**.5
+            self.term[i][j] =saf((-self.hmm/zper)**.5)
             return zper
     
     def hash32(self,x):
@@ -271,10 +272,13 @@ class tankin:
         return 0
         
     def doc(self,x,y):
+        x=round(x)
+        y=round(y)
+        return saf(self.doc2(x,y))
+    
+    def doc2(self,x,y):
         if not x in self.term:
             self.term[x]={}
-        if(x<0 or y<0):
-            self.term[x][y]=0
         if not y in self.term[x]:
             self.term[x][y] = self.nearr(x,y)
             
