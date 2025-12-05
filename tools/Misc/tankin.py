@@ -146,6 +146,7 @@ class tankin:
             zper=self.dol(i,j,zper)
             
     def grefx(self,x,y):
+        return 0
         self.doc(x,y)
         z=self.term[x][y]
         x2=x-self.hmm
@@ -179,7 +180,7 @@ class tankin:
             zper=self.hash32(zper)
             zper/=ran
             zper-=wc1
-            self.term[i][j] = (-self.hmm/zper)**.5
+            self.term[i][j] =(-self.hmm/zper)**.5
             return zper
     
     def hash32(self,x):
@@ -446,4 +447,3 @@ dte=dte.total_seconds()
 print(dte)
 tt.saved(tt.term,"f.json")
 tt.savedd(ts,"f2.json")
-
