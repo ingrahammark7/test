@@ -88,7 +88,7 @@ class tankin:
         self.maxy = self.maxx
         self.midx=self.maxx/2
         self.midy=self.maxy/2
-        self.rr=round(self.hmm)
+        self.rr=self.hmm
         self.l=0
         self.inw(t1)
         self.tse=""
@@ -112,8 +112,7 @@ class tankin:
         return self
     
     def tim2(self,x):
-        x=round(x)
-        tr=x%round(self.hmm)
+        tr=x%self.hmm
         x-=tr
         return x
     
@@ -128,7 +127,7 @@ class tankin:
             self.timer()
             maxx=self.maxx    
             maxy=self.maxy
-            for i in range(0,maxx,self.rr):
+            for i in range(0,round(maxx),self.rr):
                 self.doj(i,self.rr)
     
     def doj(self, i,rr):
@@ -146,8 +145,6 @@ class tankin:
             zper=self.dol(i,j,zper)
             
     def grefx(self,x,y):
-        x=round(x)
-        y=round(y)
         self.doc(x,y)
         z=self.term[x][y]
         x2=x-self.hmm
@@ -272,9 +269,7 @@ class tankin:
         return 0
         
     def doc(self,x,y):
-        x=round(x)
-        y=round(y)
-        return saf(self.doc2(x,y))
+        return self.doc2(x,y)
     
     def doc2(self,x,y):
         if not x in self.term:
