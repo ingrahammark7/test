@@ -123,10 +123,8 @@ class tankin:
     def termm(self):
             if(self.checkif()==1):
                 return
-            r=self.rr
             self.timer()
             maxx=self.maxx    
-            maxy=self.maxy
             for i in range(0,round(maxx),self.rr):
                 self.doj(i,self.rr)
     
@@ -210,7 +208,6 @@ class tankin:
         return s
             
     def savedd(self,s,fn):
-    	filen=fn
     	self.wf(s,fn)
     
     def saved(self,s,fn):
@@ -266,7 +263,6 @@ class tankin:
     def nearr(self,x,y):
         difer=x%self.hmm
         dify=y%self.hmm
-        print(difer,dify,x,y,self.hmm)
         difer=abs(int(x-difer))
         dify=abs(int(y-dify))
         return self.term[difer][dify]
