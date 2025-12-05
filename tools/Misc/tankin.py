@@ -211,16 +211,21 @@ class tankin:
             
     def savedd(self,s,fn):
     	filen=fn
-    	with open(filen, "w") as f:
-                f.write(s)
-                print("exported to ",filen)
+    	self.wf(s,fn)
     
     def saved(self,s,fn):
-        filen=fn
         s=self.ck(s)
-        with open(filen, "w") as f:
+        self.wf(s,fn)
+                
+    def wf(self,s,fn):
+    	self.wff(s,fn)
+    	fn="static/"+fn
+    	self.wff(s,fn)
+                
+    def wff(self,s,fn):
+     	with open(fn, "w") as f:
                 json.dump(s, f)  
-                print("exported to ",filen)
+                print("exported to ",fn)
     
     def savet(self):
         self.saved(self.cf,"re"+str(dt.now().timestamp())+".json")
@@ -259,14 +264,12 @@ class tankin:
         return y
         
     def nearr(self,x,y):
-        for k in self.term.keys():
-            xin=int(k)
-            if (xin>=x):
-                for j in self.term[k].keys():
-                    ji=int(j)
-                    if(ji>=y):
-                        return self.term[k][j]
-        return 0
+        difer=x%self.hmm
+        dify=y%self.hmm
+        print(difer,dify,x,y,self.hmm)
+        difer=abs(int(x-difer))
+        dify=abs(int(y-dify))
+        return self.term[difer][dify]
         
     def doc(self,x,y):
         return self.doc2(x,y)
