@@ -209,7 +209,8 @@ class tankin:
         return s
             
     def savedd(self,s,fn):
-    	self.wff(s,fn)
+    	with open(fn,"w") as f:
+    		f.write(s)
     
     def saved(self,s,fn):
         s=self.ck(s)
@@ -304,7 +305,7 @@ class tankin:
             return
         for _ in range(self.getmo(t)):
             self.pethh(t,x,y)
-            self.tse+=f"|1 tank moved to {t.x},{t.y}"
+            self.tse+="|1 tank moved to {t.x},{t.y}"
         
     def nex(self, t,heading_deg):
         dx,dy=t.dotr(heading_deg)
@@ -429,9 +430,10 @@ class tankin:
 tt = tankin()
 yt2=tankin()
 tt.termm()
-ts=""
+ts=''
 cd=1
 dte=dt.now()
+tt.saved(tt.term,"f.json")
 for ig in range(int(tt.midx)):
     ttf=tt.cf[cd]
     tt.peto(ttf,tt.midx,tt.midy)
@@ -439,5 +441,4 @@ ts=tt.tse
 dte=dte-dt.now()
 dte=dte.total_seconds()
 print(dte)
-tt.saved(tt.term,"f.json")
 tt.savedd(ts,"f2.json")
