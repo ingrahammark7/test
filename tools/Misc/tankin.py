@@ -26,7 +26,7 @@ hj=45
 def saf(x):
 	if isinstance(x,sp.Basic):
 		if(x.is_number):
-			return int(float(x))
+			return float(x)
 	if isinstance(x,dict):
 		return {saf(k): saf(v) for k,v in x.items()}
 	if isinstance(x,(list,tuple,set)):
@@ -79,7 +79,7 @@ class tankin:
         self.times = 0
         self.teams = {0, co}
         self.clo=0
-        self.hmm=round(self.hm())
+        self.hmm=self.hm()
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
@@ -88,7 +88,7 @@ class tankin:
         self.maxy = self.maxx
         self.midx=self.maxx/2
         self.midy=self.maxy/2
-        self.rr=self.hmm
+        self.rr=round(self.hmm)
         self.l=0
         self.inw(t1)
         self.tse=""
@@ -124,23 +124,25 @@ class tankin:
             if(self.checkif()==1):
                 return
             self.timer()
-            maxx=self.maxx    
-            for i in range(0,round(maxx),self.rr):
+            maxx=self.maxx
+            self.term[0]={}
+            rr=self.rr
+            fl=0
+            for  i in range(0,round(maxx),self.rr):
+            	self.term[i]={}
+            	for j in range(0,round(self.maxy),self.rr):
+            		self.term[i][j]=fl
+            for i in range(rr,round(maxx),self.rr):
                 self.doj(i,self.rr)
     
     def doj(self, i,rr):
-        if i not in self.term:
-            self.term[i] = {}
         zper = 0
-        for j in range(0, round(self.maxy), rr):
-            if i > 0 and j > 0:
+        for j in range(rr, round(self.maxy), rr):
                 zper = self.term[i - rr][j - rr]
-                if i in self.term and j in self.term[i]:
-                    zper=(zper+self.term[i][j])/2
                 z2 = self.term[i - rr][j]
-                z3 = self.term[i][j - rr]
+                z3=self.term[i][j-rr]
                 zper=float((zper+z2+z3)/3)
-            zper=self.dol(i,j,zper)
+                self.dol(i,j,zper)
             
     def grefx(self,x,y):
         self.doc(x,y)
@@ -200,7 +202,6 @@ class tankin:
             newd={}
             for k,v in s.items():
             	k=int(k)
-            	v=saf(v)
             	newd[k]=self.ck(v)
             return newd
         elif isinstance(s,(list,tuple,set)):
@@ -208,14 +209,11 @@ class tankin:
         return s
             
     def savedd(self,s,fn):
-    	self.wf(s,fn)
+    	self.wff(s,fn)
     
     def saved(self,s,fn):
         s=self.ck(s)
-        self.wf(s,fn)
-                
-    def wf(self,s,fn):
-    	self.wff(s,fn)
+        self.wff(s,fn)
                 
     def wff(self,s,fn):
      	with open(fn, "w") as f:
@@ -259,8 +257,8 @@ class tankin:
         return y
         
     def nearr(self,x,y):
-        difer=x%self.hmm
-        dify=y%self.hmm
+        difer=x%self.rr
+        dify=y%self.rr
         difer=abs(int(x-difer))
         dify=abs(int(y-dify))
         return self.term[difer][dify]
@@ -270,7 +268,9 @@ class tankin:
     
     def doc2(self,x,y):
         if not x in self.term:
-            self.term[x]={}
+            difx=x%self.rr
+            difx=abs(int(x-difx))
+            self.term[x]=en2(self.term[difx])
         if not y in self.term[x]:
             self.term[x][y] = self.nearr(x,y)
             
@@ -431,8 +431,6 @@ yt2=tankin()
 tt.termm()
 ts=""
 cd=1
-prx=0
-pry=0
 dte=dt.now()
 for ig in range(int(tt.midx)):
     ttf=tt.cf[cd]
