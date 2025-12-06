@@ -67,9 +67,7 @@
   function buildScene(terrainData, movesText, shotsText){
     const DEFAULT_TILT_BLEND = 0.5;
 
-    // --------------------------
-    // Terrain keys and maps
-    // --------------------------
+    // Terrain keys
     const xKeys = Object.keys(terrainData).map(Number).sort((a,b)=>a-b);
     const zSet = new Set();
     xKeys.forEach(x => {
@@ -80,6 +78,8 @@
     const minZ = zKeys[0], maxZ = zKeys[zKeys.length-1];
     const centerX = (minX + maxX)/2;
     const centerZ = (minZ + maxZ)/2;
+    const terrainWidth = maxX - minX;
+    const terrainDepth = maxZ - minZ;
 
     function findNearestIndex(sorted, v){
       let lo=0, hi=sorted.length-1;
@@ -99,9 +99,7 @@
       return terrainData[String(x)]?.[String(z)]||0;
     }
 
-    // --------------------------
     // Terrain geometry
-    // --------------------------
     const cols=xKeys.length, rows=zKeys.length;
     const geom = new THREE.BufferGeometry();
     const pos = new Float32Array(cols*rows*3);
@@ -142,9 +140,7 @@
 
     const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,5000);
 
-    // --------------------------
     // Parse tanks
-    // --------------------------
     const rawMoves = movesText.split('|').filter(s=>s.trim());
     const tanks = {};
     rawMoves.forEach(token=>{
@@ -163,168 +159,68 @@
       const geo=new THREE.BoxGeometry(6,4,6);
       const matTank = new THREE.MeshStandardMaterial({color:colors[colorIdx++%colors.length]});
       const mesh=new THREE.Mesh(geo,matTank);
-      mesh.position.set(0,2,0);
+      const firstWp=t.path[0];
+      mesh.position.set(firstWp[0]-centerX, heightAtIndex(findNearestIndex(xKeys,firstWp[0]),findNearestIndex(zKeys,firstWp[1]))+2, firstWp[1]-centerZ);
       scene.add(mesh);
       t.mesh=mesh;
-      t.worldPath = t.path.map(([tx,tz])=>{
-        const ix=findNearestIndex(xKeys, tx), iz=findNearestIndex(zKeys, tz);
-        const nx=xKeys[ix], nz=zKeys[iz];
-        const h = terrainData[String(nx)]?.[String(nz)]||0;
-        return {ix, iz, x:nx-centerX, y:h+2, z:nz-centerZ};
-      });
-      if(t.worldPath.length){
-        const p0=t.worldPath[0];
-        mesh.position.set(p0.x,p0.y,p0.z);
-      }
       t.currentIndex=0;
       t.progress=0;
-      t._tmp={
-        forward:new THREE.Vector3(),
-        tangentFwd:new THREE.Vector3(),
-        right:new THREE.Vector3(),
-        normal:new THREE.Vector3()
-      };
     }
 
-    // --------------------------
-    // Parse shots (f3.json)
-    // --------------------------
-    const shotsRaw = shotsText.split('|').filter(s => s.trim());
-    const shots = shotsRaw.map(s => {
+    // Parse shots
+    const shotsRaw = shotsText.split('|').filter(s=>s.trim());
+    shotsRaw.forEach(s=>{
       const nums = s.split(',').map(Number);
-      if(nums.length!==4) return null;
+      if(nums.length!==4) return;
       const [x1,z1,x2,z2] = nums;
-      const nx1 = findNearestIndex(xKeys,x1), nz1=findNearestIndex(zKeys,z1);
-      const h1  = terrainData[xKeys[nx1]]?.[zKeys[nz1]]||0;
-      const nx2 = findNearestIndex(xKeys,x2), nz2=findNearestIndex(zKeys,z2);
-      const h2  = terrainData[xKeys[nx2]]?.[zKeys[nz2]]||0;
-      const p1 = new THREE.Vector3(xKeys[nx1]-centerX, h1+1, zKeys[nz1]-centerZ);
-      const p2 = new THREE.Vector3(xKeys[nx2]-centerX, h2+1, zKeys[nz2]-centerZ);
+      const p1 = new THREE.Vector3(x1-centerX,heightAtIndex(findNearestIndex(xKeys,x1),findNearestIndex(zKeys,z1))+1,z1-centerZ);
+      const p2 = new THREE.Vector3(x2-centerX,heightAtIndex(findNearestIndex(xKeys,x2),findNearestIndex(zKeys,z2))+1,z2-centerZ);
       const geom = new THREE.BufferGeometry().setFromPoints([p1,p2]);
       const mat = new THREE.LineBasicMaterial({color:0xffffff});
-      const line = new THREE.Line(geom, mat);
-      scene.add(line);
-      return {mesh: line};
-    }).filter(s=>s);
+      scene.add(new THREE.Line(geom,mat));
+    });
 
-    // --------------------------
-    // Camera spring follow
-    // --------------------------
-    const firstId = Object.keys(tanks)[0];
-    let camPos = new THREE.Vector3(), camVel=new THREE.Vector3();
-    if(firstId){
-      const f=tanks[firstId].mesh;
-      camPos.set(f.position.x+60, f.position.y+80, f.position.z+120);
-      camera.position.copy(camPos);
-      camera.lookAt(f.position);
-    }
+    // Auto-zoom: camera distance based on terrain size
+    const diag = Math.sqrt(terrainWidth*terrainWidth + terrainDepth*terrainDepth);
+    const cameraHeight = diag * 0.6; // adjust factor for good view
+    const cameraOffset = new THREE.Vector3(0, cameraHeight, cameraHeight);
+    const camPos = new THREE.Vector3().copy(cameraOffset);
+    const camVel = new THREE.Vector3();
+    camera.position.copy(camPos);
+    camera.lookAt(new THREE.Vector3(0,0,0));
 
-    // --------------------------
     // UI
-    // --------------------------
     let speed=1;
-    const speedSlider=document.getElementById('speedSlider');
-    const speedVal=document.getElementById('speedVal');
-    speedSlider.addEventListener('input', ()=>{
-      speed=parseFloat(speedSlider.value);
-      speedVal.innerText=speed.toFixed(1);
+    document.getElementById('speedSlider').addEventListener('input', e=>{
+      speed=parseFloat(e.target.value);
+      document.getElementById('speedVal').innerText=speed.toFixed(1);
     });
     const rotSmoothInput = document.getElementById('rotSmooth');
     const tiltBlendInput = document.getElementById('tiltBlend');
     const tiltValSpan = document.getElementById('tiltVal');
-    tiltBlendInput.addEventListener('input', ()=>{
-      tiltValSpan.innerText=parseFloat(tiltBlendInput.value).toFixed(2);
-    });
+    tiltBlendInput.addEventListener('input', ()=>{tiltValSpan.innerText=parseFloat(tiltBlendInput.value).toFixed(2);});
 
-    // --------------------------
-    // 4-point finite difference normal
-    // --------------------------
-    function computeNormalStencil(ix, iz, outVec){
-      const ixm=Math.max(0,ix-1), ixp=Math.min(xKeys.length-1, ix+1);
-      const izm=Math.max(0,iz-1), izp=Math.min(zKeys.length-1, iz+1);
-      const hL = heightAtIndex(ixm,iz), hR=heightAtIndex(ixp,iz);
-      const hD = heightAtIndex(ix,izm), hU=heightAtIndex(ix,izp);
-      const dx=(xKeys[ixp]-xKeys[ixm])||1;
-      const dz=(zKeys[izp]-zKeys[izm])||1;
-      const nxn = -(hR-hL)/dx, nyn=2, nzn=-(hU-hD)/dz;
-      const len=Math.sqrt(nxn*nxn+nyn*nyn+nzn*nzn)||1;
-      outVec.set(nxn/len,nyn/len,nzn/len);
-      return outVec;
-    }
-
-    // --------------------------
-    // Animation loop
-    // --------------------------
-    let lastTime=performance.now();
     function animate(){
       requestAnimationFrame(animate);
-      const now=performance.now();
-      let dt=(now-lastTime)/1000;
-      if(dt<=0) dt=1/60;
-      dt=Math.min(dt,0.05);
-      lastTime=now;
-      const delta60=dt/(1/60);
+      const dt = 1/60;
 
       for(const id in tanks){
         const t=tanks[id];
-        const wp=t.worldPath;
-        if(!wp||wp.length<2) continue;
-        let remaining = speed*delta60;
-        if(!t._len){
-          t._len=[];
-          for(let i=0;i<wp.length-1;i++){
-            const dx=wp[i+1].x-wp[i].x;
-            const dy=wp[i+1].y-wp[i].y;
-            const dz=wp[i+1].z-wp[i].z;
-            t._len[i]=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.0001;
-          }
+        if(!t.path||t.path.length<2) continue;
+        let rem = speed*dt*60;
+        while(rem>0 && t.currentIndex<t.path.length-1){
+          const cur = t.path[t.currentIndex], nxt = t.path[t.currentIndex+1];
+          const dx = nxt[0]-cur[0], dz=nxt[1]-cur[1];
+          const segLen = Math.hypot(dx,dz)||0.001;
+          const left = segLen*(1-t.progress);
+          if(rem>=left){ rem-=left; t.currentIndex++; t.progress=0;}
+          else {t.progress+=rem/segLen; rem=0;}
         }
-        while(remaining>0 && t.currentIndex<wp.length-1){
-          const segLen=t._len[t.currentIndex];
-          const distLeft=segLen*(1-t.progress);
-          if(remaining>=distLeft){remaining-=distLeft; t.currentIndex++; t.progress=0;}
-          else {t.progress+=remaining/segLen; remaining=0;}
-        }
-        const cur=wp[t.currentIndex], nxt=wp[Math.min(t.currentIndex+1, wp.length-1)];
-        const px=THREE.MathUtils.lerp(cur.x,nxt.x,t.progress);
-        const py=THREE.MathUtils.lerp(cur.y,nxt.y,t.progress);
-        const pz=THREE.MathUtils.lerp(cur.z,nxt.z,t.progress);
+        const cur = t.path[t.currentIndex], nxt = t.path[Math.min(t.currentIndex+1,t.path.length-1)];
+        const px = THREE.MathUtils.lerp(cur[0],nxt[0],t.progress)-centerX;
+        const pz = THREE.MathUtils.lerp(cur[1],nxt[1],t.progress)-centerZ;
+        const py = heightAtIndex(findNearestIndex(xKeys,px+centerX),findNearestIndex(zKeys,pz+centerZ))+2;
         t.mesh.position.set(px,py,pz);
-
-        const fdx=nxt.x-cur.x, fdz=nxt.z-cur.z;
-        const tmp=t._tmp;
-        tmp.forward.set(fdx||0.0001,0,fdz||0.0001).normalize();
-
-        const ix=findNearestIndex(xKeys, px+centerX), iz=findNearestIndex(zKeys, pz+centerZ);
-        computeNormalStencil(ix, iz, tmp.normal);
-        const fDotN=tmp.forward.dot(tmp.normal);
-        tmp.tangentFwd.copy(tmp.forward).sub(tmp.normal.clone().multiplyScalar(fDotN)).normalize();
-        tmp.right.crossVectors(tmp.tangentFwd,tmp.normal).normalize();
-
-        const m=new THREE.Matrix4();
-        m.makeBasis(tmp.right,tmp.normal.clone().normalize(),tmp.tangentFwd.clone().negate());
-        const desiredQuat=new THREE.Quaternion().setFromRotationMatrix(m);
-
-        const yaw=Math.atan2(tmp.forward.x,tmp.forward.z);
-        const yawQuat=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
-        const TILT_BLEND=parseFloat(tiltBlendInput.value||DEFAULT_TILT_BLEND);
-        const blendedQuat=yawQuat.clone().slerp(desiredQuat,TILT_BLEND);
-        const rotSmooth=parseFloat(rotSmoothInput.value)||0.12;
-        const slerpFactor=Math.min(1,rotSmooth*delta60);
-        t.mesh.quaternion.slerp(blendedQuat,slerpFactor);
-      }
-
-      // Camera spring follow
-      if(firstId){
-        const f=tanks[firstId].mesh;
-        const desired=new THREE.Vector3(f.position.x+60,f.position.y+80,f.position.z+120);
-        const k=60, damping=12;
-        const displacement=desired.clone().sub(camPos);
-        const acc=displacement.multiplyScalar(k).sub(camVel.clone().multiplyScalar(damping)).multiplyScalar(dt);
-        camVel.add(acc);
-        camPos.add(camVel.clone().multiplyScalar(dt));
-        camera.position.copy(camPos);
-        camera.lookAt(f.position);
       }
 
       renderer.render(scene,camera);
