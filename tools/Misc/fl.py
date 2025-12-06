@@ -4,7 +4,7 @@ import socketserver
 import os
 
 PORT = 8000
-FILENAME = "static/f.json"
+FILENAME = "f.json"
 
 class DebugHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):

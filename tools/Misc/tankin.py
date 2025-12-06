@@ -216,8 +216,6 @@ class tankin:
                 
     def wf(self,s,fn):
     	self.wff(s,fn)
-    	fn="static/"+fn
-    	self.wff(s,fn)
                 
     def wff(self,s,fn):
      	with open(fn, "w") as f:
