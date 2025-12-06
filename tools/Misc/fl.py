@@ -2,6 +2,8 @@
 import http.server
 import socketserver
 import os
+import signal
+import sys
 
 PORT = 8000
 FILENAME = "f.json"
@@ -27,7 +29,22 @@ class DebugHandler(http.server.SimpleHTTPRequestHandler):
             # fallback to default behavior
             super().do_GET()
 
+class GracefulTCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
+    daemon_threads = True  # threads die when main thread exits
+
+def shutdown_server(signum, frame):
+    print("Shutting down server...")
+    sys.exit(0)
+
 if __name__ == "__main__":
-    with socketserver.TCPServer(("", PORT), DebugHandler) as httpd:
+    # handle Ctrl+C and termination signals
+    signal.signal(signal.SIGINT, shutdown_server)
+    signal.signal(signal.SIGTERM, shutdown_server)
+
+    with GracefulTCPServer(("", PORT), DebugHandler) as httpd:
         print(f"Serving at http://localhost:{PORT}")
-        httpd.serve_forever()
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("Server stopped by user")
