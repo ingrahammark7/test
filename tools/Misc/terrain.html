@@ -1,33 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>Tank on Terrain — Smooth Movement + Shots</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8">
+<title>Babylon Tank on Terrain</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
 <style>
-  html, body { height: 100%; margin: 0; overflow: hidden; }
-  canvas { display: block; }
-  #overlay {
-    position: fixed; right: 8px; top: 8px;
-    width: 320px; background: rgba(0,0,0,0.6);
-    color: #fff; font-family: monospace;
-    font-size: 12px; padding: 8px; border-radius: 6px;
-    z-index: 20;
-  }
-  #controls {
-    position: fixed; left: 8px; top: 8px;
-    background: rgba(0,0,0,0.6);
-    color: #fff;
-    padding: 6px;
-    border-radius: 6px;
-    font-family: monospace;
-    font-size: 12px;
-    z-index: 20;
-  }
-  #controls input { vertical-align: middle; }
+html, body { width:100%; height:100%; margin:0; overflow:hidden; }
+canvas { width:100%; height:100%; display:block; }
+#overlay { position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.6); color:white; padding:6px; font-family:monospace; }
+#controls { position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.6); color:white; padding:6px; font-family:monospace; }
+#controls input { vertical-align: middle; }
 </style>
 </head>
 <body>
+<canvas id="renderCanvas"></canvas>
+<div id="overlay">Loading…</div>
 <div id="controls">
   Speed: <input type="range" id="speedSlider" min="0.1" max="10" step="0.1" value="1">
   <span id="speedVal">1</span>
@@ -37,308 +26,271 @@
   Tilt blend: <input id="tiltBlend" type="range" min="0" max="1" step="0.01" value="0.5">
   <span id="tiltVal">0.50</span>
 </div>
-<div id="overlay">Loading files…</div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
 <script>
 (async function(){
-  const overlay = document.getElementById('overlay');
+const overlay = document.getElementById('overlay');
 
-  try {
-    const [terrainResp, movesResp, shotsResp] = await Promise.all([
-      fetch('f.json'),
-      fetch('f2.json'),
-      fetch('f3.json')
-    ]);
-    if(!terrainResp.ok) throw new Error('Failed loading f.json');
-    if(!movesResp.ok) throw new Error('Failed loading f2.json');
-    if(!shotsResp.ok) throw new Error('Failed loading f3.json');
+try {
+  const [terrainResp, movesResp, shotsResp] = await Promise.all([
+    fetch('f.json'),
+    fetch('f2.json'),
+    fetch('f3.json')
+  ]);
+  if(!terrainResp.ok) throw new Error('Failed loading f.json');
+  if(!movesResp.ok) throw new Error('Failed loading f2.json');
+  if(!shotsResp.ok) throw new Error('Failed loading f3.json');
 
-    const terrainData = await terrainResp.json();
-    const movesText = await movesResp.text();
-    const shotsText = await shotsResp.text();
-    overlay.innerText = 'Files loaded — building scene...';
-    buildScene(terrainData, movesText, shotsText);
-  } catch(err) {
-    overlay.innerText = 'Error loading files: ' + err;
-    console.error(err);
+  const terrainData = await terrainResp.json();
+  const movesText = await movesResp.text();
+  const shotsText = await shotsResp.text();
+  overlay.innerText = 'Files loaded — building scene...';
+  buildScene(terrainData, movesText, shotsText);
+} catch(err) {
+  overlay.innerText = 'Error loading files: ' + err;
+  console.error(err);
+}
+
+function buildScene(terrainData, movesText, shotsText){
+  const canvas = document.getElementById('renderCanvas');
+  const engine = new BABYLON.Engine(canvas,true);
+  const scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color3(0.529,0.808,0.922); // sky
+
+  // Camera spring
+  const camera = new BABYLON.FreeCamera("cam", new BABYLON.Vector3(0,50,-100), scene);
+  camera.setTarget(BABYLON.Vector3.Zero());
+  camera.attachControl(canvas,true);
+  let camPos = new BABYLON.Vector3();
+  let camVel = new BABYLON.Vector3();
+
+  // Lights
+  new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0,1,0), scene);
+  const dirLight = new BABYLON.DirectionalLight("dir", new BABYLON.Vector3(-1,-2,-1), scene);
+  dirLight.position = new BABYLON.Vector3(50,200,50);
+
+  // --------------------------
+  // Terrain data
+  // --------------------------
+  const xKeys = Object.keys(terrainData).map(Number).sort((a,b)=>a-b);
+  const zSet = new Set();
+  xKeys.forEach(x=>Object.keys(terrainData[x]||{}).forEach(z=>zSet.add(Number(z))));
+  const zKeys = Array.from(zSet).sort((a,b)=>a-b);
+  const minX = xKeys[0], maxX = xKeys[xKeys.length-1];
+  const minZ = zKeys[0], maxZ = zKeys[zKeys.length-1];
+  const centerX=(minX+maxX)/2, centerZ=(minZ+maxZ)/2;
+
+  // vertex helpers
+  function heightAt(ix,iz){ return terrainData[xKeys[ix]]?.[zKeys[iz]]||0; }
+  function findNearestIndex(sorted,v){
+    let lo=0, hi=sorted.length-1;
+    if(v<=sorted[0]) return 0;
+    if(v>=sorted[hi]) return hi;
+    while(lo<=hi){
+      const mid=(lo+hi)>>1;
+      if(sorted[mid]===v) return mid;
+      if(sorted[mid]<v) lo=mid+1; else hi=mid-1;
+    }
+    const a=Math.max(0,lo-1), b=Math.min(sorted.length-1,lo);
+    return Math.abs(sorted[a]-v)<=Math.abs(sorted[b]-v)?a:b;
   }
 
-  function buildScene(terrainData, movesText, shotsText){
-    const DEFAULT_TILT_BLEND = 0.5;
+  // --------------------------
+  // Terrain geometry
+  // --------------------------
+  const cols=xKeys.length, rows=zKeys.length;
+  const positions=[];
+  for(let i=0;i<rows;i++){
+    for(let j=0;j<cols;j++){
+      const x = xKeys[j]-centerX;
+      const z = zKeys[i]-centerZ;
+      const y = terrainData[xKeys[j]]?.[zKeys[i]] || 0;
+      positions.push(x,y,z);
+    }
+  }
+  const indices=[];
+  for(let i=0;i<rows-1;i++){
+    for(let j=0;j<cols-1;j++){
+      const a=i*cols+j, b=a+1, c=a+cols, d=c+1;
+      indices.push(a,c,b,b,c,d);
+    }
+  }
+  const terrain = new BABYLON.Mesh("terrain",scene);
+  const vertexData = new BABYLON.VertexData();
+  vertexData.positions=positions;
+  vertexData.indices=indices;
+  vertexData.applyToMesh(terrain,true);
+  terrain.convertToFlatShadedMesh();
+  const terrainMat = new BABYLON.StandardMaterial("tMat",scene);
+  terrainMat.diffuseColor = new BABYLON.Color3(0.133,0.545,0.133);
+  terrain.material = terrainMat;
 
-    // --------------------------
-    // Terrain keys and maps
-    // --------------------------
-    const xKeys = Object.keys(terrainData).map(Number).sort((a,b)=>a-b);
-    const zSet = new Set();
-    xKeys.forEach(x => {
-      Object.keys(terrainData[String(x)]||{}).forEach(z => zSet.add(Number(z)));
+  // --------------------------
+  // Parse tanks
+  // --------------------------
+  const rawMoves = movesText.split('|').filter(s=>s.trim());
+  const tanks = {};
+  rawMoves.forEach(token=>{
+    const m=token.trim();
+    const match=m.match(/(-?\d+)\s*,\s*(-?\d+)\s*$/);
+    if(!match) return;
+    const id = m.split(' ')[0], x=Number(match[1]), z=Number(match[2]);
+    if(!tanks[id]) tanks[id]={path:[]};
+    tanks[id].path.push([x,z]);
+  });
+
+  const colors = [BABYLON.Color3.Red(), BABYLON.Color3.Blue(), BABYLON.Color3.Yellow(), BABYLON.Color3.Purple()];
+  let colorIdx=0;
+  for(const id in tanks){
+    const t=tanks[id];
+    const box = BABYLON.MeshBuilder.CreateBox(id,{width:6,height:4,depth:6},scene);
+    box.material = new BABYLON.StandardMaterial("mat"+id,scene);
+    box.material.diffuseColor = colors[colorIdx++ % colors.length];
+    t.mesh = box;
+    t.worldPath = t.path.map(([tx,tz])=>{
+      const ix = findNearestIndex(xKeys,tx);
+      const iz = findNearestIndex(zKeys,tz);
+      const y = heightAt(ix,iz);
+      return {x:xKeys[ix]-centerX, y:y+2, z:zKeys[iz]-centerZ, ix, iz};
     });
-    const zKeys = Array.from(zSet).sort((a,b)=>a-b);
-    const minX = xKeys[0], maxX = xKeys[xKeys.length-1];
-    const minZ = zKeys[0], maxZ = zKeys[zKeys.length-1];
-    const centerX = (minX + maxX)/2;
-    const centerZ = (minZ + maxZ)/2;
+    t.currentIndex=0;
+    t.progress=0;
+    t._tmp={forward:new BABYLON.Vector3(), tangentFwd:new BABYLON.Vector3(), right:new BABYLON.Vector3(), normal:new BABYLON.Vector3()};
+    if(t.worldPath.length) t.mesh.position.set(t.worldPath[0].x,t.worldPath[0].y,t.worldPath[0].z);
+  }
 
-    function findNearestIndex(sorted, v){
-      let lo=0, hi=sorted.length-1;
-      if(v<=sorted[0]) return 0;
-      if(v>=sorted[hi]) return hi;
-      while(lo<=hi){
-        const mid=(lo+hi)>>1;
-        if(sorted[mid]===v) return mid;
-        if(sorted[mid]<v) lo=mid+1; else hi=mid-1;
-      }
-      const a=Math.max(0,lo-1), b=Math.min(sorted.length-1,lo);
-      return Math.abs(sorted[a]-v)<=Math.abs(sorted[b]-v)?a:b;
-    }
+  // --------------------------
+  // Shots
+  // --------------------------
+  const shotsRaw = shotsText.split('|').filter(s=>s.trim());
+  shotsRaw.forEach(s=>{
+    const nums = s.split(',').map(Number);
+    if(nums.length!==4) return;
+    const [x1,z1,x2,z2]=nums;
+    const nx1=findNearestIndex(xKeys,x1), nz1=findNearestIndex(zKeys,z1);
+    const h1 = heightAt(nx1,nz1)+1;
+    const nx2=findNearestIndex(xKeys,x2), nz2=findNearestIndex(zKeys,z2);
+    const h2 = heightAt(nx2,nz2)+1;
+    const p1 = new BABYLON.Vector3(xKeys[nx1]-centerX,h1,zKeys[nz1]-centerZ);
+    const p2 = new BABYLON.Vector3(xKeys[nx2]-centerX,h2,zKeys[nz2]-centerZ);
+    BABYLON.MeshBuilder.CreateLines("shot",{points:[p1,p2]},scene);
+  });
 
-    function heightAtIndex(ix, iz){
-      const x=xKeys[ix], z=zKeys[iz];
-      return terrainData[String(x)]?.[String(z)]||0;
-    }
+  // --------------------------
+  // UI sliders
+  // --------------------------
+  let speed=1;
+  const speedSlider = document.getElementById('speedSlider');
+  const speedVal = document.getElementById('speedVal');
+  speedSlider.addEventListener('input',()=>{speed=parseFloat(speedSlider.value); speedVal.innerText=speed.toFixed(1);});
+  const rotSmoothInput = document.getElementById('rotSmooth');
+  const tiltBlendInput = document.getElementById('tiltBlend');
+  const tiltValSpan = document.getElementById('tiltVal');
+  tiltBlendInput.addEventListener('input',()=>{tiltValSpan.innerText=parseFloat(tiltBlendInput.value).toFixed(2);});
 
-    // --------------------------
-    // Terrain geometry
-    // --------------------------
-    const cols=xKeys.length, rows=zKeys.length;
-    const geom = new THREE.BufferGeometry();
-    const pos = new Float32Array(cols*rows*3);
-    let pi=0;
-    for(let i=0;i<rows;i++){
-      for(let j=0;j<cols;j++){
-        const worldX = xKeys[j], worldZ=zKeys[i];
-        const h = terrainData[String(worldX)]?.[String(worldZ)]||0;
-        pos[pi++] = worldX; pos[pi++] = h; pos[pi++] = worldZ;
-      }
-    }
-    geom.setAttribute('position', new THREE.BufferAttribute(pos,3));
-    const idxs=[];
-    for(let i=0;i<rows-1;i++){
-      for(let j=0;j<cols-1;j++){
-        const a=i*cols+j, b=a+1, c=a+cols, d=c+1;
-        idxs.push(a,c,b,b,c,d);
-      }
-    }
-    geom.setIndex(idxs);
-    geom.computeVertexNormals();
-    const mat=new THREE.MeshStandardMaterial({color:0x228B22, flatShading:true});
-    const terrainMesh=new THREE.Mesh(geom, mat);
-    terrainMesh.position.set(-centerX,0,-centerZ);
+  // --------------------------
+  // Compute terrain normal at tank
+  // --------------------------
+  function computeNormalStencil(ix,iz,outVec){
+    const ixm=Math.max(0,ix-1), ixp=Math.min(cols-1,ix+1);
+    const izm=Math.max(0,iz-1), izp=Math.min(rows-1,iz+1);
+    const hL = heightAt(ixm,iz), hR = heightAt(ixp,iz);
+    const hD = heightAt(ix,izm), hU = heightAt(ix,izp);
+    const dx = (xKeys[ixp]-xKeys[ixm])||1;
+    const dz = (zKeys[izp]-zKeys[izm])||1;
+    const nxn = -(hR-hL)/dx, nyn=2, nzn=-(hU-hD)/dz;
+    const len = Math.sqrt(nxn*nxn+nyn*nyn+nzn*nzn)||1;
+    outVec.set(nxn/len,nyn/len,nzn/len);
+    return outVec;
+  }
 
-    const scene=new THREE.Scene();
-    scene.background=new THREE.Color(0x87ceeb);
-    scene.add(terrainMesh);
-    const dir=new THREE.DirectionalLight(0xffffff,1);
-    dir.position.set(centerX+200,400,centerZ+200);
-    scene.add(dir);
-    scene.add(new THREE.AmbientLight(0x404040));
+  // --------------------------
+  // Animation loop
+  // --------------------------
+  let lastTime = performance.now();
+  const firstId = Object.keys(tanks)[0];
+  if(firstId){
+    const f=tanks[firstId].mesh;
+    camPos.set(f.position.x+60,f.position.y+80,f.position.z+120);
+    camera.position.copyFrom(camPos);
+    camera.setTarget(f.position);
+  }
 
-    const renderer=new THREE.WebGLRenderer({antialias:true});
-    renderer.setPixelRatio(window.devicePixelRatio||1);
-    renderer.setSize(window.innerWidth,window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+  engine.runRenderLoop(()=>{
+    const now=performance.now();
+    let dt=(now-lastTime)/1000;
+    if(dt<=0) dt=1/60;
+    dt=Math.min(dt,0.05);
+    lastTime=now;
+    const delta60=dt/(1/60);
 
-    const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,5000);
-
-    // --------------------------
-    // Parse tanks
-    // --------------------------
-    const rawMoves = movesText.split('|').filter(s=>s.trim());
-    const tanks = {};
-    rawMoves.forEach(token=>{
-      const m = token.trim();
-      const match=m.match(/(-?\d+)\s*,\s*(-?\d+)\s*$/);
-      if(!match) return;
-      const id = m.split(' ')[0], x=Number(match[1]), z=Number(match[2]);
-      if(!tanks[id]) tanks[id]={path:[]};
-      tanks[id].path.push([x,z]);
-    });
-
-    const colors=[0xff0000,0x0000ff,0xffff00,0xff00ff,0x00ffff,0xff8800];
-    let colorIdx=0;
     for(const id in tanks){
       const t=tanks[id];
-      const geo=new THREE.BoxGeometry(6,4,6);
-      const matTank = new THREE.MeshStandardMaterial({color:colors[colorIdx++%colors.length]});
-      const mesh=new THREE.Mesh(geo,matTank);
-      mesh.position.set(0,2,0);
-      scene.add(mesh);
-      t.mesh=mesh;
-      t.worldPath = t.path.map(([tx,tz])=>{
-        const ix=findNearestIndex(xKeys, tx), iz=findNearestIndex(zKeys, tz);
-        const nx=xKeys[ix], nz=zKeys[iz];
-        const h = terrainData[String(nx)]?.[String(nz)]||0;
-        return {ix, iz, x:nx-centerX, y:h+2, z:nz-centerZ};
-      });
-      if(t.worldPath.length){
-        const p0=t.worldPath[0];
-        mesh.position.set(p0.x,p0.y,p0.z);
+      const wp=t.worldPath;
+      if(!wp||wp.length<2) continue;
+      let remaining = speed*delta60;
+      if(!t._len){
+        t._len=[];
+        for(let i=0;i<wp.length-1;i++){
+          t._len[i]=BABYLON.Vector3.Distance(wp[i],wp[i+1])||0.0001;
+        }
       }
-      t.currentIndex=0;
-      t.progress=0;
-      t._tmp={
-        forward:new THREE.Vector3(),
-        tangentFwd:new THREE.Vector3(),
-        right:new THREE.Vector3(),
-        normal:new THREE.Vector3()
-      };
+      while(remaining>0 && t.currentIndex<wp.length-1){
+        const segLen = t._len[t.currentIndex];
+        const distLeft = segLen*(1-t.progress);
+        if(remaining>=distLeft){remaining-=distLeft; t.currentIndex++; t.progress=0;}
+        else {t.progress+=remaining/segLen; remaining=0;}
+      }
+
+      const cur = wp[t.currentIndex];
+      const nxt = wp[Math.min(t.currentIndex+1,wp.length-1)];
+      t.mesh.position.copyFrom(BABYLON.Vector3.Lerp(cur,nxt,t.progress));
+
+      // Compute orientation
+      const fdx = nxt.x-cur.x, fdz = nxt.z-cur.z;
+      const tmp = t._tmp;
+      tmp.forward.set(fdx||0.0001,0,fdz||0.0001).normalize();
+      computeNormalStencil(cur.ix,cur.iz,tmp.normal);
+      const fDotN = BABYLON.Vector3.Dot(tmp.forward,tmp.normal);
+      tmp.tangentFwd.copyFrom(tmp.forward).subtract(tmp.normal.scale(fDotN)).normalize();
+      tmp.right = BABYLON.Vector3.Cross(tmp.tangentFwd,tmp.normal).normalize();
+
+      const m = BABYLON.Matrix.FromValues(
+        tmp.right.x,tmp.right.y,tmp.right.z,0,
+        tmp.normal.x,tmp.normal.y,tmp.normal.z,0,
+        -tmp.tangentFwd.x,-tmp.tangentFwd.y,-tmp.tangentFwd.z,0,
+        0,0,0,1
+      );
+      const desiredQuat = BABYLON.Quaternion.FromRotationMatrix(m);
+
+      const yaw = Math.atan2(tmp.forward.x,tmp.forward.z);
+      const yawQuat = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y,yaw);
+      const TILT_BLEND = parseFloat(tiltBlendInput.value)||0.5;
+      const blendedQuat = BABYLON.Quaternion.Slerp(yawQuat,desiredQuat,TILT_BLEND);
+      const rotSmooth = parseFloat(rotSmoothInput.value)||0.12;
+      const slerpFactor = Math.min(1,rotSmooth*delta60);
+      t.mesh.rotationQuaternion ? t.mesh.rotationQuaternion = BABYLON.Quaternion.Slerp(t.mesh.rotationQuaternion,blendedQuat,slerpFactor) : t.mesh.rotationQuaternion=blendedQuat;
     }
 
-    // --------------------------
-    // Parse shots (f3.json)
-    // --------------------------
-    const shotsRaw = shotsText.split('|').filter(s => s.trim());
-    const shots = shotsRaw.map(s => {
-      const nums = s.split(',').map(Number);
-      if(nums.length!==4) return null;
-      const [x1,z1,x2,z2] = nums;
-      const nx1 = findNearestIndex(xKeys,x1), nz1=findNearestIndex(zKeys,z1);
-      const h1  = terrainData[xKeys[nx1]]?.[zKeys[nz1]]||0;
-      const nx2 = findNearestIndex(xKeys,x2), nz2=findNearestIndex(zKeys,z2);
-      const h2  = terrainData[xKeys[nx2]]?.[zKeys[nz2]]||0;
-      const p1 = new THREE.Vector3(xKeys[nx1]-centerX, h1+1, zKeys[nz1]-centerZ);
-      const p2 = new THREE.Vector3(xKeys[nx2]-centerX, h2+1, zKeys[nz2]-centerZ);
-      const geom = new THREE.BufferGeometry().setFromPoints([p1,p2]);
-      const mat = new THREE.LineBasicMaterial({color:0xffffff});
-      const line = new THREE.Line(geom, mat);
-      scene.add(line);
-      return {mesh: line};
-    }).filter(s=>s);
-
-    // --------------------------
-    // Camera spring follow
-    // --------------------------
-    const firstId = Object.keys(tanks)[0];
-    let camPos = new THREE.Vector3(), camVel=new THREE.Vector3();
+    // Camera spring
     if(firstId){
-      const f=tanks[firstId].mesh;
-      camPos.set(f.position.x+60, f.position.y+80, f.position.z+120);
-      camera.position.copy(camPos);
-      camera.lookAt(f.position);
+      const f = tanks[firstId].mesh;
+      const desired = new BABYLON.Vector3(f.position.x+60,f.position.y+80,f.position.z+120);
+      const k=60, damping=12;
+      const displacement = desired.subtract(camPos);
+      const acc = displacement.scale(k).subtract(camVel.scale(damping)).scale(dt);
+      camVel.addInPlace(acc);
+      camPos.addInPlace(camVel.scale(dt));
+      camera.position.copyFrom(camPos);
+      camera.setTarget(f.position);
     }
 
-    // --------------------------
-    // UI
-    // --------------------------
-    let speed=1;
-    const speedSlider=document.getElementById('speedSlider');
-    const speedVal=document.getElementById('speedVal');
-    speedSlider.addEventListener('input', ()=>{
-      speed=parseFloat(speedSlider.value);
-      speedVal.innerText=speed.toFixed(1);
-    });
-    const rotSmoothInput = document.getElementById('rotSmooth');
-    const tiltBlendInput = document.getElementById('tiltBlend');
-    const tiltValSpan = document.getElementById('tiltVal');
-    tiltBlendInput.addEventListener('input', ()=>{
-      tiltValSpan.innerText=parseFloat(tiltBlendInput.value).toFixed(2);
-    });
+    scene.render();
+  });
 
-    // --------------------------
-    // 4-point finite difference normal
-    // --------------------------
-    function computeNormalStencil(ix, iz, outVec){
-      const ixm=Math.max(0,ix-1), ixp=Math.min(xKeys.length-1, ix+1);
-      const izm=Math.max(0,iz-1), izp=Math.min(zKeys.length-1, iz+1);
-      const hL = heightAtIndex(ixm,iz), hR=heightAtIndex(ixp,iz);
-      const hD = heightAtIndex(ix,izm), hU=heightAtIndex(ix,izp);
-      const dx=(xKeys[ixp]-xKeys[ixm])||1;
-      const dz=(zKeys[izp]-zKeys[izm])||1;
-      const nxn = -(hR-hL)/dx, nyn=2, nzn=-(hU-hD)/dz;
-      const len=Math.sqrt(nxn*nxn+nyn*nyn+nzn*nzn)||1;
-      outVec.set(nxn/len,nyn/len,nzn/len);
-      return outVec;
-    }
-
-    // --------------------------
-    // Animation loop
-    // --------------------------
-    let lastTime=performance.now();
-    function animate(){
-      requestAnimationFrame(animate);
-      const now=performance.now();
-      let dt=(now-lastTime)/1000;
-      if(dt<=0) dt=1/60;
-      dt=Math.min(dt,0.05);
-      lastTime=now;
-      const delta60=dt/(1/60);
-
-      for(const id in tanks){
-        const t=tanks[id];
-        const wp=t.worldPath;
-        if(!wp||wp.length<2) continue;
-        let remaining = speed*delta60;
-        if(!t._len){
-          t._len=[];
-          for(let i=0;i<wp.length-1;i++){
-            const dx=wp[i+1].x-wp[i].x;
-            const dy=wp[i+1].y-wp[i].y;
-            const dz=wp[i+1].z-wp[i].z;
-            t._len[i]=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.0001;
-          }
-        }
-        while(remaining>0 && t.currentIndex<wp.length-1){
-          const segLen=t._len[t.currentIndex];
-          const distLeft=segLen*(1-t.progress);
-          if(remaining>=distLeft){remaining-=distLeft; t.currentIndex++; t.progress=0;}
-          else {t.progress+=remaining/segLen; remaining=0;}
-        }
-        const cur=wp[t.currentIndex], nxt=wp[Math.min(t.currentIndex+1, wp.length-1)];
-        const px=THREE.MathUtils.lerp(cur.x,nxt.x,t.progress);
-        const py=THREE.MathUtils.lerp(cur.y,nxt.y,t.progress);
-        const pz=THREE.MathUtils.lerp(cur.z,nxt.z,t.progress);
-        t.mesh.position.set(px,py,pz);
-
-        const fdx=nxt.x-cur.x, fdz=nxt.z-cur.z;
-        const tmp=t._tmp;
-        tmp.forward.set(fdx||0.0001,0,fdz||0.0001).normalize();
-
-        const ix=findNearestIndex(xKeys, px+centerX), iz=findNearestIndex(zKeys, pz+centerZ);
-        computeNormalStencil(ix, iz, tmp.normal);
-        const fDotN=tmp.forward.dot(tmp.normal);
-        tmp.tangentFwd.copy(tmp.forward).sub(tmp.normal.clone().multiplyScalar(fDotN)).normalize();
-        tmp.right.crossVectors(tmp.tangentFwd,tmp.normal).normalize();
-
-        const m=new THREE.Matrix4();
-        m.makeBasis(tmp.right,tmp.normal.clone().normalize(),tmp.tangentFwd.clone().negate());
-        const desiredQuat=new THREE.Quaternion().setFromRotationMatrix(m);
-
-        const yaw=Math.atan2(tmp.forward.x,tmp.forward.z);
-        const yawQuat=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
-        const TILT_BLEND=parseFloat(tiltBlendInput.value||DEFAULT_TILT_BLEND);
-        const blendedQuat=yawQuat.clone().slerp(desiredQuat,TILT_BLEND);
-        const rotSmooth=parseFloat(rotSmoothInput.value)||0.12;
-        const slerpFactor=Math.min(1,rotSmooth*delta60);
-        t.mesh.quaternion.slerp(blendedQuat,slerpFactor);
-      }
-
-      // Camera spring follow
-      if(firstId){
-        const f=tanks[firstId].mesh;
-        const desired=new THREE.Vector3(f.position.x+60,f.position.y+80,f.position.z+120);
-        const k=60, damping=12;
-        const displacement=desired.clone().sub(camPos);
-        const acc=displacement.multiplyScalar(k).sub(camVel.clone().multiplyScalar(damping)).multiplyScalar(dt);
-        camVel.add(acc);
-        camPos.add(camVel.clone().multiplyScalar(dt));
-        camera.position.copy(camPos);
-        camera.lookAt(f.position);
-      }
-
-      renderer.render(scene,camera);
-    }
-    animate();
-
-    window.addEventListener('resize',()=>{
-      renderer.setSize(window.innerWidth,window.innerHeight);
-      camera.aspect=window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
-    });
-
-    overlay.style.display='none';
-  }
+  window.addEventListener('resize',()=>{engine.resize();});
+  overlay.style.display='none';
+}
 })();
 </script>
 </body>
