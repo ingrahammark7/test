@@ -83,7 +83,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * am/400
+        self.maxx = self.times * t1.rspe() * am/40
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.midx=self.maxx/2
@@ -305,7 +305,7 @@ class tankin:
             return
         for _ in range(self.getmo(t)):
             self.pethh(t,x,y)
-            self.tse+="|1 tank moved to {t.x},{t.y}"
+            self.tse+=f"|1 tank moved to {t.x},{t.y}"
         
     def nex(self, t,heading_deg):
         dx,dy=t.dotr(heading_deg)
