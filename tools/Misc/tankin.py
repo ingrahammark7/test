@@ -83,7 +83,7 @@ class tankin:
         f1 = t1.turn(90)
         f2,_ = t1.timett(90, 0)
         self.times = (min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * am/40
+        self.maxx = self.times * t1.rspe() * am/400
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.midx=self.maxx/2
@@ -165,7 +165,7 @@ class tankin:
     
     def torcc(self,mo,t):
         to=t.tf
-        mo/=2
+        mo/=1.04
         if(mo>to):
             return False
         return True
@@ -434,7 +434,6 @@ tt.termm()
 ts=''
 cd=1
 dte=dt.now()
-tt.saved(tt.term,"f.json")
 for ig in range(int(tt.midx)):
     ttf=tt.cf[cd]
     tt.peto(ttf,tt.midx,tt.midy)
@@ -442,4 +441,5 @@ ts=tt.tse
 dte=dte-dt.now()
 dte=dte.total_seconds()
 print(dte)
+tt.saved(tt.term,"f.json") 
 tt.savedd(ts,"f2.json")
