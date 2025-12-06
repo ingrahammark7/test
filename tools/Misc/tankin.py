@@ -165,6 +165,7 @@ class tankin:
     
     def torcc(self,mo,t):
         to=t.tf
+        mo/=2
         if(mo>to):
             return False
         return True
