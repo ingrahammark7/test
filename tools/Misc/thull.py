@@ -1,8 +1,6 @@
 import pen
 import nuct
 import sympy as sp
-from datetime import datetime as dt
-import numpy as np
 
 thres=(nuct.baseobj().gethw()*nuct.alpha).evalf()
 pro=nuct.PRECISION
@@ -59,12 +57,16 @@ class thull:
 		self.heading=head
 		return t1
 	
-	def move(self,t):
-		if self.fuel<=0:
-			self.power=0
-			return
-		self.x,self.y=self.nm(t)
-		
+	def move(self,t,dx,dy):
+		eff=.5
+		poww=self.power
+		fps=(poww/self.fen)*t/eff
+		self.fuel-=fps
+		dx,dy=self.dotr(self.heading)
+		fx=self.x+dx
+		fy=self.y+dy
+		self.x,self.y=fx,fy
+
 	def dotr(self,he):
 		he%=360
 		dx,dy=0,0
@@ -79,17 +81,7 @@ class thull:
 			if(215<=he<=315):
 				dy=-1
 		return dx,dy
-		
-	
-	def nm(self,t):
-		eff=.5
-		poww=self.power
-		fps=(poww/self.fen)*t/eff
-		self.fuel-=fps
-		dx,dy=self.dotr(self.heading)
-		fx=self.x+dx
-		fy=self.y+dy
-		return fx,fy
+
 		
 	def getrs(self,t):
 		if(self.so==0):
