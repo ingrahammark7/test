@@ -86,9 +86,11 @@ class tankin:
         	f1 = t1.turn(90)
         	f2,_ = t1.timett(90, 0)
         self.times = mam*(min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * am
+        self.maxx = self.times * t1.rspe() * am/40
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
+        self.maxxr=round(self.maxx)
+        self.maxyr=round(self.maxy)
         self.midx=self.maxx/2
         self.midy=self.maxy/2
         self.rr=round(self.hmm)
@@ -105,14 +107,27 @@ class tankin:
             
     def inw(self,t):
             t.getrs(self.times)
+            t.tf*=self.rr
             
+    def fs(self,x,y):
+    	for i in self.term.keys():
+    		for j in self.term.keys():
+    			if int(i) >= x and int(j) >= y:
+    				return i,j
+    	return 0,0
+    
     def dot(self, st, co, x, t11):
+        if not self.checkif():
+        	self.termm()
         for i in range(co):
             t = en2(t11)
-            t.x = x+i+(co-st)
+            t.name=i
+            t.x = int(x+i+(co-st))
             t.y = 0
+            sn,sy=self.fs(t.x,t.y)
+            sn,sy=int(sn),int(sy)
+            t.z=self.getsl(sn,sy)
             fj = i + st
-            t.tf*=self.rr
             self.cf[fj] = t
         return self
     
@@ -129,26 +144,23 @@ class tankin:
             if(self.checkif()==1):
                 return
             self.timer()
-            maxx=self.maxx
-            self.term[0]={}
             rr=self.rr
             fl=0
             self.term[0]={}
-            for i in range(0,round(self.maxy),self.rr):
-            	self.term[0][i]=fl*i
+            for i in range(0,self.maxyr,self.rr):
+            	self.term[0][i]=fl
+            self.term[0][0]=fl
             co=self.term[0].copy()
-            for  i in range(0,round(maxx),self.rr):
+            for  i in range(0,self.maxxr,self.rr):
             	self.term[i]=co.copy()
-            dte=dt.now()
-            for i in range(rr,round(maxx),self.rr): 
+            for i in range(rr,self.maxxr,self.rr): 
                 self.doj(i,self.rr)
-            print((dte-dt.now()).total_seconds())
     
     def doj(self, i,rr):
-          fo=self.term[i].copy().keys()
+          fof=self.term[i].copy().keys()
           self.term[i-rr][0-rr]=0
           self.term[i][0-rr]=0
-          for j in fo:
+          for j in fof:
                 #zper=self.highz(i,j,rr)
                 zper=1
                 self.dol(i,j,zper)
@@ -161,14 +173,8 @@ class tankin:
             return zper
             
     def grefx(self,x,y,t11):
-        self.doc(x,y)
-        z=self.term[x][y]
-        x2=t11.x
-        y2=t11.y
-        self.doc(x2,y2)
-        z2=self.term[x2][y2]
-        dif=z2-z
-        return dif/self.rr
+        dif=self.getsl(x,y)-t11.z
+        return dif*0
             
     def torc(self,x,y,t):
         mo=self.grefx(x,y,t)
@@ -241,12 +247,13 @@ class tankin:
         if os.path.exists(p):
             with open(p,'r') as file:
                 self.term=json.load(file)
+                self.term=self.ck(self.term)
                 self.l=1
                 return 1
         return 0
     
     def dcalc(self,x1,y1,x2,y2,z1,z2):
-        return (abs(x2-x1)+1)*(abs(y2-y1)+1)*(abs(z2-z1)+1)
+        return abs(x2-x1)+abs(y2-y1)+abs(z2-z1)
     
     def maxc(self,x):
         if(x<0):
@@ -285,7 +292,15 @@ class tankin:
             			break
             self.term[x]=en2(self.term[difx])
         if not y in self.term[x].keys():
-            self.term[x][y] = self.nearr(x,y)        
+            self.term[x][y] = self.nearr(x,y)   
+    
+    def getsn(self,t):
+            t.z=self.getsl(t.x,t.y)
+            
+    def getsl(self,x,y):
+            rx=x-x%self.rr 
+            ry=y-y%self.rr
+            return self.term[rx][ry]
             
     def ish(self,t,x,y,co):
         she=(x,y)
@@ -297,21 +312,55 @@ class tankin:
     def ishh(self,t):
         return self.ish(t,t.x,t.y,2)
     
+    def getm(self,t,x,y):
+    	dx,dy,teh,mo,_,_=self.getmm(t,x,y)
+    	return dx,dy,teh,mo
+    
+    def getmm(self,t,x,y):
+    	dx,dy=self.getdd(t,x,y)
+    	teh,dx,dy=self.gethx(dx,dy)
+    	nx,ny=t.x+dx,t.y+dy
+    	mo=self.grefx(nx,ny,t)
+    	return dx,dy,teh,mo,nx,ny
+    
+    def donv(self,t,x,y):
+    	dx,dy,teh,mo=self.getm(t,x,y)
+    	t.heading=teh
+    	t.thead=teh
+    	tr=copy.copy(t)
+    	dcal=self.dcalc(t.x,t.y,x,y,0,0)
+    	while(mo<tr.tf and len(t.nv)<dcal):
+    		fof=(tr.x,tr.y)
+    		t.nv.append(fof)
+    		for _ in range(self.rr):
+    			tr.x+=dx
+    			tr.y+=dy
+    			fof=(tr.x,tr.y)
+    			t.nv.append(fof)
+    		mo=self.grefx(tr.x,tr.y,t)
+    
     def pethh(self,t,x,y):
-        dx,dy=self.getdd(t,x,y)
-        teh,dx,dy=self.gethx(dx,dy)
-        if self.ishh(t):
-            self.rm(t,teh)
-            return
-        nx,ny=t.x+dx,t.y+dy
-        mo=self.grefx(nx,ny,t)
-        if(mo<t.tf):
+        for i in t.nv:
+        	x,y=i
+        	t.nv.remove(i)
+        	dx=x-t.x
+        	dy=y-t.y
+        	t.move(dx,dy)
+        	return
+        while t.x<0 or t.y<0:
+        	t.power=0
+        	return
+        dx,dy,teh,mo=self.getm(t,x,y)      
+        while(mo<t.tf):
         	self.move(t,teh,dx,dy)
         	return
-        self.rm(t,teh)
+        while self.ishh(t):
+            self.rm(t,teh,dx,dy)
+            return
+        self.rm(t,teh,dx,dy)
     
-    def rm(self,t,teh):
-    	bl,dx,dy=self.mof(t,teh)
+    def rm(self,t,teh,dx,dy):
+    	bl,dx,dy=self.mof(t,teh,dx,dy)
     	if bl is None:
             t.power=0
             return
@@ -320,28 +369,33 @@ class tankin:
     def peto(self,t,x,y):
         if t.power==0:
         	return
+        if(len(t.nv)==0):
+        	self.donv(t,int(x),int(y))
+        	self.rmove(t)
         for _ in range(t.so):
             self.pethh(t,x,y)
-            self.tse+=f"|1 tank moved to {t.x},{t.y}"
+            
+     
+    def rmove(self,t):
+        self.tse+=f"|{t.name} tank moved to {t.x},{t.y}"
         
-    def nex(self, t,heading_deg):
-        dx,dy=t.dotr(heading_deg)
+    def nex(self, t,dx,dy):
         nx = t.x + dx
         ny = t.y + dy
         return nx, ny
     
-    def mof(self,t,ttl):
+    def mof(self,t,ttl,dx1,dy1):
         for i in range(8):
-            fo,dx,dy=self.ttlo(t,ttl,1,i)
-            if fo is not None:
-                return fo,dx,dy
+            fof,dx,dy=self.ttlo(t,ttl,1,i,dx1,dy1)
+            if fof is not None:
+                return fof,dx,dy
         return None,None,None
         
-    def ttlo(self,t,ttl,co,i):
+    def ttlo(self,t,ttl,co,i,dx,dy):
         tmp=ttl+hj*i
         tmp%=360
         t.heading=tmp
-        nx,ny=self.nex(t,tmp)
+        nx,ny=self.nex(t,dx,dy)
         if(self.ish(t,nx,ny,co)):
             return None,None,None
         tes=self.torc(nx,ny,t)
@@ -354,15 +408,15 @@ class tankin:
 
     def move(self,t, heading_deg,dx,dy):
         t.heading=heading_deg
-        ter=self.gettf(t)
-        t.move(ter,dx,dy)
+        t.move(dx,dy)
+        self.getsn(t)
         
     def getdd(self,t11,x1,y1):
     	return x1-t11.x,y1-t11.y
     
     def gethx(self,dx,dy):
         if dx == 0 and dy == 0:
-            return 0
+            return 0,0,0
         dy+=.01
         if(dy<0):
             if(dx<0):
@@ -378,7 +432,7 @@ class tankin:
         else:
                 if(dx<0):
                     if(dx/dy>-1):
-                        return 135,-1,-1
+                        return 135,-1,1
                     else:
                         return 90,0,1
                 else:
@@ -444,8 +498,9 @@ tt.termm()
 ts=''
 cd=1
 dte=dt.now()
-for ig in range(int(tt.midx)):
-    ttf=tt.cf[cd]
+ttf=tt.cf[cd]
+foj=int(tt.midx)
+for ig in range(foj):    
     tt.peto(ttf,tt.midx,tt.midy)
 ts=tt.tse
 dte=dte-dt.now()

@@ -47,6 +47,8 @@ class thull:
 		self.ttr=0
 		self.dd=[]
 		self.so=0
+		self.z=0
+		self.nv=[]
 		
 	def firehead(self):
 		self.ammo-=1
@@ -57,31 +59,10 @@ class thull:
 		self.heading=head
 		return t1
 	
-	def move(self,t,dx,dy):
-		eff=.5
-		poww=self.power
-		fps=(poww/self.fen)*t/eff
-		self.fuel-=fps
-		dx,dy=self.dotr(self.heading)
+	def move(self,dx,dy):
 		fx=self.x+dx
 		fy=self.y+dy
 		self.x,self.y=fx,fy
-
-	def dotr(self,he):
-		he%=360
-		dx,dy=0,0
-		if(45>=he or he>=315):
-			dx=1
-		else:
-			if(135<=he<=225):
-				dx=-1
-		if(135>=he>=45):
-			dy=1
-		else:
-			if(215<=he<=315):
-				dy=-1
-		return dx,dy
-
 		
 	def getrs(self,t):
 		if(self.so==0):
