@@ -99,6 +99,9 @@ class tankin:
         self.tse=""
         self.ro=round((self.rr**nuct.phi).evalf())
         self.r2=int(round(ran/self.rr))
+        self.cou=2
+        self.fm=self.fom()
+        self.fr=self.refs(self.fm)
         for te in self.teams:
             maxe = self.maxx
             if te == 0:
@@ -174,7 +177,7 @@ class tankin:
             
     def grefx(self,x,y,t11):
         dif=self.getsl(x,y)-t11.z
-        return dif*0
+        return dif
             
     def torc(self,x,y,t):
         mo=self.grefx(x,y,t)
@@ -191,7 +194,7 @@ class tankin:
             zper=self.hash32(zper)
             zper/=self.r2
             zper-=wc1
-            self.term[i][j] =1/zper
+            self.term[i][j] =1/abs(zper)
             return zper
     
     def hash32(self,x):
@@ -310,7 +313,7 @@ class tankin:
         return False
     
     def ishh(self,t):
-        return self.ish(t,t.x,t.y,2)
+        return self.ish(t,t.x,t.y,self.cou)
     
     def getm(self,t,x,y):
     	dx,dy,teh,mo,_,_=self.getmm(t,x,y)
@@ -329,6 +332,8 @@ class tankin:
     	t.thead=teh
     	tr=copy.copy(t)
     	dcal=self.dcalc(t.x,t.y,x,y,0,0)
+    	tr.x-=tr.x%self.rr
+    	tr.y-=tr.y%self.rr
     	while(mo<tr.tf and len(t.nv)<dcal):
     		fof=(tr.x,tr.y)
     		t.nv.append(fof)
@@ -347,10 +352,7 @@ class tankin:
         	dy=y-t.y
         	t.move(dx,dy)
         	return
-        while t.x<0 or t.y<0:
-        	t.power=0
-        	return
-        dx,dy,teh,mo=self.getm(t,x,y)      
+        dx,dy,teh,mo=self.getm(t,x,y)   
         while(mo<t.tf):
         	self.move(t,teh,dx,dy)
         	return
@@ -362,18 +364,35 @@ class tankin:
     def rm(self,t,teh,dx,dy):
     	bl,dx,dy=self.mof(t,teh,dx,dy)
     	if bl is None:
-            t.power=0
-            return
+    	    print("djdj")
+    	    t.power=0
+    	    return
+    	dx-=t.x
+    	dy-=t.y 
     	self.move(t,bl,dx,dy)
+    	
+    def gegr(self,x,y):
+    	inx=x-1
+    	iny=y+1
+    	for i in range(inx,inx+3,1):
+    		f2=[]
+    		for j in range(iny,iny-3,-1):
+    			xz=0
+    			try:
+    				xz=self.term[i][j]
+    			except Exception:
+    				pass
+    			f2.append(xz)
+    		
     	
     def peto(self,t,x,y):
         if t.power==0:
         	return
         if(len(t.nv)==0):
         	self.donv(t,int(x),int(y))
-        	self.rmove(t)
         for _ in range(t.so):
             self.pethh(t,x,y)
+            self.rmove(t)
             
      
     def rmove(self,t):
@@ -386,7 +405,7 @@ class tankin:
     
     def mof(self,t,ttl,dx1,dy1):
         for i in range(8):
-            fof,dx,dy=self.ttlo(t,ttl,1,i,dx1,dy1)
+            fof,dx,dy=self.ttlo(t,ttl,self.cou,i,dx1,dy1)
             if fof is not None:
                 return fof,dx,dy
         return None,None,None
@@ -395,6 +414,7 @@ class tankin:
         tmp=ttl+hj*i
         tmp%=360
         t.heading=tmp
+        tmp,dx,dy=self.frm(tmp)
         nx,ny=self.nex(t,dx,dy)
         if(self.ish(t,nx,ny,co)):
             return None,None,None
@@ -414,6 +434,29 @@ class tankin:
     def getdd(self,t11,x1,y1):
     	return x1-t11.x,y1-t11.y
     
+    def fom(self):
+    	df={}
+    	df[180]=(-1,0)
+    	df[225]=(-1,-1)
+    	df[270]=(0,-1)
+    	df[315]=(1,-1)
+    	df[135]=(-1,1)
+    	df[90]=(0,1)
+    	df[0]=(1,0)
+    	df[45]=(1,1)
+    	return df
+    
+    def refs(self,arr):
+    	re={}
+    	for i in arr:
+    		va=arr[i]
+    		re[va]=i
+    	return re
+    
+    def frm(self,d):
+    	x,y=self.fm[d]
+    	return d,x,y
+    
     def gethx(self,dx,dy):
         if dx == 0 and dy == 0:
             return 0,0,0
@@ -421,25 +464,25 @@ class tankin:
         if(dy<0):
             if(dx<0):
                 if(dx/dy>1):
-                    return 180,-1,0
+                    return self.frm(180)
                 else:
-                    return 225,-1,-1
+                    return self.frm(225)
             else:
                 if(dx/dy>-1):
-                    return 270,0,-1
+                    return self.frm(270)
                 else:
-                    return 315,1,-1
+                    return self.frm(315)
         else:
                 if(dx<0):
                     if(dx/dy>-1):
-                        return 135,-1,1
+                        return self.frm(135)
                     else:
-                        return 90,0,1
+                        return self.frm(90)
                 else:
                     if(dx/dy>1):
-                        return 0,1,0
+                        return self.frm(0)
                     else:
-                        return 45,1,1		
+                        return self.frm(45)		
         
     def loscheck(self,t11,t2):
         starx=round(self.maxc(t11.x))
@@ -494,7 +537,9 @@ def baseobj():
 	return tankin(0)            
 
 tt = tankin()
+dte=dt.now()
 tt.termm()
+print((dte-dt.now()).total_seconds())
 ts=''
 cd=1
 dte=dt.now()
