@@ -96,6 +96,7 @@ class tankin:
         self.inw(t1)
         self.tse=""
         self.ro=round((self.rr**nuct.phi).evalf())
+        self.r2=int(round(ran/self.rr))
         for te in self.teams:
             maxe = self.maxx
             if te == 0:
@@ -132,31 +133,32 @@ class tankin:
             self.term[0]={}
             rr=self.rr
             fl=0
-            dte=dt.now()
             self.term[0]={}
             for i in range(0,round(self.maxy),self.rr):
-            	self.term[0][i]=fl
-            co=en2(self.term[0])
+            	self.term[0][i]=fl*i
+            co=self.term[0].copy()
             for  i in range(0,round(maxx),self.rr):
-            	self.term[i]=en2(co)
-            	#for j in range(0,round(self.maxy),self.rr):
-            		#self.term[i][j]=fl
-            print((dte-dt.now()).total_seconds())
+            	self.term[i]=co.copy()
             dte=dt.now()
-            for i in range(rr,round(maxx),self.rr):
+            for i in range(rr,round(maxx),self.rr): 
                 self.doj(i,self.rr)
-                print((dte-dt.now()).total_seconds())
+            print((dte-dt.now()).total_seconds())
     
     def doj(self, i,rr):
-        zper = 0
-        for j in range(rr, round(self.maxy), rr):
-                """
-                zper = self.term[i - rr][j - rr]
-                z2 = self.term[i - rr][j]
-                z3=self.term[i][j-rr]
-                zper=float((zper+z2+z3)/3)
-                """
+          fo=self.term[i].copy().keys()
+          self.term[i-rr][0-rr]=0
+          self.term[i][0-rr]=0
+          for j in fo:
+                #zper=self.highz(i,j,rr)
+                zper=1
                 self.dol(i,j,zper)
+    
+    def highz(self,i,j,rr):
+            zper = self.term[i - rr][j - rr]
+            z2 = self.term[i - rr][j]
+            z3=self.term[i][j-rr]
+            zper=float((zper+z2+z3)/3)
+            return zper
             
     def grefx(self,x,y,t11):
         self.doc(x,y)
@@ -179,12 +181,11 @@ class tankin:
         return True
             
     def dol(self,i,j,zper):
-            #zper += i * j + i + j
+            zper=zper*(i*j+i+j)
             zper=self.hash32(zper)
-            zper/=ran
+            zper/=self.r2
             zper-=wc1
-            ro=self.ro
-            self.term[i][j] =round(saf((ro*zper)**2))
+            self.term[i][j] =1/zper
             return zper
     
     def hash32(self,x):
@@ -287,7 +288,6 @@ class tankin:
             self.term[x][y] = self.nearr(x,y)        
             
     def ish(self,t,x,y,co):
-        return False
         she=(x,y)
         if t.sh.count(she)>co:
             return True
@@ -298,22 +298,25 @@ class tankin:
         return self.ish(t,t.x,t.y,2)
     
     def pethh(self,t,x,y):
-        if self.ishh(t):
-            t.power=0
-            return
         dx,dy=self.getdd(t,x,y)
         teh,dx,dy=self.gethx(dx,dy)
+        if self.ishh(t):
+            self.rm(t,teh)
+            return
         nx,ny=t.x+dx,t.y+dy
         mo=self.grefx(nx,ny,t)
         if(mo<t.tf):
         	self.move(t,teh,dx,dy)
         	return
-        bl,dx,dy=self.mof(t,teh)
-        if bl is None:
+        self.rm(t,teh)
+    
+    def rm(self,t,teh):
+    	bl,dx,dy=self.mof(t,teh)
+    	if bl is None:
             t.power=0
             return
-        self.move(t,bl,dx,dy)
-
+    	self.move(t,bl,dx,dy)
+    	
     def peto(self,t,x,y):
         if t.power==0:
         	return
