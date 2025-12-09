@@ -352,6 +352,11 @@ class tankin:
     	return tr,t
     	
     def smm(self,tr,t,dx,dy):
+    	"""
+    	nep=[(tr.x+dx*i,tr.y+dy*i) for i in range(1, self.rr+1)]
+    	t.nv.extend(nep)
+    	tr.x,tr.y=nep[-1]
+    	"""
     	tr.x+=dx
     	tr.y+=dy
     	fof=(tr.x,tr.y)
