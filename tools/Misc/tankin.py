@@ -127,9 +127,7 @@ class tankin:
             t.name=i
             t.x = int(x+i+(co-st))
             t.y = 0
-            sn,sy=self.fs(t.x,t.y)
-            sn,sy=int(sn),int(sy)
-            t.z=self.getsl(sn,sy)
+            t.z=self.getsl(t.x,t.y)
             fj = i + st
             self.cf[fj] = t
         return self
@@ -177,7 +175,9 @@ class tankin:
             
     def grefx(self,x,y,t11):
         dif=self.getsl(x,y)-t11.z
-        return dif
+        print(dif)
+        self.gegr(x,y)
+        return dif/3
             
     def torc(self,x,y,t):
         mo=self.grefx(x,y,t)
@@ -301,9 +301,13 @@ class tankin:
             t.z=self.getsl(t.x,t.y)
             
     def getsl(self,x,y):
+            rx,ry=self.getsll(x,y)
+            return self.term[rx][ry]
+            
+    def getsll(self,x,y):
             rx=x-x%self.rr 
             ry=y-y%self.rr
-            return self.term[rx][ry]
+            return rx,ry
             
     def ish(self,t,x,y,co):
         she=(x,y)
@@ -331,18 +335,27 @@ class tankin:
     	t.heading=teh
     	t.thead=teh
     	tr=copy.copy(t)
+    	tr.x,tr.y=self.getsll(t.x,t.y)
     	dcal=self.dcalc(t.x,t.y,x,y,0,0)
-    	tr.x-=tr.x%self.rr
-    	tr.y-=tr.y%self.rr
     	while(mo<tr.tf and len(t.nv)<dcal):
-    		fof=(tr.x,tr.y)
-    		t.nv.append(fof)
-    		for _ in range(self.rr):
-    			tr.x+=dx
-    			tr.y+=dy
-    			fof=(tr.x,tr.y)
-    			t.nv.append(fof)
-    		mo=self.grefx(tr.x,tr.y,t)
+    		mo=self.domo(tr,t,dx,dy)
+    
+    def domo(self,tr,t,dx,dy):
+    	self.smo(tr,t,dx,dy)
+    	return self.grefx(tr.x,tr.y,t)
+    	
+    def smo(self,tr,t,dx,dy):
+    	fof=(tr.x,tr.y)
+    	t.nv.append(fof)
+    	for _ in range(self.rr):
+    		self.smm(tr,t,dx,dy)
+    	return tr,t
+    	
+    def smm(self,tr,t,dx,dy):
+    	tr.x+=dx
+    	tr.y+=dy
+    	fof=(tr.x,tr.y)
+    	t.nv.append(fof)
     
     def pethh(self,t,x,y):
         for i in t.nv:
@@ -365,6 +378,9 @@ class tankin:
     	bl,dx,dy=self.mof(t,teh,dx,dy)
     	if bl is None:
     	    print("djdj")
+    	    sx,sy=self.getsll(t.x,t.y)
+    	    print(self.term[sx][sy])
+    	    self.gegr(sx,sy)
     	    t.power=0
     	    return
     	dx-=t.x
@@ -372,17 +388,21 @@ class tankin:
     	self.move(t,bl,dx,dy)
     	
     def gegr(self,x,y):
-    	inx=x-1
-    	iny=y+1
-    	for i in range(inx,inx+3,1):
+    	x-=x%self.rr
+    	y-=y%self.rr
+    	mul=2
+    	inx=x-1*self.rr*mul
+    	iny=y+1*self.rr*mul
+    	for i in range(inx,inx+3*self.rr*mul,1*self.rr):
     		f2=[]
-    		for j in range(iny,iny-3,-1):
+    		for j in range(iny,iny-3*self.rr*mul,-1*self.rr):
     			xz=0
     			try:
-    				xz=self.term[i][j]
+    				xz=round(self.term[i][j])
     			except Exception:
     				pass
     			f2.append(xz)
+    		print(f2)
     		
     	
     def peto(self,t,x,y):
