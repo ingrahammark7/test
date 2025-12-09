@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Dismiss Case"
+footer_text = "Affidavit of Service"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "John Doe",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP04621")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03825")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, footer_text)
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "The purpose of this case was to turn off the automatic routing of my cases to Curtis Kin. Because that has been achieved, judge should dismiss or merge case with 25STCP03825. /n" 
+    intro_text = "Attached packet was submitted ro Sheriff desk in room 525 for service. Judge should order UPS store at my address to not tamper with mail so I can recieve proof of service. /n" 
     y_position -= .25*inch
     
     
@@ -152,7 +152,7 @@ def create_pdf(output_filename):
 
     y_position=doer(intro_text,y_position)			
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 11/19/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/9/2025")
     c=dopage(c,1)
 
 
