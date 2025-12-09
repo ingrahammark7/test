@@ -102,6 +102,7 @@ class tankin:
         self.cou=2
         self.fm=self.fom()
         self.fr=self.refs(self.fm)
+        self.mv=[]
         for te in self.teams:
             maxe = self.maxx
             if te == 0:
@@ -352,11 +353,6 @@ class tankin:
     	return tr,t
     	
     def smm(self,tr,t,dx,dy):
-    	"""
-    	nep=[(tr.x+dx*i,tr.y+dy*i) for i in range(1, self.rr+1)]
-    	t.nv.extend(nep)
-    	tr.x,tr.y=nep[-1]
-    	"""
     	tr.x+=dx
     	tr.y+=dy
     	fof=(tr.x,tr.y)
@@ -421,7 +417,8 @@ class tankin:
             
      
     def rmove(self,t):
-        self.tse+=f"|{t.name} tank moved to {t.x},{t.y}"
+        ss=f"{t.name} tank moved to {t.x},{t.y}"
+        self.mv.append(ss)
         
     def nex(self, t,dx,dy):
         nx = t.x + dx
@@ -572,6 +569,7 @@ ttf=tt.cf[cd]
 foj=int(tt.midx)
 for ig in range(foj):    
     tt.peto(ttf,tt.midx,tt.midy)
+tt.tse="|".join(tt.mv)
 ts=tt.tse
 dte=dte-dt.now()
 dte=dte.total_seconds()
