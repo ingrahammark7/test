@@ -49,6 +49,8 @@ class thull:
 		self.so=0
 		self.z=0
 		self.nv=[]
+		self.hj=45
+		self.hc=[]
 		
 	def firehead(self):
 		self.ammo-=1

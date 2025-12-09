@@ -21,7 +21,6 @@ rc=round(os.sys.getsizeof(ran)/4)
 boh=thull.baseobj()
 sker=pen.getskin()
 nf=nuct.pm
-hj=45
 
 def saf(x):
 	if isinstance(x,sp.Basic):
@@ -86,7 +85,7 @@ class tankin:
         	f1 = t1.turn(90)
         	f2,_ = t1.timett(90, 0)
         self.times = mam*(min(f1, f2) * 16).evalf()
-        self.maxx = self.times * t1.rspe() * am/40
+        self.maxx = self.times * t1.rspe() * am
         self.maxx = self.maxx.evalf()
         self.maxy = self.maxx
         self.maxxr=round(self.maxx)
@@ -103,6 +102,7 @@ class tankin:
         self.fm=self.fom()
         self.fr=self.refs(self.fm)
         self.mv=[]
+        
         for te in self.teams:
             maxe = self.maxx
             if te == 0:
@@ -176,9 +176,7 @@ class tankin:
             
     def grefx(self,x,y,t11):
         dif=self.getsl(x,y)-t11.z
-        print(dif)
-        self.gegr(x,y)
-        return dif/3
+        return dif*.5
             
     def torc(self,x,y,t):
         mo=self.grefx(x,y,t)
@@ -357,8 +355,10 @@ class tankin:
     	tr.y+=dy
     	fof=(tr.x,tr.y)
     	t.nv.append(fof)
+    	self.getsn(tr)
     
     def pethh(self,t,x,y):
+        """
         for i in t.nv:
         	x,y=i
         	t.nv.remove(i)
@@ -366,6 +366,7 @@ class tankin:
         	dy=y-t.y
         	t.move(dx,dy)
         	return
+        """
         dx,dy,teh,mo=self.getm(t,x,y)   
         while(mo<t.tf):
         	self.move(t,teh,dx,dy)
@@ -378,20 +379,25 @@ class tankin:
     def rm(self,t,teh,dx,dy):
     	bl,dx,dy=self.mof(t,teh,dx,dy)
     	if bl is None:
-    	    print("djdj")
-    	    sx,sy=self.getsll(t.x,t.y)
-    	    print(self.term[sx][sy])
-    	    self.gegr(sx,sy)
-    	    t.power=0
+    	    if (t.x,t.y) in t.hc:
+    	    	t.power=0
+    	    	return
+    	    t.hj=-1*t.hj
+    	    t.sh=[]
+    	    fo=(t.x,t.y)
+    	    t.hc.append(fo)
     	    return
     	dx-=t.x
     	dy-=t.y 
     	self.move(t,bl,dx,dy)
     	
+    def geg(self,t2):
+    	self.gegr(t2.x,t2.y)
+    	
     def gegr(self,x,y):
     	x-=x%self.rr
     	y-=y%self.rr
-    	mul=2
+    	mul=5
     	inx=x-1*self.rr*mul
     	iny=y+1*self.rr*mul
     	for i in range(inx,inx+3*self.rr*mul,1*self.rr):
@@ -403,14 +409,15 @@ class tankin:
     			except Exception:
     				pass
     			f2.append(xz)
-    		print(f2)
     		
     	
     def peto(self,t,x,y):
+        """
         if t.power==0:
         	return
         if(len(t.nv)==0):
         	self.donv(t,int(x),int(y))
+        """
         for _ in range(t.so):
             self.pethh(t,x,y)
             self.rmove(t)
@@ -433,7 +440,7 @@ class tankin:
         return None,None,None
         
     def ttlo(self,t,ttl,co,i,dx,dy):
-        tmp=ttl+hj*i
+        tmp=ttl+t.hj*i
         tmp%=360
         t.heading=tmp
         tmp,dx,dy=self.frm(tmp)
@@ -566,9 +573,11 @@ ts=''
 cd=1
 dte=dt.now()
 ttf=tt.cf[cd]
-foj=int(tt.midx)
+foj=int(tt.midx)*10
+m=int(tt.midx)+1
+mm=int(tt.midy)+1
 for ig in range(foj):    
-    tt.peto(ttf,tt.midx,tt.midy)
+    tt.peto(ttf,m,mm)
 tt.tse="|".join(tt.mv)
 ts=tt.tse
 dte=dte-dt.now()
