@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request"
+footer_text = "Notice of Appeal"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -167,9 +167,9 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="Case was filed to get around judge automatically dismissing all cases. The given dismissal reasons are absurd. In previous case I mentioned the majority of LAPD officers are illegal immigrants and should be deported. Judge dismissed and said immigration is not under federal jurisdiction. /n Order judge arrested for senility. /n"
+    text="Notice of appeal was provided for case dismissal on 12/1. Judge made the following errors. One, if I kill a LAPD officer who is part of a federal task force, the federal court has non-discretionary duty to arrest me. Secondly, failing to arrest me when required by law is a personal injury and a valid cause of action. /n"
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 10/14/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/10/2025")
 
 
     # Save the PDF
