@@ -1,25 +1,82 @@
-# Example: triboelectric onset calculator
-import numpy as np
+import time
+import asyncio
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+import os
 
-# Constants
-eV_to_J = 1.602e-19
+# ----------------------------
+# CPU-bound task
+# ----------------------------
+def cpu_task(n: int):
+    total = 0
+    for i in range(n):
+        total += i * i
+    return total
 
-# Inputs
-mass_atom = 4.65e-26        # N2 molecule, kg
-bond_energy_eV = 5.15 /2#oxtgen        # N2 triple bond
-velocity = 340               # m/s, Mach 1
-aggregation_factor = 138+16   # feedback multiplier
+# ----------------------------
+# IO-bound async task
+# ----------------------------
+async def async_task(duration: float):
+    await asyncio.sleep(duration)
+    return duration
 
-# Calculations
-bond_energy_J = bond_energy_eV * eV_to_J
-kinetic_energy = 0.5 * mass_atom * velocity**2
-effective_energy = kinetic_energy * aggregation_factor
+# ----------------------------
+# IO-bound function for threads/processes
+# ----------------------------
+def io_task(duration: float):
+    time.sleep(duration)
+    return duration
 
-print(f"Kinetic energy per molecule: {kinetic_energy:.3e} J")
-print(f"Effective energy with aggregation: {effective_energy:.3e} J")
-print(f"Bond energy: {bond_energy_J:.3e} J")
+# ----------------------------
+# Benchmark helpers
+# ----------------------------
+def benchmark_threads(task_func, n_tasks, *args, max_workers=None):
+    start = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futures = [ex.submit(task_func, *args) for _ in range(n_tasks)]
+        for f in futures:
+            f.result()
+    return time.perf_counter() - start
 
-if effective_energy >= bond_energy_J:
-    print("Triboelectric/plasma onset likely")
-else:
-    print("No significant plasma formation")
+def benchmark_processes(task_func, n_tasks, *args, max_workers=None):
+    start = time.perf_counter()
+    with ProcessPoolExecutor(max_workers=max_workers) as ex:
+        futures = [ex.submit(task_func, *args) for _ in range(n_tasks)]
+        for f in futures:
+            f.result()
+    return time.perf_counter() - start
+
+async def benchmark_async(task_func, n_tasks, *args):
+    start = time.perf_counter()
+    tasks = [asyncio.create_task(task_func(*args)) for _ in range(n_tasks)]
+    await asyncio.gather(*tasks)
+    return time.perf_counter() - start
+
+# ----------------------------
+# Main benchmarking
+# ----------------------------
+def run_benchmarks():
+    cpu_iterations = 5_000_000   # CPU-heavy
+    io_duration = 0.2            # seconds per I/O task
+    n_tasks_list = [1, 2, 4, 8, 16, 32]
+
+    print(f"CPU cores detected: {os.cpu_count()}\n")
+
+    print("=== CPU-bound task ===")
+    print(f"{'Tasks':>8}  {'Threads(s)':>12}  {'Processes(s)':>12}")
+    print("-" * 38)
+    for n in n_tasks_list:
+        t_threads = benchmark_threads(cpu_task, n, cpu_iterations)
+        t_processes = benchmark_processes(cpu_task, n, cpu_iterations)
+        print(f"{n:>8}  {t_threads:>12.4f}  {t_processes:>12.4f}")
+
+    print("\n=== IO-bound task ===")
+    print(f"{'Tasks':>8}  {'Threads(s)':>12}  {'Async(s)':>12}  {'Processes(s)':>12}")
+    print("-" * 56)
+    for n in n_tasks_list:
+        t_threads = benchmark_threads(io_task, n, io_duration)
+        t_processes = benchmark_processes(io_task, n, io_duration)
+        t_async = asyncio.run(benchmark_async(async_task, n, io_duration))
+        print(f"{n:>8}  {t_threads:>12.4f}  {t_async:>12.4f}  {t_processes:>12.4f}")
+
+if __name__ == "__main__":
+    run_benchmarks()
