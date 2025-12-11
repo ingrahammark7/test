@@ -96,7 +96,6 @@ class tankin:
         self.l=0
         self.inw(t1)
         self.tse=""
-        self.ro=round((self.rr**nuct.phi).evalf())
         self.r2=int(round(ran/self.rr))
         self.cou=2
         self.fm=self.fom()
@@ -115,9 +114,10 @@ class tankin:
             
     def fs(self,x,y):
     	for i in self.term.keys():
-    		for j in self.term.keys():
-    			if int(i) >= x and int(j) >= y:
-    				return i,j
+    		if int(i)>=x:
+    			for j in self.term[i].keys():
+    				if int(j) >= y:
+    					return i,j
     	return 0,0
     
     def dot(self, st, co, x, t11):
@@ -358,7 +358,6 @@ class tankin:
     	self.getsn(tr)
     
     def pethh(self,t,x,y):
-        """
         for i in t.nv:
         	x,y=i
         	t.nv.remove(i)
@@ -366,7 +365,6 @@ class tankin:
         	dy=y-t.y
         	t.move(dx,dy)
         	return
-        """
         dx,dy,teh,mo=self.getm(t,x,y)   
         while(mo<t.tf):
         	self.move(t,teh,dx,dy)
@@ -397,27 +395,28 @@ class tankin:
     def gegr(self,x,y):
     	x-=x%self.rr
     	y-=y%self.rr
-    	mul=5
+    	mul=14
     	inx=x-1*self.rr*mul
     	iny=y+1*self.rr*mul
-    	for i in range(inx,inx+3*self.rr*mul,1*self.rr):
+    	for i in range(inx+3*self.rr*mul,inx,-1*self.rr):
     		f2=[]
-    		for j in range(iny,iny-3*self.rr*mul,-1*self.rr):
+    		for j in range(iny-3*self.rr*mul,iny,1*self.rr):
     			xz=0
     			try:
     				xz=round(self.term[i][j])
+    				if i==x and y==j:
+    					xz="*"
     			except Exception:
     				pass
     			f2.append(xz)
+    		print(f2)
     		
     	
     def peto(self,t,x,y):
-        """
         if t.power==0:
         	return
         if(len(t.nv)==0):
         	self.donv(t,int(x),int(y))
-        """
         for _ in range(t.so):
             self.pethh(t,x,y)
             self.rmove(t)
