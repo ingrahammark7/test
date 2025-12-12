@@ -1,82 +1,42 @@
-import time
-import asyncio
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-import os
+# Effective nuclear charge and screened Coulomb energy for iron valence electrons
 
-# ----------------------------
-# CPU-bound task
-# ----------------------------
-def cpu_task(n: int):
-    total = 0
-    for i in range(n):
-        total += i * i
-    return total
+# Constants
+k_e = 8.988e9         # N·m²/C², Coulomb constant
+e = 1.602e-19         # C, elementary charge
+r_valence = 2.48e-10  # m, typical Fe bond length in bcc lattice
 
-# ----------------------------
-# IO-bound async task
-# ----------------------------
-async def async_task(duration: float):
-    await asyncio.sleep(duration)
-    return duration
+# Iron configuration: [Ar] 3d6 4s2
+# Valence electrons: 3d6 + 4s2 = 8 electrons
 
-# ----------------------------
-# IO-bound function for threads/processes
-# ----------------------------
-def io_task(duration: float):
-    time.sleep(duration)
-    return duration
+Z = 26  # Nuclear charge
 
-# ----------------------------
-# Benchmark helpers
-# ----------------------------
-def benchmark_threads(task_func, n_tasks, *args, max_workers=None):
-    start = time.perf_counter()
-    with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        futures = [ex.submit(task_func, *args) for _ in range(n_tasks)]
-        for f in futures:
-            f.result()
-    return time.perf_counter() - start
+# Slater's rules: shielding constants (approx)
+# Core electrons (1s-3p): shield fully S=18
+# Same shell 3d: 0.35 per electron (excluding self)
+# 4s electrons: 0.35 for other 4s, 0.35 for 3d? Approximate as 0.35 per other valence
+S_core = 18
+S_3d = 0.35 * (6-1)  # 5 other 3d electrons
+S_4s = 0.35 * (2-1 + 6)  # other 4s + all 3d electrons
 
-def benchmark_processes(task_func, n_tasks, *args, max_workers=None):
-    start = time.perf_counter()
-    with ProcessPoolExecutor(max_workers=max_workers) as ex:
-        futures = [ex.submit(task_func, *args) for _ in range(n_tasks)]
-        for f in futures:
-            f.result()
-    return time.perf_counter() - start
+# Effective nuclear charges
+Z_eff_3d = Z - (S_core + S_3d)
+Z_eff_4s = Z - (S_core + S_4s)
 
-async def benchmark_async(task_func, n_tasks, *args):
-    start = time.perf_counter()
-    tasks = [asyncio.create_task(task_func(*args)) for _ in range(n_tasks)]
-    await asyncio.gather(*tasks)
-    return time.perf_counter() - start
+print(f"Effective nuclear charge Z_eff (3d electrons): {Z_eff_3d:.2f}")
+print(f"Effective nuclear charge Z_eff (4s electrons): {Z_eff_4s:.2f}")
 
-# ----------------------------
-# Main benchmarking
-# ----------------------------
-def run_benchmarks():
-    cpu_iterations = 5_000_000   # CPU-heavy
-    io_duration = 0.2            # seconds per I/O task
-    n_tasks_list = [1, 2, 4, 8, 16, 32]
+# Screened Coulomb energy between two valence electrons (extreme case: one atom vs another)
+# E = k_e * (Z_eff e)^2 / r
+E_3d = k_e * (Z_eff_3d * e)**2 / r_valence
+E_4s = k_e * (Z_eff_4s * e)**2 / r_valence
 
-    print(f"CPU cores detected: {os.cpu_count()}\n")
+print(f"Screened Coulomb energy per atom pair (3d): {E_3d:.3e} J")
+print(f"Screened Coulomb energy per atom pair (4s): {E_4s:.3e} J")
 
-    print("=== CPU-bound task ===")
-    print(f"{'Tasks':>8}  {'Threads(s)':>12}  {'Processes(s)':>12}")
-    print("-" * 38)
-    for n in n_tasks_list:
-        t_threads = benchmark_threads(cpu_task, n, cpu_iterations)
-        t_processes = benchmark_processes(cpu_task, n, cpu_iterations)
-        print(f"{n:>8}  {t_threads:>12.4f}  {t_processes:>12.4f}")
+# Compare with bond energy ~4.28 eV per atom
+E_bond = 4.28 * e
+factor_3d = E_bond / E_3d
+factor_4s = E_bond / E_4s
 
-    print("\n=== IO-bound task ===")
-    print(f"{'Tasks':>8}  {'Threads(s)':>12}  {'Async(s)':>12}  {'Processes(s)':>12}")
-    print("-" * 56)
-    for n in n_tasks_list:
-        t_threads = benchmark_threads(io_task, n, io_duration)
-        t_processes = benchmark_processes(io_task, n, io_duration)
-        t_async = asyncio.run(benchmark_async(async_task, n, io_duration))
-        print(f"{n:>8}  {t_threads:>12.4f}  {t_async:>12.4f}  {t_processes:>12.4f}")
-
-if __name__ == "__main__":
-    run_benchmarks()
+print(f"Bond energy / screened Coulomb (3d) = {factor_3d:.3e}")
+print(f"Bond energy / screened Coulomb (4s) = {factor_4s:.3e}")
