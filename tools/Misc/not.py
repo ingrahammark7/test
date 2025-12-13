@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Attached packet was submitted ro Sheriff desk in room 525 for service. Judge should order UPS store at my address to not tamper with mail so I can recieve proof of service. /n" 
+    intro_text = "There are four ways this case is under federal jurisdiction. One, if I kill LAPD officers in federal operations there is a non discretionary duty to arrest. Two, the majority of LAPD officers are illegal immigrants. Three, the LAPD violates false claims act by pretending to be law enforcement and not following the law. Four, the LAPD is a Foreign Terrorist Organization. /n" 
     y_position -= .25*inch
     
     
