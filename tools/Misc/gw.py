@@ -52,7 +52,12 @@ df["Deep_South"] = df["State"].isin(
 ).astype(int)
 
 # -----------------------------
-# Outcome: independent enforcement index (proxy for per-Hispanic deportation)
+# Interaction: Density × ICE Cooperation
+# -----------------------------
+df["Density_x_ICE"] = df["Population_Density"] * df["ICE_Cooperation_Index"]
+
+# -----------------------------
+# Outcome: independent enforcement index
 # -----------------------------
 df["Enforcement_Index"] = [
     0.78,0.30,0.65,0.60,0.25,0.40,0.32,0.35,0.70,0.72,0.33,0.55,0.30,0.45,
@@ -62,12 +67,19 @@ df["Enforcement_Index"] = [
 ]
 
 # -----------------------------
-# Regression
+# Regression with interaction
 # -----------------------------
-X = df[
-    ["Population_Density","Pct_Hispanic","ICE_Cooperation_Index",
-     "Border_State","Sanctuary_State","Deep_South"]
+predictors = [
+    "Population_Density",
+    "Pct_Hispanic",
+    "ICE_Cooperation_Index",
+    "Density_x_ICE",
+    "Border_State",
+    "Sanctuary_State",
+    "Deep_South"
 ]
+
+X = df[predictors]
 y = df["Enforcement_Index"]
 
 model = LinearRegression()
@@ -79,24 +91,27 @@ df["Residual"] = y - df["Predicted"]
 r2 = r2_score(y, df["Predicted"])
 
 # -----------------------------
-# Ranking
+# Ranking by actual enforcement
 # -----------------------------
 ranked = df.sort_values("Enforcement_Index", ascending=False)
 
-print("\n=== TOP 15 STATES: ACTUAL vs PREDICTED ===")
+# -----------------------------
+# Output
+# -----------------------------
+print("\n=== TOP 15 STATES: ACTUAL vs PREDICTED with Interaction ===")
 print(ranked.head(15)[[
     "State","Enforcement_Index","Predicted","Residual"
 ]])
 
 print("\n=== MODEL COEFFICIENTS ===")
-for name, coef in zip(X.columns, model.coef_):
+for name, coef in zip(predictors, model.coef_):
     print(f"{name}: {coef:.4f}")
 print(f"Intercept: {model.intercept_:.4f}")
 print(f"R²: {r2:.3f}")
 
 print("""
 Interpretation:
-• Positive residual → state enforces more than model predicts
-• Negative residual → state enforces less
-• Coefficients show which predictors increase/decrease expected intensity
+• Residual > 0 → state enforces more than predicted given demographics and policy
+• Residual < 0 → state enforces less than predicted
+• Interaction term shows how ICE cooperation has a larger effect in denser states
 """)
