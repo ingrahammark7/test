@@ -560,6 +560,22 @@ class tankin:
             if grid[ex][ey]>eh:
                 return False
             return True
+    
+    def fol(self,t11,t2):
+    	if len(t2.nv)!=0:
+    		return
+    	fo=(t11.x,t11.y)
+    	t3=copy.copy(t2)
+    	while fo not in t3.nv:
+    		self.donv(t3,t11.x,t11.y)
+    		t3.x,t3.y=t3.donv[len(t3.donv)-1]
+    	t2.donv=t3.donv
+    	for i in t11.nv:
+    		t2.nv.append(i)
+    	fs=2*max(t11.length,t2.length)
+    	le=len(t2.nv)
+    	for i in range(fs):
+    		t2.nv.remove(le-i)
 
 def baseobj():
 	return tankin(0)            
