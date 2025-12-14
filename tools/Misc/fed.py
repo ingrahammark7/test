@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Appeal"
+footer_text = "Petition for Writ of Mandate"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -82,7 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "Case Number: 2:25-cv-09550-MWC",
+        "Case Number: ",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -167,7 +167,7 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="Notice of appeal was provided for case dismissal on 12/1. Judge made the following errors. One, if I kill a LAPD officer who is part of a federal task force, the federal court has non-discretionary duty to arrest me. Secondly, failing to arrest me when required by law is a personal injury and a valid cause of action. /n"
+    text="/n I. INTRODUCTION /n The majority of LAPD officers are illegal inmigrants. Auction and destroy all LAPD vehicles to prevent use by illegals. /n There are four ways this case is under federal jurisdiction. One, if I kill LAPD officers in federal operations there is a non discretionary duty to arrest. Two, the majority of LAPD officers are illegal immigrants. Three, the LAPD violates false claims act by pretending to be law enforcement and not following the law. Four, the LAPD is a Foreign Terrorist Organization. /n II. CONCLUSION /n Petitioner requests court to: /n 2. Auction and destroy all LAPD vehicles. /n 2. Order LAPD to explain why they attempt to arrest me at 690 S Catalina St Apartment 4x. /n"
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/10/2025")
 
