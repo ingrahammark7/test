@@ -1,117 +1,42 @@
-import pandas as pd
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
+# real_ev_lithium_forecast.py
+# Estimates lithium production vs EV lithium consumption using real‑world forecasts.
 
-# -----------------------------
-# State list
-# -----------------------------
-states = [
-    "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
-    "Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa",
-    "Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan",
-    "Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada",
-    "New Hampshire","New Jersey","New Mexico","New York","North Carolina",
-    "North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island",
-    "South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont",
-    "Virginia","Washington","West Virginia","Wisconsin","Wyoming"
-]
+# Constants / real estimates
+START_YEAR = 2024
+END_YEAR = 2030
 
-df = pd.DataFrame({"State": states})
+# Global lithium production in 2024 (LCE tonnes)
+# Industry estimate scaled from reported data.
+lithium_prod_2024 = 240_000.0
 
-# -----------------------------
-# Predictors
-# -----------------------------
-df["Population_Density"] = [
-    97,1,64,58,253,57,741,500,414,190,222,23,232,189,57,36,113,108,43,626,
-    884,177,72,63,89,7,25,29,153,1210,412,420,218,11,286,57,44,286,1021,
-    170,12,170,115,40,68,218,117,77,108,6
-]
+# Annual production growth (assumption)
+LITHIUM_GROWTH_RATE = 0.10  # 10% per year
 
-df["Pct_Hispanic"] = [
-    .05,.07,.31,.08,.40,.22,.17,.10,.27,.10,.11,.13,.19,.09,.07,.13,.04,.05,
-    .02,.11,.22,.06,.06,.03,.04,.11,.11,.30,.04,.22,.49,.20,.11,.04,.05,
-    .11,.14,.08,.17,.06,.04,.06,.39,.15,.02,.10,.14,.13,.07,.10
-]
+# EV sales baseline
+# BloombergNEF expects ~22M EV+PHEV sales in 2025
+ev_sales_2025 = 22_000_000
 
-df["ICE_Cooperation_Index"] = [
-    .9,.6,.8,.8,.2,.4,.3,.4,.8,.9,.3,.7,.3,.6,.5,.6,.7,.9,.4,.4,
-    .3,.4,.4,.9,.6,.6,.6,.5,.3,.3,.4,.3,.6,.6,.5,.7,.3,.5,.3,
-    .8,.7,.9,.8,.6,.2,.4,.3,.8,.4,.6
-]
+# Annual EV sales growth assumption
+EV_GROWTH_RATE = 0.15  # 15% YoY
 
-df["Border_State"] = df["State"].isin(
-    ["California","Arizona","New Mexico","Texas"]
-).astype(int)
+# Lithium consumption per EV (kg of Li metal)
+LI_PER_EV_KG = 8.0
 
-df["Sanctuary_State"] = df["State"].isin(
-    ["California","New York","Illinois","Oregon","Washington","New Jersey","Colorado"]
-).astype(int)
+print("Year | Li Prod (t) | EVs Sold (units) | Li Consumed (t) | Gap (t)")
+print("---------------------------------------------------------------")
 
-df["Deep_South"] = df["State"].isin(
-    ["Alabama","Mississippi","Louisiana","Tennessee","Georgia","South Carolina"]
-).astype(int)
+# Initialize
+lithium_prod = lithium_prod_2024
+ev_sales = ev_sales_2025 / (1.0 + EV_GROWTH_RATE)  # back‑calculate for 2024
 
-# -----------------------------
-# Interaction: Density × ICE Cooperation
-# -----------------------------
-df["Density_x_ICE"] = df["Population_Density"] * df["ICE_Cooperation_Index"]
+for year in range(START_YEAR, END_YEAR + 1):
+    # Lithium consumed by EVs (kg → t)
+    lithium_consumed = (ev_sales * LI_PER_EV_KG) / 1000.0
+    gap = lithium_prod - lithium_consumed
 
-# -----------------------------
-# Outcome: independent enforcement index
-# -----------------------------
-df["Enforcement_Index"] = [
-    0.78,0.30,0.65,0.60,0.25,0.40,0.32,0.35,0.70,0.72,0.33,0.55,0.30,0.45,
-    0.40,0.50,0.48,0.80,0.35,0.42,0.33,0.38,0.36,0.82,0.50,0.28,0.45,0.55,
-    0.32,0.30,0.62,0.28,0.55,0.30,0.45,0.58,0.27,0.47,0.34,0.75,0.30,
-    0.77,0.70,0.52,0.25,0.48,0.27,0.60,0.42,0.35
-]
+    print(f"{year:4d} | {lithium_prod:11.0f} | {ev_sales:15.0f} | "
+          f"{lithium_consumed:12.0f} | {gap:8.0f}")
 
-# -----------------------------
-# Regression with interaction
-# -----------------------------
-predictors = [
-    "Population_Density",
-    "Pct_Hispanic",
-    "ICE_Cooperation_Index",
-    "Density_x_ICE",
-    "Border_State",
-    "Sanctuary_State",
-    "Deep_South"
-]
-
-X = df[predictors]
-y = df["Enforcement_Index"]
-
-model = LinearRegression()
-model.fit(X, y)
-
-df["Predicted"] = model.predict(X)
-df["Residual"] = y - df["Predicted"]
-
-r2 = r2_score(y, df["Predicted"])
-
-# -----------------------------
-# Ranking by actual enforcement
-# -----------------------------
-ranked = df.sort_values("Enforcement_Index", ascending=False)
-
-# -----------------------------
-# Output
-# -----------------------------
-print("\n=== TOP 15 STATES: ACTUAL vs PREDICTED with Interaction ===")
-print(ranked.head(15)[[
-    "State","Enforcement_Index","Predicted","Residual"
-]])
-
-print("\n=== MODEL COEFFICIENTS ===")
-for name, coef in zip(predictors, model.coef_):
-    print(f"{name}: {coef:.4f}")
-print(f"Intercept: {model.intercept_:.4f}")
-print(f"R²: {r2:.3f}")
-
-print("""
-Interpretation:
-• Residual > 0 → state enforces more than predicted given demographics and policy
-• Residual < 0 → state enforces less than predicted
-• Interaction term shows how ICE cooperation has a larger effect in denser states
-""")
+    # Next year
+    lithium_prod *= (1.0 + LITHIUM_GROWTH_RATE)
+    ev_sales *= (1.0 + EV_GROWTH_RATE)
