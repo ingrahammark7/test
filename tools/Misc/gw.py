@@ -1,39 +1,84 @@
-# real_ev_lithium_forecast_fixed.py
-# Estimates lithium production vs EV lithium consumption using real‑world forecasts.
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
 
-START_YEAR = 2024
-END_YEAR = 2030
+# -------------------------------
+# 1. Hardcoded real/estimated data
+# -------------------------------
 
-# Global lithium production in 2024 (t LCE)
-lithium_prod_2024 = 240_000.0
+data = {
+    'country': [
+        'USA', 'Sweden', 'Brazil', 'Japan',
+        'Russia', 'Thailand', 'Germany', 'Nigeria'
+    ],
+    # Hypothetical fatal accident rate per million flights
+    # (based on global trends; these are NOT real exact figures per country)
+    # you would replace with real data from aviation safety sources.
+    'accident_rate_per_million_flights': [
+        1.4, 0.5, 3.2, 0.3,
+        2.8, 4.5, 0.4, 6.1
+    ],
+    # GDP per capita (USD) hardcoded approximations for 2023
+    'gdp_per_capita_usd': [
+        65000, 60000, 15000, 50000,
+        12000, 7800, 55000, 2500
+    ],
+    # Estimated prevalence of drug use (percent, general illicit drug use)
+    # Proxy indicator from UNODC World Drug Report estimates
+    'drug_use_percent': [
+        10.5, 6.4, 8.8, 3.2,
+        5.5, 9.0, 5.8, 7.5
+    ],
+    # Estimated average fleet age (years)
+    'fleet_age_years': [
+        12, 7, 15, 10,
+        20, 18, 8, 22
+    ],
+    # Weather risk index (higher means more weather disruption)
+    'weather_risk_index': [
+        4, 5, 7, 3,
+        5, 8, 4, 9
+    ]
+}
 
-# Annual lithium production growth
-LITHIUM_GROWTH_RATE = 0.10  # 10% per year
+df = pd.DataFrame(data)
 
-# EV sales baseline (22M in 2025)
-ev_sales_2025 = 22_000_000
-EV_GROWTH_RATE = 0.15  # 15% YoY
+# -----------------------------
+# 2. Standardize numeric columns
+# -----------------------------
+numeric_cols = [
+    'accident_rate_per_million_flights',
+    'gdp_per_capita_usd',
+    'drug_use_percent',
+    'fleet_age_years',
+    'weather_risk_index'
+]
 
-# Lithium consumption per EV (kg Li)
-LI_PER_EV_KG = 8.0
+scaler = StandardScaler()
+df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
 
-print("Year | Li Prod (t) | EVs Sold (units) | Li Consumed (t) | Gap (%)")
-print("---------------------------------------------------------------")
+# -----------------------------
+# 3. Compute correlation matrix
+# -----------------------------
+corr = df[numeric_cols].corr()
+print("Correlation matrix:\n", corr)
 
-# Initialize values
-lithium_prod = lithium_prod_2024
-ev_sales = ev_sales_2025 / (1.0 + EV_GROWTH_RATE)  # back-calculate 2024 sales
+# Show correlations visually
+sns.heatmap(corr, annot=True, cmap='coolwarm')
+plt.title("Correlation between Accident Rates and Factors")
+plt.show()
 
-for year in range(START_YEAR, END_YEAR + 1):
-    # Lithium consumed by EVs in t
-    lithium_consumed = (ev_sales * LI_PER_EV_KG) / 1000.0
+# -----------------------------
+# 4. Simple regression model
+# -----------------------------
+X = df[['gdp_per_capita_usd', 'drug_use_percent', 'fleet_age_years', 'weather_risk_index']]
+y = df['accident_rate_per_million_flights']
 
-    # Gap: % of production remaining after EV consumption
-    gap_percent = ((lithium_prod - lithium_consumed) / lithium_prod) * 100.0
+model = LinearRegression().fit(X, y)
+print("\nRegression coefficients:")
+for feature, coef in zip(X.columns, model.coef_):
+    print(f"{feature}: {coef:.3f}")
 
-    print(f"{year:4d} | {lithium_prod:11.0f} | {ev_sales:15.0f} | "
-          f"{lithium_consumed:12.0f} | {gap_percent:8.1f}%")
-
-    # Update for next year
-    lithium_prod *= (1.0 + LITHIUM_GROWTH_RATE)
-    ev_sales *= (1.0 + EV_GROWTH_RATE)
+print(f"Intercept: {model.intercept_:.3f}")
