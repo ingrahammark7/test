@@ -1,42 +1,31 @@
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 
 # -------------------------------
-# 1. Hardcoded real/estimated data
+# 1. Hardcoded data
 # -------------------------------
-
 data = {
     'country': [
         'USA', 'Sweden', 'Brazil', 'Japan',
         'Russia', 'Thailand', 'Germany', 'Nigeria'
     ],
-    # Hypothetical fatal accident rate per million flights
-    # (based on global trends; these are NOT real exact figures per country)
-    # you would replace with real data from aviation safety sources.
     'accident_rate_per_million_flights': [
         1.4, 0.5, 3.2, 0.3,
         2.8, 4.5, 0.4, 6.1
     ],
-    # GDP per capita (USD) hardcoded approximations for 2023
     'gdp_per_capita_usd': [
         65000, 60000, 15000, 50000,
         12000, 7800, 55000, 2500
     ],
-    # Estimated prevalence of drug use (percent, general illicit drug use)
-    # Proxy indicator from UNODC World Drug Report estimates
     'drug_use_percent': [
         10.5, 6.4, 8.8, 3.2,
         5.5, 9.0, 5.8, 7.5
     ],
-    # Estimated average fleet age (years)
     'fleet_age_years': [
         12, 7, 15, 10,
         20, 18, 8, 22
     ],
-    # Weather risk index (higher means more weather disruption)
     'weather_risk_index': [
         4, 5, 7, 3,
         5, 8, 4, 9
@@ -44,10 +33,6 @@ data = {
 }
 
 df = pd.DataFrame(data)
-
-# -----------------------------
-# 2. Standardize numeric columns
-# -----------------------------
 numeric_cols = [
     'accident_rate_per_million_flights',
     'gdp_per_capita_usd',
@@ -56,29 +41,38 @@ numeric_cols = [
     'weather_risk_index'
 ]
 
+# -------------------------------
+# 2. Standardize numeric columns
+# -------------------------------
 scaler = StandardScaler()
 df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
+print("Step 1: Standardized numeric data:")
+print(df[numeric_cols].head(), "\n")  # Partial output
 
-# -----------------------------
+# -------------------------------
 # 3. Compute correlation matrix
-# -----------------------------
+# -------------------------------
+print("Step 2: Correlation matrix:")
 corr = df[numeric_cols].corr()
-print("Correlation matrix:\n", corr)
+print(corr, "\n")  # Partial output
 
-# Show correlations visually
-sns.heatmap(corr, annot=True, cmap='coolwarm')
-plt.title("Correlation between Accident Rates and Factors")
-plt.show()
-
-# -----------------------------
-# 4. Simple regression model
-# -----------------------------
+# -------------------------------
+# 4. Linear regression model
+# -------------------------------
 X = df[['gdp_per_capita_usd', 'drug_use_percent', 'fleet_age_years', 'weather_risk_index']]
 y = df['accident_rate_per_million_flights']
 
 model = LinearRegression().fit(X, y)
-print("\nRegression coefficients:")
+print("Step 3: Regression coefficients:")
 for feature, coef in zip(X.columns, model.coef_):
     print(f"{feature}: {coef:.3f}")
 
-print(f"Intercept: {model.intercept_:.3f}")
+print(f"Intercept: {model.intercept_:.3f}\n")
+
+# -------------------------------
+# 5. Predicted accident rates (partial)
+# -------------------------------
+predictions = model.predict(X)
+df['predicted_accident_rate'] = predictions
+print("Step 4: Predicted accident rates (first 5 countries):")
+print(df[['country','predicted_accident_rate']].head())
