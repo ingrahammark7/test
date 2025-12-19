@@ -1,87 +1,67 @@
 import numpy as np
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+import pandas as pd
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Embedding, TimeDistributed, Dense
+from tensorflow.keras.utils import to_categorical
+from sklearn.model_selection import train_test_split
 
-# Make sure char_to_idx and idx_to_char are defined
+# ----------------------------
+# Load CSV
+# ----------------------------
+df = pd.read_csv("tt.csv")  # columns: line_number,url
 
-def generate_candidates(model, seed='', char_to_idx=char_to_idx, idx_to_char=idx_to_char,
-                        max_len=11, num_candidates=5, temperature=1.0, log_file='log.txt'):
-    """
-    Generate multiple candidate IDs with progress printing and logging.
-    """
-    candidates = []
+# Extract video IDs from URLs
+df['id'] = df['url'].str.extract(r"v=([A-Za-z0-9_-]{11})")
+df = df.dropna(subset=['id'])
+ids = df['id'].tolist()
+print(f"[INFO] Extracted {len(ids)} valid video IDs")
 
-    with open(log_file, 'w') as log:
-        log.write("Candidate Generation Log\n")
-        log.write("=======================\n")
+# ----------------------------
+# Build character mapping
+# ----------------------------
+vocab = sorted(list(set(''.join(ids))))
+char_to_idx = {c: i for i, c in enumerate(vocab)}
+idx_to_char = {i: c for c, i in char_to_idx.items()}
+vocab_size = len(vocab)
+print(f"[INFO] Vocabulary size: {vocab_size}")
 
-    for i in range(num_candidates):
-        seq = seed
-        for _ in range(max_len - len(seed)):
-            # Encode current sequence
-            x = [char_to_idx[c] for c in seq]
-            x = pad_sequences([x], maxlen=max_len-1, padding='pre')
+# ----------------------------
+# Prepare sequences
+# ----------------------------
+seq_length = 10  # predict next character
+X_data = []
+y_data = []
 
-            # Predict next char probabilities
-            preds = model.predict(x, verbose=0)[0]
-            
-            # Apply temperature
-            preds = np.asarray(preds).astype('float64')
-            preds = np.log(preds + 1e-8) / temperature
-            exp_preds = np.exp(preds)
-            preds = exp_preds / np.sum(exp_preds)
+for vid in ids:
+    for i in range(len(vid) - seq_length):
+        seq_in = vid[i:i + seq_length]
+        seq_out = vid[i + seq_length]
+        X_data.append([char_to_idx[c] for c in seq_in])
+        y_data.append(char_to_idx[seq_out])
 
-            # Sample next character
-            next_idx = np.random.choice(len(preds), p=preds)
-            seq += idx_to_char[next_idx]
+X_data = np.array(X_data)
+y_data = to_categorical(y_data, num_classes=vocab_size)
 
-        candidates.append(seq)
-        
-        # Print progress
-        print(f"[INFO] Generated candidate {i+1}/{num_candidates}: {seq}")
+# Train/test split
+X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size=0.2, random_state=42)
 
-        # Log candidate
-        with open(log_file, 'a') as log:
-            log.write(f"Candidate {i+1}: {seq}\n")
-    
-    return candidates
+# ----------------------------
+# Build model
+# ----------------------------
+model = Sequential([
+    Embedding(input_dim=vocab_size, output_dim=32),
+    LSTM(128, return_sequences=False),
+    Dense(vocab_size, activation='softmax')
+])
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.summary()
 
-def rank_candidates(model, candidates, char_to_idx=char_to_idx, max_len=11, log_file='log.txt'):
-    """
-    Rank candidate IDs by model likelihood with logging.
-    """
-    scores = []
-    with open(log_file, 'a') as log:
-        log.write("\nCandidate Ranking Log\n")
-        log.write("====================\n")
+# ----------------------------
+# Train with progress info
+# ----------------------------
+class ProgressCallback(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        print(f"[Epoch {epoch+1}] loss={logs['loss']:.4f}, acc={logs['accuracy']:.4f}, val_loss={logs['val_loss']:.4f}, val_acc={logs['val_accuracy']:.4f}")
 
-    for i, cand in enumerate(candidates):
-        score = 0
-        for j in range(1, len(cand)):
-            seq = [char_to_idx[c] for c in cand[:j]]
-            x = pad_sequences([seq], maxlen=max_len-1, padding='pre')
-            pred = model.predict(x, verbose=0)[0]
-            score += np.log(pred[char_to_idx[cand[j]]] + 1e-8)  # log-likelihood
-        scores.append(score)
-
-        # Print and log progress
-        print(f"[INFO] Candidate {i+1}/{len(candidates)} log-likelihood: {score:.4f}")
-        with open(log_file, 'a') as log:
-            log.write(f"Candidate {i+1}: {cand} | Log-likelihood: {score:.4f}\n")
-
-    # Sort descending
-    ranked = [c for _, c in sorted(zip(scores, candidates), reverse=True)]
-    with open(log_file, 'a') as log:
-        log.write("\nRanked Candidates:\n")
-        for i, c in enumerate(ranked):
-            log.write(f"{i+1}: {c}\n")
-    
-    return ranked
-
-# Example usage
-seed = ''
-candidates = generate_candidates(model, seed=seed, num_candidates=10, temperature=0.8)
-ranked_candidates = rank_candidates(model, candidates)
-
-print("\nTop candidates:")
-for c in ranked_candidates[:5]:
-    print(c)
+model.fit(X_train, y_train, validation_data=(X_test, y_test),
+          epochs=20, batch_size=32, callbacks=[ProgressCallback()])
