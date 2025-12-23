@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Affidavit of Service"
+footer_text = "Memorandum of Points and Authotities"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Police Department",
+        "Department of Public Social Services",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "There are four ways this case is under federal jurisdiction. One, if I kill LAPD officers in federal operations there is a non discretionary duty to arrest. Two, the majority of LAPD officers are illegal immigrants. Three, the LAPD violates false claims act by pretending to be law enforcement and not following the law. Four, the LAPD is a Foreign Terrorist Organization. /n" 
+    intro_text = "Judge requested this memorandum in support of motion. Key point in motion is judge faked transcript in case 25STCP00742 and should forward case transcript to law enforcement so judge can be arrested. Authority is state fraud laws. /n" 
     y_position -= .25*inch
     
     
