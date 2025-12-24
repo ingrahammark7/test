@@ -1,57 +1,24 @@
-import re
-import pandas as pd
-from html import unescape
+# Copper wire power limit calculation
 
-# ----------------------------
-# Input/Output files
-# ----------------------------
-mht_file = "f.mht"
-csv_file = "tt.csv"
+# Constants
+rho = 1.68e-8  # Copper resistivity in ohm-meter
+length = 100    # Wire length in meters
+width = 1e-3    # Wire width in meters (1 mm)
+thickness = width # Wire thickness in meters (1 mm)
+cross_section = width * thickness  # m^2
 
-# ----------------------------
-# Read .mht file
-# ----------------------------
-with open(mht_file, "r", encoding="utf-8", errors="ignore") as f:
-    raw_text = f.read()
+# Wire resistance
+resistance = rho * length / cross_section
+print(f"Wire resistance (ohms): {resistance:.6f} Ω")
 
-# Unescape HTML entities
-raw_text = unescape(raw_text)
+# Allowable current (approximate for 1 mm^2 copper in air)
+I_max = 10  # Amps, continuous safe current
 
-# ----------------------------
-# Extract YouTube video IDs
-# ----------------------------
-# Match /watch?v=VIDEOID (partial URLs in search pages)
-video_ids_watch = re.findall(r"/watch\?v=([A-Za-z0-9_-]{11})", raw_text)
+# Maximum power dissipation in wire
+P_max = I_max**2 * resistance
+print(f"Max power dissipated in wire (watts): {P_max:.2f} W")
 
-# Match shortened youtu.be URLs
-video_ids_short = re.findall(r"youtu\.be/([A-Za-z0-9_-]{11})", raw_text)
-
-# Combine and deduplicate
-all_ids = video_ids_watch + video_ids_short
-seen = set()
-unique_ids = []
-for vid in all_ids:
-    if vid not in seen:
-        unique_ids.append(vid)
-        seen.add(vid)
-
-print(f"[INFO] Extracted {len(unique_ids)} unique video IDs")
-
-# ----------------------------
-# Reconstruct full URLs
-# ----------------------------
-urls = [f"https://www.youtube.com/watch?v={vid}" for vid in unique_ids]
-
-# ----------------------------
-# Build dataframe
-# ----------------------------
-df = pd.DataFrame({
-    "line_number": range(1, len(urls)+1),
-    "url": urls
-})
-
-# ----------------------------
-# Save to CSV
-# ----------------------------
-df.to_csv(csv_file, index=False)
-print(f"[INFO] CSV saved as {csv_file}")
+# For a DC circuit, power delivered to load = I_max * V
+# Optional: calculate voltage drop over wire
+V_drop = I_max * resistance
+print(f"Voltage drop over wire at {I_max} A: {V_drop:.2f} V")
