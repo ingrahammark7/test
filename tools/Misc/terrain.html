@@ -1,109 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>Newtonian 3D Lattice Crack with Bonds</title>
+    <meta charset="utf-8" />
+    <title>3D Lattice Crack Simulation</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
 <canvas id="renderCanvas" touch-action="none" style="width:100%; height:100%"></canvas>
 <script>
+// ----- Babylon.js setup -----
 const canvas = document.getElementById('renderCanvas');
 const engine = new BABYLON.Engine(canvas, true);
 const scene = new BABYLON.Scene(engine);
 
-// Camera & light
-const camera = new BABYLON.ArcRotateCamera('camera', Math.PI/4, Math.PI/4, 50, new BABYLON.Vector3(0,0,0), scene);
+// Camera
+const camera = new BABYLON.ArcRotateCamera('camera', Math.PI/4, Math.PI/4, 30, new BABYLON.Vector3(0,0,0), scene);
 camera.attachControl(canvas, true);
+
+// Light
 const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(1,1,0), scene);
 
 // ----- Lattice parameters -----
-const Nx=10, Ny=10, Nz=10;
+const Nx = 5, Ny = 5, Nz = 5;
 const r0 = 2.35;
-const k_bond = 10;
-const dt = 0.005;
-const mass = 1.0;
 let atoms = [];
-let bonds = [];
 
-// Create atoms
+// ----- Create atoms -----
 for(let i=0;i<Nx;i++){
     for(let j=0;j<Ny;j++){
         for(let k=0;k<Nz;k++){
-            if(k===0) continue; // pre-crack
-            let mesh = BABYLON.MeshBuilder.CreateSphere(`atom_${i}_${j}_${k}`, {diameter:0.5}, scene);
-            mesh.position = new BABYLON.Vector3(i*r0, j*r0, k*r0);
-            mesh.material = new BABYLON.StandardMaterial(`mat_${i}_${j}_${k}`, scene);
-            mesh.material.diffuseColor = new BABYLON.Color3(0,0,1);
-            atoms.push({mesh:mesh,i,j,k,pos:mesh.position.clone(),vel:new BABYLON.Vector3(0,0,0),broken:false});
+            // Skip pre-crack plane
+            if(k === 0) continue;
+            let sphere = BABYLON.MeshBuilder.CreateSphere(`atom_${i}_${j}_${k}`, {diameter:0.5}, scene);
+            sphere.position = new BABYLON.Vector3(i*r0, j*r0, k*r0);
+            sphere.material = new BABYLON.StandardMaterial(`mat_${i}_${j}_${k}`, scene);
+            sphere.material.diffuseColor = new BABYLON.Color3(0,0,1); // intact = blue
+            atoms.push({mesh:sphere, i,j,k,broken:false});
         }
     }
 }
 
-// Neighbor offsets
-const neighbors = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
-
-// Create bonds for visualization
-for(let atom of atoms){
-    for(let nb of neighbors){
-        let ni = atom.i+nb[0];
-        let nj = atom.j+nb[1];
-        let nk = atom.k+nb[2];
-        let neighbor = atoms.find(a=>a.i===ni && a.j===nj && a.k===nk);
-        if(neighbor && !bonds.find(b => (b.a===atom && b.b===neighbor) || (b.a===neighbor && b.b===atom))){
-            let line = BABYLON.MeshBuilder.CreateLines(`bond_${atom.i}_${atom.j}_${atom.k}_${ni}_${nj}_${nk}`,
-                {points:[atom.pos.clone(), neighbor.pos.clone()]}, scene);
-            line.color = new BABYLON.Color3(0.5,0.5,0.5);
-            bonds.push({a:atom,b:neighbor,line:line});
-        }
-    }
-}
-
-// ----- Force calculation -----
-function computeForces(){
-    for(let atom of atoms){
-        atom.force = new BABYLON.Vector3(0,0,0);
-        if(atom.broken) continue;
-        for(let nb of neighbors){
-            let ni = atom.i+nb[0];
-            let nj = atom.j+nb[1];
-            let nk = atom.k+nb[2];
-            let neighbor = atoms.find(a=>a.i===ni && a.j===nj && a.k===nk);
-            if(neighbor && !neighbor.broken){
-                let r_vec = neighbor.pos.subtract(atom.pos);
-                let r = r_vec.length();
-                let dr = r - r0;
-                let f = r_vec.normalize().scale(k_bond*dr);
-                atom.force.addInPlace(f);
-            }
-        }
-    }
-}
-
-// ----- Integration & visualization -----
+// ----- Simple dynamic update -----
 scene.registerBeforeRender(function(){
-    computeForces();
     for(let atom of atoms){
-        if(atom.broken) continue;
-        atom.vel.addInPlace(atom.force.scale(dt/mass));
-        atom.pos.addInPlace(atom.vel.scale(dt));
-        atom.mesh.position = atom.pos;
-    }
-    // Update bonds
-    for(let bond of bonds){
-        bond.line = BABYLON.MeshBuilder.CreateLines('', {points:[bond.a.pos.clone(), bond.b.pos.clone()], instance:bond.line});
-        let r = bond.a.pos.subtract(bond.b.pos).length();
-        if(r>1.5*r0){
-            bond.a.broken = true;
-            bond.b.broken = true;
-            bond.a.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
-            bond.b.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
+        if(!atom.broken){
+            // pseudo-random crack propagation: break atoms if z>3 and random chance
+            if(atom.k>3 && Math.random()<0.01){
+                atom.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0); // broken = red
+                atom.broken = true;
+            }
         }
     }
 });
 
-engine.runRenderLoop(()=>{ scene.render(); });
-window.addEventListener('resize',()=>{engine.resize();});
+engine.runRenderLoop(()=>{
+    scene.render();
+});
+
+window.addEventListener('resize', function(){
+    engine.resize();
+});
 </script>
 </body>
 </html>
