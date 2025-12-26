@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Mobile-Optimized Lattice Fracture Simulation</title>
+    <title>Mobile-Optimized Lattice Fracture Simulation with Tap</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <style>
         #log { position:absolute; top:0; left:0; width:100%; max-height:150px; overflow:auto; background:#eee; font-family:monospace; font-size:12px; padding:5px; }
@@ -47,10 +47,6 @@ for(let i=0;i<Nx;i++){
         }
     }
 }
-
-// Apply single deterministic velocity to one atom
-const seedAtom = atoms.find(a=>a.i===0 && a.j===0 && a.k===Nz-1);
-seedAtom.vel = new BABYLON.Vector3(0,0,0.1);
 
 // Create bonds (just data, no lines)
 const neighborOffsets=[[1,0,0],[0,1,0],[0,0,1]];
@@ -98,6 +94,22 @@ scene.registerBeforeRender(()=>{
         atom.pos.addInPlace(atom.vel.scale(dt));
         atom.mesh.position=atom.pos;
     });
+});
+
+// Tap to apply velocity
+scene.onPointerObservable.add(pointerInfo => {
+    if(fractureOccurred) return;
+    if(pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN){
+        let pick = scene.pick(pointerInfo.event.clientX, pointerInfo.event.clientY);
+        if(pick.hit && pick.pickedMesh){
+            let tappedAtom = atoms.find(a => a.mesh === pick.pickedMesh);
+            if(tappedAtom && !tappedAtom.fixed && !tappedAtom.broken){
+                tappedAtom.vel.addInPlace(new BABYLON.Vector3(0,0,0.1));
+                logDiv.innerHTML += `Tapped atom (${tappedAtom.i},${tappedAtom.j},${tappedAtom.k})<br>`;
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+        }
+    }
 });
 
 engine.runRenderLoop(()=>scene.render());
