@@ -1,78 +1,74 @@
-import numpy as np
+import math
 
-# ----- Parameters -----
-N = 5  # atoms per side (5x5x5 lattice for phone)
-mass = 1.0
-E_b = 2.3  # eV, simple harmonic bond energy
-r0 = 2.35  # Å, bond length
-dt = 0.01  # time step
-steps = 200  # small number of steps for phone
+# =========================
+# INPUT PARAMETERS
+# =========================
 
-# ----- Initialize lattice positions -----
-positions = np.zeros((N, N, N, 3))
-velocities = np.zeros_like(positions)
-forces = np.zeros_like(positions)
+# Fracture toughness (ASSUMED MPa * sqrt(m))
+K_IC_MPa_sqrt_m = 5.0            # SiC typical order of magnitude
+K_IC = K_IC_MPa_sqrt_m * 1e6     # convert to Pa * sqrt(m)
 
-for i in range(N):
-    for j in range(N):
-        for k in range(N):
-            positions[i,j,k] = np.array([i*r0, j*r0, k*r0])
+# Elastic modulus (plane strain approx)
+E_GPa = 450.0                    # SiC Young's modulus
+nu = 0.17                        # Poisson ratio
+E = E_GPa * 1e9
+E_prime = E / (1 - nu**2)
 
-# Introduce a pre-crack by removing a plane of atoms
-precrack_layer = 0
-positions[:, :, precrack_layer, :] = np.nan  # mark atoms as missing
+# Atomic spacing (Si–C bond length)
+a = 1.89e-10                     # meters
 
-# ----- Define nearest neighbors -----
-neighbors = [np.array([1,0,0]), np.array([-1,0,0]),
-             np.array([0,1,0]), np.array([0,-1,0]),
-             np.array([0,0,1]), np.array([0,0,-1])]
+# =========================
+# METHOD 1: REPORTED BOND ENERGY
+# =========================
 
-# ----- Force calculation -----
-def compute_forces(pos):
-    F = np.zeros_like(pos)
-    Nx, Ny, Nz, _ = pos.shape
-    for i in range(Nx):
-        for j in range(Ny):
-            for k in range(Nz):
-                if np.isnan(pos[i,j,k,0]):
-                    continue  # skip missing atoms
-                for nb in neighbors:
-                    ni, nj, nk = i+nb[0], j+nb[1], k+nb[2]
-                    if 0 <= ni < Nx and 0 <= nj < Ny and 0 <= nk < Nz:
-                        if np.isnan(pos[ni,nj,nk,0]):
-                            continue
-                        r_vec = pos[ni,nj,nk] - pos[i,j,k]
-                        r = np.linalg.norm(r_vec)
-                        dr = r - r0
-                        f = (2*E_b/r0) * dr * (r_vec/r)
-                        F[i,j,k] += f
-    return F
+# Reported Si–C bond energy
+bond_energy_kJ_per_mol = 318     # typical literature value
+bond_energy_J = bond_energy_kJ_per_mol * 1e3 / 6.022e23
 
-# ----- Integration loop (Velocity Verlet) -----
-for step in range(steps):
-    forces = compute_forces(positions)
-    velocities += 0.5 * forces / mass * dt
-    positions += velocities * dt
-    forces_new = compute_forces(positions)
-    velocities += 0.5 * forces_new / mass * dt
+# =========================
+# METHOD 2: COULOMB ESTIMATE
+# =========================
 
-    # Check for bond breaking (stretch >1.5*r0)
-    broken = 0
-    Nx, Ny, Nz, _ = positions.shape
-    for i in range(Nx):
-        for j in range(Ny):
-            for k in range(Nz):
-                if np.isnan(positions[i,j,k,0]):
-                    continue
-                for nb in neighbors:
-                    ni, nj, nk = i+nb[0], j+nb[1], k+nb[2]
-                    if 0 <= ni < Nx and 0 <= nj < Ny and 0 <= nk < Nz:
-                        if np.isnan(positions[ni,nj,nk,0]):
-                            continue
-                        r = np.linalg.norm(positions[ni,nj,nk] - positions[i,j,k])
-                        if r > 1.5*r0:
-                            broken += 1
-    if step % 20 == 0:
-        print(f"Step {step}, broken bonds: {broken}")
+# Effective ionic charge estimate
+e = 1.602e-19
+epsilon_0 = 8.854e-12
+epsilon_r = 9.7                  # SiC relative permittivity
 
+Z_eff = 3.0                      # effective partial charge (adjustable)
 
+coulomb_energy_J = (
+    (Z_eff * e)**2 /
+    (4 * math.pi * epsilon_0 * epsilon_r * a)
+)
+
+# =========================
+# FRACTURE TOUGHNESS → ENERGY
+# =========================
+
+# Griffith energy release rate
+G_c = K_IC**2 / E_prime           # J/m^2
+
+# One-atom-thick areal energy
+atomic_area = a**2
+fracture_energy_per_atom = G_c * atomic_area
+
+# =========================
+# OUTPUT
+# =========================
+
+print("\n=== INPUT ASSUMPTIONS ===")
+print(f"K_IC: {K_IC_MPa_sqrt_m:.2f} MPa·√m (ASSUMED)")
+print(f"E': {E_prime/1e9:.1f} GPa")
+print(f"Atomic spacing: {a*1e10:.2f} Å")
+
+print("\n=== BOND ENERGIES ===")
+print(f"Reported Si–C bond energy: {bond_energy_J:.2e} J")
+print(f"Coulomb implied bond energy: {coulomb_energy_J:.2e} J")
+
+print("\n=== FRACTURE ENERGY ===")
+print(f"Griffith energy release rate G_c: {G_c:.2f} J/m²")
+print(f"Fracture energy per atom (1 bond thick): {fracture_energy_per_atom:.2e} J")
+
+print("\n=== RATIOS (Fracture / Bond) ===")
+print(f"vs reported bond: {fracture_energy_per_atom / bond_energy_J:.2e}")
+print(f"vs Coulomb bond: {fracture_energy_per_atom / coulomb_energy_J:.2e}")
