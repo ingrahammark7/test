@@ -1,43 +1,78 @@
-import math
+import numpy as np
 
-# Function to compute residual stress using LEFM
-def residual_stress(K_IC, a, Y=1.0):
-    """
-    K_IC : fracture toughness in MPa*m^0.5
-    a : crack length in meters
-    Y : geometric factor (dimensionless)
-    returns residual stress in MPa
-    """
-    return K_IC / (Y * math.sqrt(math.pi * a))
+# ----- Parameters -----
+N = 5  # atoms per side (5x5x5 lattice for phone)
+mass = 1.0
+E_b = 2.3  # eV, simple harmonic bond energy
+r0 = 2.35  # Å, bond length
+dt = 0.01  # time step
+steps = 200  # small number of steps for phone
 
-# Function to compute residual load ratio
-def residual_load_ratio(K_IC, a, sigma_nominal, Y=1.0):
-    sigma_res = residual_stress(K_IC, a, Y)
-    return sigma_res / sigma_nominal
+# ----- Initialize lattice positions -----
+positions = np.zeros((N, N, N, 3))
+velocities = np.zeros_like(positions)
+forces = np.zeros_like(positions)
 
-# Fixed scenario
-crack_length = 30  # meters (10 cm)
-sigma_nominal_steel = 300.0  # MPa
-sigma_nominal_ceramic = 300.0  # MPa
+for i in range(N):
+    for j in range(N):
+        for k in range(N):
+            positions[i,j,k] = np.array([i*r0, j*r0, k*r0])
 
-# Material fracture toughness
-K_IC_steel = 60.0   # MPa*m^0.5
-K_IC_ceramic = 5.0  # MPa*m^0.5
+# Introduce a pre-crack by removing a plane of atoms
+precrack_layer = 0
+positions[:, :, precrack_layer, :] = np.nan  # mark atoms as missing
 
-# Compute residual stresses
-sigma_res_steel = residual_stress(K_IC_steel, crack_length)
-sigma_res_ceramic = residual_stress(K_IC_ceramic, crack_length)
+# ----- Define nearest neighbors -----
+neighbors = [np.array([1,0,0]), np.array([-1,0,0]),
+             np.array([0,1,0]), np.array([0,-1,0]),
+             np.array([0,0,1]), np.array([0,0,-1])]
 
-# Compute residual load ratios
-ratio_steel = residual_load_ratio(K_IC_steel, crack_length, sigma_nominal_steel)
-ratio_ceramic = residual_load_ratio(K_IC_ceramic, crack_length, sigma_nominal_ceramic)
+# ----- Force calculation -----
+def compute_forces(pos):
+    F = np.zeros_like(pos)
+    Nx, Ny, Nz, _ = pos.shape
+    for i in range(Nx):
+        for j in range(Ny):
+            for k in range(Nz):
+                if np.isnan(pos[i,j,k,0]):
+                    continue  # skip missing atoms
+                for nb in neighbors:
+                    ni, nj, nk = i+nb[0], j+nb[1], k+nb[2]
+                    if 0 <= ni < Nx and 0 <= nj < Ny and 0 <= nk < Nz:
+                        if np.isnan(pos[ni,nj,nk,0]):
+                            continue
+                        r_vec = pos[ni,nj,nk] - pos[i,j,k]
+                        r = np.linalg.norm(r_vec)
+                        dr = r - r0
+                        f = (2*E_b/r0) * dr * (r_vec/r)
+                        F[i,j,k] += f
+    return F
 
-# Display results
-print(f"Crack length: {crack_length*100:.1f} cm")
-print("Residual Stress:")
-print(f"  Steel: {sigma_res_steel:.2f} MPa")
-print(f"  Ceramic: {sigma_res_ceramic:.2f} MPa")
-print("Residual Load Ratio (σ_res / σ_nominal):")
-print(f"  Steel: {ratio_steel:.20f}")
-print(f"  Ceramic: {ratio_ceramic:.20f}")
-print(ratio_steel/ratio_ceramic)
+# ----- Integration loop (Velocity Verlet) -----
+for step in range(steps):
+    forces = compute_forces(positions)
+    velocities += 0.5 * forces / mass * dt
+    positions += velocities * dt
+    forces_new = compute_forces(positions)
+    velocities += 0.5 * forces_new / mass * dt
+
+    # Check for bond breaking (stretch >1.5*r0)
+    broken = 0
+    Nx, Ny, Nz, _ = positions.shape
+    for i in range(Nx):
+        for j in range(Ny):
+            for k in range(Nz):
+                if np.isnan(positions[i,j,k,0]):
+                    continue
+                for nb in neighbors:
+                    ni, nj, nk = i+nb[0], j+nb[1], k+nb[2]
+                    if 0 <= ni < Nx and 0 <= nj < Ny and 0 <= nk < Nz:
+                        if np.isnan(positions[ni,nj,nk,0]):
+                            continue
+                        r = np.linalg.norm(positions[ni,nj,nk] - positions[i,j,k])
+                        if r > 1.5*r0:
+                            broken += 1
+    if step % 20 == 0:
+        print(f"Step {step}, broken bonds: {broken}")
+
+
