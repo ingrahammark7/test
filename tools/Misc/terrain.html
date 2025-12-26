@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>3D Lattice Newtonian Fracture Simulation with Log</title>
+    <title>3D Lattice Deterministic Fracture Simulation</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <style>
         #log { position:absolute; top:0; left:0; width:100%; max-height:200px; overflow:auto; background:#eee; font-family:monospace; font-size:12px; padding:5px; }
@@ -12,7 +12,6 @@
 <div id="log"></div>
 <canvas id="renderCanvas" touch-action="none" style="width:100%; height:100%"></canvas>
 <script>
-// ----- Babylon.js setup -----
 const canvas = document.getElementById('renderCanvas');
 const engine = new BABYLON.Engine(canvas, true);
 const scene = new BABYLON.Scene(engine);
@@ -23,7 +22,7 @@ const camera = new BABYLON.ArcRotateCamera('camera', Math.PI/4, Math.PI/4, 30, n
 camera.attachControl(canvas, true);
 const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(1,1,0), scene);
 
-// ----- Lattice parameters -----
+// Lattice parameters
 const Nx = 5, Ny = 5, Nz = 5;
 const r0 = 2.35;
 const k_bond = 1.0;
@@ -34,26 +33,25 @@ let atoms = [];
 let bonds = [];
 let fractureOccurred = false;
 
-// ----- Create atoms -----
+// Create atoms
 for(let i=0;i<Nx;i++){
     for(let j=0;j<Ny;j++){
         for(let k=0;k<Nz;k++){
-            if(k === 0) continue;
+            if(k === 0) continue; // pre-crack plane
             let sphere = BABYLON.MeshBuilder.CreateSphere(`atom_${i}_${j}_${k}`, {diameter:1.0}, scene);
             sphere.position = new BABYLON.Vector3(i*r0, j*r0, k*r0);
             sphere.material = new BABYLON.StandardMaterial(`mat_${i}_${j}_${k}`, scene);
             sphere.material.diffuseColor = new BABYLON.Color3(0,0,1);
-            atoms.push({mesh: sphere, i,j,k, pos: sphere.position.clone(), vel: new BABYLON.Vector3(0,0,0), broken: false});
+            atoms.push({mesh: sphere, i,j,k, pos: sphere.position.clone(), vel: new BABYLON.Vector3(0,0,0), broken: false, fixed: k===1}); // pin bottom layer
         }
     }
 }
 
-// Add initial perturbation
-atoms.forEach(atom => {
-    if(atom.k === Nz-1) atom.vel = new BABYLON.Vector3(0,0,0.1);
-});
+// Apply single deterministic velocity to top-left-front atom
+const seedAtom = atoms.find(a => a.i === 0 && a.j === 0 && a.k === Nz-1);
+seedAtom.vel = new BABYLON.Vector3(0,0,0.1);
 
-// ----- Create bonds -----
+// Create bonds
 const neighborOffsets = [[1,0,0],[0,1,0],[0,0,1]];
 atoms.forEach(atom => {
     neighborOffsets.forEach(offset => {
@@ -70,7 +68,7 @@ atoms.forEach(atom => {
     });
 });
 
-// ----- Force computation -----
+// Force computation
 function computeForces(){
     atoms.forEach(atom => atom.force = new BABYLON.Vector3(0,0,0));
     bonds.forEach(bond => {
@@ -93,12 +91,12 @@ function computeForces(){
     });
 }
 
-// ----- Integration -----
+// Integration
 scene.registerBeforeRender(() => {
     if(fractureOccurred) return;
     computeForces();
     atoms.forEach(atom => {
-        if(atom.broken) return;
+        if(atom.fixed || atom.broken) return;
         atom.vel.addInPlace(atom.force.scale(dt/mass));
         atom.pos.addInPlace(atom.vel.scale(dt));
         atom.mesh.position = atom.pos;
@@ -119,4 +117,3 @@ window.addEventListener('resize',()=> engine.resize());
 </script>
 </body>
 </html>
-
