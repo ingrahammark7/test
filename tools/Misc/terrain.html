@@ -1,355 +1,109 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="utf-8">
-<title>Babylon Tank Terrain — Auto-Fit v8</title>
-<script src="https://cdn.babylonjs.com/babylon.js"></script>
-<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-
-<style>
-  html, body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    touch-action: none;
-    background: #000;
-  }
-  #renderCanvas {
-    width: 100vw;
-    height: 100vh;
-    display: block;
-  }
-  #overlay, #controls {
-    position: absolute; z-index: 30;
-    background: rgba(0,0,0,0.55);
-    font-family: monospace;
-    color: white;
-    padding: 6px 10px;
-    border-radius: 8px;
-    user-select: none;
-  }
-  #overlay { right: 8px; top: 8px; width: 320px; }
-  #controls { left: 8px; top: 8px; width: 260px; }
-</style>
+    <meta charset="utf-8">
+    <title>Newtonian 3D Lattice Crack with Bonds</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
-
 <body>
-<div id="controls">
-  Speed:
-  <input type="range" id="speedSlider" min="0.1" max="10" step="0.1" value="1">
-  <span id="speedVal">1</span><br>
-
-  Rotation smooth:
-  <input type="range" id="rotSmooth" min="0.01" max="1" step="0.01" value="0.12"><br>
-
-  Tilt blend:
-  <input type="range" id="tiltBlend" min="0" max="1" step="0.01" value="0.50">
-  <span id="tiltVal">0.50</span>
-</div>
-
-<div id="overlay">Loading…</div>
-<canvas id="renderCanvas"></canvas>
-
+<canvas id="renderCanvas" touch-action="none" style="width:100%; height:100%"></canvas>
 <script>
-(async function() {
+const canvas = document.getElementById('renderCanvas');
+const engine = new BABYLON.Engine(canvas, true);
+const scene = new BABYLON.Scene(engine);
 
-  // Bump this to force Chrome to reload files
-  const VER = "8";
+// Camera & light
+const camera = new BABYLON.ArcRotateCamera('camera', Math.PI/4, Math.PI/4, 50, new BABYLON.Vector3(0,0,0), scene);
+camera.attachControl(canvas, true);
+const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(1,1,0), scene);
 
-  const canvas = document.getElementById("renderCanvas");
-  const overlay = document.getElementById("overlay");
-  const engine = new BABYLON.Engine(canvas, true, {
-    preserveDrawingBuffer: true,
-    stencil: true
-  });
+// ----- Lattice parameters -----
+const Nx=10, Ny=10, Nz=10;
+const r0 = 2.35;
+const k_bond = 10;
+const dt = 0.005;
+const mass = 1.0;
+let atoms = [];
+let bonds = [];
 
-  //---------------------------------------------------------
-  // Load all files with no caching
-  //---------------------------------------------------------
-  try {
-    const [terrainResp, movesResp, shotsResp] = await Promise.all([
-      fetch("f.json?v=" + VER),
-      fetch("f2.json?v=" + VER),
-      fetch("f3.json?v=" + VER)
-    ]);
-
-    const terrainData = await terrainResp.json();
-    const movesText   = await movesResp.text();
-    const shotsText   = await shotsResp.text();
-
-    overlay.textContent = "Building scene…";
-
-    buildScene(terrainData, movesText, shotsText);
-
-  } catch (e) {
-    overlay.textContent = "Load error: " + e;
-    console.error(e);
-  }
-
-  //---------------------------------------------------------
-  // Build Scene
-  //---------------------------------------------------------
-  function buildScene(terrainData, movesText, shotsText) {
-
-    const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color3(0.55, 0.80, 0.92);
-    scene.useRightHandedSystem = true;  // EXACT match to Three.js paths
-
-    //---------------------------------------------------------
-    // Compute grid bounds
-    //---------------------------------------------------------
-    const xs = Object.keys(terrainData).map(Number).sort((a,b)=>a-b);
-    const zs = [...new Set(xs.flatMap(x=>Object.keys(terrainData[x]).map(Number)))].sort((a,b)=>a-b);
-
-    const minX = xs[0],  maxX = xs.at(-1);
-    const minZ = zs[0],  maxZ = zs.at(-1);
-
-    const centerX = (minX + maxX) / 2;
-    const centerZ = (minZ + maxZ) / 2;
-
-    const sizeX = maxX - minX;
-    const sizeZ = maxZ - minZ;
-    const maxSize = Math.max(sizeX, sizeZ);
-
-    //---------------------------------------------------------
-    // Camera tuned to match Three.js "orbit" feel
-    //---------------------------------------------------------
-    const camera = new BABYLON.ArcRotateCamera(
-      "cam",
-      -Math.PI / 2.3,          // rotate to match Three.js orientation
-      Math.PI / 3.2,           // elevated slightly
-      maxSize * 1.25,          // zoom to fit terrain exactly
-      new BABYLON.Vector3(0, 0, 0),
-      scene
-    );
-    camera.attachControl(canvas, true);
-    camera.lowerRadiusLimit = maxSize * 0.3;
-    camera.upperRadiusLimit = maxSize * 3.0;
-
-    new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
-    const sun = new BABYLON.DirectionalLight("d", new BABYLON.Vector3(-0.4,-1,-0.6), scene);
-    sun.intensity = 1.0;
-
-    //---------------------------------------------------------
-    // Build terrain mesh from height map
-    //---------------------------------------------------------
-    const positions = [];
-    const indices = [];
-
-    const xCount = xs.length;
-    const zCount = zs.length;
-
-    for (let zi = 0; zi < zCount; zi++) {
-      for (let xi = 0; xi < xCount; xi++) {
-        const x = xs[xi] - centerX;
-        const z = zs[zi] - centerZ;
-        const y = terrainData[xs[xi]][zs[zi]] || 0;
-        positions.push(x, y, z);
-      }
-    }
-
-    for (let zi=0; zi < zCount-1; zi++) {
-      for (let xi=0; xi < xCount-1; xi++) {
-        const a = zi*xCount + xi;
-        const b = a+1;
-        const c = a + xCount;
-        const d = c+1;
-        indices.push(a,c,b, b,c,d);
-      }
-    }
-
-    const terrain = new BABYLON.Mesh("terrain", scene);
-    const vd = new BABYLON.VertexData();
-    vd.positions = positions;
-    vd.indices = indices;
-    vd.applyToMesh(terrain);
-
-    terrain.material = new BABYLON.StandardMaterial("tmat", scene);
-    terrain.material.diffuseColor = new BABYLON.Color3(0.16,0.52,0.16);
-
-    //---------------------------------------------------------
-    // Height lookup = nearest grid (same as your Three.js version)
-    //---------------------------------------------------------
-    function heightAt(x, z) {
-      let best = Infinity;
-      let hx = 0, hz = 0;
-      for (let i=0; i < xs.length; i++) {
-        for (let j=0; j < zs.length; j++) {
-          const dx = (xs[i]-centerX)-x;
-          const dz = (zs[j]-centerZ)-z;
-          const d = dx*dx + dz*dz;
-          if (d < best) {
-            best = d;
-            hx = xs[i];
-            hz = zs[j];
-          }
+// Create atoms
+for(let i=0;i<Nx;i++){
+    for(let j=0;j<Ny;j++){
+        for(let k=0;k<Nz;k++){
+            if(k===0) continue; // pre-crack
+            let mesh = BABYLON.MeshBuilder.CreateSphere(`atom_${i}_${j}_${k}`, {diameter:0.5}, scene);
+            mesh.position = new BABYLON.Vector3(i*r0, j*r0, k*r0);
+            mesh.material = new BABYLON.StandardMaterial(`mat_${i}_${j}_${k}`, scene);
+            mesh.material.diffuseColor = new BABYLON.Color3(0,0,1);
+            atoms.push({mesh:mesh,i,j,k,pos:mesh.position.clone(),vel:new BABYLON.Vector3(0,0,0),broken:false});
         }
-      }
-      return terrainData[hx][hz] || 0;
     }
+}
 
-    //---------------------------------------------------------
-    // Parse tank paths from f2.json (same syntax as Three.js)
-    //---------------------------------------------------------
-    const tanks = {};
-    movesText.split("|").filter(s => s.trim()).forEach(line => {
-      const m = line.match(/(\S+).*?(-?\d+),(-?\d+)$/);
-      if (!m) return;
-      const id = m[1];
-      const x = Number(m[2]) - centerX;
-      const z = Number(m[3]) - centerZ;
-      if (!tanks[id]) tanks[id] = { path: [] };
-      tanks[id].path.push(new BABYLON.Vector3(x,0,z));
-    });
+// Neighbor offsets
+const neighbors = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
 
-    //---------------------------------------------------------
-    // Tank colors (fixed set)
-    //---------------------------------------------------------
-    const COLORS = [
-      new BABYLON.Color3(1,0,0),
-      new BABYLON.Color3(0,0.6,1),
-      new BABYLON.Color3(1,1,0),
-      new BABYLON.Color3(1,0,1),
-      new BABYLON.Color3(0,1,1),
-    ];
-
-    //---------------------------------------------------------
-    // Build tank meshes
-    //---------------------------------------------------------
-    let cIndex = 0;
-
-    for (const id in tanks) {
-      const tank = tanks[id];
-
-      const mesh = BABYLON.MeshBuilder.CreateBox("tank"+id, {size:6}, scene);
-      const mat = new BABYLON.StandardMaterial("m"+id, scene);
-      mat.diffuseColor = COLORS[cIndex++ % COLORS.length];
-      mesh.material = mat;
-
-      const p0 = tank.path[0];
-      mesh.position.set(p0.x, heightAt(p0.x,p0.z)+2, p0.z);
-
-      tank.mesh = mesh;
-      tank.index = 0;
-      tank.progress = 0;
-      tank.cooldown = Math.random()*2 + 0.5;
-    }
-
-    //---------------------------------------------------------
-    // Static shot lines from f3.json
-    //---------------------------------------------------------
-    shotsText.split("|").filter(s=>s.trim()).forEach(line=>{
-      const p = line.split(",").map(Number);
-      if (p.length !== 4) return;
-      const [x1,z1,x2,z2] = p;
-
-      const a = new BABYLON.Vector3(x1-centerX, heightAt(x1-centerX,z1-centerZ)+1, z1-centerZ);
-      const b = new BABYLON.Vector3(x2-centerX, heightAt(x2-centerX,z2-centerZ)+1, z2-centerZ);
-
-      BABYLON.MeshBuilder.CreateLines("f3", {points:[a,b]}, scene)
-        .color = new BABYLON.Color3(1,1,1);
-    });
-
-    //---------------------------------------------------------
-    // Dynamic shot effects
-    //---------------------------------------------------------
-    const dynShots = [];
-    function fireShot(from, to) {
-      const a = from.mesh.position.clone();
-      const b = to.mesh.position.clone();
-      const line = BABYLON.MeshBuilder.CreateLines("shot",{points:[a,b]},scene);
-      line.color = new BABYLON.Color3(1,1,1);
-      dynShots.push({mesh:line, life:0.15});
-    }
-
-    //---------------------------------------------------------
-    // UI hooks
-    //---------------------------------------------------------
-    let speed = 1;
-    document.getElementById("speedSlider").oninput = e=>{
-      speed = parseFloat(e.target.value);
-      document.getElementById("speedVal").textContent = speed.toFixed(1);
-    };
-    document.getElementById("tiltBlend").oninput = e=>{
-      document.getElementById("tiltVal").textContent = parseFloat(e.target.value).toFixed(2);
-    };
-
-    //---------------------------------------------------------
-    // Update loop (identical pacing to Three.js version)
-    //---------------------------------------------------------
-    scene.onBeforeRenderObservable.add(() => {
-
-      const dt = engine.getDeltaTime() / 1000;
-      const dt60 = dt / (1/60);
-
-      for (const id in tanks) {
-        const t = tanks[id];
-
-        if (t.path.length < 2) continue;
-
-        let remain = speed * dt60;
-
-        while (remain>0 && t.index < t.path.length-1) {
-          const A = t.path[t.index];
-          const B = t.path[t.index+1];
-          const seg = BABYLON.Vector3.Distance(A,B);
-          const left = seg*(1 - t.progress);
-
-          if (remain >= left) {
-            remain -= left;
-            t.index++;
-            t.progress = 0;
-          } else {
-            t.progress += remain / seg;
-            remain = 0;
-          }
+// Create bonds for visualization
+for(let atom of atoms){
+    for(let nb of neighbors){
+        let ni = atom.i+nb[0];
+        let nj = atom.j+nb[1];
+        let nk = atom.k+nb[2];
+        let neighbor = atoms.find(a=>a.i===ni && a.j===nj && a.k===nk);
+        if(neighbor && !bonds.find(b => (b.a===atom && b.b===neighbor) || (b.a===neighbor && b.b===atom))){
+            let line = BABYLON.MeshBuilder.CreateLines(`bond_${atom.i}_${atom.j}_${atom.k}_${ni}_${nj}_${nk}`,
+                {points:[atom.pos.clone(), neighbor.pos.clone()]}, scene);
+            line.color = new BABYLON.Color3(0.5,0.5,0.5);
+            bonds.push({a:atom,b:neighbor,line:line});
         }
+    }
+}
 
-        const A = t.path[t.index];
-        const B = t.path[Math.min(t.index+1, t.path.length-1)];
-        const p = BABYLON.Vector3.Lerp(A,B,t.progress);
-
-        t.mesh.position.set(p.x, heightAt(p.x,p.z)+2, p.z);
-
-        // Shooting
-        t.cooldown -= dt;
-        if (t.cooldown <= 0) {
-          let best=null, bestDist=9999;
-          for (const oid in tanks) {
-            if (oid===id) continue;
-            const d = BABYLON.Vector3.Distance(
-              t.mesh.position, tanks[oid].mesh.position
-            );
-            if (d < 55 && d < bestDist) {
-              bestDist = d;
-              best = tanks[oid];
+// ----- Force calculation -----
+function computeForces(){
+    for(let atom of atoms){
+        atom.force = new BABYLON.Vector3(0,0,0);
+        if(atom.broken) continue;
+        for(let nb of neighbors){
+            let ni = atom.i+nb[0];
+            let nj = atom.j+nb[1];
+            let nk = atom.k+nb[2];
+            let neighbor = atoms.find(a=>a.i===ni && a.j===nj && a.k===nk);
+            if(neighbor && !neighbor.broken){
+                let r_vec = neighbor.pos.subtract(atom.pos);
+                let r = r_vec.length();
+                let dr = r - r0;
+                let f = r_vec.normalize().scale(k_bond*dr);
+                atom.force.addInPlace(f);
             }
-          }
-          if (best) fireShot(t,best);
-          t.cooldown = Math.random()*2 + 0.5;
         }
-      }
+    }
+}
 
-      // Fade dynamic shots
-      for (let i=dynShots.length-1; i>=0; i--) {
-        dynShots[i].life -= dt;
-        if (dynShots[i].life <= 0) {
-          dynShots[i].mesh.dispose();
-          dynShots.splice(i,1);
+// ----- Integration & visualization -----
+scene.registerBeforeRender(function(){
+    computeForces();
+    for(let atom of atoms){
+        if(atom.broken) continue;
+        atom.vel.addInPlace(atom.force.scale(dt/mass));
+        atom.pos.addInPlace(atom.vel.scale(dt));
+        atom.mesh.position = atom.pos;
+    }
+    // Update bonds
+    for(let bond of bonds){
+        bond.line = BABYLON.MeshBuilder.CreateLines('', {points:[bond.a.pos.clone(), bond.b.pos.clone()], instance:bond.line});
+        let r = bond.a.pos.subtract(bond.b.pos).length();
+        if(r>1.5*r0){
+            bond.a.broken = true;
+            bond.b.broken = true;
+            bond.a.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
+            bond.b.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
         }
-      }
+    }
+});
 
-    });
-
-    overlay.style.display = "none";
-    engine.runRenderLoop(() => scene.render());
-  }
-
-  window.addEventListener("resize", () => engine.resize());
-
-})();
+engine.runRenderLoop(()=>{ scene.render(); });
+window.addEventListener('resize',()=>{engine.resize();});
 </script>
 </body>
 </html>
