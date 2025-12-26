@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>3D Lattice Crack Simulation (Deterministic Geometry)</title>
+    <title>3D Lattice Newtonian Fracture Simulation with Output</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
@@ -13,66 +13,98 @@ const canvas = document.getElementById('renderCanvas');
 const engine = new BABYLON.Engine(canvas, true);
 const scene = new BABYLON.Scene(engine);
 
-// Camera
+// Camera & light
 const camera = new BABYLON.ArcRotateCamera('camera', Math.PI/4, Math.PI/4, 30, new BABYLON.Vector3(0,0,0), scene);
 camera.attachControl(canvas, true);
-
-// Light
 const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(1,1,0), scene);
 
 // ----- Lattice parameters -----
 const Nx = 5, Ny = 5, Nz = 5;
 const r0 = 2.35;
-const strainThreshold = 1.0; // deterministic strain threshold
+const k_bond = 1.0; // softer bonds to see motion
+const dt = 0.01;
+const mass = 1.0;
+const fracture_ratio = 1.05; // 5% stretch for fracture
 let atoms = [];
+let bonds = [];
+let fractureOccurred = false;
 
-// ----- Create atoms and neighbors -----
+// ----- Create atoms -----
 for(let i=0;i<Nx;i++){
     for(let j=0;j<Ny;j++){
         for(let k=0;k<Nz;k++){
             if(k === 0) continue; // pre-crack plane
-            let sphere = BABYLON.MeshBuilder.CreateSphere(`atom_${i}_${j}_${k}`, {diameter:0.5}, scene);
+            let sphere = BABYLON.MeshBuilder.CreateSphere(`atom_${i}_${j}_${k}`, {diameter:1.0}, scene);
             sphere.position = new BABYLON.Vector3(i*r0, j*r0, k*r0);
             sphere.material = new BABYLON.StandardMaterial(`mat_${i}_${j}_${k}`, scene);
-            sphere.material.diffuseColor = new BABYLON.Color3(0,0,1); // intact = blue
-            atoms.push({mesh:sphere, i,j,k,broken:false, strain:0, neighbors:[]});
+            sphere.material.diffuseColor = new BABYLON.Color3(0,0,1);
+            atoms.push({mesh: sphere, i,j,k, pos: sphere.position.clone(), vel: new BABYLON.Vector3(0,0,0.5), broken: false});
         }
     }
 }
 
-// Assign neighbors for deterministic strain propagation
-const neighborOffsets = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+// ----- Create bonds -----
+const neighborOffsets = [[1,0,0],[0,1,0],[0,0,1]];
 atoms.forEach(atom => {
     neighborOffsets.forEach(offset => {
         const ni = atom.i + offset[0];
         const nj = atom.j + offset[1];
         const nk = atom.k + offset[2];
-        const neighbor = atoms.find(a => a.i === ni && a.j === nj && a.k === nk);
-        if(neighbor) atom.neighbors.push(neighbor);
-    });
-});
-
-// ----- Deterministic strain update -----
-scene.registerBeforeRender(() => {
-    // Increase strain deterministically: top layer receives initial strain
-    atoms.forEach(atom => {
-        if(atom.broken) return;
-        if(atom.k === 1) atom.strain += 0.05; // first layer gets incremental strain each frame
-        // propagate strain from broken neighbors
-        atom.neighbors.forEach(nb => {
-            if(nb.broken) atom.strain += 0.02;
-        });
-        if(atom.strain >= strainThreshold){
-            atom.broken = true;
-            atom.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0); // broken = red
+        const neighbor = atoms.find(a => a.i===ni && a.j===nj && a.k===nk);
+        if(neighbor){
+            let line = BABYLON.MeshBuilder.CreateLines(`bond_${atom.i}_${atom.j}_${atom.k}_${ni}_${nj}_${nk}`,
+                {points:[atom.pos.clone(), neighbor.pos.clone()]}, scene);
+            line.color = new BABYLON.Color3(0.5,0.5,0.5);
+            bonds.push({a: atom, b: neighbor, line: line, broken: false});
         }
     });
 });
 
-engine.runRenderLoop(() => { scene.render(); });
-window.addEventListener('resize', () => { engine.resize(); });
+// ----- Force computation -----
+function computeForces(){
+    atoms.forEach(atom => atom.force = new BABYLON.Vector3(0,0,0));
+    bonds.forEach(bond => {
+        if(bond.broken) return;
+        let r_vec = bond.b.pos.subtract(bond.a.pos);
+        let r = r_vec.length();
+        let dr = r - r0;
+        let f = r_vec.normalize().scale(k_bond * dr);
+        bond.a.force.addInPlace(f);
+        bond.b.force.addInPlace(f.scale(-1));
+
+        if(r > r0 * fracture_ratio && !fractureOccurred){
+            bond.broken = true;
+            bond.a.broken = true;
+            bond.b.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
+            bond.a.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
+            fractureOccurred = true;
+            console.log(`Fracture occurred between atom (${bond.a.i},${bond.a.j},${bond.a.k}) and atom (${bond.b.i},${bond.b.j},${bond.b.k})`);
+        }
+    });
+}
+
+// ----- Integration -----
+scene.registerBeforeRender(() => {
+    if(fractureOccurred) return;
+    computeForces();
+    atoms.forEach(atom => {
+        if(atom.broken) return;
+        atom.vel.addInPlace(atom.force.scale(dt/mass));
+        atom.pos.addInPlace(atom.vel.scale(dt));
+        atom.mesh.position = atom.pos;
+
+        // Numeric output of position and velocity
+        console.log(`Atom (${atom.i},${atom.j},${atom.k}) pos: ${atom.pos.toString()} vel: ${atom.vel.toString()}`);
+    });
+    bonds.forEach(bond => {
+        if(!bond.broken){
+            bond.line = BABYLON.MeshBuilder.CreateLines('', {points:[bond.a.pos.clone(), bond.b.pos.clone()], instance:bond.line});
+        }
+    });
+});
+
+engine.runRenderLoop(()=> scene.render());
+window.addEventListener('resize',()=> engine.resize());
 </script>
 </body>
 </html>
-
-
