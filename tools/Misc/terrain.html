@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>3D Lattice Crack Simulation</title>
+    <title>3D Lattice Crack Simulation (Deterministic Geometry)</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
@@ -23,43 +23,56 @@ const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(1,1,0), 
 // ----- Lattice parameters -----
 const Nx = 5, Ny = 5, Nz = 5;
 const r0 = 2.35;
+const strainThreshold = 1.0; // deterministic strain threshold
 let atoms = [];
 
-// ----- Create atoms -----
+// ----- Create atoms and neighbors -----
 for(let i=0;i<Nx;i++){
     for(let j=0;j<Ny;j++){
         for(let k=0;k<Nz;k++){
-            // Skip pre-crack plane
-            if(k === 0) continue;
+            if(k === 0) continue; // pre-crack plane
             let sphere = BABYLON.MeshBuilder.CreateSphere(`atom_${i}_${j}_${k}`, {diameter:0.5}, scene);
             sphere.position = new BABYLON.Vector3(i*r0, j*r0, k*r0);
             sphere.material = new BABYLON.StandardMaterial(`mat_${i}_${j}_${k}`, scene);
             sphere.material.diffuseColor = new BABYLON.Color3(0,0,1); // intact = blue
-            atoms.push({mesh:sphere, i,j,k,broken:false});
+            atoms.push({mesh:sphere, i,j,k,broken:false, strain:0, neighbors:[]});
         }
     }
 }
 
-// ----- Simple dynamic update -----
-scene.registerBeforeRender(function(){
-    for(let atom of atoms){
-        if(!atom.broken){
-            // pseudo-random crack propagation: break atoms if z>3 and random chance
-            if(atom.k>3 && Math.random()<0.01){
-                atom.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0); // broken = red
-                atom.broken = true;
-            }
+// Assign neighbors for deterministic strain propagation
+const neighborOffsets = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+atoms.forEach(atom => {
+    neighborOffsets.forEach(offset => {
+        const ni = atom.i + offset[0];
+        const nj = atom.j + offset[1];
+        const nk = atom.k + offset[2];
+        const neighbor = atoms.find(a => a.i === ni && a.j === nj && a.k === nk);
+        if(neighbor) atom.neighbors.push(neighbor);
+    });
+});
+
+// ----- Deterministic strain update -----
+scene.registerBeforeRender(() => {
+    // Increase strain deterministically: top layer receives initial strain
+    atoms.forEach(atom => {
+        if(atom.broken) return;
+        if(atom.k === 1) atom.strain += 0.05; // first layer gets incremental strain each frame
+        // propagate strain from broken neighbors
+        atom.neighbors.forEach(nb => {
+            if(nb.broken) atom.strain += 0.02;
+        });
+        if(atom.strain >= strainThreshold){
+            atom.broken = true;
+            atom.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0); // broken = red
         }
-    }
+    });
 });
 
-engine.runRenderLoop(()=>{
-    scene.render();
-});
-
-window.addEventListener('resize', function(){
-    engine.resize();
-});
+engine.runRenderLoop(() => { scene.render(); });
+window.addEventListener('resize', () => { engine.resize(); });
 </script>
 </body>
 </html>
+
+
