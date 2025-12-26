@@ -2,16 +2,21 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>3D Lattice Newtonian Fracture Simulation with Output</title>
+    <title>3D Lattice Newtonian Fracture Simulation with Log</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <style>
+        #log { position:absolute; top:0; left:0; width:100%; max-height:200px; overflow:auto; background:#eee; font-family:monospace; font-size:12px; padding:5px; }
+    </style>
 </head>
 <body>
+<div id="log"></div>
 <canvas id="renderCanvas" touch-action="none" style="width:100%; height:100%"></canvas>
 <script>
 // ----- Babylon.js setup -----
 const canvas = document.getElementById('renderCanvas');
 const engine = new BABYLON.Engine(canvas, true);
 const scene = new BABYLON.Scene(engine);
+const logDiv = document.getElementById('log');
 
 // Camera & light
 const camera = new BABYLON.ArcRotateCamera('camera', Math.PI/4, Math.PI/4, 30, new BABYLON.Vector3(0,0,0), scene);
@@ -21,10 +26,10 @@ const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(1,1,0), 
 // ----- Lattice parameters -----
 const Nx = 5, Ny = 5, Nz = 5;
 const r0 = 2.35;
-const k_bond = 1.0; // softer bonds to see motion
+const k_bond = 1.0;
 const dt = 0.01;
 const mass = 1.0;
-const fracture_ratio = 1.05; // 5% stretch for fracture
+const fracture_ratio = 1.05;
 let atoms = [];
 let bonds = [];
 let fractureOccurred = false;
@@ -33,15 +38,20 @@ let fractureOccurred = false;
 for(let i=0;i<Nx;i++){
     for(let j=0;j<Ny;j++){
         for(let k=0;k<Nz;k++){
-            if(k === 0) continue; // pre-crack plane
+            if(k === 0) continue;
             let sphere = BABYLON.MeshBuilder.CreateSphere(`atom_${i}_${j}_${k}`, {diameter:1.0}, scene);
             sphere.position = new BABYLON.Vector3(i*r0, j*r0, k*r0);
             sphere.material = new BABYLON.StandardMaterial(`mat_${i}_${j}_${k}`, scene);
             sphere.material.diffuseColor = new BABYLON.Color3(0,0,1);
-            atoms.push({mesh: sphere, i,j,k, pos: sphere.position.clone(), vel: new BABYLON.Vector3(0,0,0.5), broken: false});
+            atoms.push({mesh: sphere, i,j,k, pos: sphere.position.clone(), vel: new BABYLON.Vector3(0,0,0), broken: false});
         }
     }
 }
+
+// Add initial perturbation
+atoms.forEach(atom => {
+    if(atom.k === Nz-1) atom.vel = new BABYLON.Vector3(0,0,0.1);
+});
 
 // ----- Create bonds -----
 const neighborOffsets = [[1,0,0],[0,1,0],[0,0,1]];
@@ -78,7 +88,7 @@ function computeForces(){
             bond.b.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
             bond.a.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
             fractureOccurred = true;
-            console.log(`Fracture occurred between atom (${bond.a.i},${bond.a.j},${bond.a.k}) and atom (${bond.b.i},${bond.b.j},${bond.b.k})`);
+            logDiv.innerHTML += `Fracture occurred between atom (${bond.a.i},${bond.a.j},${bond.a.k}) and atom (${bond.b.i},${bond.b.j},${bond.b.k})<br>`;
         }
     });
 }
@@ -93,9 +103,10 @@ scene.registerBeforeRender(() => {
         atom.pos.addInPlace(atom.vel.scale(dt));
         atom.mesh.position = atom.pos;
 
-        // Numeric output of position and velocity
-        console.log(`Atom (${atom.i},${atom.j},${atom.k}) pos: ${atom.pos.toString()} vel: ${atom.vel.toString()}`);
+        // Log numeric output to div
+        logDiv.innerHTML += `Atom (${atom.i},${atom.j},${atom.k}) pos: (${atom.pos.x.toFixed(2)},${atom.pos.y.toFixed(2)},${atom.pos.z.toFixed(2)}) vel: (${atom.vel.x.toFixed(2)},${atom.vel.y.toFixed(2)},${atom.vel.z.toFixed(2)})<br>`;
     });
+    logDiv.scrollTop = logDiv.scrollHeight;
     bonds.forEach(bond => {
         if(!bond.broken){
             bond.line = BABYLON.MeshBuilder.CreateLines('', {points:[bond.a.pos.clone(), bond.b.pos.clone()], instance:bond.line});
@@ -108,3 +119,4 @@ window.addEventListener('resize',()=> engine.resize());
 </script>
 </body>
 </html>
+
