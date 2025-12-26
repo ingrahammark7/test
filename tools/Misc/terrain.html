@@ -2,10 +2,10 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>3D Lattice Deterministic Fracture Simulation</title>
+    <title>Mobile-Optimized Lattice Fracture Simulation</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <style>
-        #log { position:absolute; top:0; left:0; width:100%; max-height:200px; overflow:auto; background:#eee; font-family:monospace; font-size:12px; padding:5px; }
+        #log { position:absolute; top:0; left:0; width:100%; max-height:150px; overflow:auto; background:#eee; font-family:monospace; font-size:12px; padding:5px; }
     </style>
 </head>
 <body>
@@ -18,102 +18,91 @@ const scene = new BABYLON.Scene(engine);
 const logDiv = document.getElementById('log');
 
 // Camera & light
-const camera = new BABYLON.ArcRotateCamera('camera', Math.PI/4, Math.PI/4, 30, new BABYLON.Vector3(0,0,0), scene);
+const camera = new BABYLON.ArcRotateCamera('camera', Math.PI/4, Math.PI/4, 15, new BABYLON.Vector3(0,0,0), scene);
 camera.attachControl(canvas, true);
 const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(1,1,0), scene);
 
-// Lattice parameters
-const Nx = 5, Ny = 5, Nz = 5;
-const r0 = 2.35;
-const k_bond = 1.0;
-const dt = 0.01;
-const mass = 1.0;
-const fracture_ratio = 1.05;
-let atoms = [];
-let bonds = [];
-let fractureOccurred = false;
+// Small lattice parameters for mobile
+const Nx=3, Ny=3, Nz=3;
+const r0=2.35;
+const k_bond=1.0;
+const dt=0.02;
+const mass=1.0;
+const fracture_ratio=1.05;
+let atoms=[];
+let bonds=[];
+let fractureOccurred=false;
 
 // Create atoms
 for(let i=0;i<Nx;i++){
     for(let j=0;j<Ny;j++){
         for(let k=0;k<Nz;k++){
-            if(k === 0) continue; // pre-crack plane
+            if(k===0) continue; // pre-crack plane
             let sphere = BABYLON.MeshBuilder.CreateSphere(`atom_${i}_${j}_${k}`, {diameter:1.0}, scene);
             sphere.position = new BABYLON.Vector3(i*r0, j*r0, k*r0);
-            sphere.material = new BABYLON.StandardMaterial(`mat_${i}_${j}_${k}`, scene);
-            sphere.material.diffuseColor = new BABYLON.Color3(0,0,1);
-            atoms.push({mesh: sphere, i,j,k, pos: sphere.position.clone(), vel: new BABYLON.Vector3(0,0,0), broken: false, fixed: k===1}); // pin bottom layer
+            let mat = new BABYLON.StandardMaterial(`mat_${i}_${j}_${k}`, scene);
+            mat.diffuseColor = new BABYLON.Color3(0,0,1);
+            sphere.material = mat;
+            atoms.push({mesh:sphere,i,j,k,pos:sphere.position.clone(),vel:new BABYLON.Vector3(0,0,0),broken:false,fixed:k===1}); // pin bottom layer
         }
     }
 }
 
-// Apply single deterministic velocity to top-left-front atom
-const seedAtom = atoms.find(a => a.i === 0 && a.j === 0 && a.k === Nz-1);
+// Apply single deterministic velocity to one atom
+const seedAtom = atoms.find(a=>a.i===0 && a.j===0 && a.k===Nz-1);
 seedAtom.vel = new BABYLON.Vector3(0,0,0.1);
 
-// Create bonds
-const neighborOffsets = [[1,0,0],[0,1,0],[0,0,1]];
-atoms.forEach(atom => {
-    neighborOffsets.forEach(offset => {
-        const ni = atom.i + offset[0];
-        const nj = atom.j + offset[1];
-        const nk = atom.k + offset[2];
-        const neighbor = atoms.find(a => a.i===ni && a.j===nj && a.k===nk);
+// Create bonds (just data, no lines)
+const neighborOffsets=[[1,0,0],[0,1,0],[0,0,1]];
+atoms.forEach(atom=>{
+    neighborOffsets.forEach(offset=>{
+        const ni=atom.i+offset[0]; const nj=atom.j+offset[1]; const nk=atom.k+offset[2];
+        const neighbor = atoms.find(a=>a.i===ni && a.j===nj && a.k===nk);
         if(neighbor){
-            let line = BABYLON.MeshBuilder.CreateLines(`bond_${atom.i}_${atom.j}_${atom.k}_${ni}_${nj}_${nk}`,
-                {points:[atom.pos.clone(), neighbor.pos.clone()]}, scene);
-            line.color = new BABYLON.Color3(0.5,0.5,0.5);
-            bonds.push({a: atom, b: neighbor, line: line, broken: false});
+            bonds.push({a:atom,b:neighbor,broken:false});
         }
     });
 });
 
-// Force computation
+// Compute forces
 function computeForces(){
-    atoms.forEach(atom => atom.force = new BABYLON.Vector3(0,0,0));
-    bonds.forEach(bond => {
+    atoms.forEach(atom=>atom.force=new BABYLON.Vector3(0,0,0));
+    bonds.forEach(bond=>{
         if(bond.broken) return;
         let r_vec = bond.b.pos.subtract(bond.a.pos);
         let r = r_vec.length();
         let dr = r - r0;
-        let f = r_vec.normalize().scale(k_bond * dr);
+        let f = r_vec.normalize().scale(k_bond*dr);
         bond.a.force.addInPlace(f);
         bond.b.force.addInPlace(f.scale(-1));
 
-        if(r > r0 * fracture_ratio && !fractureOccurred){
+        if(r > r0*fracture_ratio && !fractureOccurred){
             bond.broken = true;
             bond.a.broken = true;
             bond.b.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
             bond.a.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
-            fractureOccurred = true;
+            fractureOccurred=true;
             logDiv.innerHTML += `Fracture occurred between atom (${bond.a.i},${bond.a.j},${bond.a.k}) and atom (${bond.b.i},${bond.b.j},${bond.b.k})<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
         }
     });
 }
 
 // Integration
-scene.registerBeforeRender(() => {
+scene.registerBeforeRender(()=>{
     if(fractureOccurred) return;
     computeForces();
-    atoms.forEach(atom => {
+    atoms.forEach(atom=>{
         if(atom.fixed || atom.broken) return;
         atom.vel.addInPlace(atom.force.scale(dt/mass));
         atom.pos.addInPlace(atom.vel.scale(dt));
-        atom.mesh.position = atom.pos;
-
-        // Log numeric output to div
-        logDiv.innerHTML += `Atom (${atom.i},${atom.j},${atom.k}) pos: (${atom.pos.x.toFixed(2)},${atom.pos.y.toFixed(2)},${atom.pos.z.toFixed(2)}) vel: (${atom.vel.x.toFixed(2)},${atom.vel.y.toFixed(2)},${atom.vel.z.toFixed(2)})<br>`;
-    });
-    logDiv.scrollTop = logDiv.scrollHeight;
-    bonds.forEach(bond => {
-        if(!bond.broken){
-            bond.line = BABYLON.MeshBuilder.CreateLines('', {points:[bond.a.pos.clone(), bond.b.pos.clone()], instance:bond.line});
-        }
+        atom.mesh.position=atom.pos;
     });
 });
 
-engine.runRenderLoop(()=> scene.render());
-window.addEventListener('resize',()=> engine.resize());
+engine.runRenderLoop(()=>scene.render());
+window.addEventListener('resize',()=>engine.resize());
 </script>
 </body>
 </html>
+
