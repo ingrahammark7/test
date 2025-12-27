@@ -1,97 +1,117 @@
-import math
+import numpy as np
 
-# =========================
-# INPUT PARAMETERS
-# =========================
+# ============================================================
+# Constants
+# ============================================================
+c = 3e8
+k = 1.380649e-23
+pi = np.pi
+AU = 1.496e11
 
-# Fracture toughness (MPa*sqrt(m))
-K_IC_MPa_sqrt_m = 5.0
-K_IC = K_IC_MPa_sqrt_m * 1e6
+# ============================================================
+# Mission parameters
+# ============================================================
+mission_years = 50
+seconds = mission_years * 365.25 * 24 * 3600
+t = np.linspace(0, seconds, 30000)
 
-# Elastic properties
-E_GPa = 450.0
-nu = 0.17
-E = E_GPa * 1e9
-E_prime = E / (1 - nu**2)
+# Distance evolution (Voyager-like)
+r_start = 5 * AU
+r_end = 160 * AU
+r = r_start + (r_end - r_start) * (t / seconds)
 
-# Atomic geometry
-a = 1.89e-10                     # Si–C bond length
-atoms_per_cell = 2              # SiC
-cell_volume = a**3              # crude cubic estimate
+# ============================================================
+# Operational efficiencies
+# ============================================================
+dsn_availability = 0.25      # Fraction of DSN time allocated
+ops_duty_cycle = 0.7         # Instrument + ops duty cycle
+coding_efficiency = 0.35     # Fraction of Shannon (Turbo/LDPC)
 
-# =========================
-# BOND ENERGIES
-# =========================
+total_efficiency = dsn_availability * ops_duty_cycle * coding_efficiency
 
-# Reported Si–C bond energy
-bond_energy_kJ_per_mol = 318
-bond_energy = bond_energy_kJ_per_mol * 1e3 / 6.022e23
+# ============================================================
+# Transmitter degradation
+# ============================================================
+P_tx_initial = 23.0  # W
+power_half_life_years = 35
+P_tx = P_tx_initial * 0.5 ** (t / (power_half_life_years * 365.25 * 24 * 3600))
 
-# Coulomb estimate
-e = 1.602e-19
-epsilon_0 = 8.854e-12
-epsilon_r = 9.7
-Z_eff = 3.0
+# ============================================================
+# Antenna model
+# ============================================================
+def antenna_gain(D, lam, eta):
+    return eta * (pi * D / lam) ** 2
 
-bond_energy_coulomb = (
-    (Z_eff * e)**2 /
-    (4 * math.pi * epsilon_0 * epsilon_r * a)
-)
+D_tx = 3.7
+D_rx = 70.0
+eta_tx = 0.55
+eta_rx = 0.55
 
-# =========================
-# FRACTURE ENERGY
-# =========================
+# ============================================================
+# Shannon rate with bandwidth cap
+# ============================================================
+def shannon_rate(P_rx, T_sys, B):
+    N = k * T_sys * B
+    snr = P_rx / N
+    return B * np.log2(1 + snr)
 
-G_c = K_IC**2 / E_prime           # J/m^2
-gamma = G_c / 2                  # surface energy per surface
+# ============================================================
+# Radio configuration options
+# ============================================================
+configs = {
+    "X-band": {
+        "freq": 8.4e9,
+        "bandwidth": 20e3,
+        "T_sys": 20
+    },
+    "Ka-band": {
+        "freq": 32e9,
+        "bandwidth": 100e3,
+        "T_sys": 35
+    }
+}
 
-# =========================
-# SURFACE ATOMIC DENSITY
-# =========================
+# Optical comms
+optical = {
+    "wavelength": 1550e-9,
+    "P_tx": 5.0,
+    "D_tx": 0.2,
+    "D_rx": 10.0,
+    "T_sys": 500,   # photon noise equivalent
+    "bandwidth": 1e9
+}
 
-# approximate surface atom density
-surface_atom_density = 1 / a**2
-area_per_atom = 1 / surface_atom_density
+# ============================================================
+# Simulation
+# ============================================================
+def simulate_radio(cfg):
+    lam = c / cfg["freq"]
+    G_tx = antenna_gain(D_tx, lam, eta_tx)
+    G_rx = antenna_gain(D_rx, lam, eta_rx)
 
-fracture_energy_per_atom = G_c * area_per_atom
+    P_rx = P_tx * G_tx * G_rx * (lam / (4 * pi * r)) ** 2
+    rate = shannon_rate(P_rx, cfg["T_sys"], cfg["bandwidth"])
+    bits = np.trapz(rate * total_efficiency, t)
+    return bits
 
-# =========================
-# EFFECTIVE BOND COUNT
-# =========================
+def simulate_optical(cfg):
+    lam = cfg["wavelength"]
+    G_tx = antenna_gain(cfg["D_tx"], lam, 0.6)
+    G_rx = antenna_gain(cfg["D_rx"], lam, 0.6)
 
-N_bonds_reported = fracture_energy_per_atom / bond_energy
-N_bonds_coulomb = fracture_energy_per_atom / bond_energy_coulomb
+    P_rx = cfg["P_tx"] * G_tx * G_rx * (lam / (4 * pi * r)) ** 2
+    rate = shannon_rate(P_rx, cfg["T_sys"], cfg["bandwidth"])
+    bits = np.trapz(rate * total_efficiency, t)
+    return bits
 
-# =========================
-# COHESIVE STRESS ESTIMATE
-# =========================
+# ============================================================
+# Results
+# ============================================================
+print("\n===== TOTAL DATA RETURN ESTIMATES =====\n")
 
-sigma_cohesive = math.sqrt(E * gamma / a)
-ideal_strength = E / 10
+for name, cfg in configs.items():
+    bits = simulate_radio(cfg)
+    print(f"{name:7s}: {bits/1e9:8.2f} Gb   ({bits/1e12:6.2f} Tb)")
 
-# =========================
-# OUTPUT
-# =========================
-
-print("\n=== FRACTURE → ATOMISTICS CONSISTENCY CHECK ===")
-
-print("\n--- Continuum ---")
-print(f"K_IC: {K_IC_MPa_sqrt_m:.2f} MPa·√m")
-print(f"G_c: {G_c:.2f} J/m²")
-print(f"Surface energy γ: {gamma:.2f} J/m²")
-
-print("\n--- Atomic scale ---")
-print(f"Area per surface atom: {area_per_atom:.2e} m²")
-print(f"Fracture energy per atom: {fracture_energy_per_atom:.2e} J")
-
-print("\n--- Bond energies ---")
-print(f"Reported bond energy: {bond_energy:.2e} J")
-print(f"Coulomb bond energy: {bond_energy_coulomb:.2e} J")
-
-print("\n--- Effective broken bonds per atom ---")
-print(f"Using reported bond: {N_bonds_reported:.2f}")
-print(f"Using Coulomb bond: {N_bonds_coulomb:.2f}")
-
-print("\n--- Stress scale comparison ---")
-print(f"Cohesive stress estimate: {sigma_cohesive/1e9:.1f} GPa")
-print(f"Ideal strength ~ E/10: {ideal_strength/1e9:.1f} GPa")
+opt_bits = simulate_optical(optical)
+print(f"Optical: {opt_bits/1e9:8.2f} Gb   ({opt_bits/1e12:6.2f} Tb)")
