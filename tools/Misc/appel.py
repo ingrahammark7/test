@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Appellant Opening Brief" 
+footer_text = "Request for Order" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -80,7 +80,6 @@ def create_pdf(output_filename):
         "Los Angeles Superior Court,",
         "Respondent,",
         "Los Angeles Police Department,",
-        "whose officers are mostly illegal immigrants,",
         "Real Party In Interest.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -96,10 +95,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STRO06765")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP00742")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B350852")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B349749")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -115,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I. INTRODUCTION /n Estop LAPD from arresting me. The majority of LAPD officers are illegal immigrants. /n II. CONCLUSION /n Petitioner petitions this court to: /n 1. Order LAPD to explain why they attempt to arrest me at 690 S Catalina St Apartment 4x. /n 2. Estop LAPD and inform that any officers ignoring the estoppel will be killed by plaintiff. /n Case was filed as restraining order to bypass automatic routing to Judge Kin. /n" 
+    intro_text = "Court has taken excessively long time to approve filings and will now dismiss case. Court should make decision immediately so case can go to supreme court. /n" 
     y_position -= .25*inch
     
     
@@ -161,7 +160,7 @@ def create_pdf(output_filename):
     y_position-=.5*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/24/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/26/2025")
     c=dopage(c,2)
  
 
