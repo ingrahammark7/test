@@ -1,117 +1,138 @@
-import numpy as np
+# ===== Exact Hebrew Calendar (Correct Deḥiyyot Order) =====
 
-# ============================================================
-# Constants
-# ============================================================
-c = 3e8
-k = 1.380649e-23
-pi = np.pi
-AU = 1.496e11
+PARTS_PER_HOUR = 1080
+PARTS_PER_DAY = 24 * PARTS_PER_HOUR
 
-# ============================================================
-# Mission parameters
-# ============================================================
-mission_years = 50
-seconds = mission_years * 365.25 * 24 * 3600
-t = np.linspace(0, seconds, 30000)
+# Molad Tohu: Monday 5h 204p
+MOLAD_TOHU_DAY = 1  # 0=Sunday
+MOLAD_TOHU_PARTS = 5 * PARTS_PER_HOUR + 204
 
-# Distance evolution (Voyager-like)
-r_start = 5 * AU
-r_end = 160 * AU
-r = r_start + (r_end - r_start) * (t / seconds)
+MONTH_PARTS = (
+    29 * PARTS_PER_DAY +
+    12 * PARTS_PER_HOUR +
+    793
+)
 
-# ============================================================
-# Operational efficiencies
-# ============================================================
-dsn_availability = 0.25      # Fraction of DSN time allocated
-ops_duty_cycle = 0.7         # Instrument + ops duty cycle
-coding_efficiency = 0.35     # Fraction of Shannon (Turbo/LDPC)
+# Leap year in 19-year cycle
+def is_leap(year):
+    return year % 19 in (0, 3, 6, 8, 11, 14, 17)
 
-total_efficiency = dsn_availability * ops_duty_cycle * coding_efficiency
+def months_elapsed(year):
+    y = year - 1
+    return (
+        235 * (y // 19) +
+        12 * (y % 19) +
+        ((7 * (y % 19) + 1) // 19)
+    )
 
-# ============================================================
-# Transmitter degradation
-# ============================================================
-P_tx_initial = 23.0  # W
-power_half_life_years = 35
-P_tx = P_tx_initial * 0.5 ** (t / (power_half_life_years * 365.25 * 24 * 3600))
+def molad_tishrei(year):
+    m = months_elapsed(year)
+    total_parts = MOLAD_TOHU_PARTS + m * MONTH_PARTS
+    day = MOLAD_TOHU_DAY + total_parts // PARTS_PER_DAY
+    parts = total_parts % PARTS_PER_DAY
+    return day, parts
 
-# ============================================================
-# Antenna model
-# ============================================================
-def antenna_gain(D, lam, eta):
-    return eta * (pi * D / lam) ** 2
+def rosh_hashanah_day(year):
+    day, parts = molad_tishrei(year)
 
-D_tx = 3.7
-D_rx = 70.0
-eta_tx = 0.55
-eta_rx = 0.55
+    # 1. Molad Zaken
+    if parts >= 18 * PARTS_PER_HOUR:
+        day += 1
 
-# ============================================================
-# Shannon rate with bandwidth cap
-# ============================================================
-def shannon_rate(P_rx, T_sys, B):
-    N = k * T_sys * B
-    snr = P_rx / N
-    return B * np.log2(1 + snr)
+    weekday = day % 7
 
-# ============================================================
-# Radio configuration options
-# ============================================================
-configs = {
-    "X-band": {
-        "freq": 8.4e9,
-        "bandwidth": 20e3,
-        "T_sys": 20
-    },
-    "Ka-band": {
-        "freq": 32e9,
-        "bandwidth": 100e3,
-        "T_sys": 35
-    }
-}
+    # 2. GaTRaD
+    if (
+        not is_leap(year) and
+        weekday == 2 and  # Tuesday
+        parts >= (9 * PARTS_PER_HOUR + 204)
+    ):
+        day += 1
+        weekday = day % 7
 
-# Optical comms
-optical = {
-    "wavelength": 1550e-9,
-    "P_tx": 5.0,
-    "D_tx": 0.2,
-    "D_rx": 10.0,
-    "T_sys": 500,   # photon noise equivalent
-    "bandwidth": 1e9
-}
+    # 3. BeTuTaKPaT
+    if (
+        is_leap(year - 1) and
+        weekday == 1 and  # Monday
+        parts >= (15 * PARTS_PER_HOUR + 589)
+    ):
+        day += 1
+        weekday = day % 7
 
-# ============================================================
-# Simulation
-# ============================================================
-def simulate_radio(cfg):
-    lam = c / cfg["freq"]
-    G_tx = antenna_gain(D_tx, lam, eta_tx)
-    G_rx = antenna_gain(D_rx, lam, eta_rx)
+    # 4. Lo ADU Rosh (LAST)
+    if weekday in (0, 3, 5):  # Sunday, Wednesday, Friday
+        day += 1
 
-    P_rx = P_tx * G_tx * G_rx * (lam / (4 * pi * r)) ** 2
-    rate = shannon_rate(P_rx, cfg["T_sys"], cfg["bandwidth"])
-    bits = np.trapz(rate * total_efficiency, t)
-    return bits
+    return day
 
-def simulate_optical(cfg):
-    lam = cfg["wavelength"]
-    G_tx = antenna_gain(cfg["D_tx"], lam, 0.6)
-    G_rx = antenna_gain(cfg["D_rx"], lam, 0.6)
+def year_length(year):
+    return rosh_hashanah_day(year + 1) - rosh_hashanah_day(year)
 
-    P_rx = cfg["P_tx"] * G_tx * G_rx * (lam / (4 * pi * r)) ** 2
-    rate = shannon_rate(P_rx, cfg["T_sys"], cfg["bandwidth"])
-    bits = np.trapz(rate * total_efficiency, t)
-    return bits
+def year_type(year):
+    length = year_length(year)
+    if length in (353, 383):
+        return 0  # deficient
+    if length in (354, 384):
+        return 1  # regular
+    if length in (355, 385):
+        return 2  # complete
+    raise ValueError(f"Invalid year length {length} for year {year}")
 
-# ============================================================
-# Results
-# ============================================================
-print("\n===== TOTAL DATA RETURN ESTIMATES =====\n")
+def month_lengths(year):
+    t = year_type(year)
+    leap = is_leap(year)
 
-for name, cfg in configs.items():
-    bits = simulate_radio(cfg)
-    print(f"{name:7s}: {bits/1e9:8.2f} Gb   ({bits/1e12:6.2f} Tb)")
+    if t == 0:
+        cheshvan, kislev = 29, 29
+    elif t == 1:
+        cheshvan, kislev = 29, 30
+    else:
+        cheshvan, kislev = 30, 30
 
-opt_bits = simulate_optical(optical)
-print(f"Optical: {opt_bits/1e9:8.2f} Gb   ({opt_bits/1e12:6.2f} Tb)")
+    months = [
+        30,            # Tishrei
+        cheshvan,
+        kislev,
+        29,            # Tevet
+        30,            # Shevat
+    ]
+
+    if leap:
+        months += [30, 29]  # Adar I, Adar II
+    else:
+        months += [29]      # Adar
+
+    months += [
+        30,  # Nisan
+        29,  # Iyar
+        30,  # Sivan
+        29,  # Tammuz
+        30,  # Av
+        29   # Elul
+    ]
+
+    return months
+
+def eighteen_elul_offset(year):
+    rh_next = rosh_hashanah_day(year + 1)
+    elul_len = month_lengths(year)[-1]
+    elul_18 = rh_next - (elul_len - 18)
+    return elul_18, rh_next
+
+# Utility
+def digit_sum(n):
+    return sum(map(int, str(n)))
+
+WINDOW = 3
+
+candidate_years = [y for y in range(5000, 6001) if digit_sum(y) == 26]
+
+results = []
+for y in candidate_years:
+    e18, rh = eighteen_elul_offset(y)
+    d = rh - e18
+    if 0 <= d <= WINDOW:
+        results.append((y, e18, rh, d))
+
+for y, e, r, d in results:
+    print(f"Year {y}: 18 Elul = {e}, RH = {r}, diff = {d}")
