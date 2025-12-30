@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order" 
+footer_text = "Appendix" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Los Angeles Police Department,",
+        "Jose Gonzalez,",
         "Real Party In Interest.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -95,10 +95,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP00742")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STRO6765")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B349749")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B350852")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -114,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Court has taken excessively long time to approve filings and will now dismiss case. Court should make decision immediately so case can go to supreme court. /n" 
+    intro_text = "I. TABLE OF CONTENTS /n Civil case information and decision, 3 /n Notice of Appeal, 10 /n" 
     y_position -= .25*inch
     
     
