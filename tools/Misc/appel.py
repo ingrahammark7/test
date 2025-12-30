@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Appendix" 
+footer_text = "Appellant Opening Brief" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,8 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Jose Gonzalez,",
+        "Los Angeles Police Department,",
+        "whose officers are mostly illegal immigrants,",
         "Real Party In Interest.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -95,7 +96,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STRO6765")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STRO06765")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B350852")
@@ -114,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I. TABLE OF CONTENTS /n Civil case information and decision, 3 /n Notice of Appeal, 10 /n" 
+    intro_text = "I-1. TABLE OF CONTENTS /n One page. /n I-2. TABLE OF AUTHORITIES /n As the majority of LAPD officers are illegal immigrants, all actions by LAPD are illegal, and all LAPD vehicles should be auctioned and destroyed to prevent use by illegals. /n I. INTRODUCTION /n Estop LAPD from arresting me. The majority of LAPD officers are illegal immigrants. /n II. CONCLUSION /n Petitioner petitions this court to: /n 1. Order LAPD to explain why they attempt to arrest me at 690 S Catalina St Apartment 4x. /n 2. Estop LAPD and inform that any officers ignoring the estoppel will be killed by plaintiff. /n Case was filed as restraining order to bypass automatic routing to Judge Kin. /n III. WORD COUNT CERTIFICATE /n This document contains 250 words. /n" 
     y_position -= .25*inch
     
     
@@ -160,7 +161,7 @@ def create_pdf(output_filename):
     y_position-=.5*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/26/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/24/2025")
     c=dopage(c,2)
  
 
