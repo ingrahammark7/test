@@ -1,47 +1,34 @@
 import math
 
-def separator_size_range(rho, mu, v, D, t_rxn, gamma=None, deltaP_hydro=None):
+def iron_screen_size(rho, mu, v, L_cell=None):
     """
-    Calculate approximate separator/pore size range.
+    Estimate the maximum pore/grid size for an iron screen in a molten salt cell.
     
     Parameters:
     rho : float - melt density (kg/m^3)
-    mu : float - dynamic viscosity (Pa.s)
+    mu  : float - dynamic viscosity (Pa.s)
     v   : float - characteristic fluid velocity (m/s)
-    D   : float - ionic diffusion coefficient (m^2/s)
-    t_rxn : float - chemical reaction timescale (s)
-    gamma : float or None - surface tension (N/m) for capillary effect
-    deltaP_hydro : float or None - hydrostatic pressure (Pa)
+    L_cell : float or None - optional characteristic cell length (m)
     
     Returns:
-    L_min : float - minimum grid/pore size (m)
     L_max : float - maximum grid/pore size (m)
     """
-    # Diffusion vs reaction (lower bound)
-    L_min = math.sqrt(D * t_rxn)
+    # Reynolds number criterion: Re << 1 for laminar flow
+    # Approximate maximum characteristic size to suppress convection:
+    L_max = mu / (rho * v)
     
-    # Convection constraint (upper bound)
-    L_Re = mu / (rho * v)           # Re << 1
-    L_Pe = D / v                    # Pe << 1
-    L_max = min(L_Re, L_Pe)
+    # Optionally limit by cell size
+    if L_cell is not None:
+        L_max = min(L_max, L_cell)
     
-    # Optional: capillary effect for ceramic
-    if gamma is not None and deltaP_hydro is not None:
-        L_cap = 2 * gamma / deltaP_hydro
-        L_max = min(L_max, L_cap)
-    
-    return L_min, L_max
+    return L_max
 
-# Example usage with typical conceptual numbers
+# Example values
 rho = 1800      # kg/m^3 (molten salt density)
-mu = 0.05       # Pa.s (molten salt viscosity)
+mu = 0.05       # Pa.s (viscosity)
 v = 0.001       # m/s (fluid velocity)
-D = 1e-9        # m^2/s (ionic diffusion coefficient)
-t_rxn = 1e-3    # s (reaction timescale)
-gamma = 0.2     # N/m (surface tension)
-deltaP_hydro = 100  # Pa (hydrostatic pressure)
+L_cell = 0.05   # 5 cm characteristic dimension of the cell
 
-L_min, L_max = separator_size_range(rho, mu, v, D, t_rxn, gamma, deltaP_hydro)
-
-print(f"Minimum pore/grid size (m): {L_min:.3e}")
-print(f"Maximum pore/grid size (m): {L_max:.3e}")
+L_max = iron_screen_size(rho, mu, v, L_cell)
+print(f"Maximum iron grid spacing (m): {L_max:.3e}")
+print(f"Maximum iron grid spacing (mm): {L_max*1000:.2f}")
