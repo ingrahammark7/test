@@ -1,6 +1,5 @@
 import json
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 # ----------------------------
@@ -24,64 +23,58 @@ data_json = """
 data = json.loads(data_json)["leukemia_allometry"]
 
 # ----------------------------
-# 2. Prepare data arrays
+# 2. Prepare arrays
 # ----------------------------
 masses = []
 times = []
-types = []
+species_list = []
+types_list = []
 
 for entry in data:
     mass = entry["mass_kg"]
     leukemia_type = entry["type"]
-    # Use median observed latency + time to death for plotting
+    species = entry["species"]
+    
     latency = entry["latency_observed_days"]
     ttd = entry["time_to_death_observed_days"]
     
-    # skip entries with null data
+    # skip entries with null/None data
     if latency[0] is None or ttd[0] is None:
         continue
     
-    # total time from experiment to death = median(latency + ttd)
+    # median total time
     latency_median = np.median(latency)
     ttd_median = np.median(ttd)
     total_time = latency_median + ttd_median
     
-    masses.append(mass)
-    times.append(total_time)
-    types.append(leukemia_type)
+    masses.append(float(mass))
+    times.append(float(total_time))
+    species_list.append(species)
+    types_list.append(leukemia_type)
 
 masses = np.array(masses)
 times = np.array(times)
 
 # ----------------------------
-# 3. Fit power-law: t = a * M^b
+# 3. Fit power-law t = a * M^b
 # ----------------------------
 def power_law(M, a, b):
     return a * M**b
 
-params, covariance = curve_fit(power_law, masses, times)
+params, _ = curve_fit(power_law, masses, times)
 a_fit, b_fit = params
-print(f"Fitted power-law: t = {a_fit:.2f} * M^{b_fit:.2f}")
 
 # ----------------------------
-# 4. Plotting
+# 4. Print numeric results
 # ----------------------------
-plt.figure(figsize=(8,6))
+print("Species\tType\tMass(kg)\tTotalTime(days)")
+for s, t_type, m, total_time in zip(species_list, types_list, masses, times):
+    print(f"{s}\t{t_type}\t{m:.3f}\t{total_time:.1f}")
 
-# Scatter points with different colors for Acute vs Chronic
-for leukemia_type in set(types):
-    idx = [i for i, t in enumerate(types) if t == leukemia_type]
-    plt.scatter(masses[idx], times[idx], label=leukemia_type, s=100)
+print("\nPower-law fit: t = a * M^b")
+print(f"a = {a_fit:.3f}, b = {b_fit:.3f}")
 
-# Plot fitted curve
-mass_range = np.linspace(min(masses)*0.8, max(masses)*1.2, 100)
-plt.plot(mass_range, power_law(mass_range, a_fit, b_fit), 'k--', label=f"Fit: t = {a_fit:.1f} M^{b_fit:.2f}")
-
-plt.xscale('log')
-plt.yscale('log')
-plt.xlabel("Body Mass (kg)")
-plt.ylabel("Time from experiment to death (days)")
-plt.title("Allometric Fit of Induced Leukemia Progression")
-plt.legend()
-plt.grid(True, which="both", ls="--", alpha=0.5)
-plt.show()
+print("\nPredicted times from fit (days):")
+for s, m in zip(species_list, masses):
+    predicted = power_law(m, a_fit, b_fit)
+    print(f"{s}\t{predicted:.1f}")
