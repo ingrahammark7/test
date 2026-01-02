@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 # ----------------------------
-# 1. Load JSON
+# 1. Load JSON (with updated human chronic = 8 years)
 # ----------------------------
 data_json = """
 {
@@ -14,8 +14,8 @@ data_json = """
     {"species":"Human","mass_kg":70,"type":"Acute","latency_observed_days":[180,180],"time_to_death_observed_days":[180,180]},
     {"species":"Mouse","mass_kg":0.025,"type":"Chronic","latency_observed_days":[null,null],"time_to_death_observed_days":[null,null]},
     {"species":"Rat","mass_kg":0.25,"type":"Chronic","latency_observed_days":[null,null],"time_to_death_observed_days":[null,null]},
-    {"species":"Dog","mass_kg":15,"type":"Chronic","latency_observed_days":[180,1825],"time_to_death_observed_days":[210,1825]},
-    {"species":"Human","mass_kg":70,"type":"Chronic","latency_observed_days":[1825,3650],"time_to_death_observed_days":[1825,3650]}
+    {"species":"Dog","mass_kg":15,"type":"Chronic","latency_observed_days":[1010,1010],"time_to_death_observed_days":[1010,1010]},
+    {"species":"Human","mass_kg":70,"type":"Chronic","latency_observed_days":[2737,2737],"time_to_death_observed_days":[2737,2737]}
   ]
 }
 """
@@ -23,58 +23,53 @@ data_json = """
 data = json.loads(data_json)["leukemia_allometry"]
 
 # ----------------------------
-# 2. Prepare arrays
+# 2. Separate Acute vs Chronic
 # ----------------------------
-masses = []
-times = []
-species_list = []
-types_list = []
-
-for entry in data:
-    mass = entry["mass_kg"]
-    leukemia_type = entry["type"]
-    species = entry["species"]
-    
-    latency = entry["latency_observed_days"]
-    ttd = entry["time_to_death_observed_days"]
-    
-    # skip entries with null/None data
-    if latency[0] is None or ttd[0] is None:
-        continue
-    
-    # median total time
-    latency_median = np.median(latency)
-    ttd_median = np.median(ttd)
-    total_time = latency_median + ttd_median
-    
-    masses.append(float(mass))
-    times.append(float(total_time))
-    species_list.append(species)
-    types_list.append(leukemia_type)
-
-masses = np.array(masses)
-times = np.array(times)
+def extract_data(leukemia_type):
+    masses = []
+    times = []
+    species_list = []
+    for entry in data:
+        if entry["type"] != leukemia_type:
+            continue
+        latency = entry["latency_observed_days"]
+        ttd = entry["time_to_death_observed_days"]
+        if latency[0] is None or ttd[0] is None:
+            continue
+        total_time = np.median(latency) + np.median(ttd)
+        masses.append(float(entry["mass_kg"]))
+        times.append(float(total_time))
+        species_list.append(entry["species"])
+    return np.array(masses), np.array(times), species_list
 
 # ----------------------------
-# 3. Fit power-law t = a * M^b
+# 3. Power-law fit function
 # ----------------------------
 def power_law(M, a, b):
     return a * M**b
 
-params, _ = curve_fit(power_law, masses, times)
-a_fit, b_fit = params
-
 # ----------------------------
-# 4. Print numeric results
+# 4. Fit and print results
 # ----------------------------
-print("Species\tType\tMass(kg)\tTotalTime(days)")
-for s, t_type, m, total_time in zip(species_list, types_list, masses, times):
-    print(f"{s}\t{t_type}\t{m:.3f}\t{total_time:.1f}")
-
-print("\nPower-law fit: t = a * M^b")
-print(f"a = {a_fit:.3f}, b = {b_fit:.3f}")
-
-print("\nPredicted times from fit (days):")
-for s, m in zip(species_list, masses):
-    predicted = power_law(m, a_fit, b_fit)
-    print(f"{s}\t{predicted:.1f}")
+for leukemia_type in ["Acute", "Chronic"]:
+    masses, times, species_list = extract_data(leukemia_type)
+    
+    # Fit
+    params, _ = curve_fit(power_law, masses, times)
+    a_fit, b_fit = params
+    
+    # Print observed
+    print(f"\n{leukemia_type} Leukemia Observed Total Times (days):")
+    print("Species\tMass(kg)\tTotalTime(days)")
+    for s, m, t in zip(species_list, masses, times):
+        print(f"{s}\t{m:.3f}\t{t:.1f}")
+    
+    # Print fit parameters
+    print(f"\n{leukemia_type} Power-law fit: t = a * M^b")
+    print(f"a = {a_fit:.3f}, b = {b_fit:.3f}")
+    
+    # Print predicted times
+    print(f"\n{leukemia_type} Predicted Total Times (days):")
+    for s, m in zip(species_list, masses):
+        predicted = power_law(m, a_fit, b_fit)
+        print(f"{s}\t{predicted:.1f}")
