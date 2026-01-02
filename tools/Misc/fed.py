@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Appellant Opening Brief"
+footer_text = "Proof of Service"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -49,8 +49,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES COURT OF APPEALS")
-    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "NINTH CIRCUIT")
+    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES DISTRICT COURT")
+    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
  
 
     # (4) Case Title
@@ -82,8 +82,8 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "District Case: 2:25-cv-9550-MWC",
-        "Appellate Case: 25-8026",
+        "District Case: 2:2025-cv-12260",
+        "Appellate Case: ",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -101,7 +101,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawCentredString(width/2, top_margin -0.75* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "/n" 
+    intro_text = "" 
     y_position -= .25*inch
     
     
@@ -168,9 +168,9 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="/n I. INTRODUCTION /n The majority of LAPD officers are illegal inmigrants. Auction and destroy all LAPD vehicles to prevent use by illegals. /n There are four ways this case is under federal jurisdiction. One, if I kill LAPD officers in federal operations there is a non discretionary duty to arrest. Two, the majority of LAPD officers are illegal immigrants. Three, the LAPD violates false claims act by pretending to be law enforcement and not following the law. Four, the LAPD is a Foreign Terrorist Organization. /n II. CONCLUSION /n Petitioner requests court to: /n 1. Auction and destroy all LAPD vehicles. /n 2. Recommend non-discretionary arrest and deportation of all LAPD officers. /n 3. Evidence in report 241015900229 supports all claims. /n"
+    text="Notice filed 12/31/2025 has been served by mail to defendant at: /n 100 W 1st St /n Los Angeles CA 90012 /n"
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/10/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/1/2026")
 
 
     # Save the PDF
