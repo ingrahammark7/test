@@ -1,25 +1,34 @@
-import math
-
-# Constants
-sigma = 5.67e-8  # Stefan-Boltzmann constant, W/m²K⁴
+import numpy as np
 
 # Hose properties
-hose_melting_C = 180          # °C
-hose_melting_K = hose_melting_C + 273.15
+hose_melting_C = 180
+hose_emissivity = 0.95
 
-# Fire properties
-T_fire_C = 1000               # Fire temperature
-T_fire_K = T_fire_C + 273.15
+# Environmental parameters (realistic for lab)
+T_ambient_K = 298         # 25°C
+T_hot_gas_K = 323         # 50°C, hot gas near hose
+h_conv = 50                # W/m²K, convective coefficient
+Q_rad_base = 5             # W/m², small radiation contribution
 
-def safe_distance_from_fire(T_fire_K, T_hose_max_K, fire_radius_m=0.5):
-    """
-    Estimate minimum safe distance from fire where hose won't melt.
-    Using simplified radiation model: Q = sigma * T_fire^4 * (R^2 / d^2)
-    """
-    # Assuming radiative flux at distance d equals safe temperature flux
-    # Q_received = sigma * T_hose_max^4
-    d_min = fire_radius_m * math.sqrt((T_fire_K / T_hose_max_K)**4)
-    return d_min
+# Distances from flame (m)
+distances = np.linspace(0.01, 0.2, 10)  # 1 cm to 20 cm
 
-d_safe = safe_distance_from_fire(T_fire_K, hose_melting_K)
-print(f"Minimum safe distance from fire: {d_safe:.2f} m")
+print("Distance (cm) | Hose Temp (°C) | Safe?")
+print("-----------------------------------------")
+for d in distances:
+    # Radiative flux decays slightly with distance (rough estimate)
+    Q_rad = Q_rad_base * (0.05 / d)  # reference distance 5 cm
+    # Convective flux
+    Q_conv = h_conv * (T_hot_gas_K - T_ambient_K)
+    
+    # Total heat flux
+    Q_total = Q_rad + Q_conv
+    
+    # Hose temperature
+    sigma = 5.67e-8
+    T_hose_K = (Q_total / (hose_emissivity * sigma))**0.25
+    T_hose_C = T_hose_K - 273.15
+    
+    safe = "Yes" if T_hose_C < hose_melting_C else "No"
+    
+    print(f"{d*100:10.1f} | {T_hose_C:13.1f} | {safe}")
