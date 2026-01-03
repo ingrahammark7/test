@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Register of Actions" 
+footer_text = "Request for Order" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "As I only ordered the appendix the superior court did not provide a register of actiojs and there is none. /n" 
+    intro_text = "The court upload system is deleting PDF bookmarks. Court should advise or drop bookmark requirement because it contradicts CRC. /n" 
     y_position -= .25*inch
     
     
