@@ -1,75 +1,25 @@
-import json
-import numpy as np
-from scipy.optimize import curve_fit
+import math
 
-# ----------------------------
-# 1. Load JSON (with updated human chronic = 8 years)
-# ----------------------------
-data_json = """
-{
-  "leukemia_allometry": [
-    {"species":"Mouse","mass_kg":0.025,"type":"Acute","latency_observed_days":[1,2],"time_to_death_observed_days":[6,10]},
-    {"species":"Rat","mass_kg":0.25,"type":"Acute","latency_observed_days":[14,28],"time_to_death_observed_days":[7,14]},
-    {"species":"Dog","mass_kg":15,"type":"Acute","latency_observed_days":[12,60],"time_to_death_observed_days":[14,56]},
-    {"species":"Human","mass_kg":70,"type":"Acute","latency_observed_days":[180,180],"time_to_death_observed_days":[180,180]},
-    {"species":"Mouse","mass_kg":0.025,"type":"Chronic","latency_observed_days":[null,null],"time_to_death_observed_days":[null,null]},
-    {"species":"Rat","mass_kg":0.25,"type":"Chronic","latency_observed_days":[null,null],"time_to_death_observed_days":[null,null]},
-    {"species":"Dog","mass_kg":15,"type":"Chronic","latency_observed_days":[1010,1010],"time_to_death_observed_days":[1010,1010]},
-    {"species":"Human","mass_kg":70,"type":"Chronic","latency_observed_days":[2737,2737],"time_to_death_observed_days":[2737,2737]}
-  ]
-}
-"""
+# Constants
+sigma = 5.67e-8  # Stefan-Boltzmann constant, W/m²K⁴
 
-data = json.loads(data_json)["leukemia_allometry"]
+# Hose properties
+hose_melting_C = 180          # °C
+hose_melting_K = hose_melting_C + 273.15
 
-# ----------------------------
-# 2. Separate Acute vs Chronic
-# ----------------------------
-def extract_data(leukemia_type):
-    masses = []
-    times = []
-    species_list = []
-    for entry in data:
-        if entry["type"] != leukemia_type:
-            continue
-        latency = entry["latency_observed_days"]
-        ttd = entry["time_to_death_observed_days"]
-        if latency[0] is None or ttd[0] is None:
-            continue
-        total_time = np.median(latency) + np.median(ttd)
-        masses.append(float(entry["mass_kg"]))
-        times.append(float(total_time))
-        species_list.append(entry["species"])
-    return np.array(masses), np.array(times), species_list
+# Fire properties
+T_fire_C = 1000               # Fire temperature
+T_fire_K = T_fire_C + 273.15
 
-# ----------------------------
-# 3. Power-law fit function
-# ----------------------------
-def power_law(M, a, b):
-    return a * M**b
+def safe_distance_from_fire(T_fire_K, T_hose_max_K, fire_radius_m=0.5):
+    """
+    Estimate minimum safe distance from fire where hose won't melt.
+    Using simplified radiation model: Q = sigma * T_fire^4 * (R^2 / d^2)
+    """
+    # Assuming radiative flux at distance d equals safe temperature flux
+    # Q_received = sigma * T_hose_max^4
+    d_min = fire_radius_m * math.sqrt((T_fire_K / T_hose_max_K)**4)
+    return d_min
 
-# ----------------------------
-# 4. Fit and print results
-# ----------------------------
-for leukemia_type in ["Acute", "Chronic"]:
-    masses, times, species_list = extract_data(leukemia_type)
-    
-    # Fit
-    params, _ = curve_fit(power_law, masses, times)
-    a_fit, b_fit = params
-    
-    # Print observed
-    print(f"\n{leukemia_type} Leukemia Observed Total Times (days):")
-    print("Species\tMass(kg)\tTotalTime(days)")
-    for s, m, t in zip(species_list, masses, times):
-        print(f"{s}\t{m:.3f}\t{t:.1f}")
-    
-    # Print fit parameters
-    print(f"\n{leukemia_type} Power-law fit: t = a * M^b")
-    print(f"a = {a_fit:.3f}, b = {b_fit:.3f}")
-    
-    # Print predicted times
-    print(f"\n{leukemia_type} Predicted Total Times (days):")
-    for s, m in zip(species_list, masses):
-        predicted = power_law(m, a_fit, b_fit)
-        print(f"{s}\t{predicted:.1f}")
+d_safe = safe_distance_from_fire(T_fire_K, hose_melting_K)
+print(f"Minimum safe distance from fire: {d_safe:.2f} m")
