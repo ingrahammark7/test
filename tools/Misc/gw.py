@@ -1,47 +1,28 @@
-import math
+# Steel vs Graphite electrode lifetime in chloride solution
+# Realistic electrolysis current densities
 
-# ----------------------------
-# Parameters (dimensionless)
-# ----------------------------
-k1 = 0.02   # chlorate pathway rate constant
-k2 = 0.50   # oxygen-loss pathway (dominant)
+# Constants
+F = 96485          # C/mol, Faraday constant
+M_Fe = 0.055845    # kg/mol, molar mass of iron
+n_Fe = 2           # electrons transferred (Fe -> Fe2+)
+rho_steel = 7800   # kg/m^3, density of steel
 
-m = 2       # reaction order (chlorate)
-n = 1       # reaction order (oxygen)
+# Electrode dimensions
+length = 0.1       # meters
+cross_area_cm2 = 1.0 # cm^2
+cross_area_m2 = cross_area_cm2 * 1e-4 # m^2
+volume_steel = length * cross_area_m2 # m^3
+mass_steel = rho_steel * volume_steel # kg
 
-OCl = 1.0   # initial hypochlorite (normalized)
-ClO3 = 0.0  # chlorate formed
+# Current densities to test (A/cm^2)
+current_densities = [0.01, 0.1, 1.0]  # realistic for electrolysis
 
-dt = 0.001  # time step
-t_max = 50  # total integration time
+for i_corr in current_densities:
+    I_corr = i_corr * cross_area_cm2  # A
+    t_life = (mass_steel * n_Fe * F) / (M_Fe * I_corr)  # seconds
+    t_life_minutes = t_life / 60
+    t_life_hours = t_life / 3600
+    print(f"Steel lifetime at {i_corr:.2f} A/cm²: {t_life_minutes:.1f} min ({t_life_hours:.2f} h)")
 
-# ----------------------------
-# Time integration (Euler)
-# ----------------------------
-t = 0.0
-while t < t_max and OCl > 1e-6:
-    r1 = k1 * OCl**m
-    r2 = k2 * OCl**n
-
-    dOCl = -(r1 + r2) * dt
-    dClO3 = (r1 / 3) * dt  # stoichiometry
-
-    OCl += dOCl
-    ClO3 += dClO3
-    t += dt
-
-# ----------------------------
-# Yield math
-# ----------------------------
-theoretical_max = 1.0 / 3.0
-yield_fraction = ClO3 / theoretical_max
-
-# ----------------------------
-# Output
-# ----------------------------
-print("=== Chlorate Yield (Heating Model) ===")
-print(f"Time elapsed:           {t:.2f}")
-print(f"Hypochlorite remaining: {OCl:.6f}")
-print(f"Chlorate formed:        {ClO3:.6f}")
-print(f"Theoretical max:        {theoretical_max:.6f}")
-print(f"Fractional yield:       {yield_fraction:.2%}") 
+# Graphite lifetime approximation
+print("Graphite electrode lifetime: Infinite (negligible mass loss)")
