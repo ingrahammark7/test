@@ -1,120 +1,180 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
-    <title>Mobile-Optimized Lattice Fracture Simulation with Tap</title>
+    <meta charset="utf-8">
+    <title>Advanced STK-like Mission Simulator</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <style>
-        #log { position:absolute; top:0; left:0; width:100%; max-height:150px; overflow:auto; background:#eee; font-family:monospace; font-size:12px; padding:5px; }
-    </style>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
 </head>
 <body>
-<div id="log"></div>
-<canvas id="renderCanvas" touch-action="none" style="width:100%; height:100%"></canvas>
+<canvas id="renderCanvas" style="width:100%; height:100vh;"></canvas>
 <script>
-const canvas = document.getElementById('renderCanvas');
+const canvas = document.getElementById("renderCanvas");
 const engine = new BABYLON.Engine(canvas, true);
-const scene = new BABYLON.Scene(engine);
-const logDiv = document.getElementById('log');
+const muEarth = 398600.4418; // km^3/s^2
+const dt = 0.05; // simulation timestep
 
-// Camera & light
-const camera = new BABYLON.ArcRotateCamera('camera', Math.PI/4, Math.PI/4, 15, new BABYLON.Vector3(0,0,0), scene);
-camera.attachControl(canvas, true);
-const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(1,1,0), scene);
+// ===========================
+// Core Mission Object
+// ===========================
+class SpaceObject {
+    constructor(name, position, velocity, mass, scene, color=new BABYLON.Color3(1,1,1)){
+        this.name = name;
+        this.position = position.clone();
+        this.velocity = velocity.clone();
+        this.mass = mass;
+        this.mesh = BABYLON.MeshBuilder.CreateSphere(name, {diameter:100}, scene);
+        this.mesh.material = new BABYLON.StandardMaterial(name+"Mat", scene);
+        this.mesh.material.diffuseColor = color;
+        this.mesh.position = position.clone();
+        this.dockedTo = null; // Docking parent
+        this.consumables = {fuel: mass*0.1, cargo: 0}; // example
+    }
 
-// Small lattice parameters for mobile
-const Nx=3, Ny=3, Nz=3;
-const r0=2.35;
-const k_bond=1.0;
-const dt=0.02;
-const mass=1.0;
-const fracture_ratio=1.05;
-let atoms=[];
-let bonds=[];
-let fractureOccurred=false;
+    propagate(dt){
+        if(this.dockedTo){
+            // Follow parent if docked
+            this.position = this.dockedTo.position.clone();
+        } else {
+            const rVec = this.position.clone();
+            const rMag = rVec.length();
+            const acc = rVec.scale(-muEarth/(rMag*rMag*rMag));
+            this.velocity.addInPlace(acc.scale(dt));
+            this.position.addInPlace(this.velocity.scale(dt));
+        }
+        this.mesh.position = this.position.clone();
+    }
 
-// Create atoms
-for(let i=0;i<Nx;i++){
-    for(let j=0;j<Ny;j++){
-        for(let k=0;k<Nz;k++){
-            if(k===0) continue; // pre-crack plane
-            let sphere = BABYLON.MeshBuilder.CreateSphere(`atom_${i}_${j}_${k}`, {diameter:1.0}, scene);
-            sphere.position = new BABYLON.Vector3(i*r0, j*r0, k*r0);
-            let mat = new BABYLON.StandardMaterial(`mat_${i}_${j}_${k}`, scene);
-            mat.diffuseColor = new BABYLON.Color3(0,0,1);
-            sphere.material = mat;
-            atoms.push({mesh:sphere,i,j,k,pos:sphere.position.clone(),vel:new BABYLON.Vector3(0,0,0),broken:false,fixed:k===1}); // pin bottom layer
+    dock(target){
+        if(this.dockedTo) return;
+        const dist = BABYLON.Vector3.Distance(this.position, target.position);
+        if(dist < 200){
+            this.dockedTo = target;
+            // Transfer consumables automatically
+            target.consumables.fuel += this.consumables.fuel;
+            target.consumables.cargo += this.consumables.cargo;
+            this.consumables.fuel = 0;
+            this.consumables.cargo = 0;
+            console.log(this.name + " docked to " + target.name + ". Consumables transferred.");
         }
     }
 }
 
-// Create bonds (just data, no lines)
-const neighborOffsets=[[1,0,0],[0,1,0],[0,0,1]];
-atoms.forEach(atom=>{
-    neighborOffsets.forEach(offset=>{
-        const ni=atom.i+offset[0]; const nj=atom.j+offset[1]; const nk=atom.k+offset[2];
-        const neighbor = atoms.find(a=>a.i===ni && a.j===nj && a.k===nk);
-        if(neighbor){
-            bonds.push({a:atom,b:neighbor,broken:false});
-        }
-    });
-});
+// ===========================
+// Sensor System
+// ===========================
+class Sensor {
+    constructor(owner, range, fovDeg, scene){
+        this.owner = owner;
+        this.range = range;
+        this.fov = fovDeg*Math.PI/180;
+        this.cone = BABYLON.MeshBuilder.CreateCylinder(owner.name+"_cone", {diameterTop:0, diameterBottom:range, height:range*2, tessellation:32}, scene);
+        this.cone.material = new BABYLON.StandardMaterial(owner.name+"_coneMat", scene);
+        this.cone.material.diffuseColor = new BABYLON.Color3(0,1,0);
+        this.cone.material.alpha = 0.3;
+        this.update();
+    }
 
-// Compute forces
-function computeForces(){
-    atoms.forEach(atom=>atom.force=new BABYLON.Vector3(0,0,0));
-    bonds.forEach(bond=>{
-        if(bond.broken) return;
-        let r_vec = bond.b.pos.subtract(bond.a.pos);
-        let r = r_vec.length();
-        let dr = r - r0;
-        let f = r_vec.normalize().scale(k_bond*dr);
-        bond.a.force.addInPlace(f);
-        bond.b.force.addInPlace(f.scale(-1));
+    update(){
+        this.cone.position = this.owner.position.clone();
+        this.cone.rotation.x = Math.PI/2;
+    }
 
-        if(r > r0*fracture_ratio && !fractureOccurred){
-            bond.broken = true;
-            bond.a.broken = true;
-            bond.b.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
-            bond.a.mesh.material.diffuseColor = new BABYLON.Color3(1,0,0);
-            fractureOccurred=true;
-            logDiv.innerHTML += `Fracture occurred between atom (${bond.a.i},${bond.a.j},${bond.a.k}) and atom (${bond.b.i},${bond.b.j},${bond.b.k})<br>`;
-            logDiv.scrollTop = logDiv.scrollHeight;
-        }
-    });
+    detect(target){
+        const dir = target.position.subtract(this.owner.position).normalize();
+        const forward = new BABYLON.Vector3(0,1,0);
+        const angle = Math.acos(BABYLON.Vector3.Dot(dir, forward));
+        const distance = BABYLON.Vector3.Distance(this.owner.position, target.position);
+        return (angle < this.fov/2 && distance <= this.range);
+    }
 }
 
-// Integration
-scene.registerBeforeRender(()=>{
-    if(fractureOccurred) return;
-    computeForces();
-    atoms.forEach(atom=>{
-        if(atom.fixed || atom.broken) return;
-        atom.vel.addInPlace(atom.force.scale(dt/mass));
-        atom.pos.addInPlace(atom.vel.scale(dt));
-        atom.mesh.position=atom.pos;
-    });
-});
-
-// Tap to apply velocity
-scene.onPointerObservable.add(pointerInfo => {
-    if(fractureOccurred) return;
-    if(pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN){
-        let pick = scene.pick(pointerInfo.event.clientX, pointerInfo.event.clientY);
-        if(pick.hit && pick.pickedMesh){
-            let tappedAtom = atoms.find(a => a.mesh === pick.pickedMesh);
-            if(tappedAtom && !tappedAtom.fixed && !tappedAtom.broken){
-                tappedAtom.vel.addInPlace(new BABYLON.Vector3(0,0,0.1));
-                logDiv.innerHTML += `Tapped atom (${tappedAtom.i},${tappedAtom.j},${tappedAtom.k})<br>`;
-                logDiv.scrollTop = logDiv.scrollHeight;
-            }
-        }
+// ===========================
+// Railgun Launch
+// ===========================
+class Railgun {
+    static launch(projectile, velocityVec){
+        projectile.velocity = velocityVec.clone();
+        console.log(projectile.name + " launched by railgun with velocity " + velocityVec.length());
     }
-});
+}
 
-engine.runRenderLoop(()=>scene.render());
-window.addEventListener('resize',()=>engine.resize());
+// ===========================
+// Scene Setup
+// ===========================
+const createScene = () => {
+    const scene = new BABYLON.Scene(engine);
+    const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI/2, Math.PI/4, 20000, BABYLON.Vector3.Zero(), scene);
+    camera.attachControl(canvas, true);
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0,1,0), scene);
+
+    // Earth
+    const earth = BABYLON.MeshBuilder.CreateSphere("earth", {diameter:12742}, scene);
+    const earthMat = new BABYLON.StandardMaterial("earthMat", scene);
+    earthMat.diffuseTexture = new BABYLON.Texture("https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg", scene);
+    earth.material = earthMat;
+
+    // ===========================
+    // Mission Objects
+    // ===========================
+    const sat1 = new SpaceObject("Sat1", new BABYLON.Vector3(6771,0,0), new BABYLON.Vector3(0,7.5,0), 1000, scene, new BABYLON.Color3(1,0,0));
+    const sat2 = new SpaceObject("Sat2", new BABYLON.Vector3(6771,500,0), new BABYLON.Vector3(0,7.5,0), 800, scene, new BABYLON.Color3(1,1,0));
+    const station = new SpaceObject("Station", new BABYLON.Vector3(6771,1000,0), new BABYLON.Vector3(0,7.5,0), 10000, scene, new BABYLON.Color3(0,0,1));
+
+    const sensor1 = new Sensor(sat1, 500, 60, scene);
+    const sensor2 = new Sensor(sat2, 300, 45, scene);
+
+    // ===========================
+    // Trajectories
+    // ===========================
+    function createOrbitLine(r){
+        const points = [];
+        for(let i=0; i<360; i++){
+            const theta = i*Math.PI/180;
+            points.push(new BABYLON.Vector3(r*Math.cos(theta), r*Math.sin(theta), 0));
+        }
+        return BABYLON.MeshBuilder.CreateLines("orbit"+r, {points:points}, scene);
+    }
+    createOrbitLine(6771);
+    createOrbitLine(7271);
+
+    // ===========================
+    // Simulation Loop
+    // ===========================
+    scene.onBeforeRenderObservable.add(()=>{
+        sat1.propagate(dt);
+        sat2.propagate(dt);
+        station.propagate(dt);
+
+        sensor1.update();
+        sensor2.update();
+
+        // Docking checks
+        sat1.dock(station);
+        sat2.dock(station);
+
+        // Sensor detection
+        if(sensor1.detect(station)) console.log("Sat1 detects Station");
+        if(sensor2.detect(station)) console.log("Sat2 detects Station");
+    });
+
+    // ===========================
+    // Railgun Test
+    // ===========================
+    const projectile = new SpaceObject("RailProj", new BABYLON.Vector3(6771, -500,0), new BABYLON.Vector3(0,0,0), 50, scene, new BABYLON.Color3(1,0.5,0));
+    Railgun.launch(projectile, new BABYLON.Vector3(0,10,2));
+    
+    scene.onBeforeRenderObservable.add(()=>{
+        projectile.propagate(dt);
+    });
+
+    return scene;
+};
+
+const scene = createScene();
+engine.runRenderLoop(()=>{ scene.render(); });
+window.addEventListener("resize", ()=>{ engine.resize(); });
+
 </script>
 </body>
 </html>
-
