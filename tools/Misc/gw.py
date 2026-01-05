@@ -1,9 +1,8 @@
 import pikepdf
 
-INPUT = "n.pdf"          # Your source PDF
+INPUT = "app_clean.pdf"
 OUTPUT = "app_bookmarked.pdf"
 
-# List of documents: (Title, first page)
 DOCUMENTS = [
     ("Cover (1/01/2026)", 0),
     ("Civil Case Information Statement (12/9/2025)", 2),
@@ -14,10 +13,21 @@ DOCUMENTS = [
 
 pdf = pikepdf.open(INPUT)
 
-with pdf.open_outline() as outline:
-    vol = outline.root.add_child("Appendix Volume 1", page=0)
-    for title, page in DOCUMENTS:
-        vol.add_child(title, page=page)
+# Create a new outline attached to the PDF
+outline = pikepdf.Outline(pdf)
 
+# Clear any existing outline
+outline.root.clear()
+
+# Add a Volume bookmark
+volume = pikepdf.OutlineItem("Appendix Volume 1", destination=pdf.pages[0])
+outline.root.append(volume)
+
+# Add all documents as top-level bookmarks
+for title, page_index in DOCUMENTS:
+    item = pikepdf.OutlineItem(title, destination=pdf.pages[page_index])
+    outline.root.append(item)
+
+# Save PDF and attach the new outline
 pdf.save(OUTPUT)
-print("✓ 2nd DCA civil appendix bookmarks added")
+print("✓ Bookmarks added safely and ready for filing")
