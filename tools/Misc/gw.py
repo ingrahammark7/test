@@ -1,20 +1,22 @@
 import numpy as np
 
 # -----------------------
-# PARAMETERS (user adjustable)
+# PARAMETERS
 # -----------------------
-final_crack_length = 1.0       # m, macroscopic crack
-steel_density = 7850           # kg/m^3
-planck_mass = 2.176e-8         # kg
-C = 1e-12                      # Paris law constant
-m = 3.0                         # Paris law exponent
-delta_sigma = 50e6             # Pa, stress range
-da = 1e-5                       # m, crack increment
-G_c = 1000                     # J/m², fracture energy of steel
-b = 0.01                        # m, plate thickness
-f = 1.0                         # Hz, loading frequency
-table_steps = 20                # number of table points
-max_steps = 1000                # max simulation array size
+final_crack_length = 1.0      # m
+steel_density = 7850          # kg/m^3
+planck_mass = 2.176e-8        # kg
+C = 1e-12
+m = 3.0
+delta_sigma = 50e6            # Pa, stress range
+da = 1e-5                     # m, simulation increment
+G_c = 1000                    # J/m², fracture surface energy
+E_mod = 210e9                 # Pa, Young's modulus
+nu = 0.3                       # Poisson ratio
+b = 0.01                       # m, plate thickness
+f = 1.0                        # Hz
+table_steps = 20
+max_steps = 1000
 # -----------------------
 
 # Initial cracks
@@ -25,7 +27,7 @@ print(f"Initial crack length (Planck-mass): {a0_planck:.2e} m")
 print(f"Initial crack length (microcrack 1μm): {a0_micro:.2e} m\n")
 
 # -----------------------
-# CRACK GROWTH SIMULATION
+# CRACK GROWTH SIMULATION (Paris law)
 # -----------------------
 def compute_crack_growth(a0, final_length, da, max_steps=1000):
     if a0 >= final_length:
@@ -35,11 +37,8 @@ def compute_crack_growth(a0, final_length, da, max_steps=1000):
     num_steps = min(num_steps, max_steps)   # bound array size
     a_array = np.linspace(a0, final_length, num_steps)
     
-    # Paris law growth per cycle
     delta_K = delta_sigma * np.sqrt(np.pi * a_array)
     da_dN = C * delta_K**m
-    
-    # Avoid division by zero or extremely tiny N
     da_step = (final_length - a0)/num_steps
     dN_array = da_step / da_dN
     N_array = np.cumsum(dN_array)
@@ -48,47 +47,46 @@ def compute_crack_growth(a0, final_length, da, max_steps=1000):
     return t_array, a_array
 
 # -----------------------
-# PHYSICAL ENERGY
+# ENERGY CALCULATION
 # -----------------------
-def energy_physical(a0, final_length, b, G_c):
-    crack_area = 2 * b * (final_length - a0)
-    return G_c * crack_area
+def energy_total(a_array, b, G_c, sigma, E_mod):
+    # Surface energy
+    E_surface = G_c * 2 * b * a_array
+    # Elastic energy (laminar, LEFM)
+    K = sigma * np.sqrt(np.pi * a_array)
+    E_prime = E_mod  # plane stress
+    G_elastic = K**2 / E_prime
+    E_elastic = G_elastic * 2 * b * a_array
+    # Total energy
+    E_total = E_surface + E_elastic
+    return E_surface, E_elastic, E_total
 
 # -----------------------
-# COMPUTE FOR BOTH CRACKS
+# COMPUTE FOR PLANCK-MASS AND MICROCRACK
 # -----------------------
 t_planck, a_planck = compute_crack_growth(a0_planck, final_crack_length, da, max_steps)
 t_micro, a_micro = compute_crack_growth(a0_micro, final_crack_length, da, max_steps)
 
-E_total_planck = energy_physical(a0_planck, final_crack_length, b, G_c)
-E_total_micro  = energy_physical(a0_micro, final_crack_length, b, G_c)
-
-print(f"Physically realistic energy (Planck-mass crack): {E_total_planck:.2e} J")
-print(f"Physically realistic energy (Microcrack): {E_total_micro:.2e} J\n")
+E_surf_planck, E_elast_planck, E_tot_planck = energy_total(a_planck, b, G_c, delta_sigma, E_mod)
+E_surf_micro, E_elast_micro, E_tot_micro = energy_total(a_micro, b, G_c, delta_sigma, E_mod)
 
 # -----------------------
-# SUMMARY TABLE FUNCTION
+# TABLE FUNCTION
 # -----------------------
-def print_energy_table(E_total, a_array, label, table_steps=20):
+def print_energy_table(a_array, E_surface, E_elastic, E_total, label, steps=20):
     print(f"--- Energy vs Crack Length ({label}) ---")
-    print(f"{'Crack length (m)':>15} | {'Energy (J)':>12}")
-    print("-"*30)
-    
-    a_disp = np.linspace(a_array[0], a_array[-1], table_steps)
-    E_disp = np.linspace(0, E_total, table_steps)
-    
-    for i in range(table_steps):
-        print(f"{a_disp[i]:15.6e} | {E_disp[i]:12.2e}")
+    print(f"{'Crack length (m)':>15} | {'Surface (J)':>12} | {'Elastic (J)':>12} | {'Total (J)':>12}")
+    print("-"*60)
+    a_disp = np.linspace(a_array[0], a_array[-1], steps)
+    E_s_disp = np.linspace(E_surface[0], E_surface[-1], steps)
+    E_e_disp = np.linspace(E_elastic[0], E_elastic[-1], steps)
+    E_t_disp = np.linspace(E_total[0], E_total[-1], steps)
+    for i in range(steps):
+        print(f"{a_disp[i]:15.6e} | {E_s_disp[i]:12.2e} | {E_e_disp[i]:12.2e} | {E_t_disp[i]:12.2e}")
     print()
 
 # -----------------------
 # PRINT TABLES
 # -----------------------
-print_energy_table(E_total_planck, a_planck, "Planck-mass crack", table_steps)
-print_energy_table(E_total_micro, a_micro, "Microcrack 1μm", table_steps)
-
-# -----------------------
-# OPTIONAL: SPEED-UP FACTOR (total cycles)
-# -----------------------
-speedup = (t_planck[-1]/t_micro[-1]) if t_micro[-1] > 0 else np.nan
-print(f"Speed-up factor (microcrack vs Planck-mass crack): {speedup:.2e}x\n")
+print_energy_table(a_planck, E_surf_planck, E_elast_planck, E_tot_planck, "Planck-mass crack")
+print_energy_table(a_micro, E_surf_micro, E_elast_micro, E_tot_micro, "Microcrack 1μm")
