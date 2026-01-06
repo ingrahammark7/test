@@ -25,11 +25,11 @@ def photon_gravity(E_eV, t=1e7):
     nr=L/Rs
     nc=nr**(1/3)
     nc*=Rs
-    pc=1e50
-    nc*=(pc**2)**(1/3)
-    print("photon population",pc)
-    pw=pc*E
+    pc=10e-90
+    nc*=(pc**(2/3))
     tp=c/nc
+    print("photon population per second",pc*tp)
+    pw=pc*E
     pw*=tp
     print("system power",pw)
     print(nc,"maximum radius photons of ev ", E_eV, "start and within seconds ",t,"enter radius ",Rs)
