@@ -25,8 +25,8 @@ def photon_gravity(E_eV, t=1e7):
     nr=L/Rs
     nc=nr**(1/3)
     nc*=Rs
-    pc=1e20
-    nc*=pc**2
+    pc=1e50
+    nc*=(pc**2)**(1/3)
     print("photon population",pc)
     pw=pc*E
     tp=c/nc
