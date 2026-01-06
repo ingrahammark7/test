@@ -5,7 +5,7 @@ G = 6.67430e-11         # m^3 kg^-1 s^-2
 c = 3e8                 # m/s
 eV_to_J = 1.602176634e-19  # J/eV
 
-def photon_gravity(E_eV, n, t=1e1):
+def photon_gravity(E_eV, t=1e-17):
     """
     Compute photon gravitational properties:
     - Schwarzschild radius
@@ -27,7 +27,7 @@ def photon_gravity(E_eV, n, t=1e1):
     nc*=Rs
     print(nc,"maximum radius photons of ev ", E_eV, "start and within seconds ",t,"enter radius ",Rs)
     # Maximum encounter radius for 1 expected encounter
-    R_max = np.sqrt(1 / (np.pi * n * L))
+    R_max = np.sqrt(1 / (np.pi * 2* L))
     print(R_max)
     
     return Rs, R_max
@@ -38,7 +38,7 @@ def photon_gravity(E_eV, n, t=1e1):
 E_eV = 1
 t_sec = 1.0       # 1 second travel
 
-Rs, R_max = photon_gravity(E_eV, t_sec)
+Rs, R_max = photon_gravity(E_eV)
 
 print(f"Photon energy: {E_eV} eV")
 print(f"  Schwarzschild radius: {Rs:.3e} m")
