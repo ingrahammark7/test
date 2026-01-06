@@ -27,10 +27,8 @@ def photon_gravity(E_eV, t=1e-17):
     nc*=Rs
     print(nc,"maximum radius photons of ev ", E_eV, "start and within seconds ",t,"enter radius ",Rs)
     # Maximum encounter radius for 1 expected encounter
-    R_max = np.sqrt(1 / (np.pi * 2* L))
-    print(R_max)
     
-    return Rs, R_max
+    return Rs
 
 # Example usage:
 
@@ -38,7 +36,7 @@ def photon_gravity(E_eV, t=1e-17):
 E_eV = 1
 t_sec = 1.0       # 1 second travel
 
-Rs, R_max = photon_gravity(E_eV)
+Rs=photon_gravity(E_eV)
 
 print(f"Photon energy: {E_eV} eV")
 print(f"  Schwarzschild radius: {Rs:.3e} m")
