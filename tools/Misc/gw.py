@@ -25,8 +25,13 @@ def photon_gravity(E_eV, t=1e7):
     nr=L/Rs
     nc=nr**(1/3)
     nc*=Rs
-    pc=10e-90
+    pc=10e30
     nc*=(pc**(2/3))
+    oc=1e10
+    print("outer contain meters",oc)
+    ct=oc/nc
+    ct**=1/3
+    nc*=ct
     tp=c/nc
     print("photon population per second",pc*tp)
     pw=pc*E
