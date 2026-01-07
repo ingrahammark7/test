@@ -25,23 +25,22 @@ def photon_gravity(E_eV, t=1e7):
     nr=L/Rs
     nc=nr**(1/3)
     nc*=Rs
-    pc=10e30
-    nc*=(pc**(2/3))
-    oc=1e5
-    print("outer contain meters",oc)
-    ct=oc/nc
-    ct**=1/3
-    nc*=ct
+    pc=1
+    al=1e-20
+    pc1=pc/al
+    nc*=(pc1**(2/3))
+    #radius scales in 3 dimensions
+    #squared for interaction
+    #square root harmonization
+    nc1=nc/Rs
+    nc1**=1+1/3
+    nc1*=Rs
+    nc=nc1
     tp=c/nc
+    pw=pc*tp
+    pw*=eV_to_J
+    print("power",pw)
     print("photon population per second",pc*tp)
-    pw=pc*E
-    pw*=tp
-    pl=pw/ct**3
-    print("system power",pl)
-    hc=1e6
-    wm=pl/hc
-    wm**=.5
-    print("container heat rad",wm)
     print(nc,"maximum radius photons of ev ", E_eV, "start and within seconds ",t,"enter radius ",Rs)
     # Maximum encounter radius for 1 expected encounter
     
