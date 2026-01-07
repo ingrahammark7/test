@@ -36,7 +36,12 @@ def photon_gravity(E_eV, t=1e7):
     print("photon population per second",pc*tp)
     pw=pc*E
     pw*=tp
-    print("system power",pw/ct**3)
+    pl=pw/ct**3
+    print("system power",pl)
+    hc=1e6
+    wm=pl/hc
+    wm**=.5
+    print("container heat rad",wm)
     print(nc,"maximum radius photons of ev ", E_eV, "start and within seconds ",t,"enter radius ",Rs)
     # Maximum encounter radius for 1 expected encounter
     
