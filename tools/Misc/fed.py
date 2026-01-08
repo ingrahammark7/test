@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition"
+footer_text = "Proof of Service"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -168,9 +168,9 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="I evaded a billion dollars in taxes. IRS hasnt done anything. IRS should place a lien on my property and arrest me. /n Petitioner petitions this Court to: /n 1. Order IRS to place a billion dollar tax lien on me as a non discretionary statutory duty. /n 2. Arrest me. /n"
+    text="Summons and petition have been served by personal service to: /n Internal Revenue Service /n 1111 Constitution Ave NW Washington DC 20224 /n /n DC Attorney General /n 400 6th St NW Washington DC 20001 /n /n Attorney General of the United States /n 950 Pennsylvania Ave NW /n Washington DC 20530 /n Signature: /s/ Joanna Ingraham /n "
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/1/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Joanna Ingraham, 1/7/2026")
 
 
     # Save the PDF
