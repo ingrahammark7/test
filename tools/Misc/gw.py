@@ -6,67 +6,50 @@ import numpy as np
 cohesive_energy = 4.3        # eV per atom
 bond_energy = cohesive_energy / 2
 elastic_energy_density = 0.25 # eV per bond-length
-max_crack_length = 200
-
-# Thermal parameters
-kB = 8.617e-5  # eV/K
-T_list = [300, 500, 800]  # K: room, hot, extreme
-
-# Steel properties
-Tmelt = 1800  # K
-cv = 3 * kB   # Heat capacity per atom (Dulong-Petit)
-yield_stress_fraction = 0.5  # fraction of bonds failing before plasticity blunts
+max_crack_length = 50        # smaller for console
+kB = 8.617e-5                # eV/K
+cv = 3 * kB                  # heat capacity per atom
+Tmelt = 1800                  # K
+Tion = 1.5e5                  # K, approximate plasma threshold
+alpha = 0.1                  # arbitrary heat diffusion coefficient per step
 
 # -----------------------------
-# Function to compute critical length
+# Initialize lattice and crack
 # -----------------------------
-def compute_critical_lengths(T):
-    # Thermal activation reduces effective bond energy
-    effective_bond_energy = bond_energy - kB*T
-    critical_energy = 2 * effective_bond_energy
-
-    critical_lengths = {
-        "cold_instability": None,
-        "thermal_instability": None,
-        "plastic_limit": None,
-        "melting_limit": None
-    }
-
-    for L in range(1, max_crack_length+1):
-        released_energy = elastic_energy_density * L**2
-        bonds_broken = L
-        energy_per_bond = released_energy / bonds_broken
-
-        # 1) Cold instability (deterministic)
-        if critical_lengths["cold_instability"] is None:
-            if energy_per_bond >= 2 * bond_energy:
-                critical_lengths["cold_instability"] = L
-
-        # 2) Thermal instability
-        if critical_lengths["thermal_instability"] is None:
-            if energy_per_bond >= critical_energy:
-                critical_lengths["thermal_instability"] = L
-
-        # 3) Plasticity: assume fraction of bonds can fail before blunting
-        if critical_lengths["plastic_limit"] is None:
-            if energy_per_bond >= critical_energy * yield_stress_fraction:
-                critical_lengths["plastic_limit"] = L
-
-        # 4) Melting: local tip temperature = released_energy per atom / cv
-        local_temp = released_energy / cv
-        if critical_lengths["melting_limit"] is None:
-            if local_temp + T >= Tmelt:
-                critical_lengths["melting_limit"] = L
-
-    return critical_lengths
+temperatures = np.full(max_crack_length, 300.0)  # K ambient
+melted = np.zeros(max_crack_length, dtype=bool)
+plasma = np.zeros(max_crack_length, dtype=bool)
 
 # -----------------------------
-# Run simulation
+# Simulate crack growth atom by atom
 # -----------------------------
-for T in T_list:
-    print(f"\n--- Simulation at T = {T} K ---")
-    crit_lengths = compute_critical_lengths(T)
-    print(f"{'Crossover':>20} | {'Critical crack length (atoms)':>30}")
-    print("-"*55)
-    for key, val in crit_lengths.items():
-        print(f"{key:>20} | {str(val):>30}")
+print(f"{'Atom':>4} | {'Energy released (eV)':>20} | {'T_local (K)':>12} | {'Melting':>7} | {'Plasma':>7}")
+print("-"*60)
+
+for L in range(1, max_crack_length+1):
+    # Elastic energy released at crack tip
+    released_energy = elastic_energy_density * L**2
+    delta_T = released_energy / cv
+    
+    # Assign heat to tip atom
+    tip_index = L-1
+    temperatures[tip_index] += delta_T
+    
+    # Simple 1D heat diffusion for one timestep
+    new_temps = temperatures.copy()
+    for i in range(1, L-1):
+        new_temps[i] += alpha * (temperatures[i-1] + temperatures[i+1] - 2*temperatures[i])
+    temperatures[:L] = new_temps[:L]
+    
+    # Check melting and plasma
+    melted[:L] = temperatures[:L] >= Tmelt
+    plasma[:L] = temperatures[:L] >= Tion
+    
+    print(f"{L:4d} | {released_energy:20.3f} | {temperatures[tip_index]:12.1f} | {melted[tip_index]} | {plasma[tip_index]}")
+
+# -----------------------------
+# Summary
+# -----------------------------
+print("\nFinal crack tip temperature:", temperatures[L-1])
+print("Number of melted atoms:", melted.sum())
+print("Number of plasma atoms:", plasma.sum())
