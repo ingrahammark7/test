@@ -1,32 +1,63 @@
-import numpy as np
-import matplotlib.pyplot as plt
+{
+  "units": "metric_tons_raw_opium_per_year",
+  "confidence_note": "Pre-1950 values are order-of-magnitude estimates derived from trade records, tax data, and prevalence reports. Post-1990 values align with UN-era estimates.",
+  "countries": {
 
-# Constants
-G = 6.674e-11                 # gravitational constant, m^3/kg/s^2
-ly_to_m = 9.46e15             # 1 light-year in meters
-t_yrs = 1e10                  # 10 Gyr
-t_s = t_yrs * 3.154e7 * 1e3   # convert years to seconds (approx)
-dx = ly_to_m                  # desired displacement: 1 ly
+    "China": [
+      { "year": 1700, "estimate": 1000, "uncertainty": "high", "note": "Limited domestic cultivation; imports dominate" },
+      { "year": 1800, "estimate": 5000, "uncertainty": "high", "note": "Domestic cultivation expanding" },
+      { "year": 1850, "estimate": 15000, "uncertainty": "medium", "note": "Post-Opium Wars expansion" },
+      { "year": 1900, "estimate": 20000, "uncertainty": "medium", "note": "Peak domestic cultivation and consumption" },
+      { "year": 1930, "estimate": 7000, "uncertainty": "medium", "note": "Republican anti-opium campaigns" },
+      { "year": 1955, "estimate": 100, "uncertainty": "low", "note": "PRC eradication nearly complete" }
+    ],
 
-# Required acceleration
-a = 2 * dx / t_s**2           # a = 2*dx / t^2
+    "India": [
+      { "year": 1700, "estimate": 2000, "uncertainty": "high", "note": "Regional medicinal cultivation" },
+      { "year": 1800, "estimate": 8000, "uncertainty": "medium", "note": "East India Company monopoly expanding" },
+      { "year": 1850, "estimate": 15000, "uncertainty": "medium", "note": "Global export peak" },
+      { "year": 1900, "estimate": 12000, "uncertainty": "medium", "note": "Late colonial peak" },
+      { "year": 1950, "estimate": 4000, "uncertainty": "low", "note": "Treaty-era contraction" },
+      { "year": 2000, "estimate": 1000, "uncertainty": "low", "note": "Controlled legal pharmaceutical production" }
+    ],
 
-# Distance array in light-years
-d_ly = np.logspace(0, 3, 200)  # 1 ly to 1000 ly
-d_m = d_ly * ly_to_m
+    "Ottoman_Empire_Turkey": [
+      { "year": 1700, "estimate": 3000, "uncertainty": "high", "note": "Major regional supplier" },
+      { "year": 1800, "estimate": 5000, "uncertainty": "medium", "note": "European medical demand" },
+      { "year": 1900, "estimate": 4000, "uncertainty": "medium", "note": "Declining traditional use" },
+      { "year": 1970, "estimate": 500, "uncertainty": "low", "note": "Pre-ban decline" },
+      { "year": 2000, "estimate": 0, "uncertainty": "low", "note": "Raw opium eliminated; poppy straw only" }
+    ],
 
-# Required mass for each distance
-m_kg = a * d_m**2 / G
+    "Afghanistan": [
+      { "year": 1800, "estimate": 200, "uncertainty": "high", "note": "Peripheral cultivation" },
+      { "year": 1950, "estimate": 500, "uncertainty": "medium", "note": "Regional supply" },
+      { "year": 1980, "estimate": 2000, "uncertainty": "medium", "note": "Conflict-driven expansion" },
+      { "year": 2000, "estimate": 4000, "uncertainty": "low", "note": "Global dominance forming" },
+      { "year": 2015, "estimate": 6500, "uncertainty": "low", "note": "Peak global supplier" },
+      { "year": 2023, "estimate": 300, "uncertainty": "low", "note": "Post-ban collapse (~95%)" }
+    ],
 
-# Convert mass to Earth masses for intuition
-m_earth = 5.972e24
-m_in_earth = m_kg / m_earth
+    "Golden_Triangle_Myanmar_Laos_Thailand": [
+      { "year": 1800, "estimate": 2000, "uncertainty": "high", "note": "Hill-tribe economies" },
+      { "year": 1900, "estimate": 5000, "uncertainty": "medium", "note": "Regional peak" },
+      { "year": 1970, "estimate": 3000, "uncertainty": "medium", "note": "Early suppression" },
+      { "year": 1990, "estimate": 1500, "uncertainty": "low", "note": "Thailand declines sharply" },
+      { "year": 2020, "estimate": 1200, "uncertainty": "low", "note": "Myanmar dominant but limited" }
+    ],
 
-# Plot
-plt.figure(figsize=(8,6))
-plt.loglog(d_ly, m_in_earth)
-plt.xlabel("Distance to perturber (ly)")
-plt.ylabel("Required mass (Earth masses)")
-plt.title("Mass required to displace a star by 1 ly over 10 Gyr")
-plt.grid(True, which="both", ls="--")
-plt.show()
+    "Europe": [
+      { "year": 1700, "estimate": 500, "uncertainty": "high", "note": "Small-scale medicinal cultivation" },
+      { "year": 1850, "estimate": 1000, "uncertainty": "medium", "note": "Laudanum era" },
+      { "year": 1900, "estimate": 300, "uncertainty": "medium", "note": "Medical regulation begins" },
+      { "year": 1950, "estimate": 0, "uncertainty": "low", "note": "Cultivation eliminated" }
+    ],
+
+    "Mexico": [
+      { "year": 1950, "estimate": 100, "uncertainty": "medium", "note": "Minor regional crop" },
+      { "year": 1980, "estimate": 500, "uncertainty": "medium", "note": "US heroin market growth" },
+      { "year": 2010, "estimate": 2000, "uncertainty": "low", "note": "Peak relevance" },
+      { "year": 2020, "estimate": 800, "uncertainty": "low", "note": "Synthetic opioid displacement" }
+    ]
+  }
+}
