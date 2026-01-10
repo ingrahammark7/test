@@ -3,15 +3,15 @@ import numpy as np
 # -------------------------------
 # Aluminum combustion parameters
 # -------------------------------
-rho_Al = 2700            # kg/m^3
-k_Al = 237               # W/m/K
-c_Al = 900               # J/kg/K
-q_comb = 31e6            # J/kg
-T_ambient = 3000          # K
-E_a = 150e3              # J/mol
-R_gas = 8.314            # J/mol/K
-v0 = 1.0                 # m/s, pre-exponential surface burn rate factor
-threshold_mass_loss = 1e-6 # kg/s per particle
+rho_Al = 2700             # kg/m^3
+c_Al = 900                # J/kg/K
+q_comb = 31e6             # J/kg (combustion energy)
+T_ignition = 933 + 100    # K, small particle heating above melting point
+R_gas = 8.314             # J/mol/K
+E_a_eff = 30e3             # J/mol, effective surface activation energy (realistic)
+v0 = 1.0                  # m/s, pre-exponential factor
+
+threshold_mass_loss = 1e-6  # kg/s per particle
 
 # -------------------------------
 # Particle radii: 1 μm to 1 mm
@@ -20,18 +20,16 @@ particle_radii = np.logspace(-6, -3, 100)  # meters
 
 # -------------------------------
 # Heat diffusion factor
+# Small particles heat almost instantly
+# Larger particles have surface-limited burning
 # -------------------------------
-# Biot number approximation for small spheres: Bi ~ h*r/k, here h ~ q_comb / r
-# Simple model: effective temperature drop due to heat diffusion
-# Smaller particle → T_eff ~ T_ambient + q_comb / (c*rho)  (fast heating)
-# Larger particle → T_eff reduced by diffusion factor ~ 1 / (1 + r/r0)
-r0 = 1e-5  # m, characteristic diffusion length (~10 μm)
-T_eff = T_ambient + (q_comb / (c_Al * rho_Al)) * (r0 / (r0 + particle_radii))
+r0 = 1e-5  # characteristic diffusion length (~10 μm)
+T_eff = T_ignition * (r0 / (r0 + particle_radii)) + 300 * (particle_radii / (r0 + particle_radii))
 
 # -------------------------------
-# Arrhenius burn velocity
+# Arrhenius burn velocity (surface-limited)
 # -------------------------------
-v_burn = v0 * np.exp(-E_a / (R_gas * T_eff))
+v_burn = v0 * np.exp(-E_a_eff / (R_gas * T_eff))
 
 # -------------------------------
 # Mass burn rate per particle
@@ -47,10 +45,10 @@ critical_radius = particle_radii[critical_indices[0]] if len(critical_indices) >
 # -------------------------------
 # Console output
 # -------------------------------
-print(f"{'Radius (μm)':>12} | {'Burn rate (kg/s)':>15}")
-print("-"*35)
-for r, m_dot in zip(particle_radii, particle_mass_rate):
-    print(f"{r*1e6:12.4f} | {m_dot:15.6e}")
+print(f"{'Radius (μm)':>12} | {'v_burn (m/s)':>12} | {'Burn rate (kg/s)':>15}")
+print("-"*45)
+for r, v, m_dot in zip(particle_radii, v_burn, particle_mass_rate):
+    print(f"{r*1e6:12.4f} | {v:12.4e} | {m_dot:15.6e}")
 
 if critical_radius:
     print("\nCritical particle radius (burn rate below threshold): "
