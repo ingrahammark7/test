@@ -1,61 +1,78 @@
-import math
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
 
-# Diffusion coefficient (m^2/s)
-D = 0.05  
+# ------------------------
+# 1. Load data
+# ------------------------
+data = pd.read_csv("l2.csv", low_memory=False)
 
-# Detector threshold (µg/m³)
-threshold = 0.01  
+# ------------------------
+# 2. Create binary target
+# ------------------------
+# 1 = default / charged off, 0 = fully paid / current
+default_statuses = ['Charged Off', 'Default', 'Late (31-120)']
+data['default_flag'] = data['loan_status'].apply(lambda x: 1 if x in default_statuses else 0)
 
-# Simulation parameters
-total_time = 300  # max simulation time in seconds
-dt = 1            # time step in seconds
-epsilon = 1e-3    # relative change threshold for max concentration
+# ------------------------
+# 3. Drop useless columns
+# ------------------------
+drop_cols = ['id', 'member_id', 'url', 'desc', 'title', 'loan_status']  # remove identifiers and text
+data = data.drop(columns=drop_cols, errors='ignore')
 
-# Define continuous emission cases with distances
-cases = [
-    {"name": "Low emission", "Q": 0.1, "distance": 1},
-    {"name": "Medium emission", "Q": 1, "distance": 2},
-    {"name": "High emission", "Q": 5, "distance": 5},
-]
+# ------------------------
+# 4. Separate features and target
+# ------------------------
+X = data.drop(columns=['default_flag'])
+y = data['default_flag']
 
-def concentration_continuous(Q, r, D, t, dt):
-    """Compute concentration at distance r and time t for continuous emission."""
-    C = 0
-    # Sum contributions from each past pulse
-    for t_pulse in range(1, int(t)+1):
-        C += (Q*dt) / ((4*math.pi*D*(t - t_pulse + 1))**(3/2)) * math.exp(-r**2 / (4*D*(t - t_pulse + 1)))
-    return C
+# ------------------------
+# 5. Handle missing values
+# ------------------------
+# Numeric columns: fill missing with median
+num_cols = X.select_dtypes(include=['int64', 'float64']).columns
+num_imputer = SimpleImputer(strategy='median')
+X[num_cols] = num_imputer.fit_transform(X[num_cols])
 
-# Run simulation
-print("\nSummary of Hormone Detection Simulation\n")
-print("Name\tDistance(m)\tEmission(µg/s)\tFirst Detection(s)\tMax Concentration(µg/m³)\tTime to Max(s)")
+# Categorical columns: fill missing with 'missing'
+cat_cols = X.select_dtypes(include=['object']).columns
+cat_imputer = SimpleImputer(strategy='constant', fill_value='missing')
+X[cat_cols] = cat_imputer.fit_transform(X[cat_cols])
 
-for case in cases:
-    first_detectable = None
-    prev_C = 0
-    max_C = 0
-    time_to_max = total_time
-    
-    for t in range(1, total_time+1, dt):
-        C = concentration_continuous(case["Q"], case["distance"], D, t, dt)
-        
-        # Check first detection
-        if first_detectable is None and C >= threshold:
-            first_detectable = t
-        
-        # Check relative change for max concentration
-        if prev_C > 0 and abs(C - prev_C)/prev_C < epsilon:
-            max_C = C
-            time_to_max = t
-            break
-        
-        prev_C = C
-    
-    # If max not detected, use last concentration
-    if max_C == 0:
-        max_C = C
-        time_to_max = t
-    
-    first_detectable_str = str(first_detectable) if first_detectable else "Never"
-    
-    print(f"{case['name']}\t{case['distance']}\t\t{case['Q']}\t\t{first_detectable_str}\t\t\t{max_C:.5f}\t\t\t{time_to_max}")
+# One-hot encode categorical features
+encoder = OneHotEncoder(handle_unknown='ignore', sparse=False)
+X_cat = pd.DataFrame(encoder.fit_transform(X[cat_cols]), columns=encoder.get_feature_names_out(cat_cols))
+X = X.drop(columns=cat_cols)
+X = pd.concat([X.reset_index(drop=True), X_cat.reset_index(drop=True)], axis=1)
+
+# ------------------------
+# 6. Train/test split
+# ------------------------
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# ------------------------
+# 7. Train Logistic Regression
+# ------------------------
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Evaluate quickly
+acc = model.score(X_test, y_test)
+roc_auc = model.predict_proba(X_test)[:,1]
+print(f"Accuracy: {acc:.4f}, ROC-AUC: {pd.Series(roc_auc).mean():.4f}")
+
+# ------------------------
+# 8. Create submission
+# ------------------------
+# Use all data for prediction to simulate test submission
+preds = model.predict_proba(X)[:,1]
+
+submission = pd.DataFrame({
+    "SK_ID_CURR": data['funded_amnt'].index,  # if SK_ID_CURR not in data, use row index
+    "TARGET": preds
+})
+
+submission.to_csv("submission.csv", index=False)
+print("Submission saved as submission.csv")
