@@ -1,68 +1,41 @@
 import numpy as np
 
-# -------------------------------
-# Aluminum properties
-# -------------------------------
-rho_Al = 2700          # kg/m^3
+# Physical constants
+R_univ = 8.3145        # J/mol/K
 M_Al = 0.02698         # kg/mol
-H_vap = 293e3 * 1e3    # J/kg -> J/m^3 for density later
-T_particle = 3000      # K, hot particle temperature
-E_a = 150e3            # J/mol, Arrhenius activation
-R_gas = 8.314          # J/mol/K
-v0 = 1.0               # m/s, pre-exponential
-threshold_mass_loss = 1e-6 # kg/s per particle
+rho_Al = 2700          # kg/m^3
+L_vap = 10.8e6         # J/kg, Al latent heat of vaporization
+k_Al = 237             # W/m/K
+T_surface = 300        # K, ambient
+T_particle = 3000      # K, hot particle
 
-# -------------------------------
-# Particle radii: 1 μm to 1 mm
-# -------------------------------
-particle_radii = np.logspace(-6, -3, 100)  # meters
+# Particle radii (meters)
+radii = np.logspace(-6, -3, 50)  # 1 μm → 1 mm
 
-# -------------------------------
-# Arrhenius surface reaction
-# -------------------------------
-v_arr = v0 * np.exp(-E_a / (R_gas * T_particle))
+# 1. Saturation vapor pressure of Al (Clapeyron approximation)
+# ln(P) = -L/(R*T) + constant (rough approximation)
+# Use approximate vaporization constant for Al
+P0 = 1e5   # Pa, reference pressure
+T0 = 2792  # K, boiling point of Al
+J_vapor = (P0 / np.sqrt(2 * np.pi * M_Al * R_univ * T_particle))  # kg/m^2/s
 
-# -------------------------------
-# Aluminum self-vaporization flux (Clapeyron)
-# -------------------------------
-def J_vapor(T):
-    """
-    Returns kg/m^2/s vapor flux.
-    Uses Clausius-Clapeyron: P_sat = P0 * exp(-H_vap/(R*T))
-    """
-    P0 = 1e5             # reference pressure, Pa
-    L_mol = 279e3        # J/mol, Al heat of vaporization
-    # Saturation vapor pressure
-    P_sat = P0 * np.exp(-L_mol / (R_gas * T))
-    # Flux using kinetic theory: J = P / sqrt(2 pi m k T)
-    m_particle = M_Al / 6.022e23  # kg per atom
-    k_B = 1.380649e-23
-    return P_sat / np.sqrt(2 * np.pi * m_particle * k_B * T)  # kg/m2/s
+# Actually, J_vapor formula:
+# J = P_sat / sqrt(2*pi*m*k*T)
+m_Al = M_Al  # kg/mol
+J_ideal = (P0 / np.sqrt(2 * np.pi * m_Al / 1.0 * R_univ * T_particle))  # crude placeholder
 
-v_vapor = J_vapor(T_particle) / rho_Al  # m/s contribution
+# 2. Heat-limited flux
+J_max = k_Al * (T_particle - T_surface) / (L_vap * radii)
 
-# -------------------------------
-# Total burn velocity and mass rate
-# -------------------------------
-v_burn = np.full_like(particle_radii, v_arr + v_vapor)
-particle_mass_rate = 4 * np.pi * particle_radii**2 * rho_Al * v_burn
+# 3. Effective flux with limiting
+J_eff = (J_ideal) / (1 + (J_ideal / J_max))
 
-# -------------------------------
-# Find critical radius
-# -------------------------------
-critical_indices = np.where(particle_mass_rate < threshold_mass_loss)[0]
-critical_radius = particle_radii[critical_indices[0]] if len(critical_indices) > 0 else None
+# 4. Burn velocity and mass rate
+v_burn = J_eff / rho_Al  # m/s
+mass_rate = 4 * np.pi * radii**2 * rho_Al * v_burn
 
-# -------------------------------
-# Console output
-# -------------------------------
+# 5. Print table
 print(f"{'Radius (μm)':>12} | {'v_burn (m/s)':>12} | {'Burn rate (kg/s)':>15}")
 print("-"*45)
-for r, v, m_dot in zip(particle_radii, v_burn, particle_mass_rate):
-    print(f"{r*1e6:12.4f} | {v:12.6e} | {m_dot:15.6e}")
-
-if critical_radius:
-    print("\nCritical particle radius (burn rate below threshold): "
-          f"{critical_radius*1e6:.4f} μm")
-else:
-    print("\nAll particle sizes burn faster than the threshold.")
+for r, v, m in zip(radii, v_burn, mass_rate):
+    print(f"{r*1e6:12.4f} | {v:12.6e} | {m:15.6e}")
