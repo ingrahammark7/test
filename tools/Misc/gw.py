@@ -1,47 +1,36 @@
 import numpy as np
 
 # -----------------------------
-# System parameters
+# System parameters (realistic)
 # -----------------------------
-mass_total = 1.0        # kg of material
-initial_radius = 5e-3   # m, initial particle radius (e.g., 5 mm)
-target_radius = 1e-6    # m, desired particle radius (1 micron)
+total_mass = 10.0       # kg, total material
+initial_radius = 1e-3   # m, initial particle radius 1 mm
+target_radius = 1e-6    # m, target particle radius 1 micron
 system_power = 1000.0   # W, mechanical input power
-gamma_eff = 0.05        # J/m^2, effective adhesion + surface energy
+gamma_eff = 20.0        # J/m^2, effective adhesion + surface energy
 density = 2700.0        # kg/m^3, aluminum density
-dt = 0.1                # s, time step
 
 # -----------------------------
-# Derived parameters
+# Energy per kg to fragment particle
 # -----------------------------
-volume = (4/3) * np.pi * initial_radius**3
-surface_area = 4 * np.pi * initial_radius**2
-E_surface_per_particle = gamma_eff * surface_area
+def energy_per_mass(radius, gamma_eff, density):
+    """Energy per kg to fragment a particle of given radius"""
+    return (3 * gamma_eff) / (density * radius)
 
-# Energy per unit mass needed to fragment one particle
-E_per_mass = E_surface_per_particle / (density * volume)
+E_per_mass = energy_per_mass(initial_radius, gamma_eff, density)
+print(f"Energy per kg to fragment one particle: {E_per_mass:.2f} J/kg\n")
 
 # -----------------------------
-# Time evolution loop
+# Batch size optimization
 # -----------------------------
-radius = initial_radius
-t = 0.0
-step = 0
+batch_sizes = np.linspace(0.1, total_mass, 10)
 
-print("Step | Time (s) | Particle radius (um)")
-print("----------------------------------------")
-while radius > target_radius:
-    # Power per unit mass drives fragmentation
-    dE = system_power * dt / mass_total  # energy input per kg per dt
-    # Fraction of energy applied to overcome barrier
-    frac = dE / E_per_mass
-    # Limit maximum shrink per step to avoid overshoot
-    if frac > 0.2:
-        frac = 0.2
-    radius = radius * (1 - frac)
-    t += dt
-    step += 1
-    print(f"{step:4d} | {t:8.2f} | {radius*1e6:12.4f}")
+print("Batch_mass(kg) | Time_to_target(s) | Mass_rate(kg/s)")
+print("-----------------------------------------------")
 
-print("\nFinal particle radius: {:.4f} um".format(radius*1e6))
-print("Total time to reach target radius: {:.1f} s".format(t))
+for M_batch in batch_sizes:
+    # Time to fragment batch
+    t_target = E_per_mass * M_batch / system_power
+    # Mass production rate
+    R_mass = M_batch / t_target
+    print(f"{M_batch:12.2f} | {t_target:15.2f} | {R_mass:13.2f}")
