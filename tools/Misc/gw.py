@@ -1,43 +1,59 @@
 import numpy as np
 
-# -----------------------------
-# System parameters (realistic)
-# -----------------------------
-total_mass = 10.0           # kg, total material
-initial_radius = 1e-3       # m, initial particle radius 1 mm
-target_radius = 1e-6        # m, target particle radius (we'll respect min radius)
-system_power = 1000.0       # W, mechanical input power
-gamma_eff = 20.0            # J/m^2, effective adhesion + surface energy
-density = 2700.0            # kg/m^3, aluminum density
-mechanical_efficiency = 0.15 # fraction of power actually used for fragmentation
-min_radius = 1e-6           # m, sticking-limited minimum radius
+# -------------------------------
+# Aluminum combustion parameters
+# -------------------------------
+rho_Al = 2700            # kg/m^3
+k_Al = 237               # W/m/K
+c_Al = 900               # J/kg/K
+q_comb = 31e6            # J/kg
+T_ambient = 3000          # K
+E_a = 150e3              # J/mol
+R_gas = 8.314            # J/mol/K
+v0 = 1.0                 # m/s, pre-exponential surface burn rate factor
+threshold_mass_loss = 1e-6 # kg/s per particle
 
-# -----------------------------
-# Energy per kg to fragment particle
-# -----------------------------
-def energy_per_mass(radius, gamma_eff, density):
-    return (3 * gamma_eff) / (density * radius)
+# -------------------------------
+# Particle radii: 1 μm to 1 mm
+# -------------------------------
+particle_radii = np.logspace(-6, -3, 100)  # meters
 
-# Make sure we respect sticking-limited minimum
-if target_radius < min_radius:
-    target_radius = min_radius
+# -------------------------------
+# Heat diffusion factor
+# -------------------------------
+# Biot number approximation for small spheres: Bi ~ h*r/k, here h ~ q_comb / r
+# Simple model: effective temperature drop due to heat diffusion
+# Smaller particle → T_eff ~ T_ambient + q_comb / (c*rho)  (fast heating)
+# Larger particle → T_eff reduced by diffusion factor ~ 1 / (1 + r/r0)
+r0 = 1e-5  # m, characteristic diffusion length (~10 μm)
+T_eff = T_ambient + (q_comb / (c_Al * rho_Al)) * (r0 / (r0 + particle_radii))
 
-E_per_mass = energy_per_mass(target_radius, gamma_eff, density)
-E_per_mass /= mechanical_efficiency  # adjust for real efficiency
+# -------------------------------
+# Arrhenius burn velocity
+# -------------------------------
+v_burn = v0 * np.exp(-E_a / (R_gas * T_eff))
 
-print(f"Energy per kg to fragment one particle (adjusted for efficiency): {E_per_mass:.2f} J/kg\n")
+# -------------------------------
+# Mass burn rate per particle
+# -------------------------------
+particle_mass_rate = 4 * np.pi * particle_radii**2 * rho_Al * v_burn
 
-# -----------------------------
-# Batch size optimization
-# -----------------------------
-batch_sizes = np.linspace(0.1, total_mass, 10)
+# -------------------------------
+# Find critical radius
+# -------------------------------
+critical_indices = np.where(particle_mass_rate < threshold_mass_loss)[0]
+critical_radius = particle_radii[critical_indices[0]] if len(critical_indices) > 0 else None
 
-print("Batch_mass(kg) | Time_to_target(s) | Mass_rate(kg/s)")
-print("-----------------------------------------------")
+# -------------------------------
+# Console output
+# -------------------------------
+print(f"{'Radius (μm)':>12} | {'Burn rate (kg/s)':>15}")
+print("-"*35)
+for r, m_dot in zip(particle_radii, particle_mass_rate):
+    print(f"{r*1e6:12.4f} | {m_dot:15.6e}")
 
-for M_batch in batch_sizes:
-    # Time to fragment batch
-    t_target = E_per_mass * M_batch / system_power
-    # Mass production rate
-    R_mass = M_batch / t_target
-    print(f"{M_batch:12.2f} | {t_target:15.2f} | {R_mass:13.2f}")
+if critical_radius:
+    print("\nCritical particle radius (burn rate below threshold): "
+          f"{critical_radius*1e6:.4f} μm")
+else:
+    print("\nAll particle sizes burn faster than the threshold.")
