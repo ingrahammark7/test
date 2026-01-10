@@ -1,78 +1,126 @@
+import warnings
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score, accuracy_score
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 
-# ------------------------
-# 1. Load data
-# ------------------------
-data = pd.read_csv("l2.csv", low_memory=False)
+# -----------------------------
+# 0️⃣ Suppress warnings
+# -----------------------------
+warnings.filterwarnings("ignore")  # suppress all scikit-learn and user warnings
 
-# ------------------------
-# 2. Create binary target
-# ------------------------
-# 1 = default / charged off, 0 = fully paid / current
-default_statuses = ['Charged Off', 'Default', 'Late (31-120)']
-data['default_flag'] = data['loan_status'].apply(lambda x: 1 if x in default_statuses else 0)
+# -----------------------------
+# 1️⃣ Load CSV
+# -----------------------------
+df = pd.read_csv("l2.csv", low_memory=False)
 
-# ------------------------
-# 3. Drop useless columns
-# ------------------------
-drop_cols = ['id', 'member_id', 'url', 'desc', 'title', 'loan_status']  # remove identifiers and text
-data = data.drop(columns=drop_cols, errors='ignore')
+# -----------------------------
+# 2️⃣ Remove fully empty columns
+# -----------------------------
+empty_cols = df.columns[df.isna().all()].tolist()
+df = df.drop(columns=empty_cols)
 
-# ------------------------
-# 4. Separate features and target
-# ------------------------
-X = data.drop(columns=['default_flag'])
-y = data['default_flag']
+# -----------------------------
+# 3️⃣ Binary target
+# -----------------------------
+df['default_flag'] = df['loan_status'].apply(lambda x: 1 if x == 'Charged Off' else 0)
+target = 'default_flag'
 
-# ------------------------
-# 5. Handle missing values
-# ------------------------
-# Numeric columns: fill missing with median
-num_cols = X.select_dtypes(include=['int64', 'float64']).columns
-num_imputer = SimpleImputer(strategy='median')
-X[num_cols] = num_imputer.fit_transform(X[num_cols])
+# -----------------------------
+# 4️⃣ Drop high-cardinality text columns
+# -----------------------------
+text_cols = ['desc', 'title', 'emp_title', 'url']
+df = df.drop(columns=[c for c in text_cols if c in df.columns])
 
-# Categorical columns: fill missing with 'missing'
-cat_cols = X.select_dtypes(include=['object']).columns
-cat_imputer = SimpleImputer(strategy='constant', fill_value='missing')
-X[cat_cols] = cat_imputer.fit_transform(X[cat_cols])
+# -----------------------------
+# 5️⃣ Split features and target
+# -----------------------------
+X = df.drop(columns=[target, 'loan_status'])
+y = df[target]
 
-# One-hot encode categorical features
-encoder = OneHotEncoder(handle_unknown='ignore', sparse=False)
-X_cat = pd.DataFrame(encoder.fit_transform(X[cat_cols]), columns=encoder.get_feature_names_out(cat_cols))
-X = X.drop(columns=cat_cols)
-X = pd.concat([X.reset_index(drop=True), X_cat.reset_index(drop=True)], axis=1)
+# -----------------------------
+# 6️⃣ Numeric & categorical columns
+# -----------------------------
+numeric_features = X.select_dtypes(include=['int64','float64']).columns.tolist()
+categorical_features = X.select_dtypes(include=['object']).columns.tolist()
 
-# ------------------------
-# 6. Train/test split
-# ------------------------
+# -----------------------------
+# 7️⃣ Reduce categorical features to top N cardinality
+# -----------------------------
+MAX_CAT = 20
+if len(categorical_features) > MAX_CAT:
+    cat_card = X[categorical_features].nunique().sort_values(ascending=False)
+    categorical_features = cat_card.head(MAX_CAT).index.tolist()
+
+# -----------------------------
+# 8️⃣ Preprocessing
+# -----------------------------
+numeric_transformer = Pipeline([
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline([
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer([
+    ('num', numeric_transformer, numeric_features),
+    ('cat', categorical_transformer, categorical_features)
+])
+
+# -----------------------------
+# 9️⃣ Models
+# -----------------------------
+models = {
+    'LogisticRegression': LogisticRegression(max_iter=500),
+    'RidgeClassifier': RidgeClassifier(alpha=1.0),
+    'RandomForest': RandomForestClassifier(n_estimators=50, max_depth=6, n_jobs=1, random_state=42),
+    'GradientBoosting': GradientBoostingClassifier(n_estimators=50, max_depth=4, random_state=42)
+}
+
+# -----------------------------
+# 🔟 Train/test split
+# -----------------------------
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# ------------------------
-# 7. Train Logistic Regression
-# ------------------------
-model = LogisticRegression(max_iter=1000)
-model.fit(X_train, y_train)
+# -----------------------------
+# 1️⃣1️⃣ Train models with progress
+# -----------------------------
+best_auc = -float('inf')
+best_model_name = None
 
-# Evaluate quickly
-acc = model.score(X_test, y_test)
-roc_auc = model.predict_proba(X_test)[:,1]
-print(f"Accuracy: {acc:.4f}, ROC-AUC: {pd.Series(roc_auc).mean():.4f}")
+for idx, (name, model) in enumerate(models.items(), 1):
+    print(f"[{idx}/{len(models)}] Training {name}...")
 
-# ------------------------
-# 8. Create submission
-# ------------------------
-# Use all data for prediction to simulate test submission
-preds = model.predict_proba(X)[:,1]
+    pipe = Pipeline([
+        ('preprocessor', preprocessor),
+        ('model', model)
+    ])
+    
+    # Small partial fit first to reduce RAM spikes
+    pipe.fit(X_train.head(50), y_train.head(50))
+    
+    # Full fit
+    pipe.fit(X_train, y_train)
+    
+    # Predict
+    y_pred = pipe.predict(X_test)
+    y_proba = pipe.predict_proba(X_test)[:,1] if hasattr(pipe, "predict_proba") else y_pred
+    
+    # Metrics
+    auc = roc_auc_score(y_test, y_proba)
+    acc = accuracy_score(y_test, y_pred)
+    print(f"    Accuracy: {acc:.4f}, ROC-AUC: {auc:.4f}")
+    
+    if auc > best_auc:
+        best_auc = auc
+        best_model_name = name
 
-submission = pd.DataFrame({
-    "SK_ID_CURR": data['funded_amnt'].index,  # if SK_ID_CURR not in data, use row index
-    "TARGET": preds
-})
-
-submission.to_csv("submission.csv", index=False)
-print("Submission saved as submission.csv")
+print(f"\n✅ Best model: {best_model_name} with ROC-AUC = {best_auc:.4f}")
