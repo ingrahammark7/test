@@ -6,68 +6,84 @@ import numpy as np
 c = 3.0e8                 # m/s
 G = 6.67430e-11           # m^3 kg^-1 s^-2
 eV = 1.602176634e-19      # J
+N_A = 6.02214076e23       # Avogadro's number
+planck_mass = 2.176e-8    # kg
 
 # ----------------------------
 # Adjustable parameters
 # ----------------------------
-# Materials dictionary: name -> density (kg/m^3)
-materials = {
-    "TATB": 1900,
-    "RDX": 1800,
-    "HMX": 1900,
-    "Carbon": 2267
-}
+photon_energy_eV = 0.1        # photon energy in eV
+v_brownian = 6.19e4           # m/s
+time_step_us = 0.1             # microsecond step
+total_time_us = 10.0           # total capture window
+photonpop = 1e20               # base photon population
 
-photon_energy_eV = 1.0        # photon energy for calculation
-photon_energy = photon_energy_eV * eV
-capture_time = 1e-6           # 1 microsecond window
-v_brownian = 6.19e4           # m/s, from previous model
-
-# Laser initiation reference (photons)
-laser_photons_ref = 1e12       # typical microjoule laser
-
-# Planck mass reference
-m_planck = 2.176e-8           # kg
+# Laser initiation parameters
+laser_energy_J = 3.0           # total laser energy applied
 
 # ----------------------------
-# Function to compute photon trapping
+# Explosive materials: name, density [kg/m^3], hotspot radius [mm], molar mass [kg/mol]
 # ----------------------------
-def photon_trapping(radius_mm, density, photon_energy, v_brownian, capture_time):
-    r = radius_mm * 1e-3  # convert mm -> m
+materials = [
+    ("TATB", 1900, 0.3, 0.337),
+    ("RDX", 1750, 0.5, 0.222),
+    ("HMX", 1900, 13.0, 0.296)
+]
+
+# ----------------------------
+# Compute dynamic feedback factor
+# ----------------------------
+def dynamic_feedback(hotspot_mass):
+    factor = planck_mass / hotspot_mass
+    factor = np.clip(factor * 1000, 1, 1000)
+    return factor
+
+# ----------------------------
+# Compute trapped photons and energy
+# ----------------------------
+def compute_trapped_photons(density, radius_mm, photon_energy_eV, capture_time_us, M):
+    r = radius_mm * 1e-3
     volume = (4/3) * np.pi * r**3
     mass = density * volume
-
-    # Gravitational acceleration at center
     g = G * mass / r**2
 
-    # Photon population estimate (arbitrary large number for scaling)
-    photonpop = 1e20
-
-    # Escape time
+    photon_energy = photon_energy_eV * eV
+    capture_time = capture_time_us * 1e-6
     escape_time = v_brownian / g
 
-    # Trapped photons in capture_time
     photons_trapped = capture_time / escape_time * photonpop
+    feedback_factor = dynamic_feedback(mass)
+    photons_trapped_feedback = photons_trapped * feedback_factor
 
-    # Equivalent energy
-    equivalent_energy = photons_trapped * photon_energy
+    equivalent_energy = photons_trapped_feedback * photon_energy
+    n_atoms = int((mass / M) * N_A)
+    photons_per_atom = photons_trapped_feedback / n_atoms
 
-    return photons_trapped, equivalent_energy, mass, g
+    return mass, g, photons_trapped_feedback, equivalent_energy, photons_per_atom, n_atoms
 
 # ----------------------------
-# Run for all materials
+# Console output with threshold table
 # ----------------------------
-print("----- Hotspot Photon Containment vs Laser -----")
-print(f"{'Material':>6} | {'Radius(mm)':>10} | {'Mass(kg)':>10} | {'g(m/s^2)':>10} | {'Photons trapped':>15} | {'Energy(J)':>12} | {'Laser equiv':>12}")
-print("-"*90)
+print("----- Hotspot Photon Containment vs Laser-Equivalent Fraction -----\n")
 
-for name, density in materials.items():
-    # Use Planck-mass radius for first approximation
-    # r = (3 m / (4 pi rho))^(1/3)
-    r_planck = ((3*m_planck)/(4*np.pi*density))**(1/3)
-    radius_mm = r_planck * 1e3
+for name, density, radius_mm, M in materials:
+    print(f"Material: {name}, Radius: {radius_mm} mm")
+    print(f"{'Time(us)':>8} | {'Photons trapped':>18} | {'Energy (J)':>12} | {'Photons/atom':>14} | {'Laser frac (%)':>15}")
+    print("-"*90)
 
-    photons_trapped, energy, mass, g = photon_trapping(radius_mm, density, photon_energy, v_brownian, capture_time)
-    laser_equiv = energy / photon_energy
+    threshold_reached = False
+    t = 0.0
+    while t <= total_time_us:
+        mass, g, photons_trapped, eq_energy, photons_per_atom, n_atoms = compute_trapped_photons(
+            density, radius_mm, photon_energy_eV, t, M
+        )
+        laser_frac = (eq_energy / laser_energy_J) * 100
 
-    print(f"{name:>6} | {radius_mm:10.3e} | {mass:10.3e} | {g:10.3e} | {photons_trapped:15.3e} | {energy:12.3e} | {laser_equiv:12.3e}")
+        print(f"{t:8.2f} | {photons_trapped:18.3e} | {eq_energy:12.3e} | {photons_per_atom:14.3e} | {laser_frac:15.3f}")
+
+        if not threshold_reached and eq_energy >= laser_energy_J:
+            print(f"*** Threshold reached at t = {t:.3f} μs ***")
+            threshold_reached = True
+
+        t += time_step_us
+    print("\n")
