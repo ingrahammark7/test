@@ -40,7 +40,7 @@ v_burn_ideal = J_eff / rho_Al
 alpha_Al = k_Al / (rho_Al * c_p)
 v_thermal_limit = alpha_Al / radii
 
-# 6. Convection limit (sets a floor)
+# 6. Convection limit (floor)
 h_conv = 100  # W/m^2/K
 v_conv_limit = h_conv * (T_particle - T_surface) / (rho_Al * L_vap)
 
@@ -54,7 +54,7 @@ mass_rate = 4 * np.pi * radii**2 * rho_Al * v_burn
 # 9. Time to full burn
 t_burn = radii / (3 * v_burn)
 
-# 10. DDT stages
+# 10. DDT stages (scalar comparisons)
 def ddt_stages(v, v_conv_scalar, v_thermal_scalar):
     stages = []
     if v >= v_thermal_scalar:
@@ -68,25 +68,14 @@ def ddt_stages(v, v_conv_scalar, v_thermal_scalar):
         stages.append("heat_limited")
     return ",".join(stages)
 
-# 11. Percent closeness to each regime
-def regime_percent(v, v_conv, v_therm, v_id):
-    pct_thermal = min(100, max(0, 100*v/v_therm))
-    pct_conv = min(100, max(0, 100*v_conv/v))
-    pct_ideal = min(100, max(0, 100*v/v_id))
-    return pct_thermal, pct_conv, pct_ideal
+# 11. Shock coupling
+v_shock = 2000  # m/s, example detonation velocity
+t_shock = 2 * radii / v_shock  # particle shock passage time
+shock_fraction = np.minimum(1, t_shock / t_burn)  # fraction of burn during shock
+P_shock = shock_fraction * (L_vap / t_burn)  # power delivered per mass during shock
 
-# 12. Power per mass
-power_per_mass = v_burn * L_vap  # W/kg
-
-# 13. Print main table
-print(f"\n  Radius (m) | {'v_burn (m/s)':>12} | {'Burn rate (kg/s)':>15} | {'t_burn (s)':>12} | {'DDT stages':>25} | {'P/m (W/kg)':>12}")
+# 12. Print table
+print(f"{'Radius (m)':>12} | {'v_burn (m/s)':>12} | {'Burn rate (kg/s)':>15} | {'t_burn (s)':>12} | {'DDT stages':>25} | {'% shock energy':>15}")
 print("-"*120)
-for r, v, m, t, vt, vc, vi, pm in zip(radii, v_burn, mass_rate, t_burn, v_thermal_limit, np.full_like(radii, v_conv_limit), v_burn_ideal, power_per_mass):
-    print(f"{r:12.6e} | {v:12.6e} | {m:15.6e} | {t:12.6e} | {ddt_stages(v, vc, vt):>25} | {pm:12.3e}")
-
-# 14. Print % closeness table
-print(f"\n  Radius (m) |  % thermal |     % conv |    % ideal")
-print("-"*50)
-for r, v, vt, vc, vi in zip(radii, v_burn, v_thermal_limit, np.full_like(radii, v_conv_limit), v_burn_ideal):
-    pct_th, pct_cv, pct_id = regime_percent(v, vc, vt, vi)
-    print(f"{r:12.6e} | {pct_th:10.2f} | {pct_cv:10.2f} | {pct_id:10.2f}")
+for r, v, m, t, vt, vc, f in zip(radii, v_burn, mass_rate, t_burn, v_thermal_limit, np.full_like(radii, v_conv_limit), shock_fraction):
+    print(f"{r:12.6e} | {v:12.6e} | {m:15.6e} | {t:12.6e} | {ddt_stages(v, vc, vt):>25} | {f*100:15.2f}")
