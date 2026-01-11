@@ -82,7 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "District Case: ",
+        "District Case: 2:26-cv-00247-HDV",
         "Appellate Case: ",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
@@ -168,9 +168,9 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="Summons and petition have been served by personal service to: /n Internal Revenue Service /n 1111 Constitution Ave NW Washington DC 20224 /n /n DC Attorney General /n 400 6th St NW Washington DC 20001 /n /n Attorney General of the United States /n 950 Pennsylvania Ave NW /n Washington DC 20530 /n Signature: /s/ Joanna Ingraham /n "
+    text="Judge order has been mailed to: /n Internal Revenue Service /n 1111 Constitution Ave NW Washington DC 20224 /n /n DC Attorney General /n 400 6th St NW Washington DC 20001 /n /n Attorney General of the United States /n 950 Pennsylvania Ave NW /n Washington DC 20530 /n "
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Joanna Ingraham, 1/7/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/11/2026")
 
 
     # Save the PDF
