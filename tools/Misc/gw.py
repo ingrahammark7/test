@@ -3,67 +3,94 @@ import numpy as np
 # ----------------------------
 # Physical constants
 # ----------------------------
-c = 3.0e8                 # m/s
-G = 6.67430e-11           # m^3 kg^-1 s^-2
-h = 6.62607015e-34        # J·s
-eV = 1.602176634e-19      # J
+c = 3.0e8
+G = 6.67430e-11
+eV = 1.602176634e-19
 
 # ----------------------------
-# Adjustable parameters
+# Hotspot parameters
 # ----------------------------
-density = 1800             # kg/m^3 (generic solid)
-photon_energy_eV = 0.1     # sub‑eV photons
-photon_energy = photon_energy_eV * eV
-
-capture_time = 1e-6        # 1 microsecond window
-photonpop = 1e20           # virtual photon population in hotspot
-
-# empirical Brownian photon speed from prior calculation
-v_brownian = 6.19e4        # m/s
-
-# ----------------------------
-# Hotspot geometry (Planck-mass scale example)
-# ----------------------------
-radius_mm = 0.3            # mm
-r = radius_mm * 1e-3       # m
+density = 1800                # kg/m^3
+radius_mm = 0.3               # Planck-scale hotspot
+r = radius_mm * 1e-3
 volume = (4/3) * np.pi * r**3
 mass = density * volume
 
 # ----------------------------
-# Effective "information gravity" threshold
+# Photon parameters
 # ----------------------------
-# Treat gravity as controlling coherence/containment, not acceleration
-g_info = G * mass / r**2
-
-# Step 1: Crossing factor for photon escape (Brownian)
-# Lower factor => photons stay coherent
-crossing_factor = (v_brownian / g_info)**(1/3)  # heuristic
-
-# Step 2: Photons effectively contained
-photons_contained = photonpop / crossing_factor * (capture_time / 1e-6)  # per microsecond
-
-# Step 3: Energy equivalence
-equivalent_energy = photons_contained * photon_energy
-laser_equivalent_photons = equivalent_energy / photon_energy
+photon_energy_eV = 0.1
+photon_energy = photon_energy_eV * eV
+v_brownian = 6.19e4           # m/s
+background_photons = 1e20     # ambient photon population
 
 # ----------------------------
-# Threshold check (phenomenological)
+# Gravity
 # ----------------------------
-# Minimal number of photons needed to trigger DDT (arbitrary but scalable)
-photon_threshold = 1e8
-ddt_possible = photons_contained >= photon_threshold
+g = G * mass / r**2
+escape_time = v_brownian / g
 
 # ----------------------------
-# Output
+# Feedback + ignition thresholds
 # ----------------------------
-print("----- Hotspot Photon Information Model -----")
-print(f"Radius: {radius_mm:.3f} mm")
-print(f"Mass: {mass:.3e} kg")
-print(f"Information gravity factor: {g_info:.3e} m/s^2")
-print(f"Photon energy: {photon_energy_eV:.3f} eV")
+feedback_gain = 1e7           # runaway amplification
+critical_photons = 1e6        # ignition threshold (small!)
+max_photons = 1e18            # saturation cap
 
-print("\n--- Photon statistics ---")
-print(f"Photons effectively contained per microsecond: {photons_contained:.3e}")
+# ----------------------------
+# Time domain
+# ----------------------------
+dt = 1e-9                     # 1 ns
+t_max = 5e-6                  # 5 microseconds
+steps = int(t_max / dt)
+
+# ----------------------------
+# State variables
+# ----------------------------
+photons = 0.0
+time = 0.0
+ignited = False
+
+# ----------------------------
+# Simulation loop
+# ----------------------------
+for i in range(steps):
+    time += dt
+
+    # Photon capture rate (gravity)
+    capture_rate = background_photons / escape_time
+    captured = capture_rate * dt
+
+    # Brownian loss
+    loss = photons / escape_time * dt
+
+    # Net change
+    photons += captured - loss
+
+    # Threshold feedback
+    if photons > critical_photons:
+        photons *= (1 + feedback_gain * dt)
+
+    # Saturation clamp
+    photons = min(photons, max_photons)
+
+    # Ignition condition
+    if photons >= critical_photons and not ignited:
+        ignited = True
+        print(f"\n🔥 DETONATION TRIGGERED 🔥")
+        print(f"Time: {time*1e6:.3f} µs")
+        print(f"Photon count: {photons:.3e}")
+        break
+
+# ----------------------------
+# Final diagnostics
+# ----------------------------
+equivalent_energy = photons * photon_energy
+
+print("\n--- Final State ---")
+print(f"Hotspot radius: {radius_mm:.3f} mm")
+print(f"Hotspot mass: {mass:.3e} kg")
+print(f"Gravity: {g:.3e} m/s^2")
+print(f"Photon energy: {photon_energy_eV:.2f} eV")
+print(f"Photon population: {photons:.3e}")
 print(f"Equivalent energy: {equivalent_energy:.3e} J")
-print(f"Laser-equivalent photons: {laser_equivalent_photons:.3e}")
-print(f"DDT possible at this hotspot? {'YES' if ddt_possible else 'NO'}")
