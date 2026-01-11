@@ -50,11 +50,12 @@ v_burn = np.maximum(v_burn, v_conv_limit)
 
 # 8. Mass loss rates
 mass_rate = 4 * np.pi * radii**2 * rho_Al * v_burn
+particle_mass = 4/3 * np.pi * radii**3 * rho_Al
 
 # 9. Time to full burn
 t_burn = radii / (3 * v_burn)
 
-# 10. DDT stages (scalar comparisons)
+# 10. DDT stages
 def ddt_stages(v, v_conv_scalar, v_thermal_scalar):
     stages = []
     if v >= v_thermal_scalar:
@@ -70,12 +71,19 @@ def ddt_stages(v, v_conv_scalar, v_thermal_scalar):
 
 # 11. Shock coupling
 v_shock = 2000  # m/s, example detonation velocity
-t_shock = 2 * radii / v_shock  # particle shock passage time
-shock_fraction = np.minimum(1, t_shock / t_burn)  # fraction of burn during shock
-P_shock = shock_fraction * (L_vap / t_burn)  # power delivered per mass during shock
+t_shock = 2 * radii / v_shock
+shock_fraction = np.minimum(1, t_shock / t_burn)
+P_shock_particle = shock_fraction * (L_vap / t_burn)  # W/kg per particle
 
-# 12. Print table
-print(f"{'Radius (m)':>12} | {'v_burn (m/s)':>12} | {'Burn rate (kg/s)':>15} | {'t_burn (s)':>12} | {'DDT stages':>25} | {'% shock energy':>15}")
-print("-"*120)
-for r, v, m, t, vt, vc, f in zip(radii, v_burn, mass_rate, t_burn, v_thermal_limit, np.full_like(radii, v_conv_limit), shock_fraction):
-    print(f"{r:12.6e} | {v:12.6e} | {m:15.6e} | {t:12.6e} | {ddt_stages(v, vc, vt):>25} | {f*100:15.2f}")
+# 12. Total MW-scale shock power
+# Weight by particle mass and integrate over all sizes
+total_power_W = np.sum(P_shock_particle * particle_mass)  # Watts
+total_power_MW = total_power_W / 1e6
+
+print(f"Estimated total MW-scale shock power: {total_power_MW:.2f} MW\n")
+
+# 13. Print table
+print(f"{'Radius (m)':>12} | {'v_burn (m/s)':>12} | {'t_burn (s)':>12} | {'DDT stages':>25} | {'% shock energy':>15}")
+print("-"*110)
+for r, v, t, vt, vc, f in zip(radii, v_burn, t_burn, v_thermal_limit, np.full_like(radii, v_conv_limit), shock_fraction):
+    print(f"{r:12.6e} | {v:12.6e} | {t:12.6e} | {ddt_stages(v, vc, vt):>25} | {f*100:15.2f}")
