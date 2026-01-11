@@ -17,17 +17,17 @@ HVL_thickness = 0.03    # m (3 cm)
 HVL_mass = HVL_thickness**3 * rho_Al
 print(f"HVL particle mass ~ {HVL_mass:.3f} kg")
 
-# Particle radii (m) from 1 μm to HVL scale
+# Particle radii (m)
 radii = np.logspace(-6, np.log10(HVL_thickness), 50)
 
-# 1. Heat-limited flux (J/kg/s)
+# 1. Heat-limited flux
 J_max = k_Al * (T_particle - T_surface) / (L_vap * radii)
 
-# 2. Kinetic-theory flux (ideal, simplified)
-k_B = 1.380649e-23  # J/K
+# 2. Kinetic-theory flux (ideal)
+k_B = 1.380649e-23
 N_A = 6.02214076e23
 m_Al_atom = M_Al / N_A
-P0 = 1e5  # Pa, placeholder
+P0 = 1e5
 J_ideal = P0 / np.sqrt(2 * np.pi * m_Al_atom * k_B * T_particle)
 
 # 3. Effective flux limited by heat
@@ -36,34 +36,41 @@ J_eff = J_ideal / (1 + J_ideal / J_max)
 # 4. Raw burn velocity
 v_burn_ideal = J_eff / rho_Al
 
-# 5. Thermal-diffusion-limited velocity
-alpha_Al = k_Al / (rho_Al * c_p)  # thermal diffusivity
+# 5. Thermal diffusion limit
+alpha_Al = k_Al / (rho_Al * c_p)
 v_thermal_limit = alpha_Al / radii
 
-# 6. Latent heat / melting limit
-E_total = c_p*(T_melt - T_surface) + L_fus + L_vap
-v_melt_limit = J_max / (rho_Al * E_total / L_vap)
-
-# 7. Convective limit (vectorized)
+# 6. Convection limit (sets a floor, not a ceiling)
 h_conv = 100  # W/m^2/K
-v_conv_limit = np.full_like(radii, h_conv * (T_particle - T_surface) / (rho_Al * L_vap))
+v_conv_limit = h_conv * (T_particle - T_surface) / (rho_Al * L_vap)
 
-# 8. Combine burn velocities
-v_burn = v_burn_ideal.copy()
+# 7. Combine limits correctly
+# Use the *minimum of ideal and thermal* (diffusion/heat-limited), but ensure convection is respected as a *floor*
+v_burn = np.minimum(v_burn_ideal, v_thermal_limit)
+v_burn = np.maximum(v_burn, v_conv_limit)
 
-# Always limited by thermal diffusion
-v_burn = np.minimum(v_burn, v_thermal_limit)
-
-# Apply melt and convection limits only for large particles (r > 1 mm)
-large_idx = radii > 1e-3
-v_burn[large_idx] = np.minimum(v_burn[large_idx], v_melt_limit[large_idx])
-v_burn[large_idx] = np.minimum(v_burn[large_idx], v_conv_limit[large_idx])
-
-# 9. Mass loss rates
+# 8. Mass loss rates
 mass_rate = 4 * np.pi * radii**2 * rho_Al * v_burn
 
-# 10. Print table
-print(f"{'Radius (m)':>12} | {'v_burn (m/s)':>12} | {'Burn rate (kg/s)':>15}")
-print("-"*50)
-for r, v, m in zip(radii, v_burn, mass_rate):
-    print(f"{r:12.6e} | {v:12.6e} | {m:15.6e}")
+# 9. Time to full burn
+t_burn = radii / (3 * v_burn)
+
+# 10. DDT stages (scalar comparisons)
+def ddt_stages(v, v_conv_scalar, v_thermal_scalar):
+    stages = []
+    if v >= v_thermal_scalar:
+        stages.append("fast")
+        stages.append("coupling_possible")
+    elif v <= v_conv_scalar:
+        stages.append("convection")
+        stages.append("diffusion_limited")
+    else:
+        stages.append("slow")
+        stages.append("heat_limited")
+    return ",".join(stages)
+
+# 11. Print table
+print(f"{'Radius (m)':>12} | {'v_burn (m/s)':>12} | {'Burn rate (kg/s)':>15} | {'t_burn (s)':>12} | {'DDT stages':>25}")
+print("-"*100)
+for r, v, m, t, vt, vc in zip(radii, v_burn, mass_rate, t_burn, v_thermal_limit, np.full_like(radii, v_conv_limit)):
+    print(f"{r:12.6e} | {v:12.6e} | {m:15.6e} | {t:12.6e} | {ddt_stages(v, vc, vt):>25}")
