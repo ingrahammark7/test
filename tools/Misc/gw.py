@@ -1,61 +1,64 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.linalg import expm
 
 # --------------------------
-# Simulation parameters
+# Parameters
 # --------------------------
-dt = 0.01             # time step
 T = 50                # total time
-steps = int(T/dt)
-coupling = 0.1        # photon-mediated coupling strength
-temperature = 0.05    # random phase noise
+steps = 500           # number of time points to evaluate
+coupling = 0.1        # coupling strength
+temperature = 0.02    # standard deviation of random noise
 
 # --------------------------
-# Initialize dipole vectors in 2D (x, y)
+# Initial dipoles (2 atoms, 2D)
 # --------------------------
-theta = np.random.rand(2) * 2*np.pi        # random initial angles
-dipoles = np.array([np.cos(theta), np.sin(theta)]).T  # shape (2,2)
-
-# Precompute arrays to store results
-dipole_history = np.zeros((steps, 2, 2))
-dipole_history[0] = dipoles
+theta = np.random.rand(2) * 2*np.pi
+D0 = np.array([np.cos(theta[0]), np.sin(theta[0]),
+               np.cos(theta[1]), np.sin(theta[1])])  # shape (4,)
 
 # --------------------------
-# Closed-form vectorized update using linearized coupling
+# Coupling matrix for 2 dipoles in 2D
 # --------------------------
-# For small dt, we can approximate the continuous-time evolution:
-# dD/dt = coupling * (D_other - D) + noise
-# D(t+dt) = D(t) + dt * dD/dt + sqrt(dt)*noise
+C = np.array([
+    [-coupling, 0, coupling, 0],
+    [0, -coupling, 0, coupling],
+    [coupling, 0, -coupling, 0],
+    [0, coupling, 0, -coupling]
+])
 
-# Generate all noise at once for speed
-noise = np.random.normal(0, temperature, size=(steps, 2, 2))
+# --------------------------
+# Time points
+# --------------------------
+time = np.linspace(0, T, steps)
 
-for t in range(1, steps):
-    # Coupling term: difference of dipoles
-    delta = coupling * (dipoles[::-1] - dipoles)
-    
-    # Update dipoles (vectorized)
-    dipoles = dipoles + dt * delta + np.sqrt(dt) * noise[t]
-    
-    # Normalize dipoles to unit vectors (keep polarization magnitude 1)
-    norms = np.linalg.norm(dipoles, axis=1, keepdims=True)
-    dipoles = dipoles / norms
-    
-    dipole_history[t] = dipoles
+# Precompute matrix exponentials
+dipole_history = np.zeros((steps, 4))
+for i, t in enumerate(time):
+    dipole_history[i] = expm(C * t) @ D0
+
+# --------------------------
+# Add temperature effect (simple approximation)
+# --------------------------
+# Noise scaled by sqrt(time step)
+noise = np.random.normal(0, temperature, size=dipole_history.shape)
+dipole_history += noise
+
+# Normalize each dipole to unit vectors
+norms = np.linalg.norm(dipole_history.reshape(steps,2,2), axis=2, keepdims=True)
+dipole_history = (dipole_history.reshape(steps,2,2) / norms).reshape(steps,4)
 
 # --------------------------
 # Plot results
 # --------------------------
-time = np.arange(steps) * dt
-
 plt.figure(figsize=(10,5))
-plt.plot(time, dipole_history[:,0,0], label="Atom A x-component")
-plt.plot(time, dipole_history[:,0,1], label="Atom A y-component")
-plt.plot(time, dipole_history[:,1,0], '--', label="Atom B x-component")
-plt.plot(time, dipole_history[:,1,1], '--', label="Atom B y-component")
+plt.plot(time, dipole_history[:,0], label="Atom A x")
+plt.plot(time, dipole_history[:,1], label="Atom A y")
+plt.plot(time, dipole_history[:,2], '--', label="Atom B x")
+plt.plot(time, dipole_history[:,3], '--', label="Atom B y")
 plt.xlabel("Time")
 plt.ylabel("Dipole components")
-plt.title(f"Photon-Mediated Dipole Synchronization (Temperature={temperature})")
-plt.legend()
+plt.title(f"Photon-mediated dipole synchronization (Temperature={temperature})")
 plt.grid(True)
+plt.legend()
 plt.show()
