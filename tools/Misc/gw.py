@@ -1,17 +1,23 @@
-# Python program implementing "trivial math" numbers
+import matplotlib.pyplot as plt
 
-# User numbers
-atmosphere_mass_tons = 1e12  # mass of atmosphere in your units
-seeding_mass_tons = 1e6      # cloud seeding mass
-fall_distance_m = 1e4**3 #brownian        # falling distance
-ff=seeding_mass_tons*fall_distance_m
-# Step 2: fraction of atmosphere affected by volume
-# Assume Brownian motion spreads seeding evenly over volume fraction
-# Total atmospheric volume ~ 4e18 m³
-earth_atmosphere_volume_m3 = 4e18
-volume_fraction = ff/ earth_atmosphere_volume_m3
+# Years
+years = [2020, 2021, 2022, 2023, 2024]
 
-# Step 3: naive "effectiveness" metric
-# Just multiply mass fraction by volume fraction as trivial math
-effectiveness = volume_fraction
-print(effectiveness,"% ofnworld")
+# Trivial math seeding (binary saturated model, 25% of atmosphere)
+# 1 = seeding done (saturated), 0 = no seeding
+seeding_saturated = [1, 1, 0, 1, 1]  
+
+# Regional temperature trend (arbitrary units, following your correlation)
+# Warm when seeding, cooler when not
+temperature_trend = [0.5, 1.0, 0.2, 0.8, 1.0]  
+
+# Plotting
+plt.figure(figsize=(8,5))
+plt.plot(years, temperature_trend, marker='o', label="Regional Temp (arbitrary units)")
+plt.bar(years, [s*0.5 for s in seeding_saturated], width=0.3, alpha=0.3, color='skyblue', label="Seeding Saturated")
+plt.xlabel("Year")
+plt.ylabel("Temperature / Seeding Effect")
+plt.title("Trivial Math Cloud Seeding vs Regional Temperature")
+plt.legend()
+plt.grid(True)
+plt.show()
