@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Hearing"
+footer_text = "Petition for Writ"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles County Sheriffs Department Court Services Division",
+        "Los Angeles Superior Court",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 26STCP00048")
+    c.drawString(space, top_margin - 4* inch, "Case Number: ")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, footer_text)
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge should schedule hearing as defendant has been served. I will wait 30 days and file for default. /n" 
+    intro_text = "Judge faked the transcript in 25STCP00742. All court employees should be arrested. Anyone reading the transcript can see its fake. /n" 
     y_position -= .25*inch
     
     
