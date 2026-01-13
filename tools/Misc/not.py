@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Superior Court",
+        "Los Angeles City Attorney Office",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge faked the transcript in 25STCP00742. All court employees should be arrested. Anyone reading the transcript can see its fake. /n" 
+    intro_text = "Persons claiming to be from city attorney office have impeded my cases. The majority of City employees are illegal immigrants. All claims by defendant are illegal. /n Petitioner petitions Court to: /n 1. Deny defendant all rights to do anything. /n 2. Inform all LAPD  officers they will be killed by plaintiff and estop LAPD from doing anything whatsoever. /n 3. Arrest me. /n" 
     y_position -= .25*inch
     
     
