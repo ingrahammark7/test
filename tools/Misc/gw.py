@@ -1,64 +1,32 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.linalg import expm
+import math
 
-# --------------------------
-# Parameters
-# --------------------------
-T = 50                # total time
-steps = 500           # number of time points to evaluate
-coupling = 0.1        # coupling strength
-temperature = 0.02    # standard deviation of random noise
+# Door parameters
+m = 120.0         # kg, mass of sliding door
+d = 2.0           # meters, distance door slides to fully open
 
-# --------------------------
-# Initial dipoles (2 atoms, 2D)
-# --------------------------
-theta = np.random.rand(2) * 2*np.pi
-D0 = np.array([np.cos(theta[0]), np.sin(theta[0]),
-               np.cos(theta[1]), np.sin(theta[1])])  # shape (4,)
+# Motor / EM parameters
+F_emag = 400.0    # N, electromagnetic force provided by motor
+a_max = F_emag / m  # m/s², acceleration
 
-# --------------------------
-# Coupling matrix for 2 dipoles in 2D
-# --------------------------
-C = np.array([
-    [-coupling, 0, coupling, 0],
-    [0, -coupling, 0, coupling],
-    [coupling, 0, -coupling, 0],
-    [0, coupling, 0, -coupling]
-])
+# Assuming constant acceleration until halfway, then deceleration
+d_half = d / 2
 
-# --------------------------
-# Time points
-# --------------------------
-time = np.linspace(0, T, steps)
+# Time to reach half distance using s = 0.5 * a * t^2
+t_half = math.sqrt(2 * d_half / a_max)
 
-# Precompute matrix exponentials
-dipole_history = np.zeros((steps, 4))
-for i, t in enumerate(time):
-    dipole_history[i] = expm(C * t) @ D0
+# Total time to open (accelerate + decelerate)
+t_total = 2 * t_half
 
-# --------------------------
-# Add temperature effect (simple approximation)
-# --------------------------
-# Noise scaled by sqrt(time step)
-noise = np.random.normal(0, temperature, size=dipole_history.shape)
-dipole_history += noise
+# Velocity at midpoint
+v_max = a_max * t_half
 
-# Normalize each dipole to unit vectors
-norms = np.linalg.norm(dipole_history.reshape(steps,2,2), axis=2, keepdims=True)
-dipole_history = (dipole_history.reshape(steps,2,2) / norms).reshape(steps,4)
+# Power required at midpoint (P = F * v)
+P_max = F_emag * v_max  # Watts
 
-# --------------------------
-# Plot results
-# --------------------------
-plt.figure(figsize=(10,5))
-plt.plot(time, dipole_history[:,0], label="Atom A x")
-plt.plot(time, dipole_history[:,1], label="Atom A y")
-plt.plot(time, dipole_history[:,2], '--', label="Atom B x")
-plt.plot(time, dipole_history[:,3], '--', label="Atom B y")
-plt.xlabel("Time")
-plt.ylabel("Dipole components")
-plt.title(f"Photon-mediated dipole synchronization (Temperature={temperature})")
-plt.grid(True)
-plt.legend()
-plt.show()
+print(f"Door mass: {m} kg")
+print(f"Slide distance: {d} m")
+print(f"Electromagnetic force: {F_emag} N")
+print(f"Max acceleration: {a_max:.2f} m/s²")
+print(f"Time to fully open: {t_total:.2f} s")
+print(f"Max velocity: {v_max:.2f} m/s")
+print(f"Max power required: {P_max:.2f} W")
