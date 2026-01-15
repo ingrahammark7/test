@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles City Attorney Office",
+        "Los Angeles Superior Court",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Persons claiming to be from city attorney office have impeded my cases. The majority of City employees are illegal immigrants. All claims by defendant are illegal. /n Petitioner petitions Court to: /n 1. Deny defendant all rights to do anything. /n 2. Inform all LAPD  officers they will be killed by plaintiff and estop LAPD from doing anything whatsoever. /n 3. Arrest me. /n Because the sheriff refuses to serve my cases I have filed a fake proof of service to get defendant to respond. /n" 
+    intro_text = "Court ignored my order to disqualify Judge Kin from my cases. Arrest all judges and shut down court. /n I request Court to: /n 1. Arrest all judges. /n 2. Permanently shut down court and do not recreate it. /n" 
     y_position -= .25*inch
     
     
