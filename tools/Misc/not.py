@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Response to OSC"
+footer_text = "Request to Review Illegal Activity"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "This is a response to judge order to show cause. Under CCP 170.6 disqualification, which I have used in multiple cases, plaintiff is authorized to disqualify any judge at any time. /n  Refusal by Judge Kin to recuse himself constitutes contempt of court procedure and any judge supporting his contempt is likewise liable. Judge Kin automatically dismisses all cases I file by forging the hearing transcript to pretend I dismissed the case. /n Original cause of action is that the majority of LAPD officers are illegal immigrants and I requested therefore all LAPD vehicles auctioned and destroyed. /n" 
+    intro_text = "As I repeatedly requested, Court should recommend law enforcement review my mulitple related cases and arrest everyone. This is in addition to my concerns expressed in the reponse to the order to show cause I submitted. /n" 
     y_position -= .25*inch
     
     
@@ -152,7 +152,7 @@ def create_pdf(output_filename):
 
     y_position=doer(intro_text,y_position)			
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/15/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/15/2026")
     c=dopage(c,1)
 
 
