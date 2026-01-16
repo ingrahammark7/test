@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Writ"
+footer_text = "Response to OSC"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: ")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 26STCP00202")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, footer_text)
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Court ignored my order to disqualify Judge Kin from my cases. Arrest all judges and shut down court. /n I request Court to: /n 1. Arrest all judges. /n 2. Permanently shut down court and do not recreate it. /n" 
+    intro_text = "This is a response to judge order to show cause. Under CCP 170.6 disqualification, which I have used in multiple cases, plaintiff is authorized to disqualify any judge at any time. /n  Refusal by Judge Kin to recuse himself constitutes contempt of court procedure and any judge supporting his contempt is likewise liable. Judge Kin automatically dismisses all cases I file by forging the hearing transcript to pretend I dismissed the case. /n Original cause of action is that the majority of LAPD officers are illegal immigrants and I requested therefore all LAPD vehicles auctioned and destroyed. /n" 
     y_position -= .25*inch
     
     
@@ -152,7 +152,7 @@ def create_pdf(output_filename):
 
     y_position=doer(intro_text,y_position)			
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/5/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/15/2025")
     c=dopage(c,1)
 
 
