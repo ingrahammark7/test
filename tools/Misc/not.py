@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Review Illegal Activity"
+footer_text = "Response to OSC"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Superior Court",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 26STCP00202")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03825")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, footer_text)
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "As I repeatedly requested, Court should recommend law enforcement review my mulitple related cases and arrest everyone. This is in addition to my concerns expressed in the reponse to the order to show cause I submitted. /n" 
+    intro_text = "The judge is correct that the LAPD has no authority or remedy if I kill LAPD officers. /n The original cause of action was the fact that the majority of LAPD officers are illegal immigrants, and I requested all LAPD vehicles auctioned and destroyed to prevent use by illegals. /n Because Judge Kin is disqualified, he has no right to hear the case anyway and should either dismiss or reassign.  /n" 
     y_position -= .25*inch
     
     
@@ -152,7 +152,7 @@ def create_pdf(output_filename):
 
     y_position=doer(intro_text,y_position)			
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/15/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/21/2026")
     c=dopage(c,1)
 
 
