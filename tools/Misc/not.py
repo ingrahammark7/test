@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Police Department",
+        "Los Angeles City Attourney Office",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -93,7 +93,7 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Roman", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Case Number: 25STCP03825")
+    c.drawString(space, top_margin - 4* inch, "Case Number: 26STCP00202")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.25* inch, footer_text)
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "The judge is correct that the LAPD has no authority or remedy if I kill LAPD officers. /n The original cause of action was the fact that the majority of LAPD officers are illegal immigrants, and I requested all LAPD vehicles auctioned and destroyed to prevent use by illegals. /n Because Judge Kin is disqualified, he has no right to hear the case anyway and should either dismiss or reassign.  /n" 
+    intro_text = "Clerk has prohibited me from mentioning the California statute which has placed court in contempt. This statute is a legal basis for all of my cases. /n Persons claiming to be from City Attorney faked the transcript in case 25STCP00742 and committed numerous felonies and should be in jail. These facts are self evident to anyone reading the faked transcript.  /n" 
     y_position -= .25*inch
     
     
