@@ -1,32 +1,43 @@
-import math
+import numpy as np
 
-# Door parameters
-m = 120.0         # kg, mass of sliding door
-d = 2.0           # meters, distance door slides to fully open
+# Assumptions
+total_debt = 40_000_000_000_000  # $40T
+short_term_pct = 0.10            # 10% is 6-month debt
+short_term_maturity_months = 6
+annual_rate = 0.25               # 25% annual
+ceiling_margin = 2_000_000_000_000  # $2T margin
 
-# Motor / EM parameters
-F_emag = 400.0    # N, electromagnetic force provided by motor
-a_max = F_emag / m  # m/s², acceleration
+# Derived
+short_term_debt = total_debt * short_term_pct
+monthly_rate = annual_rate / 12
 
-# Assuming constant acceleration until halfway, then deceleration
-d_half = d / 2
+# Simulation
+debt = total_debt
+month = 0
+ceiling_used = 0
 
-# Time to reach half distance using s = 0.5 * a * t^2
-t_half = math.sqrt(2 * d_half / a_max)
+while ceiling_used < ceiling_margin:
+    month += 1
 
-# Total time to open (accelerate + decelerate)
-t_total = 2 * t_half
+    # Interest on total debt
+    interest = debt * monthly_rate
 
-# Velocity at midpoint
-v_max = a_max * t_half
+    # Assume interest is borrowed (added to debt)
+    debt += interest
+    ceiling_used += interest
 
-# Power required at midpoint (P = F * v)
-P_max = F_emag * v_max  # Watts
+    # Rollover short-term debt every 6 months
+    if month % short_term_maturity_months == 0:
+        # Short-term portion is rolled over
+        # (It has already accumulated interest in debt)
+        rollover = short_term_debt * (1 + annual_rate/2)
+        debt += rollover - short_term_debt
+        ceiling_used += rollover - short_term_debt
+        short_term_debt = rollover
 
-print(f"Door mass: {m} kg")
-print(f"Slide distance: {d} m")
-print(f"Electromagnetic force: {F_emag} N")
-print(f"Max acceleration: {a_max:.2f} m/s²")
-print(f"Time to fully open: {t_total:.2f} s")
-print(f"Max velocity: {v_max:.2f} m/s")
-print(f"Max power required: {P_max:.2f} W")
+    if month > 24:  # prevent infinite loop
+        break
+
+print(f"Months until ceiling consumed: {month}")
+print(f"Debt at that time: ${debt/1e12:.2f}T")
+print(f"Ceiling used: ${ceiling_used/1e12:.2f}T")
