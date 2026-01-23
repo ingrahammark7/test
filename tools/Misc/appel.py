@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order" 
+footer_text = "Appendix" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -96,10 +96,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STRO06765")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP00742")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B350852")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B349749")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "The court upload system is deleting PDF bookmarks. Court should advise or drop bookmark requirement because it contradicts CRC. /n" 
+    intro_text = "Appendix table of contents: /n 3. Appealed order. /n 6. Notice of Appeal /n 7. Record designation. /n No register of actions as appendix ordered. /n" 
     y_position -= .25*inch
     
     
