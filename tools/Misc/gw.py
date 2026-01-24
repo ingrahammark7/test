@@ -6,19 +6,15 @@ G = 6.67430e-11
 h = 6.62607015e-34
 
 # Parameters
-N = 1e40
+N = 1e30
 wavelength_m = 500e-9
-R0 = 1e-15
+R0 = 1e-12
 
 # Derived quantities
 E0 = N * h * c / wavelength_m
 
-# Anisotropy parameter
-f0 = 0.55        # base inward fraction
-k = 1e-20        # dimensionless coupling
-
-# Reference acceleration (choose something physical)
-a0 = 1e25       # m/s^2
+# Anisotropy parameter (inward)
+f = 0.45        # <0.5 = inward momentum
 
 # Integration settings
 dt = 1e-20
@@ -39,16 +35,9 @@ for i in range(steps):
     # Gravity
     a_grav = -G * M / R**2
 
-    # Dimensionless anisotropy adjustment
-    f = f0 + k * (a_grav / a0)
-
-    # Clamp f between 0 and 1
-    f = max(0.0, min(1.0, f))
-
-    # Net pressure acceleration from anisotropy
-    P_net = (2*f0 - 1) * (u/3)
+    # Net pressure acceleration from inward anisotropy
+    P_net = (2*f - 1) * (u/3)
     a_press = P_net / (rho * R)
-    a_press/=300e3
 
     # Net acceleration
     a = a_grav + a_press
@@ -62,4 +51,4 @@ for i in range(steps):
         break
 
     if i % 20 == 0:
-        print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}, f={f:.3f}")
+        print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}")
