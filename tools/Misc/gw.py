@@ -1,52 +1,49 @@
 import numpy as np
 
 # Constants
-c = 299792458.0              # speed of light (m/s)
-G = 6.67430e-11              # gravitational constant (m^3 kg^-1 s^-2)
-h = 6.62607015e-34           # Planck constant (J s)
+c = 299792458.0
+G = 6.67430e-11
+h = 6.62607015e-34
 
-def photon_energy(wavelength_m):
-    return h * c / wavelength_m
+# Parameters
+N = 1e20
+wavelength_m = 500e-9
+R0 = 1e-10
 
-def schwarzschild_radius(mass_kg):
-    return 2 * G * mass_kg / c**2
+# Derived quantities
+E = N * h * c / wavelength_m
+M = E / c**2
 
-def gravitational_acceleration(mass_kg, radius_m):
-    return G * mass_kg / radius_m**2
+# Anisotropy parameter (negative means inward pressure)
+alpha = -0.9
 
-def main():
-    # Default values
-    N = 1e20               # number of photons
-    wavelength_nm = 500    # photon wavelength in nm
-    radius_m = 1e-10       # confinement radius (1 Å)
-    time_s = 1.0
+# Integration settings
+dt = 1e-20
+steps = 200
 
-    wavelength_m = wavelength_nm * 1e-9
-    E_total = N * photon_energy(wavelength_m)
-    mass_equiv = E_total / c**2
-    Rs = schwarzschild_radius(mass_equiv)
-    ag = gravitational_acceleration(mass_equiv, radius_m)
+R = R0
+v = 0.0
 
-    drift_speed = ag * time_s
-    drift_distance = 0.5 * ag * time_s**2
+for i in range(steps):
+    # Energy density and mass density
+    V = (4/3) * np.pi * R**3
+    u = E / V
+    rho = u / c**2
 
-    # time to travel radius under constant acceleration
-    t_collapse = np.sqrt(2 * radius_m / ag)
+    # Gravity acceleration
+    a_grav = -G * M / R**2
 
-    print("\n--- Results ---")
-    print(f"Total photon energy: {E_total:.3e} J")
-    print(f"Mass equivalent: {mass_equiv:.3e} kg")
-    print(f"Schwarzschild radius: {Rs:.3e} m")
-    print(f"Confinement radius: {radius_m:.3e} m")
-    print(f"Gravity acceleration at radius: {ag:.3e} m/s^2")
-    print(f"Drift speed after 1 s: {drift_speed:.3e} m/s")
-    print(f"Drift distance after 1 s: {drift_distance:.3e} m")
-    print(f"Time to move {radius_m:.3e} m under constant acceleration: {t_collapse:.3e} s")
-    halv=radius_m/c
-    ra=t_collapse/halv
-    refl=.5
-    ra*=refl
-    print("photon population to collapse one pair",ra)
+    # Effective pressure acceleration (anisotropic)
+    a_press = alpha * (u / 3) / (rho * R)
 
-if __name__ == "__main__":
-    main()
+    a = a_grav + a_press
+
+    v += a * dt
+    R += v * dt
+
+    if R <= 0:
+        print(f"Collapse at step {i}, time {i*dt:.3e} s")
+        break
+
+    if i % 20 == 0:
+        print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}")
