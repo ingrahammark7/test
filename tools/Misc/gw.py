@@ -25,7 +25,7 @@ v = 0.0
 E = E0
 
 for i in range(steps):
-    # Energy stays constant
+    # Total mass
     M = E / c**2
 
     # Energy density
@@ -35,9 +35,11 @@ for i in range(steps):
     # Gravity
     a_grav = -G * M / R**2
 
-    # Net pressure acceleration from inward anisotropy
-    P_net = (2*f - 1) * (u/3)
-    a_press = P_net / (rho * R)
+    # Radiation pressure (anisotropic)
+    P_rad = (2*f - 1) * (u/3)
+
+    # Pressure acceleration (correct scaling)
+    a_press = 3 * P_rad / (rho * R)
 
     # Net acceleration
     a = a_grav + a_press
@@ -46,9 +48,15 @@ for i in range(steps):
     v += a * dt
     R += v * dt
 
+    # Schwarzschild check
+    Rs = 2 * G * M / c**2
+    if R <= Rs:
+        print(f"Schwarzschild collapse at step {i}, time {i*dt:.3e} s, R={R:.3e}, Rs={Rs:.3e}")
+        break
+
     if R <= 0:
         print(f"Collapse at step {i}, time {i*dt:.3e} s")
         break
 
     if i % 20 == 0:
-        print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}")
+        print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}, Rs={Rs:.3e}")
