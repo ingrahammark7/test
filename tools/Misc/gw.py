@@ -5,51 +5,55 @@ c = 299792458.0
 G = 6.67430e-11
 h = 6.62607015e-34
 
-# Photon energy for 500 nm
+# Photon energy (500 nm)
 lambda_m = 500e-9
 E_ph = h * c / lambda_m
 
-def schwarzschild_radius(mass):
-    return 2 * G * mass / c**2
+def n_min_for_collapse(V1):
+    return (c**4 / (2 * G * E_ph)) * ((3 * V1) / (4 * np.pi))**(1/3)
 
-def simulate_fluctuation(N=1e30, R0=1e-15, dt=1e-20, steps=50000*10**2):
-    R = R0
-    v = 0.0
+def poisson_tail(lambda_val, k_min, max_terms=100000):
+    # computes P(n >= k_min) for Poisson(lambda_val)
+    # using log-sum to avoid overflow
 
-    for i in range(steps):
+    log_term = -lambda_val  # start with n=0 term
+    # compute log(P0)
+    log_p0 = log_term
+    tail = 0.0
 
-        # random subpopulation size (fraction)
-        n = int(N * np.random.rand() * 1e-6)
-        if n < 1:
-            n = 1
+    # compute Poisson terms incrementally
+    term = np.exp(log_p0)
+    for n in range(0, k_min):
+        # build up to k_min (ignore them)
+        term *= lambda_val / (n + 1)
 
-        # random subradius
-        R1 = R * np.random.rand() * 0.5
+    # now term = P(k_min)
+    tail += term
 
-        # mass of the fluctuation
-        E1 = n * E_ph
-        M1 = E1 / c**2
-        Rs1 = schwarzschild_radius(M1)
+    for n in range(k_min, k_min + max_terms):
+        term *= lambda_val / (n + 1)
+        tail += term
+        if term < 1e-50:
+            break
 
-        if R1 <= Rs1:
-            print("Collapse triggered by fluctuation at step", i)
-            print("n=", n, "R1=", R1, "Rs1=", Rs1)
-            return True
+    return tail
 
-        # bulk contraction
-        M = (N * E_ph) / c**2
-        a_grav = -G * M / R**2
-        v += a_grav * dt
-        R += v * dt
+def collapse_probability(N, V0, V1):
+    lam = N * (V1 / V0)
+    nmin = int(np.ceil(n_min_for_collapse(V1)))
 
-        if R <= 0:
-            print("Bulk collapse at step", i)
-            return True
+    return poisson_tail(lam, nmin)
 
-        if i % 5000 == 0:
-            print(f"Step {i}: R={R:.3e}, Rs={schwarzschild_radius(M):.3e}")
+def run_example():
+    N = 1e30
+    R0 = 1e-15
+    R1 = 1e-20
 
-    print("No collapse occurred in this run.")
-    return False
+    V0 = (4/3) * np.pi * R0**3
+    V1 = (4/3) * np.pi * R1**3
 
-simulate_fluctuation()
+    prob = collapse_probability(N, V0, V1)
+    print("Collapse probability:", prob)
+
+if __name__ == "__main__":
+    run_example()
