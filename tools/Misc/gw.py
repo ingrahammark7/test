@@ -6,11 +6,11 @@ G = 6.67430e-11
 h = 6.62607015e-34
 
 # Parameters
-N = 1e30               # photon count
+N = 1e40              # photon count
 wavelength_m = 500e-9  # photon wavelength
 R0 = 1e-12             # initial radius (m)
 dt = 1e-20
-steps = 200
+steps = 200*10**4
 
 # Derived quantities
 E0 = N * h * c / wavelength_m
@@ -19,7 +19,7 @@ E0 = N * h * c / wavelength_m
 # g = <cos^2(theta)> (0 to 1)
 # isotropic: g = 1/3
 # beamed: g -> 0
-g = 0.05
+g = 0.0
 
 # Initial conditions
 R = R0
