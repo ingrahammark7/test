@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Response to OSC"
+footer_text = "Request for Order"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles City Attourney Office",
+        "Los Angeles Superior Court",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Clerk has prohibited me from mentioning the California statute which has placed court in contempt. This statute is a legal basis for all of my cases. /n Persons claiming to be from City Attorney faked the transcript in case 25STCP00742 and committed numerous felonies and should be in jail. These facts are self evident to anyone reading the faked transcript.  /n" 
+    intro_text = "Judge should respond to all requests on all my cases. All judges should be arrested for ignoring everything filed. Judge should respond immediately and not wait for last possible moment at hearing. /n" 
     y_position -= .25*inch
     
     
