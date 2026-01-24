@@ -9,13 +9,17 @@ h = 6.62607015e-34
 N = 1e30               # photon count
 wavelength_m = 500e-9  # photon wavelength
 R0 = 1e-12             # initial radius (m)
-f = 0.45               # anisotropy (0.5 isotropic)
-
 dt = 1e-20
 steps = 200
 
 # Derived quantities
 E0 = N * h * c / wavelength_m
+
+# Anisotropy parameter:
+# g = <cos^2(theta)> (0 to 1)
+# isotropic: g = 1/3
+# beamed: g -> 0
+g = 0.05
 
 # Initial conditions
 R = R0
@@ -39,14 +43,11 @@ for i in range(steps):
     # Gravity acceleration
     a_grav = -G * M / R**2
 
-    # Radiation pressure (anisotropic)
-    P_rad = (2 * f - 1) * (u / 3)
-
-    # Pressure acceleration
-    a_press = 3 * P_rad / (rho * R)
+    # Radial radiation pressure support (anisotropic)
+    a_rad = (c**2 * g) / R
 
     # Net acceleration
-    a = a_grav + a_press
+    a = a_grav + a_rad
 
     # Integrate motion
     v += a * dt
