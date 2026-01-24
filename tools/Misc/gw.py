@@ -13,23 +13,25 @@ R0 = 1e-12
 
 E0 = N * h * c / wavelength_m
 
-# Inward anisotropy (small)
-f0 = 0.49        # <0.5 = inward bias
+# Initial anisotropy (inward)
+f = 0.49        # <0.5 inward
 
-# Energy leakage per step (0 = perfect reflection)
+# Anisotropy decay time (seconds)
+tau = 1e-18     # try different values
+
+# Energy leakage per step
 leak_rate = 1e-4
 
 # Integration settings
 dt = 1e-20
 steps = 200
 
-# Initial conditions
 R = R0
 v = 0.0
 E = E0
 
 for i in range(steps):
-    # Apply leakage
+    # Energy leakage
     E *= (1 - leak_rate)
 
     # Mass equivalent
@@ -39,17 +41,15 @@ for i in range(steps):
     u = E / ((4/3) * math.pi * R**3)
     rho = u / c**2
 
-    # Gravity acceleration
+    # Gravity
     a_grav = -G * M / R**2
 
-    # Pressure anisotropy (bounded)
-    f = max(0.0, min(1.0, f0))
+    # Update anisotropy with decay
+    f = 0.5 + (f - 0.5) * math.exp(-dt/tau)
+
+    # Pressure
     P_net = (2*f - 1) * (u/3)
-
-    # Bound the pressure to physical maximum
     P_net = max(-u/3, min(u/3, P_net))
-
-    # Pressure acceleration
     a_press = P_net / (rho * R)
 
     # Net acceleration
@@ -60,8 +60,8 @@ for i in range(steps):
     R += v * dt
 
     if R <= 0:
-        print(f"Collapse at step {i}, time {i*dt:.3e} s")
+        print(f"Collapse at step {i}, time {i*dt:.3e} s, f={f:.6f}")
         break
 
     if i % 20 == 0:
-        print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}, f={f:.3f}")
+        print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}, f={f:.6f}")
