@@ -1,67 +1,72 @@
 import numpy as np
-import math
 
 # Constants
 c = 299792458.0
 G = 6.67430e-11
-h = 6.62607015e-34
+hbar = 1.054571817e-34
 
-# Parameters
-N = 1e30
-wavelength_m = 500e-9
-R0 = 1e-12
+def schwarzschild_radius(mass):
+    return 2 * G * mass / c**2
 
-E0 = N * h * c / wavelength_m
+def photon_energy_confined(R):
+    # Approximate photon energy when confined to radius R
+    # E ~ ħ c / R
+    return hbar * c / R
 
-# Initial anisotropy (inward)
-f = 0.49        # <0.5 inward
+def run_simulation(N=1e30, R0=1e-20, f=0.55, leak_rate=0.0, dt=1e-22, steps=2000):
+    R = R0
+    v = 0.0
+    t = 0.0
 
-# Anisotropy decay time (seconds)
-tau = 1e-18     # try different values
+    for i in range(steps):
+        # Photon energy depends on confinement
+        E_ph = photon_energy_confined(R)
 
-# Energy leakage per step
-leak_rate = 1e-4
+        # Total energy
+        E = N * E_ph
 
-# Integration settings
-dt = 1e-20
-steps = 200
+        # Mass equivalent
+        M = E / c**2
 
-R = R0
-v = 0.0
-E = E0
+        # Schwarzschild radius
+        Rs = schwarzschild_radius(M)
 
-for i in range(steps):
-    # Energy leakage
-    E *= (1 - leak_rate)
+        # Energy density
+        u = E / ((4/3) * np.pi * R**3)
+        rho = u / c**2
 
-    # Mass equivalent
-    M = E / c**2
+        # Gravity acceleration
+        a_grav = -G * M / R**2
 
-    # Energy density
-    u = E / ((4/3) * math.pi * R**3)
-    rho = u / c**2
+        # Radiation pressure in radial direction (anisotropic)
+        # f = inward fraction of photons
+        P_rad = (2*f - 1) * u
 
-    # Gravity
-    a_grav = -G * M / R**2
+        # Pressure acceleration
+        a_rad = P_rad / (rho * R)
 
-    # Update anisotropy with decay
-    f = 0.5 + (f - 0.5) * math.exp(-dt/tau)
+        # Net acceleration
+        a = a_grav + a_rad
 
-    # Pressure
-    P_net = (2*f - 1) * (u/3)
-    P_net = max(-u/3, min(u/3, P_net))
-    a_press = P_net / (rho * R)
+        # Integrate
+        v += a * dt
+        R += v * dt
+        t += dt
 
-    # Net acceleration
-    a = a_grav + a_press
+        # Leakage
+        N *= (1 - leak_rate)
 
-    # Integrate
-    v += a * dt
-    R += v * dt
+        # Output every 200 steps
+        if i % 200 == 0:
+            print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}, Rs={Rs:.3e}, E_ph={E_ph:.3e}")
 
-    if R <= 0:
-        print(f"Collapse at step {i}, time {i*dt:.3e} s, f={f:.6f}")
-        break
+        if R <= 0:
+            print(f"Collapse at step {i}, time {t:.3e} s")
+            break
 
-    if i % 20 == 0:
-        print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}, f={f:.6f}")
+        if R < 1e-20:
+            print("Stopping: radius too small for approximation.")
+            break
+
+if __name__ == "__main__":
+    run_simulation()
