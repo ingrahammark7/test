@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 # Constants
 c = 299792458.0
@@ -10,33 +11,45 @@ N = 1e30
 wavelength_m = 500e-9
 R0 = 1e-12
 
-# Derived quantities
 E0 = N * h * c / wavelength_m
 
-# Anisotropy parameter (inward)
-f = 0.45        # <0.5 = inward momentum
+# Inward anisotropy (small)
+f0 = 0.49        # <0.5 = inward bias
+
+# Energy leakage per step (0 = perfect reflection)
+leak_rate = 1e-4
 
 # Integration settings
 dt = 1e-20
 steps = 200
 
+# Initial conditions
 R = R0
 v = 0.0
 E = E0
 
 for i in range(steps):
-    # Energy stays constant
+    # Apply leakage
+    E *= (1 - leak_rate)
+
+    # Mass equivalent
     M = E / c**2
 
     # Energy density
-    u = E / ((4/3) * np.pi * R**3)
+    u = E / ((4/3) * math.pi * R**3)
     rho = u / c**2
 
-    # Gravity
+    # Gravity acceleration
     a_grav = -G * M / R**2
 
-    # Net pressure acceleration from inward anisotropy
+    # Pressure anisotropy (bounded)
+    f = max(0.0, min(1.0, f0))
     P_net = (2*f - 1) * (u/3)
+
+    # Bound the pressure to physical maximum
+    P_net = max(-u/3, min(u/3, P_net))
+
+    # Pressure acceleration
     a_press = P_net / (rho * R)
 
     # Net acceleration
@@ -51,4 +64,4 @@ for i in range(steps):
         break
 
     if i % 20 == 0:
-        print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}")
+        print(f"Step {i}: R={R:.3e}, v={v:.3e}, a={a:.3e}, f={f:.3f}")
