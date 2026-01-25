@@ -1,23 +1,38 @@
-# constants
-c = 299792458.0
-G = 6.67430e-11
+import numpy as np, matplotlib.pyplot as plt
 
-# inputs
-n = 1e30
-E_gamma = 1e-19     # J
-R = 1e-12           # m
+# Define density range and threshold
+rho = np.logspace(-3, 3, 400)  # arbitrary units
+rho_c = 1.0  # threshold
+D0 = 1.0
+G0 = 1.0
 
-# total energy and mass
-E = n * E_gamma
-M = E / c**2
+# Drag model: binary
+D = np.where(rho < rho_c, D0, 0.0)
 
-# dynamical (causal) collapse time
-t_collapse = R / c
+# Gravity model: assume constant for simplicity (since binding is separate)
+G = G0 * np.ones_like(rho)
 
-# optional: curvature timescale (same order)
-t_gr = (R**3 / (G * M))**0.5
+# Ratio (avoid division by zero)
+ratio = np.where(G > 0, D/G, np.nan)
 
-print("Total energy (J):", E)
-print("Equivalent mass (kg):", M)
-print("Light-crossing time (s):", t_collapse)
-print("Gravitational timescale (s):", t_gr)
+plt.figure(figsize=(7,3))
+plt.loglog(rho, D, label="Drag D(ρ)")
+plt.axvline(rho_c, color='k', linestyle='--', label="ρ_c (threshold)")
+plt.xlabel("Ether density ρ (arb. units)")
+plt.ylabel("Drag magnitude")
+plt.title("Binary drag vs density (ether density controls drag)")
+plt.grid(True, which="both", ls="--", alpha=0.4)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(7,3))
+plt.loglog(rho, ratio, label="D/G ratio")
+plt.axvline(rho_c, color='k', linestyle='--', label="ρ_c")
+plt.xlabel("Ether density ρ (arb. units)")
+plt.ylabel("Drag-to-Gravity ratio")
+plt.title("Drag-to-gravity ratio vs ether density")
+plt.grid(True, which="both", ls="--", alpha=0.4)
+plt.legend()
+plt.tight_layout()
+plt.show()
