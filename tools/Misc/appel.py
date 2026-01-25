@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Appendix" 
+footer_text = "Reply Brief" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Appendix table of contents: /n 3. Appealed order. /n 6. Notice of Appeal /n 7. Record designation. /n No register of actions as appendix ordered. /n" 
+    intro_text = "Respondent brief is not viewable. Judge should make decision immediately so case can be appealed to supreme court. /n" 
     y_position -= .25*inch
     
     
