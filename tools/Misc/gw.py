@@ -18,4 +18,4 @@ cop=c/cr
 cops=cop*n
 cops**=2
 re=cops/volm
-print("chamber at watts ",mi," collides distance ",cr,"in seconds",re,"wall length",dis)
+print("chamber at watts ",mi/1e9," collides distance ",cr,"in seconds",re,"wall length",dis)
