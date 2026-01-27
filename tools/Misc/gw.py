@@ -2,7 +2,7 @@ import numpy as np
 import math
 
 c=3e8
-n=1e1
+n=1e100
 ev=1e-19
 mp=1e6
 mi=n*ev
@@ -12,8 +12,8 @@ ar=to/mp
 dis=ar**.5
 vol=dis**3
 
-cr=1e-60          # cross-section (m^2), not a length
-vols=cr       
+cr=1e-60         
+vols=cr**3       
 volm=vol/vols
 
 cop=c/cr
