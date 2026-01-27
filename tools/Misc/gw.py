@@ -13,7 +13,7 @@ dis=ar**.5
 vol=dis**3
 
 cr=1e-60          # cross-section (m^2), not a length
-vols=cr**3       # <-- DO NOT cube it
+vols=cr       
 volm=vol/vols
 
 cop=c/cr
