@@ -11,11 +11,14 @@ to=mi/ref
 ar=to/mp
 dis=ar**.5
 vol=dis**3
-cr=1e-60
-vols=cr**3
+
+cr=1e-60          # cross-section (m^2), not a length
+vols=cr           # <-- DO NOT cube it
 volm=vol/vols
+
 cop=c/cr
 cops=cop*n
 cops**=2
 re=cops/volm
-print("chamber at watts ",mi/1e9," collides distance ",cr,"in seconds",re,"wall length",dis)
+
+print("chamber at watts ",mi," collides distance ",cr,"in seconds",re,"wall length",dis)
