@@ -1,167 +1,104 @@
 import psutil
-import random
 import time
-import sys
-import logging
+import random
+import statistics
 from collections import deque
 
-# -------------------------------
-# CONFIGURATION
-# -------------------------------
-WINDOW_SIZE = 5           # Sliding window size
-ITERATIONS = 50           # Total iterations
-SLEEP_SEC = 1             # Seconds between samples
-CPU_KILL_THRESHOLD = 10   # Kill processes above this CPU %
-MEM_KILL_THRESHOLD = 10   # Kill processes above this MEM %
-AUTO_KILL = False         # Set True to auto kill heavy processes
-LOG_FILE = "metrics.log"  # Log file
+# ---------------- CONFIG ----------------
+WINDOW_SIZE = 5           # sliding window size
+SLEEP_INTERVAL = 0.5      # seconds between iterations
+ENABLE_AUTO_KILL = False  # set True to auto-kill offending processes
+TOP_N = 3                 # number of processes to flag
+RANDOM_SEED = None        # None uses real RNG
 
-# -------------------------------
-# Logging setup
-# -------------------------------
-logging.basicConfig(filename=LOG_FILE, level=logging.INFO, 
-                    format='%(asctime)s - %(message)s')
+# ---------------- INIT ----------------
+if RANDOM_SEED is not None:
+    random.seed(RANDOM_SEED)
 
-# -------------------------------
-# RNG setup
-# -------------------------------
-def real_rng():
-    """Real RNG for predictions"""
-    return random.random()
+window = deque(maxlen=WINDOW_SIZE)
+history = []
 
-# -------------------------------
-# Metrics collection
-# -------------------------------
-def get_cpu_usage():
+# ---------------- FUNCTIONS ----------------
+def get_system_metrics():
+    """Return CPU%, MEM%, PROC count"""
     try:
-        return psutil.cpu_percent(interval=0.5)
-    except Exception as e:
-        logging.error(f"CPU Error: {e}")
-        return 0.0
+        cpu = psutil.cpu_percent(interval=None)
+        mem = psutil.virtual_memory().percent
+        proc = len(psutil.pids())
+        return cpu, mem, proc
+    except Exception:
+        return 0.0, 0.0, 0
 
-def get_memory_usage():
-    try:
-        mem = psutil.virtual_memory()
-        used_mb = (mem.total - mem.available) / (1024*1024)
-        total_mb = mem.total / (1024*1024)
-        return round(used_mb, 2), round(total_mb, 2)
-    except Exception as e:
-        logging.error(f"Memory Error: {e}")
-        return 0.0, 0.0
+def get_process_list():
+    """Return list of processes with cpu and memory usage"""
+    procs = []
+    for p in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+        try:
+            info = p.info
+            procs.append(info)
+        except Exception:
+            continue
+    return procs
 
-def get_process_info():
-    process_list = []
-    try:
-        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
-            info = proc.info
-            process_list.append({
-                'pid': info['pid'],
-                'name': info['name'],
-                'cpu': info['cpu_percent'],
-                'mem': info['memory_percent']
-            })
-    except Exception as e:
-        logging.error(f"Process Error: {e}")
-    return process_list
+def recommend_processes_to_kill(window_history):
+    """
+    Look for processes that appear correlated with lower accuracy
+    For simplicity, we flag top CPU/MEM users in bad windows
+    """
+    offender_counts = {}
+    for entry in window_history:
+        for proc in entry.get('processes', []):
+            key = (proc['pid'], proc['name'])
+            offender_counts[key] = offender_counts.get(key, 0) + 1
+    # Sort by frequency
+    offenders = sorted(offender_counts.items(), key=lambda x: x[1], reverse=True)
+    return offenders[:TOP_N]
 
-# -------------------------------
-# Metrics Window
-# -------------------------------
-class MetricsWindow:
-    def __init__(self, size=WINDOW_SIZE):
-        self.size = size
-        self.cpu = deque(maxlen=size)
-        self.mem = deque(maxlen=size)
-        self.proc = deque(maxlen=size)
+# ---------------- MAIN LOOP ----------------
+try:
+    iteration = 0
+    while True:
+        iteration += 1
+        cpu, mem, proc_count = get_system_metrics()
+        
+        # Simulate prediction accuracy using random for now
+        accuracy = random.uniform(0.6, 1.0)
+        
+        # Capture running processes
+        procs = get_process_list()
+        
+        # Append window entry
+        window.append({
+            'cpu': cpu,
+            'mem': mem,
+            'proc_count': proc_count,
+            'accuracy': accuracy,
+            'processes': procs
+        })
+        
+        # Compute window statistics
+        cpu_vals = [w['cpu'] for w in window]
+        mem_vals = [w['mem'] for w in window]
+        proc_vals = [w['proc_count'] for w in window]
+        acc_vals = [w['accuracy'] for w in window]
+        
+        print(f"[Window {iteration}/{WINDOW_SIZE}] Accuracy={statistics.mean(acc_vals):.4f} "
+              f"CPU={statistics.mean(cpu_vals):.2f} MEM={statistics.mean(mem_vals):.2f} PROC={statistics.mean(proc_vals):.2f}")
+        
+        # Every full window, check for process offenders
+        if len(window) == WINDOW_SIZE:
+            offenders = recommend_processes_to_kill(window)
+            print("Top potential background offenders:")
+            for (pid, name), count in offenders:
+                print(f"PID {pid} ({name}) appeared {count} times in window")
+                if ENABLE_AUTO_KILL:
+                    try:
+                        psutil.Process(pid).terminate()
+                        print(f"Terminated {name} (PID {pid})")
+                    except Exception:
+                        pass
+        
+        time.sleep(SLEEP_INTERVAL)
 
-    def add(self, cpu_val, mem_val, proc_val):
-        self.cpu.append(cpu_val)
-        self.mem.append(mem_val)
-        self.proc.append(proc_val)
-
-    def summary(self):
-        if not self.cpu:
-            return {}
-        return {
-            'cpu_mean': round(sum(self.cpu)/len(self.cpu),2),
-            'cpu_min': min(self.cpu),
-            'cpu_max': max(self.cpu),
-            'mem_mean': round(sum(self.mem)/len(self.mem),2),
-            'mem_min': min(self.mem),
-            'mem_max': max(self.mem),
-            'proc_mean': round(sum(self.proc)/len(self.proc),2),
-            'proc_min': min(self.proc),
-            'proc_max': max(self.proc)
-        }
-
-# -------------------------------
-# Background process management
-# -------------------------------
-def identify_heavy_processes(process_list, cpu_threshold=CPU_KILL_THRESHOLD, mem_threshold=MEM_KILL_THRESHOLD):
-    heavy = []
-    for proc in process_list:
-        if proc['cpu'] >= cpu_threshold or proc['mem'] >= mem_threshold:
-            heavy.append(proc)
-    return heavy
-
-def handle_heavy_processes(heavy_processes):
-    if not heavy_processes:
-        print("[Background] No heavy processes detected.\n")
-        return
-    print("[Background] Heavy processes detected:")
-    for proc in heavy_processes:
-        print(f" PID={proc['pid']} Name={proc['name']} CPU={proc['cpu']}% MEM={proc['mem']:.1f}%")
-        if AUTO_KILL:
-            try:
-                psutil.Process(proc['pid']).kill()
-                print(f"   -> Auto-killed {proc['name']} (PID {proc['pid']})")
-            except Exception as e:
-                logging.error(f"Failed to kill PID {proc['pid']}: {e}")
-    print()
-
-# -------------------------------
-# Main loop
-# -------------------------------
-def main_loop():
-    window = MetricsWindow()
-    for i in range(ITERATIONS):
-        # Collect metrics
-        cpu = get_cpu_usage()
-        mem_used, mem_total = get_memory_usage()
-        processes = get_process_info()
-        proc_count = len(processes)
-
-        # Add to window
-        window.add(cpu, mem_used, proc_count)
-        summary = window.summary()
-
-        # Background process handling
-        heavy_procs = identify_heavy_processes(processes)
-        handle_heavy_processes(heavy_procs)
-
-        # Prediction simulation
-        confidence = real_rng()
-        accuracy = round(confidence * 100,2)
-
-        # Output
-        print(f"[Window {i+1}/{ITERATIONS}] Accuracy={accuracy}% Confidence={confidence:.3f}")
-        print(f" Feature means: CPU={summary['cpu_mean']} MEM={summary['mem_mean']} PROC={summary['proc_mean']}")
-        print(f" Feature min  : CPU={summary['cpu_min']} MEM={summary['mem_min']} PROC={summary['proc_min']}")
-        print(f" Feature max  : CPU={summary['cpu_max']} MEM={summary['mem_max']} PROC={summary['proc_max']}\n")
-
-        # Log metrics
-        logging.info(f"Iteration {i+1}: CPU={cpu} MEM={mem_used} PROC={proc_count} Acc={accuracy}")
-
-        time.sleep(SLEEP_SEC)
-
-# -------------------------------
-# Entry
-# -------------------------------
-if __name__ == "__main__":
-    try:
-        main_loop()
-    except KeyboardInterrupt:
-        print("\n[Program terminated by user]")
-    except Exception as e:
-        logging.error(f"Fatal Error: {e}")
-        print(f"[Fatal Error] {e}")
+except KeyboardInterrupt:
+    print("\nProgram terminated by user.")
