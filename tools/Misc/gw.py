@@ -1,104 +1,100 @@
-import psutil
+import os
 import time
 import random
-import statistics
-from collections import deque
 
-# ---------------- CONFIG ----------------
-WINDOW_SIZE = 5           # sliding window size
-SLEEP_INTERVAL = 0.5      # seconds between iterations
-ENABLE_AUTO_KILL = False  # set True to auto-kill offending processes
-TOP_N = 3                 # number of processes to flag
-RANDOM_SEED = None        # None uses real RNG
-
-# ---------------- INIT ----------------
-if RANDOM_SEED is not None:
-    random.seed(RANDOM_SEED)
-
-window = deque(maxlen=WINDOW_SIZE)
-history = []
-
-# ---------------- FUNCTIONS ----------------
-def get_system_metrics():
-    """Return CPU%, MEM%, PROC count"""
+# --- True hardware RNG on Android ---
+def true_random_float():
     try:
-        cpu = psutil.cpu_percent(interval=None)
-        mem = psutil.virtual_memory().percent
-        proc = len(psutil.pids())
-        return cpu, mem, proc
+        with open("/dev/urandom", "rb") as f:
+            # Read 4 bytes and convert to float between 0 and 1
+            val = int.from_bytes(f.read(4), "big") / 0xFFFFFFFF
+            return val
     except Exception:
-        return 0.0, 0.0, 0
+        return 0.0  # fallback if /dev/urandom fails
 
-def get_process_list():
-    """Return list of processes with cpu and memory usage"""
-    procs = []
-    for p in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
-        try:
-            info = p.info
-            procs.append(info)
-        except Exception:
-            continue
-    return procs
+# --- CPU usage from /proc/stat ---
+def get_cpu_percent(prev_total=0, prev_idle=0):
+    try:
+        with open("/proc/stat") as f:
+            line = f.readline()
+        parts = line.split()
+        if parts[0] != "cpu":
+            return 0.0, 0, 0
 
-def recommend_processes_to_kill(window_history):
-    """
-    Look for processes that appear correlated with lower accuracy
-    For simplicity, we flag top CPU/MEM users in bad windows
-    """
-    offender_counts = {}
-    for entry in window_history:
-        for proc in entry.get('processes', []):
-            key = (proc['pid'], proc['name'])
-            offender_counts[key] = offender_counts.get(key, 0) + 1
-    # Sort by frequency
-    offenders = sorted(offender_counts.items(), key=lambda x: x[1], reverse=True)
-    return offenders[:TOP_N]
+        values = list(map(int, parts[1:]))
+        idle = values[3] + values[4]  # idle + iowait
+        total = sum(values)
 
-# ---------------- MAIN LOOP ----------------
-try:
-    iteration = 0
-    while True:
-        iteration += 1
-        cpu, mem, proc_count = get_system_metrics()
-        
-        # Simulate prediction accuracy using random for now
-        accuracy = random.uniform(0.6, 1.0)
-        
-        # Capture running processes
-        procs = get_process_list()
-        
-        # Append window entry
-        window.append({
-            'cpu': cpu,
-            'mem': mem,
-            'proc_count': proc_count,
-            'accuracy': accuracy,
-            'processes': procs
-        })
-        
-        # Compute window statistics
-        cpu_vals = [w['cpu'] for w in window]
-        mem_vals = [w['mem'] for w in window]
-        proc_vals = [w['proc_count'] for w in window]
-        acc_vals = [w['accuracy'] for w in window]
-        
-        print(f"[Window {iteration}/{WINDOW_SIZE}] Accuracy={statistics.mean(acc_vals):.4f} "
-              f"CPU={statistics.mean(cpu_vals):.2f} MEM={statistics.mean(mem_vals):.2f} PROC={statistics.mean(proc_vals):.2f}")
-        
-        # Every full window, check for process offenders
-        if len(window) == WINDOW_SIZE:
-            offenders = recommend_processes_to_kill(window)
-            print("Top potential background offenders:")
-            for (pid, name), count in offenders:
-                print(f"PID {pid} ({name}) appeared {count} times in window")
-                if ENABLE_AUTO_KILL:
-                    try:
-                        psutil.Process(pid).terminate()
-                        print(f"Terminated {name} (PID {pid})")
-                    except Exception:
-                        pass
-        
-        time.sleep(SLEEP_INTERVAL)
+        diff_total = total - prev_total if prev_total else 0
+        diff_idle = idle - prev_idle if prev_idle else 0
+        cpu_percent = (1.0 - diff_idle/diff_total) if diff_total else 0.0
 
-except KeyboardInterrupt:
-    print("\nProgram terminated by user.")
+        return cpu_percent, total, idle
+    except Exception:
+        return 0.0, 0, 0
+
+# --- Memory usage ---
+def read_mem_usage():
+    try:
+        with open("/proc/meminfo") as f:
+            meminfo = f.readlines()
+        mem_total = int(meminfo[0].split()[1]) / 1024  # KB to MB
+        mem_free = int(meminfo[1].split()[1]) / 1024
+        mem_available = int(meminfo[2].split()[1]) / 1024
+        return mem_total, mem_free, mem_available
+    except Exception:
+        return 0, 0, 0
+
+# --- Python memory usage ---
+def top_python_process():
+    try:
+        pid = os.getpid()
+        with open(f"/proc/{pid}/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) / 1024  # KB to MB
+        return 0
+    except Exception:
+        return 0
+
+# --- Metrics collector ---
+class MetricsCollector:
+    def __init__(self, window_size=5):
+        self.window_size = window_size
+        self.cpu_window = []
+
+    def collect(self):
+        # CPU
+        prev_total, prev_idle = self.cpu_window[-1] if self.cpu_window else (0, 0)
+        cpu_percent, total, idle = get_cpu_percent(prev_total, prev_idle)
+        self.cpu_window.append((total, idle))
+        if len(self.cpu_window) > self.window_size:
+            self.cpu_window.pop(0)
+
+        # Memory
+        mem_total, mem_free, mem_available = read_mem_usage()
+        py_mem = top_python_process()
+        rng_val = true_random_float()
+
+        return {
+            "cpu": cpu_percent,
+            "mem_total": mem_total,
+            "mem_free": mem_free,
+            "mem_available": mem_available,
+            "py_mem": py_mem,
+            "rng": rng_val
+        }
+
+def main(iterations=20, interval=1.0):
+    collector = MetricsCollector(window_size=5)
+    for i in range(iterations):
+        metrics = collector.collect()
+        print(f"[Iteration {i+1}/{iterations}] "
+              f"CPU={metrics['cpu']*100:.2f}%, "
+              f"Mem={metrics['mem_total']:.2f}/{metrics['mem_free']:.2f}/{metrics['mem_available']:.2f} MB, "
+              f"Python Mem={metrics['py_mem']:.2f} MB, "
+              f"RNG={metrics['rng']:.6f}")
+        time.sleep(interval)
+
+if __name__ == "__main__":
+    main()
