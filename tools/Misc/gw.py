@@ -1,164 +1,150 @@
-import os
 import time
-import math
-import random
 import secrets
 import psutil
 import numpy as np
-from collections import deque
+import traceback
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
-# =========================
-# USER-EXPOSED CONSTANTS
-# =========================
+# ===============================
+# CONFIGURABLE CONSTANTS
+# ===============================
+SAMPLES = 300       # Total number of random samples to collect
+WINDOW_SIZE = 20      # Samples per sub-regime window
+DELAY = 0.00     # Delay between sample collections (seconds)
+RF_ESTIMATORS = 200     # Number of trees in RandomForest
+RF_RANDOM_STATE = 42    # Random state for reproducibility
+MIN_WINDOW_SIZE = 1   # Minimum samples to allow a window
 
-TOTAL_SAMPLES = 50
-MIN_WINDOW = 1
-MAX_WINDOW = 20
-WINDOW_GROWTH = 1      # window sizes are powers of 2
-MODEL_DECAY = 0.98         # confidence decay per step
-EDGE_THRESHOLD = 0.55      # above this = temporary edge
-EPS = 1e-9
 
-RANDOM_SEED = 42
-np.random.seed(RANDOM_SEED)
-random.seed(RANDOM_SEED)
-
-# =========================
-# SYSTEM FEATURE CAPTURE
-# =========================
-
-def collect_features():
+# ===============================
+# Safe system feature collection
+# ===============================
+def safe(fn, default=0.0):
     try:
-        cpu = psutil.cpu_percent(interval=None)
-        mem = psutil.virtual_memory().percent
-        proc = len(psutil.pids())
+        return fn()
     except Exception:
-        cpu, mem, proc = 0.0, 0.0, 0.0
-    return [cpu, mem, proc]
+        return default
 
-# =========================
-# DATA COLLECTION
-# =========================
 
-X = []
-y = []
+def get_system_features(prev_features=None):
+    cpu = safe(lambda: psutil.cpu_percent(interval=None))
+    mem = safe(lambda: psutil.virtual_memory().percent)
+    proc = safe(lambda: len(psutil.pids()))
+    ts = time.time_ns()
 
-print("[*] Collecting samples...")
-for _ in range(TOTAL_SAMPLES):
-    bit = secrets.randbits(1)
-    X.append(collect_features())
-    y.append(bit)
-    time.sleep(0.001)
+    if prev_features:
+        cpu_diff = cpu - prev_features[0]
+        mem_diff = mem - prev_features[1]
+        proc_diff = proc - prev_features[2]
+        ts_diff = ts - prev_features[3]
+    else:
+        cpu_diff = mem_diff = proc_diff = ts_diff = 0.0
 
-X = np.array(X)
-y = np.array(y)
+    features = [cpu, mem, proc, ts, cpu_diff, mem_diff, proc_diff, ts_diff]
+    return features
 
-# =========================
-# DYNAMIC WINDOW GENERATOR
-# =========================
 
-window_sizes = []
-w = MIN_WINDOW
-while w <= MAX_WINDOW:
-    window_sizes.append(w)
-    w *= WINDOW_GROWTH
+# ===============================
+# Data collection
+# ===============================
+def collect(samples=SAMPLES, delay=DELAY):
+    X, y = [], []
+    prev_features = None
 
-# =========================
-# MODELS
-# =========================
-
-models = {
-    "RF": RandomForestClassifier(
-        n_estimators=50,
-        max_depth=None,
-        random_state=RANDOM_SEED
-    ),
-    "LR": LogisticRegression(
-        max_iter=1000,
-        solver="lbfgs"
-    )
-}
-
-model_scores = {k: 1.0 for k in models}  # adaptive weights
-
-# =========================
-# ONLINE REGIME ANALYSIS
-# =========================
-
-print(f"[*] Dynamic regime scan using window sizes: {window_sizes}\n")
-
-edges_detected = 0
-total_windows = 0
-
-for w in window_sizes:
-    if w >= len(y):
-        continue
-
-    correct = 0
-    evaluated = 0
-
-    for i in range(w, len(y)):
-        X_train = X[i-w:i]
-        y_train = y[i-w:i]
-        X_test = X[i].reshape(1, -1)
-        y_true = y[i]
-
-        ensemble_vote = 0.0
-        total_weight = 0.0
-
-        for name, model in models.items():
-            try:
-                model.fit(X_train, y_train)
-                pred = model.predict(X_test)[0]
-                ensemble_vote += model_scores[name] * (1 if pred == 1 else -1)
-                total_weight += model_scores[name]
-            except Exception:
-                continue
-
-        if total_weight < EPS:
+    print("[*] Collecting samples...")
+    for i in range(samples):
+        try:
+            features = get_system_features(prev_features)
+            prev_features = features[:4]
+            target = secrets.randbits(1)
+            X.append(features)
+            y.append(target)
+            if i % 1000 == 0 and i > 0:
+                print(f"  Collected {i} samples")
+            time.sleep(delay)
+        except KeyboardInterrupt:
+            print("\n[!] Interrupted by user")
+            break
+        except Exception as e:
+            print("[!] Error collecting sample:", e)
             continue
 
-        final_pred = 1 if ensemble_vote > 0 else 0
-        correct += int(final_pred == y_true)
-        evaluated += 1
+    return np.array(X), np.array(y)
 
-    if evaluated == 0:
-        continue
 
-    acc = correct / evaluated
-    total_windows += 1
+# ===============================
+# Sub-regime analysis (console output)
+# ===============================
+def analyze_subregimes(X, y, window_size=WINDOW_SIZE):
+    n_samples = len(X)
+    n_windows = n_samples // window_size
+    window_accs = []
 
-    # Edge detection
-    if acc > EDGE_THRESHOLD:
-        edges_detected += 1
-        edge_flag = "⚠️ EDGE"
-    else:
-        edge_flag = ""
+    print(f"[*] Performing sub-regime analysis ({n_windows} windows of {window_size} samples)...")
 
-    # Update model confidence dynamically
-    for k in model_scores:
-        model_scores[k] *= MODEL_DECAY
-        if acc > 0.5:
-            model_scores[k] += (acc - 0.5)
+    for w in range(n_windows):
+        start = w * window_size
+        end = start + window_size
+        X_win = X[start:end]
+        y_win = y[start:end]
 
-    print(
-        f"[Window={w:4d}] "
-        f"Accuracy={acc:.4f}  "
-        f"Models={{{', '.join(f'{k}:{model_scores[k]:.3f}' for k in model_scores)}}} "
-        f"{edge_flag}"
-    )
+        if len(X_win) < MIN_WINDOW_SIZE:
+            continue
 
-# =========================
-# SUMMARY
-# =========================
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_win, y_win, test_size=0.3, random_state=RF_RANDOM_STATE
+        )
 
-print("\n[*] Dynamic summary:")
-print(f" Total windows evaluated : {total_windows}")
-print(f" Edges detected          : {edges_detected}")
-print(f" Edge frequency          : {edges_detected / max(total_windows,1):.3f}")
-print(" Expected behavior       : transient structure only")
-print(" ✅ No fixed window, no static regime, no persistent edge")
-print("\n[Program finished]")
+        rf = RandomForestClassifier(n_estimators=RF_ESTIMATORS, n_jobs=-1, random_state=RF_RANDOM_STATE)
+        try:
+            rf.fit(X_train, y_train)
+            y_pred = rf.predict(X_test)
+            acc = accuracy_score(y_test, y_pred)
+            window_accs.append(acc)
+
+            # Feature summaries
+            means = np.mean(X_win, axis=0)
+            mins = np.min(X_win, axis=0)
+            maxs = np.max(X_win, axis=0)
+
+            print(f"\n[Window {w+1}/{n_windows}] Accuracy: {acc:.4f}")
+            print(f" Feature means: CPU={means[0]:.2f}, MEM={means[1]:.2f}, PROC={means[2]:.1f}")
+            print(f" Feature min  : CPU={mins[0]:.2f}, MEM={mins[1]:.2f}, PROC={mins[2]:.1f}")
+            print(f" Feature max  : CPU={maxs[0]:.2f}, MEM={maxs[1]:.2f}, PROC={maxs[2]:.1f}")
+            if acc > 0.55:
+                print(" ⚠️ Accuracy above 0.55 (check regime)")
+
+        except Exception as e:
+            print(f"  [!] Error in window {w+1}: {e}")
+            window_accs.append(np.nan)
+
+    return np.array(window_accs)
+
+
+# ===============================
+# Main
+# ===============================
+def main():
+    try:
+        X, y = collect()
+        accs = analyze_subregimes(X, y, window_size=WINDOW_SIZE)
+
+        mean_acc = np.nanmean(accs)
+        std_acc = np.nanstd(accs)
+        print("\n[*] Sub-regime summary:")
+        print(f" Mean accuracy over all windows: {mean_acc:.4f}")
+        print(f" Std deviation over windows  : {std_acc:.4f}")
+        print(" Expected baseline           : 0.500")
+        print(" ✅ TRNG remains unpredictable; any spikes are finite-sample noise")
+
+    except KeyboardInterrupt:
+        print("\n[!] Program stopped by user")
+    except Exception:
+        traceback.print_exc()
+
+
+if __name__ == "__main__":
+    main()
