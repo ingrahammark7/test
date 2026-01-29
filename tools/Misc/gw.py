@@ -1,100 +1,78 @@
 import os
 import time
 import random
+import tracemalloc
 
-# --- True hardware RNG on Android ---
-def true_random_float():
+# ----------------------------
+# TRUE RNG
+# ----------------------------
+def true_rng():
+    """Return a float in [0,1) from /dev/urandom (fallback to random)."""
     try:
-        with open("/dev/urandom", "rb") as f:
-            # Read 4 bytes and convert to float between 0 and 1
-            val = int.from_bytes(f.read(4), "big") / 0xFFFFFFFF
-            return val
+        val = int.from_bytes(os.urandom(4), 'big')
+        return val / 2**32
     except Exception:
-        return 0.0  # fallback if /dev/urandom fails
+        return random.random()
 
-# --- CPU usage from /proc/stat ---
-def get_cpu_percent(prev_total=0, prev_idle=0):
+# ----------------------------
+# MEMORY METRICS
+# ----------------------------
+def memory_metrics():
+    """Return (total, used, available) memory in MB."""
     try:
-        with open("/proc/stat") as f:
-            line = f.readline()
-        parts = line.split()
-        if parts[0] != "cpu":
-            return 0.0, 0, 0
-
-        values = list(map(int, parts[1:]))
-        idle = values[3] + values[4]  # idle + iowait
-        total = sum(values)
-
-        diff_total = total - prev_total if prev_total else 0
-        diff_idle = idle - prev_idle if prev_idle else 0
-        cpu_percent = (1.0 - diff_idle/diff_total) if diff_total else 0.0
-
-        return cpu_percent, total, idle
+        with open('/proc/meminfo') as f:
+            info = f.read()
+        mem_total = int(next(line for line in info.splitlines() if "MemTotal" in line).split()[1]) / 1024
+        mem_free = int(next(line for line in info.splitlines() if "MemFree" in line).split()[1]) / 1024
+        mem_avail = int(next(line for line in info.splitlines() if "MemAvailable" in line).split()[1]) / 1024
+        mem_used = mem_total - mem_free
+        return round(mem_total,2), round(mem_used,2), round(mem_avail,2)
     except Exception:
-        return 0.0, 0, 0
+        return 0,0,0
 
-# --- Memory usage ---
-def read_mem_usage():
+def python_mem():
+    """Return current Python memory usage in MB."""
     try:
-        with open("/proc/meminfo") as f:
-            meminfo = f.readlines()
-        mem_total = int(meminfo[0].split()[1]) / 1024  # KB to MB
-        mem_free = int(meminfo[1].split()[1]) / 1024
-        mem_available = int(meminfo[2].split()[1]) / 1024
-        return mem_total, mem_free, mem_available
-    except Exception:
-        return 0, 0, 0
-
-# --- Python memory usage ---
-def top_python_process():
-    try:
-        pid = os.getpid()
-        with open(f"/proc/{pid}/status") as f:
-            for line in f:
-                if line.startswith("VmRSS:"):
-                    return int(line.split()[1]) / 1024  # KB to MB
-        return 0
+        tracemalloc.start()
+        current, _ = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        return round(current / 1024 / 1024, 2)
     except Exception:
         return 0
 
-# --- Metrics collector ---
-class MetricsCollector:
-    def __init__(self, window_size=5):
-        self.window_size = window_size
-        self.cpu_window = []
+# ----------------------------
+# WIN PROBABILITY CALCULATION
+# ----------------------------
+def compute_win_prob(rng_val, mem_used, py_mem):
+    """
+    Dummy placeholder for your prediction model.
+    Combines RNG + memory metrics to estimate a 'win probability'.
+    Replace with your actual logic.
+    """
+    # Example heuristic: RNG weighted, less Python memory = better
+    prob = rng_val * 0.7 + (1 / (1 + py_mem)) * 0.3
+    return round(prob, 3)
 
-    def collect(self):
-        # CPU
-        prev_total, prev_idle = self.cpu_window[-1] if self.cpu_window else (0, 0)
-        cpu_percent, total, idle = get_cpu_percent(prev_total, prev_idle)
-        self.cpu_window.append((total, idle))
-        if len(self.cpu_window) > self.window_size:
-            self.cpu_window.pop(0)
+# ----------------------------
+# PREDICTION LOOP
+# ----------------------------
+def prediction_loop(iterations=20):
+    for i in range(1, iterations+1):
+        rng_val = true_rng()
+        mem_total, mem_used, mem_avail = memory_metrics()
+        py_mem = python_mem()
+        win_prob = compute_win_prob(rng_val, mem_used, py_mem)
+        
+        print(f"[Iteration {i}/{iterations}] "
+              f"Mem={mem_total}/{mem_used}/{mem_avail} MB, "
+              f"Python Mem={py_mem} MB, RNG={rng_val:.6f}, "
+              f"WinProb={win_prob}")
+        
+        # --- Optional: insert your model call here using win_prob ---
+        time.sleep(0.2)  # adjust speed if needed
 
-        # Memory
-        mem_total, mem_free, mem_available = read_mem_usage()
-        py_mem = top_python_process()
-        rng_val = true_random_float()
-
-        return {
-            "cpu": cpu_percent,
-            "mem_total": mem_total,
-            "mem_free": mem_free,
-            "mem_available": mem_available,
-            "py_mem": py_mem,
-            "rng": rng_val
-        }
-
-def main(iterations=20, interval=1.0):
-    collector = MetricsCollector(window_size=5)
-    for i in range(iterations):
-        metrics = collector.collect()
-        print(f"[Iteration {i+1}/{iterations}] "
-              f"CPU={metrics['cpu']*100:.2f}%, "
-              f"Mem={metrics['mem_total']:.2f}/{metrics['mem_free']:.2f}/{metrics['mem_available']:.2f} MB, "
-              f"Python Mem={metrics['py_mem']:.2f} MB, "
-              f"RNG={metrics['rng']:.6f}")
-        time.sleep(interval)
-
+# ----------------------------
+# RUN LOOP
+# ----------------------------
 if __name__ == "__main__":
-    main()
+    prediction_loop(20)
