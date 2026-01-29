@@ -1,146 +1,112 @@
-import subprocess
+import psutil
 import time
 import random
-import numpy as np
-from collections import deque
+import sys
 
-# -----------------------------
-# Robust Android Metrics
-# -----------------------------
-def read_metrics():
-    cpu = 0.0
-    mem = 0.0
-    proc = 0
+# -------------------------------
+# RNG setup
+# -------------------------------
+def real_rng():
+    """Use Python's real random."""
+    return random.random()
+
+# -------------------------------
+# Metrics collection
+# -------------------------------
+def get_cpu_usage():
+    """
+    Returns total CPU usage % averaged over 0.5 seconds.
+    """
     try:
-        # CPU usage %
-        top_output = subprocess.check_output("top -n 1", shell=True, stderr=subprocess.DEVNULL).decode()
-        cpu_line = next((line for line in top_output.splitlines() if "Cpu" in line or "CPU" in line), None)
-        if cpu_line:
-            try:
-                cpu = float(cpu_line.split()[1].replace('%', '')) / 100.0 - 0.5
-            except:
-                cpu = 0.0
-    except:
-        cpu = 0.0
+        return psutil.cpu_percent(interval=0.5)
+    except Exception as e:
+        print(f"[CPU Error] {e}")
+        return 0.0
 
+def get_memory_usage():
+    """
+    Returns memory usage in MB (used, total)
+    """
     try:
-        # MEM usage MB
-        mem_line = subprocess.check_output("cat /proc/meminfo", shell=True, stderr=subprocess.DEVNULL).decode()
-        mem_avail_line = next((line for line in mem_line.splitlines() if "MemAvailable" in line), None)
-        if mem_avail_line:
-            try:
-                mem = int(mem_avail_line.split()[1]) / 1024  # MB
-            except:
-                mem = 0.0
-    except:
-        mem = 0.0
+        mem = psutil.virtual_memory()
+        used_mb = (mem.total - mem.available) / (1024 * 1024)
+        total_mb = mem.total / (1024 * 1024)
+        return round(used_mb, 2), round(total_mb, 2)
+    except Exception as e:
+        print(f"[Memory Error] {e}")
+        return 0.0, 0.0
 
+def get_process_count():
+    """
+    Returns number of running processes
+    """
     try:
-        # Process count
-        proc_line = subprocess.check_output("ps | wc -l", shell=True, stderr=subprocess.DEVNULL).decode()
-        proc = int(proc_line.strip())
-    except:
-        proc = 0
+        return len(psutil.pids())
+    except Exception as e:
+        print(f"[Process Error] {e}")
+        return 0
 
-    return cpu, mem, proc
-
-
-# -----------------------------
-# Robust Background Killer
-# -----------------------------
-def kill_background(threshold_cpu=0.01):
-    try:
-        processes = subprocess.check_output("ps -eo pid,ni,comm,%cpu", shell=True, stderr=subprocess.DEVNULL).decode().splitlines()[1:]
-        for proc_info in processes:
-            try:
-                pid, nice, comm, cpu_percent = proc_info.split(None, 3)
-                pid = int(pid)
-                nice = int(nice)
-                cpu_percent = float(cpu_percent)
-                if nice > 5 and cpu_percent/100.0 < threshold_cpu:
-                    subprocess.run(["kill", "-9", str(pid)], stderr=subprocess.DEVNULL)
-            except:
-                continue
-    except:
-        pass
-
-
-# -----------------------------
-# Feature Window
-# -----------------------------
-class FeatureWindow:
+# -------------------------------
+# Metrics Window Handling
+# -------------------------------
+class MetricsWindow:
     def __init__(self, size=5):
         self.size = size
-        self.window = deque(maxlen=size)
+        self.data = []
 
-    def add(self, feature):
-        self.window.append(feature)
+    def add(self, cpu, mem, proc):
+        self.data.append({'cpu': cpu, 'mem': mem, 'proc': proc})
+        if len(self.data) > self.size:
+            self.data.pop(0)
 
-    def get_mean(self):
-        if not self.window:
-            return [0.0, 0.0, 0.0]
-        arr = np.array(self.window)
-        return arr.mean(axis=0)
+    def summary(self):
+        if not self.data:
+            return {"cpu":0, "mem":0, "proc":0, "cpu_min":0, "cpu_max":0,
+                    "mem_min":0, "mem_max":0, "proc_min":0, "proc_max":0}
+        cpu_vals = [d['cpu'] for d in self.data]
+        mem_vals = [d['mem'] for d in self.data]
+        proc_vals = [d['proc'] for d in self.data]
+        return {
+            "cpu": round(sum(cpu_vals)/len(cpu_vals), 2),
+            "mem": round(sum(mem_vals)/len(mem_vals), 2),
+            "proc": round(sum(proc_vals)/len(proc_vals), 2),
+            "cpu_min": min(cpu_vals),
+            "cpu_max": max(cpu_vals),
+            "mem_min": min(mem_vals),
+            "mem_max": max(mem_vals),
+            "proc_min": min(proc_vals),
+            "proc_max": max(proc_vals)
+        }
 
-    def get_min(self):
-        if not self.window:
-            return [0.0, 0.0, 0.0]
-        arr = np.array(self.window)
-        return arr.min(axis=0)
-
-    def get_max(self):
-        if not self.window:
-            return [0.0, 0.0, 0.0]
-        arr = np.array(self.window)
-        return arr.max(axis=0)
-
-
-# -----------------------------
-# Prediction (dummy model)
-# -----------------------------
-def predict(feature_mean):
-    # Example logic: higher MEM and lower CPU -> better prediction
-    cpu, mem, proc = feature_mean
-    score = 0.5 + mem/200 - cpu
-    return min(max(score, 0.0), 1.0)
-
-
-# -----------------------------
+# -------------------------------
 # Main Loop
-# -----------------------------
-def main(iterations=100, window_size=5):
-    fw = FeatureWindow(size=window_size)
-    random.seed()  # Use system RNG
-    np.random.seed(int(time.time()))  # Real RNG
-
+# -------------------------------
+def main_loop(window_size=5, iterations=20, sleep_sec=1):
+    window = MetricsWindow(size=window_size)
     for i in range(iterations):
-        # Kill background occasionally for best performance
-        if i % 10 == 0:
-            kill_background()
+        cpu = get_cpu_usage()
+        mem_used, mem_total = get_memory_usage()
+        proc_count = get_process_count()
 
-        # Read metrics safely
-        cpu, mem, proc = read_metrics()
-        fw.add([cpu, mem, proc])
+        window.add(cpu, mem_used, proc_count)
+        summary = window.summary()
 
-        # Compute features
-        feature_mean = fw.get_mean()
-        feature_min = fw.get_min()
-        feature_max = fw.get_max()
+        # Mock prediction metric (replace with your model)
+        prediction_confidence = real_rng()  # Use real RNG
+        accuracy = round(prediction_confidence * 100, 2)
 
-        # Make prediction
-        score = predict(feature_mean)
-        win = score > random.random()
+        print(f"[Window {i+1}/{iterations}, Size={window_size}] "
+              f"Accuracy={accuracy}% Confidence={prediction_confidence:.3f}")
+        print(f" Feature means: CPU={summary['cpu']}, MEM={summary['mem']}, PROC={summary['proc']}")
+        print(f" Feature min  : CPU={summary['cpu_min']}, MEM={summary['mem_min']}, PROC={summary['proc_min']}")
+        print(f" Feature max  : CPU={summary['cpu_max']}, MEM={summary['mem_max']}, PROC={summary['proc_max']}\n")
 
-        # Log output clearly
-        print(f"[Iteration {i+1}/{iterations}, Window={window_size}] Win={win} Score={score:.3f}")
-        print(f" Feature means: CPU={feature_mean[0]:.2f}, MEM={feature_mean[1]:.2f}, PROC={feature_mean[2]:.1f}")
-        print(f" Feature min  : CPU={feature_min[0]:.2f}, MEM={feature_min[1]:.2f}, PROC={feature_min[2]:.1f}")
-        print(f" Feature max  : CPU={feature_max[0]:.2f}, MEM={feature_max[1]:.2f}, PROC={feature_max[2]:.1f}")
-        print("-"*60)
-
-        # Wait a bit to avoid overloading system
-        time.sleep(0.2)
-
+        time.sleep(sleep_sec)
 
 if __name__ == "__main__":
-    main(iterations=100, window_size=5)
+    try:
+        main_loop(window_size=5, iterations=20, sleep_sec=1)
+    except KeyboardInterrupt:
+        print("\n[Program terminated by user]")
+    except Exception as e:
+        print(f"[Fatal Error] {e}")
