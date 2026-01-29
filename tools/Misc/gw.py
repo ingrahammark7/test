@@ -3,82 +3,40 @@ import time
 import math
 import collections
 
-# ======================================
-# RNG SOURCES
-# ======================================
+# =========================================================
+# RNG SOURCE (strongest userspace RNG)
+# =========================================================
 
-sys_rng = random.SystemRandom()
-py_rng = random.Random(123456)   # deterministic attacker-controlled RNG
+rng = random.SystemRandom()
 
-def combined_rng():
-    """Blend multiple RNG sources"""
-    a = sys_rng.random()
-    b = py_rng.random()
-    return (a + b) % 1.0, a, b
+# =========================================================
+# BASIC STATS
+# =========================================================
 
+def mean(xs):
+    return sum(xs) / len(xs) if xs else 0.0
 
-# ======================================
-# SYSTEM METRICS
-# ======================================
+def variance(xs, mu=None):
+    if not xs:
+        return 0.0
+    if mu is None:
+        mu = mean(xs)
+    return sum((x - mu) ** 2 for x in xs) / len(xs)
 
-def get_memory():
-    try:
-        meminfo = {}
-        with open("/proc/meminfo") as f:
-            for line in f:
-                k, v = line.split()[:2]
-                meminfo[k.rstrip(":")] = int(v)
-        total = meminfo["MemTotal"] / 1024
-        free = meminfo["MemFree"] / 1024
-        avail = meminfo["MemAvailable"] / 1024
-        used = total - free
-        return total, used, avail
-    except Exception:
-        return 0.0, 0.0, 0.0
+def autocorr(xs, lag=1):
+    if len(xs) <= lag:
+        return 0.0
+    mu = mean(xs)
+    num = sum((xs[i] - mu) * (xs[i - lag] - mu) for i in range(lag, len(xs)))
+    den = sum((x - mu) ** 2 for x in xs)
+    return num / den if den else 0.0
 
-def get_cpu():
-    try:
-        with open("/proc/stat") as f:
-            parts = f.readline().split()
-        vals = list(map(int, parts[1:]))
-        idle = vals[3] + vals[4]
-        total = sum(vals)
-        return idle, total
-    except Exception:
-        return None, None
-
-
-# ======================================
-# ML CORE
-# ======================================
-
-def sigmoid(x):
-    if x < -60: return 0.0
-    if x > 60:  return 1.0
-    return 1 / (1 + math.exp(-x))
-
-class OnlineLogReg:
-    def __init__(self, n, lr=0.05):
-        self.w = [0.0] * n
-        self.lr = lr
-
-    def predict(self, x):
-        return sigmoid(sum(w * xi for w, xi in zip(self.w, x)))
-
-    def update(self, x, y):
-        p = self.predict(x)
-        err = y - p
-        for i in range(len(self.w)):
-            self.w[i] += self.lr * err * x[i]
-        return p, err
-
-
-# ======================================
-# ENTROPY MONITOR
-# ======================================
+# =========================================================
+# ENTROPY (rolling, quantized)
+# =========================================================
 
 class EntropyWindow:
-    def __init__(self, size=64):
+    def __init__(self, size):
         self.buf = collections.deque(maxlen=size)
 
     def add(self, x):
@@ -88,113 +46,171 @@ class EntropyWindow:
         if len(self.buf) < 2:
             return 0.0
         counts = collections.Counter(self.buf)
-        total = len(self.buf)
-        ent = 0.0
-        for c in counts.values():
-            p = c / total
-            ent -= p * math.log2(p)
-        return ent
+        n = len(self.buf)
+        return -sum((c/n) * math.log2(c/n) for c in counts.values())
 
+# =========================================================
+# ONLINE AUTOREGRESSIVE MODEL
+# =========================================================
 
-# ======================================
-# DELAYED REWARD BUFFER
-# ======================================
+class ARModel:
+    def __init__(self, order, lr=0.05):
+        self.order = order
+        self.lr = lr
+        self.w = [0.0] * order
 
-class DelayedReward:
-    def __init__(self, delay=3):
-        self.buf = collections.deque(maxlen=delay)
+    def predict(self, hist):
+        if len(hist) < self.order:
+            return 0.5
+        return sum(self.w[i] * hist[-i-1] for i in range(self.order))
 
-    def push(self, x, pred):
-        self.buf.append((x, pred))
+    def update(self, hist, y):
+        if len(hist) < self.order:
+            return None
+        yhat = self.predict(hist)
+        err = y - yhat
+        for i in range(self.order):
+            self.w[i] += self.lr * err * hist[-i-1]
+        return abs(err)
 
-    def resolve(self, reward, model):
-        for x, _ in self.buf:
-            model.update(x, reward)
-        self.buf.clear()
+# =========================================================
+# REGIME DETECTOR (THIS IS THE KEY UPGRADE)
+# =========================================================
 
+class RegimeDetector:
+    """
+    Soft regime detection based on:
+    - entropy slope
+    - AR error variance
+    - window saturation
+    """
+    def __init__(self):
+        self.prev_entropy = None
+        self.stable_count = 0
+        self.regime = "WARMUP"
 
-# ======================================
+    def update(self, entropy, ar_err, window_full):
+        # Warmup until window is full
+        if not window_full:
+            self.regime = "WARMUP"
+            self.stable_count = 0
+            self.prev_entropy = entropy
+            return self.regime
+
+        # Entropy slope
+        slope = 0.0
+        if self.prev_entropy is not None:
+            slope = entropy - self.prev_entropy
+
+        self.prev_entropy = entropy
+
+        # Stability conditions
+        stable = abs(slope) < 0.02 and (ar_err is None or ar_err > 0.15)
+
+        if stable:
+            self.stable_count += 1
+        else:
+            self.stable_count = max(0, self.stable_count - 1)
+
+        # Regime transitions (soft)
+        if self.stable_count < 5:
+            self.regime = "TRANSIENT"
+        elif self.stable_count < 15:
+            self.regime = "STABILIZING"
+        else:
+            self.regime = "STEADY"
+
+        return self.regime
+
+# =========================================================
+# PER-REGIME CONTAINERS
+# =========================================================
+
+class RegimeStats:
+    def __init__(self):
+        self.values = []
+        self.ar1 = ARModel(1)
+        self.ar2 = ARModel(2)
+
+    def update(self, hist, x):
+        self.values.append(x)
+        e1 = self.ar1.update(hist, x)
+        e2 = self.ar2.update(hist, x)
+        return e1, e2
+
+# =========================================================
 # SETUP
-# ======================================
+# =========================================================
 
-iterations = 50
-sleep_time = 0.15
+WINDOW = 64
+entropy_win = EntropyWindow(WINDOW)
+values = collections.deque(maxlen=WINDOW)
+history = []
 
-main_model = OnlineLogReg(7)
-adv_model  = OnlineLogReg(7)   # attacker tries to predict RNG
+detector = RegimeDetector()
 
-entropy_monitor = EntropyWindow()
-reward_pipe = DelayedReward(delay=4)
+regimes = {
+    "WARMUP": RegimeStats(),
+    "TRANSIENT": RegimeStats(),
+    "STABILIZING": RegimeStats(),
+    "STEADY": RegimeStats()
+}
 
-prev_idle, prev_total = get_cpu()
+iterations = 300
 
-print("\n=== RNG APPLICATION DOMINANCE LAB ===\n")
+print("\n=== REGIME-AWARE RNG DOMINANCE LAB ===\n")
 
-# ======================================
-# LOOP
-# ======================================
+# =========================================================
+# MAIN LOOP
+# =========================================================
 
 for i in range(1, iterations + 1):
+    x = rng.random()
+    history.append(x)
+    values.append(x)
+    entropy_win.add(x)
 
-    mixed, hw, sw = combined_rng()
-    entropy_monitor.add(mixed)
+    ent = entropy_win.entropy()
+    ac1 = autocorr(list(values), 1)
 
-    total_mem, used_mem, avail_mem = get_memory()
+    # Use global AR(1) error as detector input
+    global_ar = regimes["STEADY"].ar1
+    ar_err = global_ar.update(history, x)
 
-    idle, total = get_cpu()
-    cpu = 0.0
-    if idle and prev_idle and total != prev_total:
-        cpu = 100 * (1 - (idle - prev_idle) / (total - prev_total))
-        prev_idle, prev_total = idle, total
-
-    used_r = used_mem / total_mem if total_mem else 0.0
-    avail_r = avail_mem / total_mem if total_mem else 0.0
-
-    features = [
-        1.0,
-        mixed,
-        cpu / 100.0,
-        used_r,
-        avail_r,
-        hw,
-        sw
-    ]
-
-    # MAIN MODEL prediction
-    win_prob, _ = main_model.update(features, 0.0)
-    reward_pipe.push(features, win_prob)
-
-    # ADVERSARY tries to predict mixed RNG
-    adv_pred, adv_err = adv_model.update(features, mixed)
-
-    # Delayed reward: success if RNG > 0.5 after delay
-    if i % reward_pipe.buf.maxlen == 0:
-        reward = 1.0 if mixed > 0.5 else 0.0
-        reward_pipe.resolve(reward, main_model)
-
-    ent = entropy_monitor.entropy()
-
-    print(
-        f"[{i:02d}] "
-        f"RNG={mixed:.5f} "
-        f"CPU={cpu:5.1f}% "
-        f"ENT={ent:4.2f} "
-        f"WinP={win_prob:.3f} "
-        f"ADVerr={abs(adv_err):.4f}"
+    regime = detector.update(
+        entropy=ent,
+        ar_err=ar_err,
+        window_full=(len(values) == WINDOW)
     )
 
-    time.sleep(sleep_time)
+    # Update regime-specific models
+    e1, e2 = regimes[regime].update(history, x)
 
-# ======================================
+    print(
+        f"[{i:03d}] "
+        f"x={x:.5f} "
+        f"ENT={ent:4.2f} "
+        f"AC1={ac1:+.3f} "
+        f"R={regime:<11} "
+        f"AR1e={e1 if e1 else 0:.3f} "
+        f"AR2e={e2 if e2 else 0:.3f}"
+    )
+
+    
+
+# =========================================================
 # RESULTS
-# ======================================
+# =========================================================
 
-print("\n--- FINAL WEIGHTS (MAIN MODEL) ---")
-for i, w in enumerate(main_model.w):
-    print(f"w[{i}] = {w:.6f}")
-
-print("\n--- FINAL WEIGHTS (ADVERSARY) ---")
-for i, w in enumerate(adv_model.w):
-    print(f"a[{i}] = {w:.6f}")
+print("\n--- PER-REGIME SUMMARY ---")
+for name, rs in regimes.items():
+    if rs.values:
+        mu = mean(rs.values)
+        var = variance(rs.values, mu)
+        print(
+            f"{name:11} | n={len(rs.values):4d} "
+            f"μ={mu:.3f} σ²={var:.4f} "
+            f"AR1={rs.ar1.w} AR2={rs.ar2.w}"
+        )
 
 print("\n[FINISHED]")
