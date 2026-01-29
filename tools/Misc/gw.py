@@ -6,8 +6,8 @@ from collections import deque
 # CONFIG
 # ==============================
 N = 200
-WINDOWS = [8, 16, 32]       # rolling windows for stats
-REGIME_WIN = 32              # window for regime detection
+WINDOWS = [4]       # rolling windows for stats
+REGIME_WIN = 4      # window for regime detection
 AR_REGIMES = ['WARMUP','LOW-ENT','META-AR','STABLE']
 
 rng = random.SystemRandom()
@@ -92,21 +92,38 @@ def mutual_info(seq):
     return mi
 
 # ==============================
-# REGIME DETECTION
+# REGIME DETECTION (safe, no indexing)
 # ==============================
 def detect_regime(ent_hist, ac_hist):
-    if len(ent_hist)<REGIME_WIN:
+    if len(ent_hist) < 1 or len(ac_hist) < 1:
         return 'WARMUP'
-    ent_mu = sum(list(ent_hist)[-REGIME_WIN:])/REGIME_WIN
-    ac_mu = sum(abs(ac[0]) for ac in list(ac_hist)[-REGIME_WIN:])/REGIME_WIN
-    if ent_mu<3.5: return 'LOW-ENT'
-    if ac_mu>0.25: return 'META-AR'
+
+    # --- mean entropy ---
+    ent_sum = 0.0
+    for e in ent_hist:
+        ent_sum += e
+    ent_mu = ent_sum / len(ent_hist)
+
+    # --- mean autocorr across all lags ---
+    total_lags = 0.0
+    total_count = 0
+    for ac_list in ac_hist:
+        for lag in ac_list:
+            total_lags += abs(lag)
+            total_count += 1
+    ac_mu = total_lags / total_count if total_count > 0 else 0.0
+
+    # thresholds
+    if ent_mu < 0.7:  # low entropy
+        return 'LOW-ENT'
+    if ac_mu > 0.25:  # high autocorr
+        return 'META-AR'
     return 'STABLE'
 
 # ==============================
 # MAIN LOOP
 # ==============================
-print("\n=== RNG META-DOMINANCE LAB (REGIME-ADAPTIVE AR, OPTIMIZED) ===\n")
+print("\n=== RNG META-DOMINANCE LAB (REGIME-ADAPTIVE AR, IMPROVED) ===\n")
 
 for i in range(1, N+1):
     x = rng.random()
@@ -168,4 +185,9 @@ for i in range(1, N+1):
         f"ADVerr={adv_err:.4f}"
     )
 
-print("\n[FINISHED — REGIME-ADAPTIVE AR, ALL FEATURES ACTIVE]")
+# ==============================
+# THEORETICAL MAX ERROR
+# ==============================
+theoretical_max = max(adv_err_hist) if adv_err_hist else 0.0
+print(f"\n[FINISHED — REGIME-ADAPTIVE AR, ALL FEATURES ACTIVE]")
+print(f"[THEORETICAL MAX ADVERR: {theoretical_max:.4f}]")
