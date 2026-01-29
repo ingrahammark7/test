@@ -1,78 +1,66 @@
 import os
-import time
 import random
-import tracemalloc
+import time
 
-# ----------------------------
-# TRUE RNG
-# ----------------------------
-def true_rng():
-    """Return a float in [0,1) from /dev/urandom (fallback to random)."""
+# --- Android-friendly memory read ---
+def get_mem():
+    """Return (total, free, used) memory in MB using /proc/meminfo."""
     try:
-        val = int.from_bytes(os.urandom(4), 'big')
-        return val / 2**32
+        meminfo = {}
+        with open("/proc/meminfo", "r") as f:
+            for line in f:
+                key, val = line.split(":", 1)
+                meminfo[key.strip()] = int(val.strip().split()[0])
+        total = meminfo.get("MemTotal", 0) / 1024  # kB -> MB
+        free = meminfo.get("MemFree", 0) / 1024
+        cached = meminfo.get("Cached", 0) / 1024
+        used = total - free - cached
+        return total, free, used
     except Exception:
+        return 0, 0, 0
+
+# --- Python memory (best-effort) ---
+def get_python_mem():
+    try:
+        import tracemalloc
+        if not tracemalloc.is_tracing():
+            tracemalloc.start()
+        current, peak = tracemalloc.get_traced_memory()
+        return current / 1024 / 1024  # bytes -> MB
+    except Exception:
+        return 0.0
+
+# --- Real RNG (Android-compatible) ---
+def real_rng():
+    try:
+        # Use os.urandom for strong randomness
+        return int.from_bytes(os.urandom(8), "big") / 2**64
+    except Exception:
+        # fallback to random.random if urandom fails
         return random.random()
 
-# ----------------------------
-# MEMORY METRICS
-# ----------------------------
-def memory_metrics():
-    """Return (total, used, available) memory in MB."""
-    try:
-        with open('/proc/meminfo') as f:
-            info = f.read()
-        mem_total = int(next(line for line in info.splitlines() if "MemTotal" in line).split()[1]) / 1024
-        mem_free = int(next(line for line in info.splitlines() if "MemFree" in line).split()[1]) / 1024
-        mem_avail = int(next(line for line in info.splitlines() if "MemAvailable" in line).split()[1]) / 1024
-        mem_used = mem_total - mem_free
-        return round(mem_total,2), round(mem_used,2), round(mem_avail,2)
-    except Exception:
-        return 0,0,0
+# --- Win probability function ---
+def calc_win_prob(rng):
+    """Map RNG to a realistic win probability [0.0,1.0]"""
+    # can use cubic scaling to exaggerate extremes
+    return min(max(rng**0.7, 0.0), 1.0)
 
-def python_mem():
-    """Return current Python memory usage in MB."""
-    try:
-        tracemalloc.start()
-        current, _ = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        return round(current / 1024 / 1024, 2)
-    except Exception:
-        return 0
+# --- Main loop ---
+def main(iterations=20):
+    print(f"Starting simulation: {iterations} iterations")
+    for i in range(1, iterations + 1):
+        total, free, used = get_mem()
+        py_mem = get_python_mem()
+        rng_val = real_rng()
+        win_prob = calc_win_prob(rng_val)
 
-# ----------------------------
-# WIN PROBABILITY CALCULATION
-# ----------------------------
-def compute_win_prob(rng_val, mem_used, py_mem):
-    """
-    Dummy placeholder for your prediction model.
-    Combines RNG + memory metrics to estimate a 'win probability'.
-    Replace with your actual logic.
-    """
-    # Example heuristic: RNG weighted, less Python memory = better
-    prob = rng_val * 0.7 + (1 / (1 + py_mem)) * 0.3
-    return round(prob, 3)
-
-# ----------------------------
-# PREDICTION LOOP
-# ----------------------------
-def prediction_loop(iterations=20):
-    for i in range(1, iterations+1):
-        rng_val = true_rng()
-        mem_total, mem_used, mem_avail = memory_metrics()
-        py_mem = python_mem()
-        win_prob = compute_win_prob(rng_val, mem_used, py_mem)
-        
         print(f"[Iteration {i}/{iterations}] "
-              f"Mem={mem_total}/{mem_used}/{mem_avail} MB, "
-              f"Python Mem={py_mem} MB, RNG={rng_val:.6f}, "
-              f"WinProb={win_prob}")
-        
-        # --- Optional: insert your model call here using win_prob ---
-        time.sleep(0.2)  # adjust speed if needed
+              f"Mem={total:.2f}/{free:.2f}/{used:.2f} MB, "
+              f"Python Mem={py_mem:.2f} MB, "
+              f"RNG={rng_val:.6f}, WinProb={win_prob:.3f}")
 
-# ----------------------------
-# RUN LOOP
-# ----------------------------
+        # Optional: minimal sleep for system stability
+        time.sleep(0.05)
+
 if __name__ == "__main__":
-    prediction_loop(20)
+    main()
