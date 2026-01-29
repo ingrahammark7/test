@@ -1,142 +1,200 @@
 import random
 import time
 import math
+import collections
 
-# Use hardware RNG
-rng = random.SystemRandom()
+# ======================================
+# RNG SOURCES
+# ======================================
 
-# -----------------------------
-# System info helpers
-# -----------------------------
+sys_rng = random.SystemRandom()
+py_rng = random.Random(123456)   # deterministic attacker-controlled RNG
 
-# Function to get memory info from /proc/meminfo (Android/Linux)
+def combined_rng():
+    """Blend multiple RNG sources"""
+    a = sys_rng.random()
+    b = py_rng.random()
+    return (a + b) % 1.0, a, b
+
+
+# ======================================
+# SYSTEM METRICS
+# ======================================
+
 def get_memory():
     try:
         meminfo = {}
         with open("/proc/meminfo") as f:
             for line in f:
-                parts = line.split()
-                key = parts[0].rstrip(':')
-                value = int(parts[1])
-                meminfo[key] = value  # in kB
-
-        total = meminfo.get("MemTotal", 0) / 1024  # MB
-        free = meminfo.get("MemFree", 0) / 1024
-        available = meminfo.get("MemAvailable", 0) / 1024
+                k, v = line.split()[:2]
+                meminfo[k.rstrip(":")] = int(v)
+        total = meminfo["MemTotal"] / 1024
+        free = meminfo["MemFree"] / 1024
+        avail = meminfo["MemAvailable"] / 1024
         used = total - free
-        return total, used, available
+        return total, used, avail
     except Exception:
         return 0.0, 0.0, 0.0
 
-# Function to get CPU usage from /proc/stat
 def get_cpu():
     try:
         with open("/proc/stat") as f:
-            line = f.readline()
-        parts = line.split()
-        if parts[0] != 'cpu':
-            return None, None
+            parts = f.readline().split()
         vals = list(map(int, parts[1:]))
-        idle = vals[3] + vals[4]  # idle + iowait
+        idle = vals[3] + vals[4]
         total = sum(vals)
         return idle, total
     except Exception:
         return None, None
 
-# -----------------------------
-# Online ML model
-# -----------------------------
 
-# Logistic regression with online SGD
-# Features:
-# [bias, rng_value, cpu_load, used_mem_ratio, avail_mem_ratio]
-weights = [0.0, 0.1, 0.1, 0.1, 0.1]
-learning_rate = 0.05
+# ======================================
+# ML CORE
+# ======================================
 
 def sigmoid(x):
-    # Numerically safe sigmoid
-    if x < -60:
-        return 0.0
-    if x > 60:
-        return 1.0
-    return 1.0 / (1.0 + math.exp(-x))
+    if x < -60: return 0.0
+    if x > 60:  return 1.0
+    return 1 / (1 + math.exp(-x))
 
-def predict(features):
-    z = sum(w * x for w, x in zip(weights, features))
-    return sigmoid(z)
+class OnlineLogReg:
+    def __init__(self, n, lr=0.05):
+        self.w = [0.0] * n
+        self.lr = lr
 
-def update(features, target):
-    global weights
-    pred = predict(features)
-    error = target - pred
-    for i in range(len(weights)):
-        weights[i] += learning_rate * error * features[i]
-    return pred
+    def predict(self, x):
+        return sigmoid(sum(w * xi for w, xi in zip(self.w, x)))
 
-# -----------------------------
-# Simulation
-# -----------------------------
+    def update(self, x, y):
+        p = self.predict(x)
+        err = y - p
+        for i in range(len(self.w)):
+            self.w[i] += self.lr * err * x[i]
+        return p, err
 
-iterations = 20
-sleep_time = 0
+
+# ======================================
+# ENTROPY MONITOR
+# ======================================
+
+class EntropyWindow:
+    def __init__(self, size=64):
+        self.buf = collections.deque(maxlen=size)
+
+    def add(self, x):
+        self.buf.append(int(x * 256))
+
+    def entropy(self):
+        if len(self.buf) < 2:
+            return 0.0
+        counts = collections.Counter(self.buf)
+        total = len(self.buf)
+        ent = 0.0
+        for c in counts.values():
+            p = c / total
+            ent -= p * math.log2(p)
+        return ent
+
+
+# ======================================
+# DELAYED REWARD BUFFER
+# ======================================
+
+class DelayedReward:
+    def __init__(self, delay=3):
+        self.buf = collections.deque(maxlen=delay)
+
+    def push(self, x, pred):
+        self.buf.append((x, pred))
+
+    def resolve(self, reward, model):
+        for x, _ in self.buf:
+            model.update(x, reward)
+        self.buf.clear()
+
+
+# ======================================
+# SETUP
+# ======================================
+
+iterations = 50
+sleep_time = 0.15
+
+main_model = OnlineLogReg(7)
+adv_model  = OnlineLogReg(7)   # attacker tries to predict RNG
+
+entropy_monitor = EntropyWindow()
+reward_pipe = DelayedReward(delay=4)
 
 prev_idle, prev_total = get_cpu()
 
-print(f"Starting simulation: {iterations} iterations")
+print("\n=== RNG APPLICATION DOMINANCE LAB ===\n")
+
+# ======================================
+# LOOP
+# ======================================
 
 for i in range(1, iterations + 1):
-    # RNG value
-    val = rng.random()
 
-    # Memory stats
+    mixed, hw, sw = combined_rng()
+    entropy_monitor.add(mixed)
+
     total_mem, used_mem, avail_mem = get_memory()
 
-    # CPU usage calculation
     idle, total = get_cpu()
-    cpu_percent = 0.0
-    if (
-        idle is not None and prev_idle is not None and
-        total is not None and prev_total is not None and
-        total != prev_total
-    ):
-        cpu_percent = 100.0 * (1.0 - (idle - prev_idle) / (total - prev_total))
+    cpu = 0.0
+    if idle and prev_idle and total != prev_total:
+        cpu = 100 * (1 - (idle - prev_idle) / (total - prev_total))
         prev_idle, prev_total = idle, total
 
-    # Feature engineering
-    used_ratio = used_mem / total_mem if total_mem > 0 else 0.0
-    avail_ratio = avail_mem / total_mem if total_mem > 0 else 0.0
+    used_r = used_mem / total_mem if total_mem else 0.0
+    avail_r = avail_mem / total_mem if total_mem else 0.0
 
     features = [
-        1.0,                    # bias
-        val,                    # RNG value
-        cpu_percent / 100.0,    # CPU load
-        used_ratio,             # memory pressure
-        avail_ratio
+        1.0,
+        mixed,
+        cpu / 100.0,
+        used_r,
+        avail_r,
+        hw,
+        sw
     ]
 
-    # Synthetic target:
-    # "Win" if RNG > 0.5 (you can replace this with any reward signal)
-    target = 1.0 if val > 0.5 else 0.0
+    # MAIN MODEL prediction
+    win_prob, _ = main_model.update(features, 0.0)
+    reward_pipe.push(features, win_prob)
 
-    # ML prediction + online training
-    win_prob = update(features, target)
+    # ADVERSARY tries to predict mixed RNG
+    adv_pred, adv_err = adv_model.update(features, mixed)
 
-    # Python memory placeholder (intentionally minimal)
-    python_mem = 0.0
+    # Delayed reward: success if RNG > 0.5 after delay
+    if i % reward_pipe.buf.maxlen == 0:
+        reward = 1.0 if mixed > 0.5 else 0.0
+        reward_pipe.resolve(reward, main_model)
 
-    # Log iteration
+    ent = entropy_monitor.entropy()
+
     print(
-        f"[Iteration {i}/{iterations}] "
-        f"CPU={cpu_percent:6.2f}% | "
-        f"Mem(T/U/A)={total_mem:7.1f}/{used_mem:7.1f}/{avail_mem:7.1f} MB | "
-        f"RNG={val:.6f} | "
-        f"WinProb={win_prob:.4f}"
+        f"[{i:02d}] "
+        f"RNG={mixed:.5f} "
+        f"CPU={cpu:5.1f}% "
+        f"ENT={ent:4.2f} "
+        f"WinP={win_prob:.3f} "
+        f"ADVerr={abs(adv_err):.4f}"
     )
 
-    
+    time.sleep(sleep_time)
 
-print("\nFinal ML weights:")
-for i, w in enumerate(weights):
-    print(f"  w[{i}] = {w:.6f}")
+# ======================================
+# RESULTS
+# ======================================
 
-print("\n[Program finished]")
+print("\n--- FINAL WEIGHTS (MAIN MODEL) ---")
+for i, w in enumerate(main_model.w):
+    print(f"w[{i}] = {w:.6f}")
+
+print("\n--- FINAL WEIGHTS (ADVERSARY) ---")
+for i, w in enumerate(adv_model.w):
+    print(f"a[{i}] = {w:.6f}")
+
+print("\n[FINISHED]")
