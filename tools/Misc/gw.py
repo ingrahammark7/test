@@ -1,66 +1,72 @@
-import os
 import random
 import time
 
-# --- Android-friendly memory read ---
-def get_mem():
-    """Return (total, free, used) memory in MB using /proc/meminfo."""
+# Use hardware RNG
+rng = random.SystemRandom()
+
+# Function to get memory info from /proc/meminfo (Android/Linux)
+def get_memory():
     try:
         meminfo = {}
-        with open("/proc/meminfo", "r") as f:
+        with open("/proc/meminfo") as f:
             for line in f:
-                key, val = line.split(":", 1)
-                meminfo[key.strip()] = int(val.strip().split()[0])
-        total = meminfo.get("MemTotal", 0) / 1024  # kB -> MB
+                parts = line.split()
+                key = parts[0].rstrip(':')
+                value = int(parts[1])
+                meminfo[key] = value  # in kB
+        total = meminfo.get("MemTotal", 0) / 1024  # MB
         free = meminfo.get("MemFree", 0) / 1024
-        cached = meminfo.get("Cached", 0) / 1024
-        used = total - free - cached
-        return total, free, used
+        available = meminfo.get("MemAvailable", 0) / 1024
+        used = total - free
+        return total, used, available
     except Exception:
-        return 0, 0, 0
+        return 0.0, 0.0, 0.0
 
-# --- Python memory (best-effort) ---
-def get_python_mem():
+# Function to get CPU usage from /proc/stat
+def get_cpu():
     try:
-        import tracemalloc
-        if not tracemalloc.is_tracing():
-            tracemalloc.start()
-        current, peak = tracemalloc.get_traced_memory()
-        return current / 1024 / 1024  # bytes -> MB
+        with open("/proc/stat") as f:
+            line = f.readline()
+        parts = line.split()
+        if parts[0] != 'cpu':
+            return 0.0
+        vals = list(map(int, parts[1:]))
+        idle = vals[3] + vals[4]  # idle + iowait
+        total = sum(vals)
+        return idle, total
     except Exception:
-        return 0.0
+        return None, None
 
-# --- Real RNG (Android-compatible) ---
-def real_rng():
-    try:
-        # Use os.urandom for strong randomness
-        return int.from_bytes(os.urandom(8), "big") / 2**64
-    except Exception:
-        # fallback to random.random if urandom fails
-        return random.random()
+# Track previous CPU for delta
+prev_idle, prev_total = get_cpu()
 
-# --- Win probability function ---
-def calc_win_prob(rng):
-    """Map RNG to a realistic win probability [0.0,1.0]"""
-    # can use cubic scaling to exaggerate extremes
-    return min(max(rng**0.7, 0.0), 1.0)
+# Simulation parameters
+iterations = 20
 
-# --- Main loop ---
-def main(iterations=20):
-    print(f"Starting simulation: {iterations} iterations")
-    for i in range(1, iterations + 1):
-        total, free, used = get_mem()
-        py_mem = get_python_mem()
-        rng_val = real_rng()
-        win_prob = calc_win_prob(rng_val)
+print(f"Starting simulation: {iterations} iterations")
+for i in range(1, iterations+1):
+    # RNG value
+    val = rng.random()
+    
+    # Simple "WinProb" function (example: direct mapping)
+    win_prob = val  # can replace with more complex model
+    
+    # Memory stats
+    total_mem, used_mem, avail_mem = get_memory()
+    
+    # CPU usage calculation
+    idle, total = get_cpu()
+    cpu_percent = 0.0
+    if idle is not None and prev_idle is not None and total is not None and prev_total is not None:
+        cpu_percent = 100.0 * (1 - (idle - prev_idle) / (total - prev_total))
+        prev_idle, prev_total = idle, total
+    
+    # Python memory (approximation)
+    python_mem = 0.0  # could use sys.getsizeof() if needed
+    
+    # Log iteration
+    print(f"[Iteration {i}/{iterations}] CPU={cpu_percent:.2f}%, Mem={total_mem:.2f}/{used_mem:.2f}/{avail_mem:.2f} MB, Python Mem={python_mem:.2f} MB, RNG={val:.6f}, WinProb={win_prob:.3f}")
+    
+    time.sleep(0.05)  # small delay for realism
 
-        print(f"[Iteration {i}/{iterations}] "
-              f"Mem={total:.2f}/{free:.2f}/{used:.2f} MB, "
-              f"Python Mem={py_mem:.2f} MB, "
-              f"RNG={rng_val:.6f}, WinProb={win_prob:.3f}")
-
-        # Optional: minimal sleep for system stability
-        time.sleep(0.05)
-
-if __name__ == "__main__":
-    main()
+print("\n[Program finished]")
