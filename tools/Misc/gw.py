@@ -1,61 +1,118 @@
+import time
+import secrets
+import psutil
 import numpy as np
+import traceback
 
-# ----------------------------
-# Material properties (generic steel-like)
-# ----------------------------
-rho = 7850.0            # density kg/m^3
-E = 200e9               # Young's modulus Pa
-K_IC = 50e6             # fracture toughness Pa*sqrt(m)
-c_crit = 0.01           # critical crack length (m) ~ 1 cm
-c0 = 1e-5               # initial microcrack length (m)
-heat_capacity = 500.0   # J/(kg*K)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
-# ----------------------------
-# Flight / loading parameters
-# ----------------------------
-accel = 3e4 * 9.81      # axial acceleration (m/s^2)
-lengths = np.linspace(0.1, 5.0, 500)  # structure length sweep (m)
-radius = 0.15           # structure radius (m)
 
-# ----------------------------
-# Helper functions
-# ----------------------------
-def stress_axial(rho, a, L):
-    """Axial stress from acceleration"""
-    return rho * a * L
+# ===============================
+# Feature collection (safe)
+# ===============================
+def safe(fn, default=0.0):
+    try:
+        return fn()
+    except Exception:
+        return default
 
-def stress_intensity(sigma, c):
-    """Mode-I stress intensity"""
-    return sigma * np.sqrt(np.pi * c)
 
-def thermalized_energy(sigma, volume):
-    """Fraction of elastic energy converted to heat after crack saturation"""
-    elastic_energy = sigma**2 * volume / (2 * E)
-    return 0.9 * elastic_energy  # assume 90% thermalization post-failure
+def get_features():
+    cpu = safe(lambda: psutil.cpu_percent(interval=None))
+    mem = safe(lambda: psutil.virtual_memory().percent)
+    proc = safe(lambda: len(psutil.pids()))
+    ts = time.time_ns()
+    return [cpu, mem, proc, ts]
 
-# ----------------------------
-# Main evaluation
-# ----------------------------
-failure_length = None
-temperature_rise = None
 
-for L in lengths:
-    sigma = stress_axial(rho, accel, L)
-    K = stress_intensity(sigma, c0)
+# ===============================
+# Data collection
+# ===============================
+def collect(samples=600, delay=0.001):
+    X, y = [], []
 
-    if K >= K_IC:
-        failure_length = L
-        volume = np.pi * radius**2 * L
-        Q = thermalized_energy(sigma, volume)
-        mass = rho * volume
-        temperature_rise = Q / (mass * heat_capacity)
-        break
+    print("[*] Collecting samples...")
+    for i in range(samples):
+        X.append(get_features())
+        y.append(secrets.randbits(1))
+        time.sleep(delay)
 
-# ----------------------------
-# Output
-# ----------------------------
-if failure_length:
-    print(f"Structural coherence fails at length ≈ {failure_length:.2f} m")
-    print(f"Estimated temperature rise from thermalization ≈ {temperature_rise:.1f} K")
-else:
-    print("No failure within evaluated length range")
+    return np.array(X), np.array(y)
+
+
+# ===============================
+# Trivial AR predictor
+# ===============================
+def ar_predict(y_test):
+    """
+    Predicts next bit = previous bit
+    """
+    preds = [0]
+    for i in range(1, len(y_test)):
+        preds.append(y_test[i - 1])
+    return np.array(preds)
+
+
+# ===============================
+# Time-based heuristic
+# ===============================
+def time_predict(X_test):
+    """
+    Uses timestamp parity as a guess
+    """
+    ts = X_test[:, -1]
+    return (ts % 2).astype(int)
+
+
+# ===============================
+# Main experiment
+# ===============================
+def main():
+    try:
+        X, y = collect()
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.30, random_state=42
+        )
+
+        # ML models
+        rf = RandomForestClassifier(n_estimators=300, n_jobs=-1)
+        lr = LogisticRegression(max_iter=2000)
+
+        print("[*] Training ML models...")
+        rf.fit(X_train, y_train)
+        lr.fit(X_train, y_train)
+
+        rf_pred = rf.predict(X_test)
+        lr_pred = lr.predict(X_test)
+        ar_pred = ar_predict(y_test)
+        time_pred = time_predict(X_test)
+
+        # Individual accuracies
+        print("\nModel accuracies:")
+        print("RandomForest :", accuracy_score(y_test, rf_pred))
+        print("LogisticReg  :", accuracy_score(y_test, lr_pred))
+        print("AR trivial   :", accuracy_score(y_test, ar_pred))
+        print("Time parity  :", accuracy_score(y_test, time_pred))
+
+        # Ensemble majority vote
+        ensemble = (
+            rf_pred + lr_pred + ar_pred + time_pred
+        ) >= 2
+
+        ensemble = ensemble.astype(int)
+
+        print("\nEnsemble accuracy:")
+        print(accuracy_score(y_test, ensemble))
+
+        print("\nExpected theoretical limit: 0.500")
+
+    except Exception:
+        traceback.print_exc()
+
+
+if __name__ == "__main__":
+    main()
