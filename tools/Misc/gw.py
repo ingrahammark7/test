@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 # ==============================
 N = 2000           # total samples
 WINDOW = 50        # local window size
-STEP = 5           # sliding step
-MAX_LAG = 1        # focus on AC1
+STEP = 5           # slide step
 rng = random.SystemRandom()
 
 # ==============================
@@ -38,30 +37,46 @@ for start in range(0, N-WINDOW+1, STEP):
 # DETECT FLIPS
 # ==============================
 flip_indices = []
+flip_series = []
 prev_sign = 0
 for start, ac1 in window_ac1:
     sign = 1 if ac1 > 0 else -1 if ac1 < 0 else 0
+    flip_series.append(sign)
     if prev_sign != 0 and sign != prev_sign:
         flip_indices.append(start)
     prev_sign = sign
 
 # ==============================
-# FLIP PERIODS
+# FLIP AUTOCORRELATION
+# ==============================
+# Convert flip series to 0 for no-flip, 1 for flip event
+flip_events = [1 if (i in flip_indices) else 0 for i, _ in enumerate(window_ac1)]
+
+# Lag-1 autocorrelation of flip events
+if len(flip_events) > 1:
+    mu = sum(flip_events)/len(flip_events)
+    num = sum((flip_events[i]-mu)*(flip_events[i-1]-mu) for i in range(1,len(flip_events)))
+    den = sum((v-mu)**2 for v in flip_events)
+    flip_ac1 = num/den if den != 0 else 0.0
+else:
+    flip_ac1 = 0.0
+
+# ==============================
+# FLIP INTERVALS
 # ==============================
 flip_periods = [j-i for i,j in zip(flip_indices[:-1], flip_indices[1:])]
-flip_probability = len(flip_indices) / len(window_ac1)
 
 # ==============================
 # REPORT
 # ==============================
-print("Total windows      :", len(window_ac1))
-print("Total flips        :", len(flip_indices))
-print("Flip probability   :", f"{flip_probability:.3f} per window")
-print("Flip periods       :", flip_periods[:20], "...")
-print("Average flip period:", f"{sum(flip_periods)/len(flip_periods):.2f} windows" if flip_periods else "N/A")
+print("Total windows        :", len(window_ac1))
+print("Total flips          :", len(flip_indices))
+print("Flip lag-1 autocorr  :", f"{flip_ac1:.3f}")
+print("Mean flip interval   :", f"{sum(flip_periods)/len(flip_periods):.2f}" if flip_periods else "N/A")
+print("First 20 flip periods:", flip_periods[:20])
 
 # ==============================
-# PLOT AC1 AND FLIPS
+# PLOTS
 # ==============================
 plt.figure(figsize=(12,4))
 indices, ac_vals = zip(*window_ac1)
@@ -72,4 +87,11 @@ plt.xlabel("Sample index")
 plt.ylabel("AC1")
 plt.title("Local AC1 with Detected Flips")
 plt.legend()
+plt.show()
+
+plt.figure(figsize=(8,4))
+plt.hist(flip_periods, bins=20, color='orange', edgecolor='black')
+plt.xlabel("Windows between flips")
+plt.ylabel("Frequency")
+plt.title("Histogram of Flip Intervals")
 plt.show()
