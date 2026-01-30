@@ -184,9 +184,9 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/18/2026")
     c=dopage(c,3)
     app="I. Appendix Index /n A1. Case CGC-25-625577 San Francisco Superior Court docket 10/13/2025 /n A2. Case A174520 First District Appellate Court decision  10/21/2025 /n A3. Case S293600 California Supreme Court docket 11/25/2025 with review denial /n"
-    y_position=fll
-    y_position=doer(app,y_position)
-    c=dopage(c,1)
+  #  y_position=fll
+ #   y_position=doer(app,y_position)
+#    c=dopage(c,1)
     c.save()
 
 if __name__ == "__main__":
