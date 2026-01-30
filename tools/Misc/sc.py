@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Clerk to Ensure Mail Delivery"
+footer_text = ""
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -31,9 +31,9 @@ def create_pdf(output_filename):
         footer_y = 0.4 * inch  # Position for footer
          # Title of the paper
         c.setFont("Times-Roman", 10)  # Font size for footer
-        c.drawCentredString(width / 2, footer_y, footer_text)
+     #   c.drawCentredString(width / 2, footer_y, footer_text)
         # Draw a line above the footer
-        c.line(left_margin, footer_y + 0.1 * inch, right_margin, footer_y + 0.1 * inch)
+     #   c.line(left_margin, footer_y + 0.1 * inch, right_margin, footer_y + 0.1 * inch)
 
     # Add line numbers
     def add_line_numbers(start_y, end_y, line_height):
@@ -49,20 +49,22 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES DISTRICT COURT")
-    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
- 
-
+    c.drawCentredString(width/2, top_margin - 0 * inch, "No.")
+    c.drawCentredString(width / 2, top_margin - .25*inch, "IN THE SUPREME COURT OF THE UNITED STATES")
+    
     # (4) Case Title
     c.setFont("Times-Bold", 12)
     case_title = [
         "Mark Ingraham,",
-        "Plaintiff and Petitioner,",
-        "vs",
-        "Internal Revenue Service",
-        "Respondent and Defendant.",        
+        "Petitioner,",
+        "v.",
+        "Chase Bank",
+        "Respondent.",
+        "",
+        "",
+        "Emergency Petition for Writ of Certiorari to the Supreme Court of California"
     ]
-    y_position = top_margin - 1.75* inch
+    y_position = top_margin - 1* inch
     counter=0
     for line in case_title:
         c.setFont("Times-Bold",12)
@@ -82,24 +84,24 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "District Case: 2:26-cv-00247-HDV",
-        "Appellate Case: ",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
-        "Telephone: (408) 660-5425",
-        "Email: ingrahammark7@gmail.com"
+        "Email: ingrahammark7@gmail.com",
+        "Telephone: (408) 660-5425"     
     ]
     
+    y_position=bottom_margin+2*inch
+    
     for line in attorney_info:
-        c.drawString(space, y_position, line)
+        c.drawString(left_margin, y_position, line)
         y_position -= 0.25 * inch 
    
 
 
     # I. INTRODUCTION
     c.setFont("Times-Bold", 12)
-    c.drawCentredString(width/2, top_margin -0.75* inch, footer_text.upper())
+    c.drawCentredString(left_margin, top_margin -0.75* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
     intro_text = "" 
     y_position -= .25*inch
@@ -143,9 +145,9 @@ def create_pdf(output_filename):
     
     def dopage(cc,num):
     	# Add line numbers to the first page
-    	line_height = 0.25 * inch  # Adjusted to match text spacing
-    	if(num>1):
-    		add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
+    	#line_height = 0.25 * inch  # Adjusted to match text spacing
+    	#if(num>1):
+    		#add_line_numbers(top_margin - 0.5 * inch, bottom_margin + 0.5 * inch, line_height)
     	add_footer(num)
     	cc.showPage()
     	return cc
