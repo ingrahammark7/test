@@ -1,88 +1,62 @@
 import random
-import math
+from collections import deque
 
 # ==============================
 # CONFIG
 # ==============================
-N = 200_000
-WINDOW = 500
-STEP = 500            # NO OVERLAP
-MAX_LAG = 8
-BINS = 16
+N = 2000             # total samples (adjust for testing)
+WINDOW = 50          # local window size
+STEP = 5             # compute every 5 samples
+MAX_LAG = 4          # compute autocorr up to lag 4
 
 rng = random.SystemRandom()
+
+# ==============================
+# DATA
+# ==============================
 x = [rng.random() for _ in range(N)]
 
 # ==============================
-# STAT FUNCTIONS
+# AUTOCORRELATION FUNCTION
 # ==============================
 def autocorr(seq, lag):
     n = len(seq)
-    mu = sum(seq) / n
+    mu = sum(seq)/n
     num = sum((seq[i]-mu)*(seq[i-lag]-mu) for i in range(lag, n))
     den = sum((v-mu)**2 for v in seq)
-    return num / den if den != 0 else 0.0
-
-def mutual_info(seq, lag, bins):
-    n = len(seq) - lag
-    h = [[0]*bins for _ in range(bins)]
-    for i in range(n):
-        h[int(seq[i]*bins)][int(seq[i+lag]*bins)] += 1
-
-    total = n
-    px = [sum(r)/total for r in h]
-    py = [sum(h[r][c] for r in range(bins))/total for c in range(bins)]
-
-    mi = 0.0
-    for i in range(bins):
-        for j in range(bins):
-            pxy = h[i][j]/total
-            if pxy > 0:
-                mi += pxy * math.log2(pxy/(px[i]*py[j]))
-    return mi
-
-def mi_bias(bins, n):
-    return ((bins-1)**2)/(2*n*math.log(2))
+    return num/den if den != 0 else 0.0
 
 # ==============================
-# GLOBAL TEST
+# LOCAL WINDOW AC
 # ==============================
-global_ac = max(abs(autocorr(x, l)) for l in range(1, MAX_LAG+1))
-global_mi = max(mutual_info(x, l, BINS) - mi_bias(BINS, N) for l in range(1, MAX_LAG+1))
+window_ac = []
 
-# ==============================
-# LOCAL WINDOWS
-# ==============================
-violations = []
-
-for i in range(0, N-WINDOW, STEP):
-    w = x[i:i+WINDOW]
-
-    ac = max(abs(autocorr(w, l)) for l in range(1, MAX_LAG+1))
-    mi = max(mutual_info(w, l, BINS) - mi_bias(BINS, WINDOW) for l in range(1, MAX_LAG+1))
-
-    ac_thresh = math.sqrt(2*math.log(MAX_LAG)/WINDOW)
-    mi_thresh = 0.05   # bias-corrected, empirical safe bound
-
-    if ac > ac_thresh or mi > mi_thresh:
-        violations.append((i, ac, mi))
+for start in range(0, N-WINDOW+1, STEP):
+    w = x[start:start+WINDOW]
+    ac_lags = [autocorr(w, lag) for lag in range(1, MAX_LAG+1)]
+    window_ac.append((start, ac_lags))
 
 # ==============================
 # REPORT
 # ==============================
-print("\n=== FINAL RNG STRUCTURE TEST (CORRECTED) ===\n")
-print(f"Global max |AC| : {global_ac:.4e}")
-print(f"Global max MI   : {global_mi:.4e}")
-print(f"Local windows   : {len(range(0, N-WINDOW, STEP))}")
-print(f"Violations      : {len(violations)}")
+print("Index | " + " | ".join([f"AC{l}" for l in range(1, MAX_LAG+1)]))
+print("-"*50)
+for start, ac in window_ac[:50]:  # show first 50 windows for brevity
+    ac_str = " | ".join([f"{v:+.3f}" for v in ac])
+    print(f"{start:5d} | {ac_str}")
 
-if violations:
-    print("First violations:")
-    for v in violations[:5]:
-        print(f"Index {v[0]:6d} AC={v[1]:.3e} MI={v[2]:.3e}")
-else:
-    print("No local violations detected")
+# ==============================
+# SIMPLE FLIP DETECTION (optional)
+# ==============================
+# Check if AC1 changes sign every ~10 calls
+flip_indices = []
+prev_sign = 0
+for start, ac in window_ac:
+    sign = 1 if ac[0] > 0 else -1 if ac[0] < 0 else 0
+    if prev_sign != 0 and sign != prev_sign:
+        flip_indices.append(start)
+    prev_sign = sign
 
-print("\nVERDICT:",
-      "STRUCTURE DETECTED ❌" if violations or global_mi > 0.02 else
-      "NO DETECTABLE STRUCTURE ✅")
+print("\nDetected AC1 flips at windows starting at indices (first 20):")
+print(flip_indices[:20])
+print(f"Total flips detected: {len(flip_indices)}")
