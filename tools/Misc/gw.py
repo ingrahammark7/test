@@ -1,82 +1,90 @@
 import random
 import math
-import time
 
 # ==============================
 # CONFIG
 # ==============================
-N = 500
-WINDOW = 5
-MAX_LAG = 1
+N = 200_000
+MAX_LAG = 32
+BINS = 32
 
 rng = random.SystemRandom()
 
 # ==============================
-# STORAGE
+# DATA
 # ==============================
-x = []
-phi_hist = []
-ac1_hist = []
+x = [rng.random() for _ in range(N)]
 
 # ==============================
-# STATS
+# LINEAR AUTOCORRELATION
 # ==============================
 def autocorr(seq, lag):
     n = len(seq)
-    if n <= lag:
-        return 0.0
     mu = sum(seq) / n
-    num = sum((seq[i] - mu) * (seq[i-lag] - mu) for i in range(lag, n))
-    den = sum((v - mu) ** 2 for v in seq)
+    num = sum((seq[i]-mu)*(seq[i-lag]-mu) for i in range(lag, n))
+    den = sum((v-mu)**2 for v in seq)
     return num / den if den != 0 else 0.0
 
-def estimate_phi(seq):
-    """Least-squares AR(1) estimator"""
-    if len(seq) < 2:
-        return 0.0
-    num = sum(seq[i] * seq[i-1] for i in range(1, len(seq)))
-    den = sum(seq[i-1] ** 2 for i in range(1, len(seq)))
-    return num / den if den != 0 else 0.0
+ac = [autocorr(x, lag) for lag in range(1, MAX_LAG+1)]
 
 # ==============================
-# MAIN LOOP
+# MUTUAL INFORMATION (NONLINEAR)
 # ==============================
-print("\n=== AR(1) FALSIFICATION TEST ===\n")
+def mutual_info_lag(seq, lag, bins):
+    n = len(seq) - lag
+    h = [[0]*bins for _ in range(bins)]
+    for i in range(n):
+        a = int(seq[i]*bins) % bins
+        b = int(seq[i+lag]*bins) % bins
+        h[a][b] += 1
 
-for i in range(N):
-    x.append(rng.random())
+    total = n
+    px = [sum(row) / total for row in h]
+    py = [sum(h[r][c] for r in range(bins)) / total for c in range(bins)]
 
-    if len(x) >= WINDOW:
-        w = x[-WINDOW:]
+    mi = 0.0
+    for i in range(bins):
+        for j in range(bins):
+            pxy = h[i][j] / total
+            if pxy > 0 and px[i] > 0 and py[j] > 0:
+                mi += pxy * math.log2(pxy / (px[i]*py[j]))
+    return mi
 
-        ac1 = autocorr(w, 1)
-        phi = estimate_phi(w)
-
-        ac1_hist.append(ac1)
-        phi_hist.append(phi)
-
-        if i % 5_000 == 0:
-            print(
-                f"[{i:06d}] "
-                f"AC1={ac1:+.5f} "
-                f"phî={phi:+.5f}"
-            )
-
-        # OPTIONAL: break alignment artifacts
-        if i % 997 == 0:
-            time.sleep(0.0005)
+mi = [mutual_info_lag(x, lag, BINS) for lag in range(1, MAX_LAG+1)]
 
 # ==============================
-# SUMMARY
+# RUNS TEST (SIGN DEPENDENCE)
 # ==============================
-def stats(v):
-    mu = sum(v) / len(v)
-    var = sum((x - mu) ** 2 for x in v) / len(v)
-    return mu, math.sqrt(var)
+median = sorted(x)[len(x)//2]
+signs = [1 if v > median else 0 for v in x]
 
-ac_mu, ac_sd = stats(ac1_hist)
-phi_mu, phi_sd = stats(phi_hist)
+runs = 1
+for i in range(1, len(signs)):
+    if signs[i] != signs[i-1]:
+        runs += 1
 
-print("\n=== SUMMARY ===")
-print(f"AC1 mean ± sd  : {ac_mu:+.6f} ± {ac_sd:.6f}")
-print(f"phî mean ± sd : {phi_mu:+.6f} ± {phi_sd:.6f}")
+expected_runs = (2*len(x)-1)/3
+runs_z = (runs - expected_runs) / math.sqrt((16*len(x)-29)/90)
+
+# ==============================
+# VERDICT
+# ==============================
+ac_max = max(abs(v) for v in ac)
+mi_max = max(mi)
+
+print("\n=== FINAL RNG DEPENDENCE TEST ===\n")
+print(f"Samples              : {N}")
+print(f"Max |autocorr| (lags) : {ac_max:.6e}")
+print(f"Max mutual info       : {mi_max:.6e} bits")
+print(f"Runs test z-score     : {runs_z:+.3f}")
+
+# Thresholds derived from IID asymptotics
+FAIL = False
+if ac_max > 5 / math.sqrt(N):
+    FAIL = True
+if mi_max > 0.01:
+    FAIL = True
+if abs(runs_z) > 5:
+    FAIL = True
+
+print("\nVERDICT:", "DEPENDENCE DETECTED ❌" if FAIL else "NO DEPENDENCE DETECTED ✅")
