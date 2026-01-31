@@ -135,7 +135,7 @@ def create_pdf(output_filename):
     		else:
     			c.setFont(font,siz)
     		c.drawString(left_margin, y_position, line)
-    		y_position -= 0.5* inch
+    		y_position -= 0.25* inch
     	return y_position
     	
     y_position=doer(intro_text,y_position)
@@ -171,22 +171,27 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text=" I. EXHAUSTION /n All remedies in lower courts have been exhausted per appendix docket information. San Francisco Superior Court case CGC-25-625577 was dismissed. Writ filed to First District Court of Appeals 10/13/2025 case A174520 summary dismissal 10/21/2025. Case S293600 appealed to California Supreme Court and dismissed 11/25/2025. /n II. TABLE OF CONTENTS /n 1. Questions, Parties, Authorities, Opinions, Jurisdiction, Provisions, Case, Argument, Conclusion /n III. STATEMENT OF EMERGENCY /n Consider all filings fraudulent. Courts should strike filings immediately. Immient and irreparable harm will occur. /n IV. QUESTIONS /n Consider all filings fraudulent. Arrest all lower court judges and any other parties to the case. The majority of California employees are illegal immigrants. Petitioner seeks non-discretionary arrest, deportation and execution of all parties to case. /n V. PARTIES /n Original case parties are petitioner, respondent, and California Superior, Appellate and Supreme Courts. /n VI. OPINIONS /n Lower courts issued summary dismissal and no published opinion. /n "
-    f2="VII. JURISDICTION /n The federal government has sole jurisdiction over immigration and has jurisdiction over case, as the majority of California employees are illegal immigrants and are therefore under sole federal jurisdiction. /n VIII. PROVISIONS /n 18 USC 2381 Treason. /n IX. CASE /n None. /n X. ARGUMENTS /n None. /n XI. CONCLUSION /n Petitioner petitions Court to: /n 1. Arrest, deport and execute all parties to case. /n"
+    text=" I. EXHAUSTION /n All remedies in lower courts have been exhausted per appendix docket information. San Francisco Superior Court case CGC-25-625577 was dismissed. Writ filed to First District Court of Appeals 10/13/2025 case A174520 summary dismissal 10/21/2025. Case S293600 appealed to California Supreme Court and dismissed 11/25/2025. /n II. TABLE OF CONTENTS /n 1. Questions, Parties, Authorities, Opinions, Jurisdiction, Provisions, Case, Argument, Conclusion /n III. STATEMENT OF EMERGENCY /n Consider all filings fraudulent. Courts should strike filings immediately. Immient and irreparable harm will occur. /n IV. QUESTIONS /n Consider all filings fraudulent. Arrest all lower court judges and any other parties to the case. The majority of California employees are illegal immigrants. Petitioner seeks non-discretionary arrest, deportation and execution of all parties to case. /n V. PARTIES /n Original case parties are petitioner, respondent, and California Superior, Appellate and Supreme Courts. /n VI. OPINIONS /n Lower courts issued summary dismissal and no published opinion. /n VII. JURISDICTION /n The federal government has sole jurisdiction over immigration and has jurisdiction over case, as the majority of California employees are illegal immigrants and are therefore under sole federal jurisdiction. /n VIII. PROVISIONS /n 18 USC 2381 Treason. /n IX. CASE /n None. /n X. ARGUMENTS /n None. /n XI. CONCLUSION /n Petitioner petitions Court to: /n 1. Arrest, deport and execute all parties to case. /n"
+    f2=""
     y_position=doer(text,y_position)
    
 
 
     # Save the PDF
-    c=dopage(c,2)
+    
+    """
     y_position=fll
     y_position=doer(f2,y_position)
+    """
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/18/2026")
+    c=dopage(c,2)
+    """
     c=dopage(c,3)
     app="I. Appendix Index /n A1. Case CGC-25-625577 San Francisco Superior Court docket 10/13/2025 /n A2. Case A174520 First District Appellate Court decision  10/21/2025 /n A3. Case S293600 California Supreme Court docket 11/25/2025 with review denial /n"
   #  y_position=fll
  #   y_position=doer(app,y_position)
 #    c=dopage(c,1)
+"""
     c.save()
 
 if __name__ == "__main__":
