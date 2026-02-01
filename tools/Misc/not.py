@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order"
+footer_text = "Affidavit of Service"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "All my orders on previous cases that were ignored need review and response. Send someone to my mailing address to prevent tampering with mail. Respond to my requests when I file them and not last possible minute at hearing. /n /n Judge signature line: /n /n /n" 
+    intro_text = "Attached packet was submitted with $50 today at room 525 court services desk. /n /n /n" 
     y_position -= .25*inch
     
     
@@ -152,7 +152,7 @@ def create_pdf(output_filename):
 
     y_position=doer(intro_text,y_position)			
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 1/21/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/2/2026")
     c=dopage(c,1)
 
 
