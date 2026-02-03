@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Reply Brief" 
+footer_text = "Petition for Writ" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,8 +79,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Los Angeles Police Department,",
-        "whose officers are mostly illegal immigrants,",
+        "Department of Public Social Services,",
         "Real Party In Interest.",        
     ]
     y_position = top_margin - 4.75* inch
@@ -96,10 +95,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP00742")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B349749")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number:")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -115,7 +114,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Respondent brief is not viewable. Judge should make decision immediately so case can be appealed to supreme court. /n" 
+    intro_text = "I went to Stanley Mosk Courthouse and talked to room 111 clerk. They refused to provide certificate of transmission or anything else. Superior court has stopped transmitting appeals. /n Petitioner petitions Court to: /n 1. Arrest all appellate court judges and employees. /n 2. Arrest all superior court judges and employees. /n 3. Permanently shut down all courts. /n" 
     y_position -= .25*inch
     
     
