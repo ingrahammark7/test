@@ -86,7 +86,9 @@ def create_pdf(output_filename):
         "in this petition:",
         "1. Mark Ingraham, Petitioner.",
 "2. Los Angeles County Department of Public Social Services (DPSS), Real Party in Interest.",
-"3. Los Angeles Superior Court, Respondent."
+"3. Los Angeles Superior Court, Respondent.",
+"STATEMENT OF URGENCY",
+"This petition does not request a stay and is not urgent. Superior Court judge ","was disqualified and no information is available."
     ]
     y_position = top_margin - 4.75* inch
     counter=0
