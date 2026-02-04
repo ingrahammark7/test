@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Writ" 
+footer_text = "Petition for Extraordinary Writ of Mandate" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -81,6 +81,12 @@ def create_pdf(output_filename):
         "Respondent,",
         "Department of Public Social Services,",
         "Real Party In Interest.",        
+        "REAL PARTIES IN INTEREST",
+        "Pursuant to California Rules of Court, rule 8.486(a)(2), the following are the real parties in interest",
+        "in this petition:",
+        "1. Mark Ingraham, Petitioner.",
+"2. Los Angeles County Department of Public Social Services (DPSS), Real Party in Interest.",
+"3. Los Angeles Superior Court, Respondent."
     ]
     y_position = top_margin - 4.75* inch
     counter=0
@@ -114,7 +120,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I went to Stanley Mosk Courthouse and talked to room 111 clerk. They refused to provide certificate of transmission or anything else. Superior court has stopped transmitting appeals. /n Petitioner petitions Court to: /n 1. Arrest all appellate court judges and employees. /n 2. Arrest all superior court judges and employees. /n 3. Permanently shut down all courts. /n" 
+    intro_text = "REAL PARTIES IN INTEREST /n Pursuant to California Rules of Court, rule 8.486(a)(2), the following are the real parties in interest in this petition: /n 1. Mark Ingraham, Petitioner. /n 2. Los Angeles County Department of Public Social Services (DPSS), Real Party in Interest. /n 3. Los Angeles Superior Court, Respondent. /n I went to Stanley Mosk Courthouse and talked to room 111 clerk. They refused to provide certificate of transmission or anything else. Superior court has stopped transmitting appeals. /n Petitioner petitions Court to: /n 1. Arrest all appellate court judges and employees. /n 2. Arrest all superior court judges and employees. /n 3. Permanently shut down all courts. /n" 
     y_position -= .25*inch
     
     
