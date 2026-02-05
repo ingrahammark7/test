@@ -192,7 +192,7 @@ def create_pdf(output_filename):
  #   y_position=doer(app,y_position)
 #    c=dopage(c,1)
 """
-    fl="CERTIFICATE OF SERVICE /n Parties were mailed petition and appendix by US Mail. Parties served are: /n /n Rochelle East, Superior Court Judge /n 400 McAllister St /n San Francisco CA 94102 /n /n San Franciso Superior Court /n 400 McAllister Street /n San Francisco CA 94012 /n /n Chase Bank /n 270 Park Avenue /n New York NY 10017 /n "
+    fl="CERTIFICATE OF SERVICE /n Parties were mailed petition and appendix by US Mail. Parties served are: /n /n Rochelle East, Superior Court Judge /n 400 McAllister St /n San Francisco CA 94102 /n /n San Franciso Superior Court /n 400 McAllister Street /n San Francisco CA 94012 /n /n Chase Bank /n 270 Park Avenue /n New York NY 10017 /n /n California First District Appellate Court /n 350 McAllister Street /n San Francisco CA 94102 /n /n California Supreme Court /n 350 McAllister Street /n San Francisco CA 94102 /n "
     y_position = top_margin
     y_position=doer(fl,y_position)
     c=dopage(c,3)
