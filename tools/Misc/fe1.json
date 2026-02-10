@@ -258,5 +258,15 @@
     "urban_population_percent": 56.4,
     "population_density": 154.3,
     "un_geoscheme": "Asia"
-  }
+  },
+{
+    "country": "Israel",
+     "fertility_rate": 3,
+     "female_education_years": 12,
+     "rainfall_per_capita_mm": 5000,
+     "arable_land_per_capita_ha": 0.03,
+     "urban_population_percent": 80,
+     "population_density": 400,
+     "un_geoscheme": "Asia"
+    }
 ]
