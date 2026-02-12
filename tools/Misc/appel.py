@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Fire Clerk" 
+footer_text = "Petition for Review" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,8 +67,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
+  #  c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
     # (4) Case Title
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Clerk requested the real parties be stated four times, claimed bookmarks were not present in the document when they were, and violated CRC by requiring PDF bookmarks on filings under ten pages. All appellate court employees should be fired and court shut down. /n" 
+    intro_text = "Superior Court refused to transmit the appeal filed in case. Upon questioning at the Stanley Mosk Courthouse Room 111 appeals clerk window, clerk also refused to provide certificate of transmission. /n Petitioner petitions Court to: /n 1. Consider appeal constructively filed. /n 2. Arrest all judges and permanently shut down all courts. /n" 
     y_position -= .25*inch
     
     
@@ -161,7 +161,7 @@ def create_pdf(output_filename):
     y_position-=.5*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/24/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/11/2026")
     c=dopage(c,2)
  
 
