@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-import pyvista as pv
-from geomdl import NURBS, exchange
+from geomdl import NURBS
+import matplotlib.pyplot as plt
 import os
 
 # ------------------------------
@@ -13,6 +13,8 @@ def load_diagram(path, scale=1.0):
     kernel = np.ones((3,3), np.uint8)
     bin_img = cv2.morphologyEx(bin_img, cv2.MORPH_OPEN, kernel)
     coords = np.column_stack(np.where(bin_img>0))
+    if len(coords) == 0:
+        return np.zeros((1,2)), bin_img
     min_vals = coords.min(axis=0)
     max_vals = coords.max(axis=0)
     coords = (coords - min_vals)/(max_vals - min_vals)*scale
@@ -27,7 +29,8 @@ def segment_components(bin_img):
     for i in range(1, num_labels):
         mask = (labels==i).astype(np.uint8)*255
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if contours: components.append(contours[0])
+        if contours:
+            components.append(contours[0])
     return components
 
 # ------------------------------
@@ -61,13 +64,13 @@ def generate_deg_points(components_2d, view_type):
 def fill_missing(vertices, top_pts, side_pts, front_pts):
     for i,v in enumerate(vertices):
         if v[2] is None:
-            match = min(side_pts, key=lambda s: abs(s[0]-v[0])) if v[0] is not None else None
+            match = min(side_pts, key=lambda s: abs(s[0]-v[0])) if v[0] is not None and len(side_pts)>0 else None
             if match is not None: v[2]=match[1]
         if v[1] is None:
-            match = min(top_pts, key=lambda t: abs(t[0]-v[0])) if v[0] is not None else None
+            match = min(top_pts, key=lambda t: abs(t[0]-v[0])) if v[0] is not None and len(top_pts)>0 else None
             if match is not None: v[1]=match[1]
         if v[0] is None:
-            match = min(front_pts, key=lambda f: abs(f[1]-v[2])) if v[2] is not None else None
+            match = min(front_pts, key=lambda f: abs(f[1]-v[2])) if v[2] is not None and len(front_pts)>0 else None
             if match is not None: v[0]=match[0]
         vertices[i] = v
     return vertices
@@ -119,17 +122,20 @@ def insert_airfoil(vertices, airfoil_pts, position=0):
     return vertices
 
 # ------------------------------
-# Module 9: Visualization
+# Module 9: Matplotlib 3D visualization
 # ------------------------------
 def visualize(vertices):
-    cloud = pv.PolyData(np.array(vertices,dtype=float))
-    plotter = pv.Plotter()
-    plotter.add_points(cloud,color='red',point_size=5)
-    plotter.show_grid()
-    plotter.show()
+    vertices = np.array(vertices,dtype=float)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(vertices[:,0], vertices[:,1], vertices[:,2], c='r', s=10)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    plt.show()
 
 # ------------------------------
-# Module 10: OBJ/STL export
+# Module 10: OBJ export
 # ------------------------------
 def export_obj(vertices, filename="model.obj"):
     with open(filename,"w") as f:
@@ -143,7 +149,7 @@ def ai_predict_missing_features(vertices):
     return vertices
 
 # ------------------------------
-# Module 12: Full Batch Workflow
+# Module 12: Full batch workflow
 # ------------------------------
 def process_aircraft(diagram_set):
     for top_path, side_path, front_path in diagram_set:
@@ -167,5 +173,5 @@ def process_aircraft(diagram_set):
 # ------------------------------
 # Example usage
 # ------------------------------
-diagram_files = [("top_view.png","side_view.png","front_view.png")]
+diagram_files = [("tv.png","sv.png","fv.png")]
 process_aircraft(diagram_files)
