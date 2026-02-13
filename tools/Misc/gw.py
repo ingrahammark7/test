@@ -1,168 +1,171 @@
+import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+import pyvista as pv
+from geomdl import NURBS, exchange
+import os
 
-# -----------------------------
-# Utility functions
-# -----------------------------
+# ------------------------------
+# Module 1: Load & preprocess diagrams
+# ------------------------------
+def load_diagram(path, scale=1.0):
+    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    _, bin_img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY_INV)
+    kernel = np.ones((3,3), np.uint8)
+    bin_img = cv2.morphologyEx(bin_img, cv2.MORPH_OPEN, kernel)
+    coords = np.column_stack(np.where(bin_img>0))
+    min_vals = coords.min(axis=0)
+    max_vals = coords.max(axis=0)
+    coords = (coords - min_vals)/(max_vals - min_vals)*scale
+    return coords, bin_img
 
-def norm(v):
-    return np.linalg.norm(v)
+# ------------------------------
+# Module 2: Component segmentation
+# ------------------------------
+def segment_components(bin_img):
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(bin_img)
+    components = []
+    for i in range(1, num_labels):
+        mask = (labels==i).astype(np.uint8)*255
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if contours: components.append(contours[0])
+    return components
 
-def unit(v):
-    n = norm(v)
-    return v / n if n > 1e-9 else v
+# ------------------------------
+# Module 3: Contour -> spline
+# ------------------------------
+def contour_to_spline(contour):
+    pts = np.array([p[0] for p in contour])
+    if len(pts)<3: return pts
+    from scipy.interpolate import splprep, splev
+    tck, u = splprep(pts.T, s=0)
+    u_new = np.linspace(0,1,len(pts)*2)
+    x_new, y_new = splev(u_new, tck)
+    return np.column_stack([x_new, y_new])
 
-def rot90(v):
-    return np.array([-v[1], v[0]])
+# ------------------------------
+# Module 4: Degenerate 3D points
+# ------------------------------
+def generate_deg_points(components_2d, view_type):
+    vertices = []
+    for comp in components_2d:
+        spline = contour_to_spline(comp)
+        for pt in spline:
+            if view_type=="top": vertices.append([pt[0], pt[1], None])
+            if view_type=="side": vertices.append([pt[0], None, pt[1]])
+            if view_type=="front": vertices.append([None, pt[0], pt[1]])
+    return np.array(vertices,dtype=object)
 
-# -----------------------------
-# Vehicle models
-# -----------------------------
+# ------------------------------
+# Module 5: Fill missing coordinates
+# ------------------------------
+def fill_missing(vertices, top_pts, side_pts, front_pts):
+    for i,v in enumerate(vertices):
+        if v[2] is None:
+            match = min(side_pts, key=lambda s: abs(s[0]-v[0])) if v[0] is not None else None
+            if match is not None: v[2]=match[1]
+        if v[1] is None:
+            match = min(top_pts, key=lambda t: abs(t[0]-v[0])) if v[0] is not None else None
+            if match is not None: v[1]=match[1]
+        if v[0] is None:
+            match = min(front_pts, key=lambda f: abs(f[1]-v[2])) if v[2] is not None else None
+            if match is not None: v[0]=match[0]
+        vertices[i] = v
+    return vertices
 
-class Vehicle:
-    def __init__(self, pos, vel, a_lat_max):
-        self.pos = np.array(pos, dtype=float)
-        self.vel = np.array(vel, dtype=float)
-        self.a_lat_max = a_lat_max
+# ------------------------------
+# Module 6: Loft NURBS surface
+# ------------------------------
+def loft_nurbs_surface(curve1_pts, curve2_pts):
+    surf = NURBS.Surface()
+    surf.degree_u = 3
+    surf.degree_v = 3
+    n = min(len(curve1_pts), len(curve2_pts))
+    ctrlpts = []
+    for i in range(n):
+        row = ((curve1_pts[i] if i<len(curve1_pts) else curve1_pts[-1]) +
+               (curve2_pts[i] if i<len(curve2_pts) else curve2_pts[-1]))/2
+        ctrlpts.append(row.tolist())
+    surf.set_ctrlpts(ctrlpts, size_u=len(ctrlpts), size_v=len(ctrlpts[0]))
+    surf.knotvector_u = [0]*4 + [1]*4
+    surf.knotvector_v = [0]*4 + [1]*4
+    return surf
 
-    def speed(self):
-        return norm(self.vel)
+# ------------------------------
+# Module 7: Symmetry / Twist / Taper
+# ------------------------------
+def apply_symmetry(vertices, axis=0):
+    mirrored = vertices.copy()
+    mirrored[:,axis] *= -1
+    return np.vstack([vertices, mirrored])
 
-    def turn_rate_max(self):
-        return self.a_lat_max / max(self.speed(), 1e-6)
+def apply_twist_taper(vertices, twist_deg=0, taper=1.0, axis=2):
+    rad = np.deg2rad(twist_deg)
+    for i,v in enumerate(vertices):
+        factor = taper*(i/len(vertices))
+        if axis==2:
+            y,z = v[1], v[2]
+            if y is not None and z is not None:
+                v[1] = y*np.cos(rad*factor) - z*np.sin(rad*factor)
+                v[2] = y*np.sin(rad*factor) + z*np.cos(rad*factor)
+    return vertices
 
-# -----------------------------
-# Target maneuver model
-# -----------------------------
+# ------------------------------
+# Module 8: Airfoil insertion
+# ------------------------------
+def insert_airfoil(vertices, airfoil_pts, position=0):
+    for i, pt in enumerate(airfoil_pts):
+        vertices[position+i][0] = pt[0]
+        vertices[position+i][1] = pt[1]
+    return vertices
 
-def target_accel(target, t):
-    """
-    High‑g evasive maneuver:
-    bang‑bang lateral acceleration
-    """
-    sign = np.sign(np.sin(2 * np.pi * 0.5 * t))
-    return sign * target.a_lat_max * unit(rot90(target.vel))
+# ------------------------------
+# Module 9: Visualization
+# ------------------------------
+def visualize(vertices):
+    cloud = pv.PolyData(np.array(vertices,dtype=float))
+    plotter = pv.Plotter()
+    plotter.add_points(cloud,color='red',point_size=5)
+    plotter.show_grid()
+    plotter.show()
 
-# -----------------------------
-# Guidance laws
-# -----------------------------
+# ------------------------------
+# Module 10: OBJ/STL export
+# ------------------------------
+def export_obj(vertices, filename="model.obj"):
+    with open(filename,"w") as f:
+        for v in vertices:
+            f.write(f"v {v[0]} {v[1]} {v[2]}\n")
 
-def pure_pursuit(missile, target):
-    los = target.pos - missile.pos
-    return unit(los)
+# ------------------------------
+# Module 11: AI placeholder
+# ------------------------------
+def ai_predict_missing_features(vertices):
+    return vertices
 
-def lead_pursuit(missile, target):
-    los = target.pos - missile.pos
-    closing = target.vel - missile.vel
-    lead = los + closing * 0.5
-    return unit(lead)
+# ------------------------------
+# Module 12: Full Batch Workflow
+# ------------------------------
+def process_aircraft(diagram_set):
+    for top_path, side_path, front_path in diagram_set:
+        top_pts, top_bin = load_diagram(top_path)
+        side_pts, side_bin = load_diagram(side_path)
+        front_pts, front_bin = load_diagram(front_path)
+        top_comp = segment_components(top_bin)
+        side_comp = segment_components(side_bin)
+        front_comp = segment_components(front_bin)
+        vertices = np.vstack([
+            generate_deg_points(top_comp,"top"),
+            generate_deg_points(side_comp,"side"),
+            generate_deg_points(front_comp,"front")
+        ])
+        vertices = fill_missing(vertices, top_pts, side_pts, front_pts)
+        vertices = apply_symmetry(vertices)
+        vertices = ai_predict_missing_features(vertices)
+        visualize(vertices)
+        export_obj(vertices, filename=os.path.basename(top_path).replace(".png",".obj"))
 
-def proportional_navigation(missile, target, N=3):
-    los = target.pos - missile.pos
-    los_unit = unit(los)
-
-    rel_vel = target.vel - missile.vel
-    los_rate = np.cross(np.append(los_unit,0), np.append(rel_vel,0))[2] / max(norm(los),1e-6)
-
-    a_cmd = N * missile.speed() * los_rate
-    return np.clip(a_cmd, -missile.a_lat_max, missile.a_lat_max)
-
-# -----------------------------
-# Simulation
-# -----------------------------
-
-def simulate(
-    dt=0.01,
-    t_max=20,
-    guidance="PN"
-):
-    # Target: race‑car‑like
-    target = Vehicle(
-        pos=[0, 0],
-        vel=[60, 0],
-        a_lat_max=100     # ~10 g
-    )
-
-    # Missile: generic interceptor
-    missile = Vehicle(
-        pos=[-1000, -50],
-        vel=[300, 0],
-        a_lat_max=300     # ~30 g
-    )
-
-    history = {
-        "target": [],
-        "missile": [],
-        "range": [],
-        "los_rate": [],
-        "missile_turn_cap": []
-    }
-
-    t = 0
-    while t < t_max:
-        r = target.pos - missile.pos
-        R = norm(r)
-
-        if R < 5:
-            break
-
-        # --- Target update ---
-        a_t = target_accel(target, t)
-        target.vel += a_t * dt
-        target.pos += target.vel * dt
-
-        # --- Missile guidance ---
-        if guidance == "PP":
-            dir_cmd = pure_pursuit(missile, target)
-            a_m = missile.a_lat_max * unit(rot90(missile.vel)) * np.sign(np.dot(dir_cmd, rot90(missile.vel)))
-        elif guidance == "LP":
-            dir_cmd = lead_pursuit(missile, target)
-            a_m = missile.a_lat_max * unit(rot90(missile.vel)) * np.sign(np.dot(dir_cmd, rot90(missile.vel)))
-        else:
-            # PN
-            los_unit = unit(r)
-            rel_vel = target.vel - missile.vel
-            los_rate = np.cross(np.append(los_unit,0), np.append(rel_vel,0))[2] / max(R,1e-6)
-            a_mag = np.clip(3 * missile.speed() * los_rate, -missile.a_lat_max, missile.a_lat_max)
-            a_m = a_mag * unit(rot90(missile.vel))
-
-        missile.vel += a_m * dt
-        missile.pos += missile.vel * dt
-
-        # --- Logging ---
-        history["target"].append(target.pos.copy())
-        history["missile"].append(missile.pos.copy())
-        history["range"].append(R)
-        history["los_rate"].append(abs(los_rate) if 'los_rate' in locals() else 0)
-        history["missile_turn_cap"].append(missile.turn_rate_max())
-
-        t += dt
-
-    return history
-
-# -----------------------------
-# Run and plot
-# -----------------------------
-
-hist = simulate(guidance="PN")
-
-target_traj = np.array(hist["target"])
-missile_traj = np.array(hist["missile"])
-
-plt.figure(figsize=(10,4))
-
-plt.subplot(1,2,1)
-plt.plot(target_traj[:,0], target_traj[:,1], label="Target")
-plt.plot(missile_traj[:,0], missile_traj[:,1], label="Interceptor")
-plt.legend()
-plt.title("Trajectories")
-plt.axis("equal")
-
-plt.subplot(1,2,2)
-plt.plot(hist["los_rate"], label="LOS rate")
-plt.plot(hist["missile_turn_cap"], label="Missile max turn rate")
-plt.legend()
-plt.title("Angular demand vs capability")
-
-plt.tight_layout()
-plt.show()
+# ------------------------------
+# Example usage
+# ------------------------------
+diagram_files = [("top_view.png","side_view.png","front_view.png")]
+process_aircraft(diagram_files)
