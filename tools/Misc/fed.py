@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request for Order"
+footer_text = "Notice of Appeal"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -59,7 +59,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Police Department",
+        "Internal Revenue Service",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 1.75* inch
@@ -82,7 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "District Case: 2:25-cv-12260",
+        "District Case: 26-cv-00247-HDV",
         "Appellate Case: ",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
@@ -168,9 +168,9 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="Court needs to send someone to my address, ensure mail is delivered and arrest anyone there. I have filed this request mutiple times and court either fails to enter it or ignores everything I file. /n "
+    text="Notice is given case is appealed regardless of IFP rejection. Also, clerk has ignored or deleted several filings despite my multiple filings noting these deletions, and judge has not resolved this issue. All judges should be arrested, deported and executed and all actions by court are illegal. /n "
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/10/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/14/2026")
 
 
     # Save the PDF
