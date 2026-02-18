@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Notice of Appeal"
+footer_text= "Appellant Opening Brief"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -49,8 +49,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES DISTRICT COURT")
-    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "NINTH CIRCUIT")
  
 
     # (4) Case Title
@@ -83,7 +83,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     attorney_info = [
         "District Case: 26-cv-00247-HDV",
-        "Appellate Case: ",
+        "Appellate Case: 26-938",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -168,7 +168,7 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="Notice is given case is appealed regardless of IFP rejection. Also, clerk has ignored or deleted several filings despite my multiple filings noting these deletions, and judge has not resolved this issue. All judges should be arrested, deported and executed and all actions by court are illegal. /n "
+    text="The IRS is required to tax me. 26 USC § 6501, 26 U.S.C. § 6203, 26 USC § 6213, and 26 USC § 6303 requires IRS to notice and demand payment of taxes. I have filed over a billion dollars in taxes in each year multiple times, most recently in 2025. The IRS has never attempted collection, provided me any demand or notice, or taken any action it is required to do. /n CONCLUSION /n Petitioner requests IRS demand one billion dollars in taxes from me. /n "
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/14/2026")
 
