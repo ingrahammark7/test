@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I. TABLE OF CONTENTS /n Notice of Appeal, 3 /n Decisiom, 4 /n Disqualification, 5 /n" 
+    intro_text = "I. TABLE OF CONTENTS /n Notice of Appeal, 3 /n Decisiom, 4 /n Disqualification, 5 /n Because appendix was ordered and brief is under 10 pages, PDF bookmarks and other CRC rules are waived. /n" 
     y_position -= .25*inch
     
     
