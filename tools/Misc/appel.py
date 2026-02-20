@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Review" 
+footer_text = "Appendix Index" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,8 +67,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
-  #  c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
     # (4) Case Title
@@ -99,7 +99,7 @@ def create_pdf(output_filename):
     c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352170")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352462")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Superior Court refused to transmit the appeal filed in case. Upon questioning at the Stanley Mosk Courthouse Room 111 appeals clerk window, clerk also refused to provide certificate of transmission. /n Petitioner petitions Court to: /n 1. Consider appeal constructively filed. /n 2. Arrest all judges and permanently shut down all courts. /n" 
+    intro_text = "I. TABLE OF CONTENTS /n Notice of Appeal, 3 /n Decisiom, 4 /n Disqualification, 5 /n" 
     y_position -= .25*inch
     
     
