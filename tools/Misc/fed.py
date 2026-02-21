@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text= "Appellant Opening Brief"
+footer_text= "Notice of Appeal"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -49,8 +49,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES COURT OF APPEALS")
-    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "NINTH CIRCUIT")
+    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES DISTRICT COURT")
+    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
  
 
     # (4) Case Title
@@ -59,7 +59,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Internal Revenue Service",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 1.75* inch
@@ -82,8 +82,8 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "District Case: 26-cv-00247-HDV",
-        "Appellate Case: 26-938",
+        "District Case: 2:25-cv-12260",
+        "Appellate Case: ",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -168,9 +168,9 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="The IRS is required to tax me. 26 USC § 6501, 26 U.S.C. § 6203, 26 USC § 6213, and 26 USC § 6303 requires IRS to notice and demand payment of taxes. I have filed over a billion dollars in taxes in each year multiple times, most recently in 2025. The IRS has never attempted collection, provided me any demand or notice, or taken any action it is required to do. /n CONCLUSION /n Petitioner requests IRS demand one billion dollars in taxes from me. /n "
+    text="Notice is given case is appealed. Section 1915 IFP is also applied for, assumed rejected and appealed. /n "
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/14/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/20/2026")
 
 
     # Save the PDF
