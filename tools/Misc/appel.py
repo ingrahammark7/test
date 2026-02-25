@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text ="Reply Brief"
+footer_text ="Appellant Opening Brief"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Los Angeles Police Department",
+        "Department of Public Social Services",
         "Real Party In Interest.",        
         
     ]
@@ -96,10 +96,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP00742")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B349749")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352462")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "The majority of LAPD officers are illegal immigrants. All LAPD officers should be convicted of treason, killed and deported. Defendant failed to inform that all LAPD officers will be killed by plaintiff. Defendant did not explain why they refuse to arrest me despite nondiscretionary duty to do so. /n" 
+    intro_text = "Judge requested to go to jail, per their order. Petitioner petitions court to: /n 1. Arrest judge. /n" 
     y_position -= .25*inch
     
     
