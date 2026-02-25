@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text="Reply to OSC"
+footer_text= "Notice of Appeal"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -49,8 +49,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES COURT OF APPEALS")
-    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "NINTH CIRCUIT")
+    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES DISTRICT COURT")
+    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
  
 
     # (4) Case Title
@@ -59,7 +59,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Internal Revenue Service",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 1.75* inch
@@ -82,8 +82,8 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "District Case: ",
-        "Appellate Case: 25-938",
+        "District Case: 2:25-cv-12260",
+        "Appellate Case: ",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -168,7 +168,7 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="Court has not explained why IRS cannot tax me. Any dismissal by court is frivolous. /n "
+    text="Notice is given case is appealed. I have filed this notice twice and clerk has not posted it. Per 18 USC 2381 and 18 USC 1505, judge should be executed for not ensuring submissions are filed. /n "
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/20/2026")
 
