@@ -168,7 +168,7 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="Notice is given case is appealed. I have filed this notice twice and clerk has not posted it. Per 18 USC 2381 and 18 USC 1505, judge should be executed for not ensuring submissions are filed. /n "
+    text="Notice is given case is appealed. I have filed this notice twice and clerk has not posted it. Per 18 USC 2381 and 18 USC 1505, judge should be charged for not ensuring submissions are filed. I have repeatedly called for judge to be arrested. /n "
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/20/2026")
 
