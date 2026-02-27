@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text ="Appellant Opening Brief"
+footer_text ="Reply"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge requested to go to jail, per their order. Petitioner petitions court to: /n 1. Arrest judge. /n" 
+    intro_text = "Judge faked the transcript as usual and I never dismissed case. Court should dismiss case on condition judge goes to jail.  /n" 
     y_position -= .25*inch
     
     
@@ -161,7 +161,7 @@ def create_pdf(output_filename):
     y_position-=.5*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/11/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/26/2026")
     c=dopage(c,2)
  
 
