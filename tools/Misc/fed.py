@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text= "Notice of Appeal"
+footer_text= "Petition for Writ of Mandate"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -59,7 +59,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Police Department",
+        "Steven V. Wilson",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 1.75* inch
@@ -82,7 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "District Case: 2:25-cv-12260",
+        "District Case: ",
         "Appellate Case: ",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
@@ -158,19 +158,19 @@ def create_pdf(output_filename):
     	c.setFont("Times-Bold", 12)
     	c.drawString(left_margin, y_position, text)
     	c.setFont("Times-Roman",12)
-    	intro_text = "/n" 
+    	intro_text = " /n" 
     	y_position -= .25*inch
     	return y_position
     	
     
     h1=""
-    y_position=top_margin-.0*inch
+    y_position=top_margin+.25*inch
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="Notice is given case is appealed. I have filed this notice twice and clerk has not posted it. Per 18 USC 2381 and 18 USC 1505, judge should be charged for not ensuring submissions are filed. I have repeatedly called for judge to be arrested. /n "
+    text="The majority of Los Angeles Police Department officers are illegal immigrants. I requested all LAPD vehicles be auctioned and destroyed to prevent use by illegals. /n Defendant was the judge on the case and dismissed the case by claiming immigration is not under federal jursidiction. As the LAPD is a Foreign Terrorist Organization, judges statements constitute nullification of federal law, support for terrorism and treason. Therefore, defendant should be executed. /n Petitioner petitions Court to: /n 1. Execute judge Steven V. Wilson. /n "
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/20/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 3/1/2026")
 
 
     # Save the PDF
