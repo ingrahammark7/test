@@ -59,7 +59,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Police Department",
+        "Steven V. Wilson",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 1.75* inch
@@ -169,7 +169,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Roman", 12)
     text="/n Court should order marshall service of case filings I cannot afford a private server. /n"
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/10/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 3/1/2026")
 
 
     # Save the PDF
