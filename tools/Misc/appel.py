@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text ="Reply"
+footer_text ="Opening Brief"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -68,7 +68,7 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "FIRST DISTRICT")
  
 
     # (4) Case Title
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Department of Public Social Services",
+        "Chase Bank",
         "Real Party In Interest.",        
         
     ]
@@ -96,10 +96,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: CGC2565577")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352462")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: A175706")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge faked the transcript as usual and I never dismissed case. Court should dismiss case on condition judge goes to jail.  /n" 
+    intro_text = "Consider all filings fraudulent. Arresr judge. Permanetly shut down San Francisco court. /n" 
     y_position -= .25*inch
     
     
@@ -161,7 +161,7 @@ def create_pdf(output_filename):
     y_position-=.5*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/26/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 3/3/2026")
     c=dopage(c,2)
  
 
