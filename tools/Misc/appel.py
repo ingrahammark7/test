@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text ="Opening Brief"
+footer_text ="Reply"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Consider all filings fraudulent. Arresr judge. Permanetly shut down San Francisco court. /n" 
+    intro_text = "Consider all filings fraudulent. Arrest judge. Permanently shut down San Francisco court. /n" 
     y_position -= .25*inch
     
     
