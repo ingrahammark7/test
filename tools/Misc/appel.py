@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text ="Appendix Index"
+footer_text ="Appendix"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -77,7 +77,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Superior Court,",
+        "San Francisco Superior Court,",
         "Respondent,",
         "Chase Bank",
         "Real Party In Interest.",        
