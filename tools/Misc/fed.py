@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text= "Petition for Writ of Mandate"
+footer_text = "Opening Brief"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -49,8 +49,8 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES DISTRICT COURT")
-    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
+    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 0.33 * inch, "NINTH CIRCUIT")
  
 
     # (4) Case Title
@@ -59,7 +59,7 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Steven V. Wilson",
+        "Los Angeles Police Department",
         "Respondent and Defendant.",        
     ]
     y_position = top_margin - 1.75* inch
@@ -82,8 +82,7 @@ def create_pdf(output_filename):
     # (1) Attorney Information
     c.setFont("Times-Roman", 12)
     attorney_info = [
-        "District Case: ",
-        "Appellate Case: ",
+        "Case Number: 26-1315",
         "Mark Ingraham",
         "3553 Atlantic Avenue",
         "Long Beach, CA 90807",
@@ -101,7 +100,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawCentredString(width/2, top_margin -0.75* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "" 
+    intro_text = "/n" 
     y_position -= .25*inch
     
     
@@ -158,19 +157,19 @@ def create_pdf(output_filename):
     	c.setFont("Times-Bold", 12)
     	c.drawString(left_margin, y_position, text)
     	c.setFont("Times-Roman",12)
-    	intro_text = " /n" 
+    	intro_text = "/n" 
     	y_position -= .25*inch
     	return y_position
     	
     
     h1=""
-    y_position=top_margin+.25*inch
+    y_position=top_margin-.0*inch
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="The majority of Los Angeles Police Department officers are illegal immigrants. I requested all LAPD vehicles be auctioned and destroyed to prevent use by illegals. /n Defendant was the judge on the case and dismissed the case by claiming immigration is not under federal jursidiction. As the LAPD is a Foreign Terrorist Organization, judges statements constitute nullification of federal law, support for terrorism and treason. Therefore, defendant should be executed. /n Petitioner petitions Court to: /n 1. Execute judge Steven V. Wilson. /n "
+    text="/n I. INTRODUCTION /n The majority of LAPD officers are illegal inmigrants. Auction and destroy all LAPD vehicles to prevent use by illegals. /n There are four ways this case is under federal jurisdiction. One, if I kill LAPD officers in federal operations there is a non discretionary duty to arrest. Two, the majority of LAPD officers are illegal immigrants. Three, the LAPD violates false claims act by pretending to be law enforcement and not following the law. Four, the LAPD is a Foreign Terrorist Organization. /n II. CONCLUSION /n Petitioner requests court to: /n 1. Auction and destroy all LAPD vehicles. /n 2. Recommend non-discretionary arrest and deportation of all LAPD officers. /n 3. Evidence in report 241015900229 supports all claims. /n"
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 3/1/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/10/2025")
 
 
     # Save the PDF
