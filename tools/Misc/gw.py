@@ -1,39 +1,39 @@
-import math
+import numpy as np
 
-# ---------- INPUT PARAMETERS ----------
+# constants
+R = 8.314
+M_NO = 30.01        # g/mol
+M_HNO3 = 63.01      # g/mol
 
-H = 800000          # magnetizing field strength (A/m)
-mu_r = 500          # steel relative permeability
-gap = 0.002         # air gap in meters (2 mm)
-steel_length = 0.05 # magnetic path length in steel (5 cm)
-area = 0.01         # contact area m²
-B_sat = 1.6         # steel saturation limit (Tesla)
+# reaction energy estimate (approx energy needed per mole NO formed)
+ENERGY_PER_MOL_NO = 180e3   # J/mol (rough plasma estimate)
 
-# ---------- CONSTANT ----------
-mu0 = 4 * math.pi * 1e-7
+def nitric_production(power_watts, efficiency=0.01):
+    """
+    Estimate NO and HNO3 production from electrical power.
 
-# ---------- STARTING (IDEAL) FIELD ----------
-B_initial = mu0 * mu_r * H
+    power_watts : electrical input power
+    efficiency  : fraction converted into NO formation
+    """
 
-# starting force before losses
-F_initial = (B_initial**2 * area) / (2 * mu0)
+    useful_power = power_watts * efficiency
 
-# ---------- FIELD CALCULATION ----------
-B = (mu0 * mu_r * H) / (1 + (gap * mu_r / steel_length))
+    mol_NO_per_sec = useful_power / ENERGY_PER_MOL_NO
 
-# apply saturation limit
-if B > B_sat:
-    B = B_sat
+    g_NO_per_sec = mol_NO_per_sec * M_NO
 
-# ---------- FORCE ----------
-F = (B**2 * area) / (2 * mu0)
+    # stoichiometry: ~1 mol NO -> ~1 mol HNO3 eventually
+    mol_HNO3_per_sec = mol_NO_per_sec
+    g_HNO3_per_sec = mol_HNO3_per_sec * M_HNO3
 
-# ---------- OUTPUT ----------
-print("Starting ideal field B:", round(B_initial,3), "T")
-print("Starting ideal force:", round(F_initial,1), "N")
-print("Starting ideal force:", round(F_initial/9.81,1), "kgf")
-print()
+    return g_NO_per_sec, g_HNO3_per_sec
 
-print("Effective field B:", round(B,3), "T")
-print("Force:", round(F,1), "N")
-print("Equivalent mass:", round(F/9.81,1), "kg")
+
+# test across power levels
+powers = [10, 50, 100, 500, 1000]  # watts
+
+for p in powers:
+    no_rate, acid_rate = nitric_production(p)
+    print(f"{p} W:")
+    print(f"  NO production   ≈ {no_rate*3600:.3f} g/hour")
+    print(f"  HNO3 potential  ≈ {acid_rate*3600:.3f} g/hour\n")
