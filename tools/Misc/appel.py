@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text ="Appellant Opening Brief"
+footer_text = "Appendix- Under 10 pages and CRC 8.144(b)(5)(a) not required" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Department of Public Social Services",
+        "Department of Public Social Services,",
         "Real Party In Interest.",        
         
     ]
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "TABLE OF CONTENTS /n Page 1: Brief. /n TABLE OF AUTHORITIES /n None. /n CONCLUSION /n Judge requested to go to jail, per their order. Petitioner petitions court to: /n 1. Arrest judge. /n" 
+    intro_text = "I. TABLE OF CONTENTS /n Notice of Appeal, 3 /n Decisiom, 4 /n Disqualification, 5 /n Because appendix was ordered and brief is under 10 pages, PDF bookmarks and other CRC rules are waived. /n" 
     y_position -= .25*inch
     
     
