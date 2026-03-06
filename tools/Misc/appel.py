@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text ="Appendix"
+footer_text ="Appellant Opening Brief"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Los Angeles Sheriff Department Court Services Division",
+        "Department of Public Social Services",
         "Real Party In Interest.",        
         
     ]
@@ -96,10 +96,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 26STCP00048")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352830")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352462")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Notice of Appeal, 3 /n Appealed order, 4 /n Brief is under 10 pages and no PDF bookmarks are required. Appendix was ordered and no register required.  /n" 
+    intro_text = "TABLE OF CONTENTS /n Page 1: Brief. /n TABLE OF AUTHORITIES /n None. /n CONCLUSION /n Judge requested to go to jail, per their order. Petitioner petitions court to: /n 1. Arrest judge. /n" 
     y_position -= .25*inch
     
     
@@ -161,7 +161,7 @@ def create_pdf(output_filename):
     y_position-=.5*inch
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 3/3/2026")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/11/2026")
     c=dopage(c,2)
  
 
