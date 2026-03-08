@@ -1,39 +1,40 @@
-import numpy as np
+# Full-featured EM force calculation for two one-atom-thick sheets
 
-# constants
-R = 8.314
-M_NO = 30.01        # g/mol
-M_HNO3 = 63.01      # g/mol
+import math
 
-# reaction energy estimate (approx energy needed per mole NO formed)
-ENERGY_PER_MOL_NO = 180e3   # J/mol (rough plasma estimate)
+# -----------------------
+# Constants
+# -----------------------
+k = 8.988e9        # Coulomb constant (N·m²/C²)
+e = 1.602e-19      # Elementary charge (C)
 
-def nitric_production(power_watts, efficiency=0.01):
-    """
-    Estimate NO and HNO3 production from electrical power.
+# -----------------------
+# User-defined parameters
+# -----------------------
+Z = 26                    # Iron atomic number (nuclear charge)
+atomic_radius = 1.26e-10  # Atomic radius (m)
+lattice_spacing = 2.5e-10 # Approximate distance between atoms in lattice (m)
+sheet_area = 1e-4         # Sheet area in m² (1 cm²)
 
-    power_watts : electrical input power
-    efficiency  : fraction converted into NO formation
-    """
+# -----------------------
+# Calculations
+# -----------------------
 
-    useful_power = power_watts * efficiency
+# Charge of a single nucleus
+q = Z * e
 
-    mol_NO_per_sec = useful_power / ENERGY_PER_MOL_NO
+# Number of atoms in one sheet
+num_atoms = int(sheet_area / lattice_spacing**2)
 
-    g_NO_per_sec = mol_NO_per_sec * M_NO
+# Force between two single nuclei at atomic radius
+F_single_atom = k * q**2 / atomic_radius**2
 
-    # stoichiometry: ~1 mol NO -> ~1 mol HNO3 eventually
-    mol_HNO3_per_sec = mol_NO_per_sec
-    g_HNO3_per_sec = mol_HNO3_per_sec * M_HNO3
+# Total force assuming every atom interacts with its opposite counterpart
+F_total = F_single_atom * num_atoms
 
-    return g_NO_per_sec, g_HNO3_per_sec
-
-
-# test across power levels
-powers = [10, 50, 100, 500, 1000]  # watts
-
-for p in powers:
-    no_rate, acid_rate = nitric_production(p)
-    print(f"{p} W:")
-    print(f"  NO production   ≈ {no_rate*3600:.3f} g/hour")
-    print(f"  HNO3 potential  ≈ {acid_rate*3600:.3f} g/hour\n")
+# -----------------------
+# Output
+# -----------------------
+print(f"Single atom Coulomb force: {F_single_atom:.3e} N")
+print(f"Number of atoms in sheet: {num_atoms:.3e}")
+print(f"Total force between sheets: {F_total:.3e} N")
