@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Appendix- Under 10 pages and CRC 8.144(b)(5)(a) not required" 
+footer_text = "Request to Dismiss Case For Appeal" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -68,7 +68,7 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "FIRST DISTRICT")
  
 
     # (4) Case Title
@@ -77,9 +77,9 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Superior Court,",
+        "San Francisco Superior Court,",
         "Respondent,",
-        "Department of Public Social Services,",
+        "Chase Bank,",
         "Real Party In Interest.",        
         
     ]
@@ -96,10 +96,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: ")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352462")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: A175706")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "I. TABLE OF CONTENTS /n Notice of Appeal, 3 /n Decisiom, 4 /n Disqualification, 5 /n No remanining documents required under CRC 8.122/124(b)(1). Judge only additional decision is ignoring the disqualification. /n Because appendix was ordered and brief is under 10 pages, PDF bookmarks and other CRC rules are waived. /n" 
+    intro_text = "This case should be dismissed on condition all judges and employees be arrested, deported and sent back to mexico. Court is ignoring everything I file and is not permitting any filings. /n" 
     y_position -= .25*inch
     
     
