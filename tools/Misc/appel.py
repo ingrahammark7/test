@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Appendix" 
+footer_text = "Opening Brief" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "APPENDIX INDEX /n 3, Notice /n 4, Order /n" 
+    intro_text = "Judge incorrectly rejected 170.6 disqualification by claiming their scheduling of the Motion to Submit Transcript to Law Enforcment so Judge Can Be Arrested negated. Petitioner petitions Court to: /n 1. Order judge disqualified. /n" 
     y_position -= .25*inch
     
     
