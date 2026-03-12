@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Dismiss Case For Appeal" 
+footer_text = "Appendix" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -79,7 +79,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Los Angeles Sheriff Department Court Services Division",
+        "Department of Public Social Services",
         "Real Party In Interest.",        
         
     ]
@@ -96,10 +96,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: ")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352830")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B353030")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -115,7 +115,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "This case should be dismissed on condition all judges and employees be arrested, deported and sent back to mexico. Court is ignoring everything I file and is not permitting any filings. /n" 
+    intro_text = "APPENDIX INDEX /n 3, Notice /n 4, Order /n" 
     y_position -= .25*inch
     
     
