@@ -68,7 +68,7 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "FIRST DISTRICT")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
     # (4) Case Title
@@ -77,9 +77,9 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "San Francisco Superior Court,",
+        "Los Angeles Superior Court,",
         "Respondent,",
-        "Chase Bank,",
+        "Los Angeles Sheriff Department Court Services Division",
         "Real Party In Interest.",        
         
     ]
@@ -99,7 +99,7 @@ def create_pdf(output_filename):
     c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: ")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: A175706")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352830")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
