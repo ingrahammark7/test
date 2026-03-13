@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Load JSON
-with open("rockets_with_payload.json") as f:
+with open("rockets.json") as f:
     rockets = json.load(f)
 
 # Extract data
