@@ -1,0 +1,11 @@
+[
+    {"name": "FIM-92 Stinger", "type": "MANPADS SAM", "mass_kg": 15, "range_km": 4.8},
+    {"name": "Hydra-70", "type": "Small rocket", "mass_kg": 15, "range_km": 8},
+    {"name": "Grad 122mm", "type": "Artillery rocket", "mass_kg": 66, "range_km": 30},
+    {"name": "V-2", "type": "Ballistic missile", "mass_kg": 13000, "range_km": 320},
+    {"name": "Scud-B", "type": "SRBM", "mass_kg": 6400, "range_km": 500},
+    {"name": "Pershing II", "type": "MRBM", "mass_kg": 7400, "range_km": 1770},
+    {"name": "Minuteman III", "type": "ICBM", "mass_kg": 36000, "range_km": 13000},
+    {"name": "Falcon 9", "type": "Orbital rocket", "mass_kg": 550000, "range_km": 9400},
+    {"name": "Saturn V", "type": "Heavy launch vehicle", "mass_kg": 3000000, "range_km": 384000}
+]
