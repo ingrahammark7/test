@@ -3,41 +3,46 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Load JSON
-with open("rockets.json") as f:
+with open("rockets_with_payload.json") as f:
     rockets = json.load(f)
 
 # Extract data
 masses = np.array([r["mass_kg"] for r in rockets])
+payloads = np.array([r["payload_kg"] for r in rockets])
 ranges = np.array([r["range_km"] for r in rockets])
 names = [r["name"] for r in rockets]
 types = [r["type"] for r in rockets]
 
-# Fit power law: log(R) = log(a) + alpha*log(M)
-log_m = np.log10(masses)
-log_r = np.log10(ranges)
-alpha, log_a = np.polyfit(log_m, log_r, 1)
-a = 10**log_a
+# Compute payload fraction and mass efficiency
+payload_fraction = payloads / masses
+mass_efficiency = masses / ranges  # kg per km
 
-print(f"Fitted power law: R = {a:.2f} * M^{alpha:.2f}")
+# Set up figure with 2 subplots
+fig, axes = plt.subplots(1, 2, figsize=(14,6))
 
-# Plot
-plt.figure(figsize=(10,6))
-plt.scatter(masses, ranges, c='blue')
-
-# Annotate each point
+# Panel 1: log-log mass vs range
+ax = axes[0]
+ax.scatter(masses, ranges, c='blue')
 for i, name in enumerate(names):
-    plt.text(masses[i]*1.05, ranges[i]*1.05, name, fontsize=9)
+    ax.text(masses[i]*1.05, ranges[i]*1.05, name, fontsize=9)
+ax.plot([10, 3e6], [1, 1e5], 'r--', label='10 kg/km rule')
+ax.set_xscale('log')
+ax.set_yscale('log')
+ax.set_xlabel("Launch mass (kg)")
+ax.set_ylabel("Range (km)")
+ax.set_title("Rocket mass vs range")
+ax.grid(True, which="both", ls="--", alpha=0.5)
+ax.legend()
 
-# Plot fitted line
-mass_fit = np.logspace(np.log10(min(masses)), np.log10(max(masses)), 100)
-range_fit = a * mass_fit**alpha
-plt.plot(mass_fit, range_fit, 'r--', label=f'Fit: R = {a:.2f} * M^{alpha:.2f}')
-
-plt.xscale('log')
-plt.yscale('log')
-plt.xlabel("Launch mass (kg, log scale)")
-plt.ylabel("Ballistic/Effective range (km, log scale)")
-plt.title("Allometric scaling: Rocket mass vs ballistic/slant range")
-plt.grid(True, which="both", ls="--", alpha=0.5)
-plt.legend()
+# Panel 2: mass efficiency vs payload fraction
+ax = axes[1]
+ax.scatter(payload_fraction, mass_efficiency, c='green')
+for i, name in enumerate(names):
+    ax.text(payload_fraction[i]*1.05, mass_efficiency[i]*1.05, name, fontsize=9)
+ax.set_xlabel("Payload fraction (payload/mass)")
+ax.set_ylabel("Mass efficiency (kg/km)")
+ax.set_title("Mass efficiency vs payload fraction")
+ax.grid(True, ls="--", alpha=0.5)
+ax.set_yscale('log')
+plt.tight_layout()
 plt.show()
