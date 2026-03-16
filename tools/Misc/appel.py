@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Review" 
+footer_text = "Request to Decide on Papers" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -80,7 +80,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Department of Public Social Services",
+        "Jose Gonzalez",
         "Real Party In Interest.",        
         
     ]
@@ -97,10 +97,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STRO06765")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352462")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B350852")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -116,7 +116,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge requested to go to jail, per their own order. Petitioner petitions Court to: /n 1. Arrest judge. /n" 
+    intro_text = "Case should be decided on briefs alone. Any oral statement I make has no effect. All requests I make apply to all my cases. Judge should dismiss case so it can be appealed. /n" 
     y_position -= .25*inch
     
     
