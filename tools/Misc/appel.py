@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Decide on Papers" 
+footer_text = "Petition for Review" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -68,8 +68,8 @@ def create_pdf(output_filename):
     # (3) Court Title
     c.setFont("Times-Bold", 14)
     c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
-    #c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
-    #c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
+  #  c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
+#    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
     # (4) Case Title
@@ -78,9 +78,9 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "Los Angeles Superior Court,",
+        "San Francisco Superior Court,",
         "Respondent,",
-        "Jose Gonzalez",
+        "Chase Bank",
         "Real Party In Interest.",        
         
     ]
@@ -97,10 +97,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STRO06765")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: CGC25625577")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B350852")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: A175706")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -116,7 +116,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Case should be decided on briefs alone. Any oral statement I make has no effect. All requests I make apply to all my cases. Judge should dismiss case so it can be appealed. /n" 
+    intro_text = "Consider all filings fraudulent. Arrest judge. Petitioner petitions court to: /n 1. Arrest judge. /n 2. Permanently shut down San Francisco court. /n" 
     y_position -= .25*inch
     
     
