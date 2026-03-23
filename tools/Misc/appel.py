@@ -2,9 +2,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import Paragraph, Frame
+from reportlab.lib import colors
+from reportlab.platypus import Paragraph, Frame, Table,TableStyle
 
-footer_text = "Opening Brief" 
+footer_text = "Appendix Index" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -116,7 +117,24 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "The majority of LAPD officers are illegal immigrants. Auction and destroy all LAPD vehicles to prevent use by illegals. Inform that all LAPD officers will be killed by plaintiff. Petitioner petitions court to: /n 1. Auction and destroy all LAPD vehicles. /n 2. Inform defendant all LAPD officers will be killed by plaintiff. /n" 
+    intro_text = " /n" 
+    tabe=[["Document","Page"],["Appeal","3"],["Order","4"]]
+    table=Table(tabe)
+    style = TableStyle([
+    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+
+    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+
+    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+
+    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+
+    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+])
+    table.setStyle(style)
+    widh,heiht=table.wrap(0,0)
     y_position -= .25*inch
     
     
@@ -160,6 +178,8 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     y_position-=.5*inch
+    y_position-=heiht
+    table.drawOn(c,left_margin,y_position)
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/11/2026")
