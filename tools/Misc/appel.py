@@ -118,7 +118,7 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
     intro_text = " /n" 
-    tabe=[["Document","Page"],["Appeal","3"],["Order","4"]]
+    tabe=[["Document","Page"],["Appeal","3"],["Order","7"]]
     table=Table(tabe)
     style = TableStyle([
     ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
