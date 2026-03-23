@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Petition for Review" 
+footer_text = "Opening Brief" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -67,9 +67,9 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
-  #  c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
-#    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
+   # c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
     # (4) Case Title
@@ -78,9 +78,9 @@ def create_pdf(output_filename):
         "Mark Ingraham,",
         "Plaintiff and Petitioner,",
         "vs",
-        "San Francisco Superior Court,",
+        "Los Angeles Superior Court,",
         "Respondent,",
-        "Chase Bank",
+        "Los Angeles Police Department",
         "Real Party In Interest.",        
         
     ]
@@ -97,10 +97,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: CGC25625577")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03825")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: A175706")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352963")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -116,7 +116,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Consider all filings fraudulent. Arrest judge. Petitioner petitions court to: /n 1. Arrest judge. /n 2. Permanently shut down San Francisco court. /n" 
+    intro_text = "The majority of LAPD officers are illegal immigrants. Auction and destroy all LAPD vehicles to prevent use by illegals. Inform that all LAPD officers will be killed by plaintiff. Petitioner petitions court to: /n 1. Auction and destroy all LAPD vehicles. /n 2. Inform defendant all LAPD officers will be killed by plaintiff. /n" 
     y_position -= .25*inch
     
     
