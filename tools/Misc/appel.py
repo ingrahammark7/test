@@ -5,7 +5,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Frame, Table,TableStyle
 
-footer_text = "Appendix Index" 
+footer_text = "Reply" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -81,7 +81,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Los Angeles Police Department",
+        "Department of Public Social Services",
         "Real Party In Interest.",        
         
     ]
@@ -98,10 +98,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03825")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352963")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B353030")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -117,7 +117,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = " /n" 
+    intro_text = "All judges should be arrested and deported back to mexico. All actions by 2DCA are frivolous. /n" 
     tabe=[["Document","Page"],["Appeal","3"],["Order","7"]]
     table=Table(tabe)
     style = TableStyle([
@@ -178,8 +178,8 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     y_position-=.5*inch
-    y_position-=heiht
-    table.drawOn(c,left_margin,y_position)
+    y_position-=0#heiht
+    #table.drawOn(c,left_margin,y_position)
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/11/2026")
