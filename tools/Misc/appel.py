@@ -5,7 +5,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Frame, Table,TableStyle
 
-footer_text = "Reply" 
+footer_text = "Opening Brief" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -81,7 +81,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Department of Public Social Services",
+        "Los Angeles Sheriff Department Court Services Divison",
         "Real Party In Interest.",        
         
     ]
@@ -98,10 +98,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 26STCP00048")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B353030")
+    c.drawString(space, top_margin - 4.25* inch, "Appellate Case Number: B352963")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -117,7 +117,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "All judges should be arrested and deported back to mexico. All actions by 2DCA are frivolous. /n" 
+    intro_text = "The original issue was defendant refusing to serve my cases. That is resolved. The other issue is mail. Proof of service was mailed to 3553 Atlantic Avenue and 6847 Atlantic Avenue. In both cases mail was tampered with and did not arrive. Defendant should ensure mail delivery. Arrest anyone at address and notify ICE they are removable. Petitioner petitions Court to: /n 1. Ensure mail delivery to 3553 Atlantic Avenue and 6847 Atlantic Avenue. /n" 
     tabe=[["Document","Page"],["Appeal","3"],["Order","7"]]
     table=Table(tabe)
     style = TableStyle([
