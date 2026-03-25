@@ -5,7 +5,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Frame, Table,TableStyle
 
-footer_text = "Opening Brief" 
+footer_text = "Appendix Index" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -117,7 +117,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "The original issue was defendant refusing to serve my cases. That is resolved. The other issue is mail. Proof of service was mailed to 3553 Atlantic Avenue and 6847 Atlantic Avenue. In both cases mail was tampered with and did not arrive. Defendant should ensure mail delivery. Arrest anyone at address and notify ICE they are removable. Long Beach police case 26-7573 is related. Petitioner petitions Court to: /n 1. Ensure mail delivery to 3553 Atlantic Avenue and 6847 Atlantic Avenue. /n" 
+    intro_text = " /n" 
     tabe=[["Document","Page"],["Appeal","3"],["Order","7"]]
     table=Table(tabe)
     style = TableStyle([
@@ -178,8 +178,8 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     y_position-=.5*inch
-    y_position-=0#heiht
-    #table.drawOn(c,left_margin,y_position)
+    y_position-=heiht
+    table.drawOn(c,left_margin,y_position)
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/25/2026")
