@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Procedural Retro Hacker OS</title>
+<title>Procedural Retro Hacker OS with Meta Puzzle</title>
 <style>
 body{margin:0;padding:0;background:#000;font-family:monospace;color:#0affaa;overflow:hidden;}
 canvas{position:absolute;top:0;left:0;z-index:0;}
@@ -15,7 +15,7 @@ button:hover{background:#00cc66;}
 </head>
 <body>
 <canvas id="matrixCanvas"></canvas>
-<header>⚡ Procedural Retro Hacker OS ⚡</header>
+<header>⚡ Procedural Retro Hacker OS + Meta Puzzle ⚡</header>
 <div style="position:relative;z-index:1;padding:20px;">
 <input id="termInput" placeholder="type command"><button onclick="runTerminal()">Run</button>
 <pre id="termOutput" class="terminal"></pre>
@@ -36,11 +36,13 @@ requestAnimationFrame(drawMatrix);}
 drawMatrix();
 window.addEventListener('resize',()=>{width=canvas.width=window.innerWidth;height=canvas.height=window.innerHeight;});// AUDIO const audioCtx=new(window.AudioContext||window.webkitAudioContext)(); function playBeep(freq=440,dur=50,type='square'){const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.type=type;o.frequency.value=freq;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur/1000);}
 
-// PROCEDURAL FILE GENERATOR const totalFiles=100; const files={}; function randomLine(){ const words=["neon","byte","cyber","glitch","code","hack","matrix","forum","IRC","anon","pixel","wave","dusk","echo","dark","fragment"]; let len=3+Math.floor(Math.random()*7); let line=''; for(let i=0;i<len;i++) line+=words[Math.floor(Math.random()*words.length)]+' '; return line.trim(); } function randomLogo(){ const lines=3+Math.floor(Math.random()*3); let logo=''; for(let i=0;i<lines;i++){ let line=''; for(let j=0;j<8+Math.floor(Math.random()*4);j++) line+=String.fromCharCode(33+Math.floor(Math.random()*94)); logo+=line+'\n'; } return logo.trim(); } for(let i=1;i<=totalFiles;i++){ let filename='file'+String(i).padStart(3,'0')+'.txt'; let content=''; for(let j=0;j<2+Math.floor(Math.random()*3);j++) content+=randomLine()+'\n'; files[filename]={content:content.trim(),logo:randomLogo()}; }
+// PROCEDURAL FILES WITH META FRAGMENTS const totalFiles=100; const files={}; const metaFragments=[]; function randomLine(){ const words=["neon","byte","cyber","glitch","code","hack","matrix","forum","IRC","anon","pixel","wave","dusk","echo","dark","fragment"]; let len=3+Math.floor(Math.random()*7); let line=''; for(let i=0;i<len;i++) line+=words[Math.floor(Math.random()*words.length)]+' '; return line.trim(); } function randomLogo(){ const lines=3+Math.floor(Math.random()*3); let logo=''; for(let i=0;i<lines;i++){ let line=''; for(let j=0;j<8+Math.floor(Math.random()*4);j++) line+=String.fromCharCode(33+Math.floor(Math.random()*94)); logo+=line+'\n'; } return logo.trim(); } for(let i=1;i<=totalFiles;i++){ let filename='file'+String(i).padStart(3,'0')+'.txt'; let content=''; for(let j=0;j<2+Math.floor(Math.random()*3);j++) content+=randomLine()+'\n'; // randomly assign meta fragments to some files if(Math.random()<0.2){let frag='META'+i;content+=frag+'\n';metaFragments.push({file:filename,fragment:frag});} files[filename]={content:content.trim(),logo:randomLogo()}; }
 
 // CINEMATIC DISPLAY function cinematicDisplay(text,logoText){ const output=document.getElementById('termOutput'); const logo=document.getElementById('asciiLogo'); output.textContent='';logo.textContent=''; let lines=text.split("\n"),logoLines=logoText.split("\n"),i=0,j=0; function revealNext(){ if(i<lines.length){let flicker='';for(let c of lines[i]) flicker+=Math.random()<0.1?String.fromCharCode(33+Math.floor(Math.random()*94)):c;output.textContent+=flicker+'\n';playBeep(200+Math.random()*600,40);i++;} else if(j<logoLines.length){let flicker='';for(let c of logoLines[j]) flicker+=Math.random()<0.1?String.fromCharCode(33+Math.floor(Math.random()*94)):c;logo.textContent+=flicker+'\n';playBeep(400+Math.random()*300,60);j++;} if(i<lines.length||j<logoLines.length)setTimeout(revealNext,120); } revealNext(); }
 
-// TERMINAL COMMANDS function runTerminal(){ const input=document.getElementById('termInput').value.trim(); const output=document.getElementById('termOutput'); let parts=input.split(" "); if(parts[0]==='ls'){output.textContent=Object.keys(files).join('\n');playBeep(500,50);} else if(parts[0]==='cat'&&parts[1]&&files[parts[1]]){output.textContent=files[parts[1]].content;playBeep(600,50);} else if(parts[0]==='open'&&parts[1]&&files[parts[1]]){cinematicDisplay(files[parts[1]].content,files[parts[1]].logo);} else if(parts[0]==='clear'){output.textContent='';document.getElementById('asciiLogo').textContent='';} else{output.textContent="Unknown command. Commands: ls, cat <file>, open <file>, clear";} } </script>
+// TRACK COLLECTED FRAGMENTS const collectedMeta=[];
+
+// TERMINAL COMMANDS function runTerminal(){ const input=document.getElementById('termInput').value.trim(); const output=document.getElementById('termOutput'); let parts=input.split(" "); if(parts[0]==='ls'){output.textContent=Object.keys(files).join('\n');playBeep(500,50);} else if(parts[0]==='cat'&&parts[1]&&files[parts[1]]){output.textContent=files[parts[1]].content;playBeep(600,50); // auto-collect meta fragments files[parts[1]].content.split('\n').forEach(line=>{if(line.startsWith('META')&&!collectedMeta.includes(line)) collectedMeta.push(line);}); } else if(parts[0]==='open'&&parts[1]&&files[parts[1]]){cinematicDisplay(files[parts[1]].content,files[parts[1]].logo); files[parts[1]].content.split('\n').forEach(line=>{if(line.startsWith('META')&&!collectedMeta.includes(line)) collectedMeta.push(line);}); } else if(parts[0]==='meta'){if(collectedMeta.length>0) output.textContent='Collected fragments:\n'+collectedMeta.join(' '); else output.textContent='No meta fragments collected yet.';} else if(parts[0]==='reorder'){if(parts.length>1){let indices=parts.slice(1).map(Number); if(indices.length===collectedMeta.length){let reordered=indices.map(i=>collectedMeta[i-1]||'');output.textContent='Reordered meta message:\n'+reordered.join(' '); if(reordered.join(' ').includes('META')) cinematicDisplay('🎉 Hidden message reconstructed!','* * * * *');}} else output.textContent='Usage: reorder <indices>';} else if(parts[0]==='clear'){output.textContent='';document.getElementById('asciiLogo').textContent='';} else{output.textContent="Unknown command. Commands: ls, cat <file>, open <file>, meta, reorder <indices>, clear";} } </script>
 
 </body>
 </html>
