@@ -1,71 +1,89 @@
-import json
-import math
+import numpy as np
+import matplotlib.pyplot as plt
 
-# --- Constants ---
-g = 9.80665  # m/s^2
-rho_20kft = 0.652  # kg/m^3 at 20,000 ft
-gamma = 1.4
-R = 287.05
-T_20kft = 216.65
-mach = 0.7
-fuel_energy_density = 43e6  # J/kg
+# === Constants ===
+g = 9.81  # m/s^2
 
-# --- Load aircraft JSON ---
-with open("rockets.json") as f:
-    data = json.load(f)
+# === Inputs (user-provided) ===
+m_missile = 500       # kg
+fuel_energy = 10e9    # J total fuel energy
+max_heat_flux = 300e6 # W/m^2, melting/structural limit
 
-# --- Speed of sound and cruise velocity ---
-a = math.sqrt(gamma * R * T_20kft)
-v = mach * a
+m_fighter = 20000     # kg
+v_fighter = 340       # m/s, Mach 1
 
-results = []
+missile_area = 1.0    # m^2, effective air volume displaced for heating/drag
 
-for ac in data["aircraft"]:
-    # Frontal area
-    frontal_area = math.pi * (ac["fuselage_diameter"] / 2)**2
-    
-    # Air volume & mass per sec
-    volume_flow = frontal_area * v
-    mass_flow = volume_flow * rho_20kft
-    
-    # Kinetic power of air
-    power_air = 0.5 * mass_flow * v**2
-    
-    # Fuel power required
-    fuel_power = power_air / ac["efficiency"]
-    
-    # Max fuel energy
-    max_fuel_energy = ac["max_fuel"] * fuel_energy_density
-    
-    # Ferry flight time in seconds and hours
-    flight_time_sec = max_fuel_energy / fuel_power
-    flight_time_hr = flight_time_sec / 3600
-    
-    # Average mass
-    avg_mass = ((ac["empty_weight"] + ac["max_fuel"]) + ac["empty_weight"]) / 2
-    
-    # Gravitational work over time
-    gravity_work = avg_mass * g * flight_time_sec
-    
-    # Ratio fuel energy / gravity work
-    ratio = max_fuel_energy / gravity_work
-    
-    # Ferry range
-    distance_km = v * flight_time_sec / 1000
-    
-    results.append({
-        "name": ac["name"],
-        "frontal_area_m2": round(frontal_area, 1),
-        "volume_flow_m3_s": round(volume_flow, 1),
-        "mass_flow_kg_s": round(mass_flow, 1),
-        "power_air_W": round(power_air, 0),
-        "fuel_power_W": round(fuel_power, 0),
-        "flight_time_hr": round(flight_time_hr, 2),
-        "avg_mass_kg": round(avg_mass, 1),
-        "gravity_work_J": round(gravity_work, 0),
-        "fuel_to_gravity_ratio": round(ratio, 2),
-        "ferry_range_km": round(distance_km, 0)
-    })
+dt = 0.01  # s time step
+max_time = 30  # seconds simulation
 
-# --- Output results ---
-print(json.dumps(results, indent=2))
+# === Initial conditions ===
+v_missile = 0.0
+range_to_target = 2000  # m
+fuel_remaining = fuel_energy
+
+# Lists for plotting
+v_list = []
+range_list = []
+fuel_list = []
+turn_rate_list = []
+time_list = []
+
+for t in np.arange(0, max_time, dt):
+    # --- Aerodynamic heating ---
+    heat_flux = 0.5 * v_missile**3 * missile_area  # W, proportional to volume of air moved
+    if heat_flux > max_heat_flux:
+        acc_max = 0.0
+    else:
+        acc_max = fuel_remaining / m_missile / (max_time - t + 1e-6)
+        acc_max = min(acc_max, 500.0)
+
+    # --- Missile acceleration ---
+    v_missile += acc_max * dt
+
+    # --- Range update ---
+    closing_speed = v_missile - v_fighter
+    range_to_target += closing_speed * dt
+
+    # --- Fuel consumption ---
+    fuel_burn = acc_max * m_missile * dt
+    fuel_remaining -= fuel_burn
+    if fuel_remaining < 0:
+        fuel_remaining = 0
+        acc_max = 0
+
+    # --- Turn rate derived from heat limit ---
+    g_turn = min(heat_flux / (v_missile * missile_area + 1e-6), 50*g)  # m/s^2
+    turn_rate = np.degrees(np.sqrt(g_turn / v_missile)) if v_missile > 0 else 0
+
+    # --- Record ---
+    time_list.append(t)
+    v_list.append(v_missile)
+    range_list.append(range_to_target)
+    fuel_list.append(fuel_remaining)
+    turn_rate_list.append(turn_rate)
+
+# === Plots ===
+plt.figure(figsize=(10,5))
+plt.plot(time_list, v_list)
+plt.xlabel('Time (s)')
+plt.ylabel('Missile Velocity (m/s)')
+plt.title('Missile Velocity vs Time (Physics-only, Air Volume)')
+plt.grid(True)
+plt.show()
+
+plt.figure(figsize=(10,5))
+plt.plot(time_list, turn_rate_list)
+plt.xlabel('Time (s)')
+plt.ylabel('Missile Turn Rate (deg/s)')
+plt.title('Missile Turn Rate vs Time (Heat-limited, Air Volume)')
+plt.grid(True)
+plt.show()
+
+plt.figure(figsize=(10,5))
+plt.plot(time_list, fuel_list)
+plt.xlabel('Time (s)')
+plt.ylabel('Fuel Remaining (J)')
+plt.title('Missile Fuel vs Time')
+plt.grid(True)
+plt.show()
