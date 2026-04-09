@@ -5,7 +5,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Frame, Table,TableStyle
 
-footer_text = "Appendix" 
+footer_text = "Opening Brief" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -117,7 +117,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "No register as appendix requested. /n" 
+    intro_text = "All judges of all courts should be arrested and deported. /n" 
     tabe=[["Document","Page"],["Appeal","3"],["Order","4"]]
     table=Table(tabe)
     style = TableStyle([
@@ -178,8 +178,8 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     y_position-=.5*inch
-    y_position-=heiht
-    table.drawOn(c,left_margin,y_position)
+    y_position-=0#heiht
+    #table.drawOn(c,left_margin,y_position)
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/25/2026")
