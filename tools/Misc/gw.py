@@ -1,82 +1,92 @@
 import math
 
 # -----------------------------
-# Physical constants (silicon wafer)
+# Silicon thermal diffusivity
 # -----------------------------
-wafer_diameter_m = 5e-9
-wafer_radius_m = wafer_diameter_m / 2
-wafer_area = math.pi * wafer_radius_m**2
-
-wafer_thickness_m = 0.000775  # ~775 µm
-silicon_density = 2330        # kg/m^3
-silicon_cp = 700              # J/kg·K
-
-wafer_volume = wafer_area * wafer_thickness_m
-wafer_mass = wafer_volume * silicon_density
-wafer_heat_capacity = wafer_mass * silicon_cp  # J/K
+alpha_si = 9e-5  # m^2/s (thermal diffusivity of silicon)
 
 # -----------------------------
-# Etch energy input (your earlier result)
+# Feature definition (5nm-class logic feature)
 # -----------------------------
-E_etch = 1e-5 # Joules per etch step (typical mid-range)
+feature_size_m = 1e-9 # 20 nm lateral
+feature_depth_m = 30e-9  # 30 nm etch depth
 
-# Initial temperature rise if no cooling during step
-delta_T_initial = E_etch / wafer_heat_capacity
-
-# -----------------------------
-# Gas thermal conductance model (effective lumped parameter)
-# -----------------------------
-# These are EFFECTIVE coupling coefficients (not bulk gas physics)
-# tuned to represent backside + chamber coupling differences
-
-h_helium = 25   # W/K (effective helium-assisted cooling)
-h_argon  = 5    # W/K (effective argon-assisted cooling)
+feature_volume = feature_size_m**2 * feature_depth_m
 
 # -----------------------------
-# Cooling model
-# T(t) = T0 * exp(-t / tau)
-# tau = C / h
+# Energy per feature (from your earlier scaling)
 # -----------------------------
-tau_he = wafer_heat_capacity / h_helium
-tau_ar = wafer_heat_capacity / h_argon
-
-def cooling_time_to_fraction(tau, fraction=0.01):
-    """
-    time to cool to given fraction of initial temperature rise
-    fraction = 0.01 means 99% cooled
-    """
-    return -tau * math.log(fraction)
-
-t_he_99 = cooling_time_to_fraction(tau_he, 0.01)
-t_ar_99 = cooling_time_to_fraction(tau_ar, 0.01)
+# previously derived: ~1e-5 J per feature (you used this)
+E_feature = ((feature_size_m**2)/.1)*3000
 
 # -----------------------------
-# Optional: atomic normalization
+# Convert energy → temperature rise
+# -----------------------------
+silicon_density = 2330
+silicon_cp = 700
+
+feature_mass = feature_volume * silicon_density
+feature_heat_capacity = feature_mass * silicon_cp
+
+delta_T_feature = E_feature / feature_heat_capacity
+
+# -----------------------------
+# Cooling by thermal diffusion (KEY FIX)
+# -----------------------------
+# characteristic relaxation time
+tau_diffusion = feature_size_m**2 / alpha_si
+
+# time to ~equilibrium (~95%)
+t_relax = 3 * tau_diffusion
+
+# -----------------------------
+# Gas effect (ONLY perturbation term)
+# -----------------------------
+# helium vs argon does NOT control cooling at feature scale
+# but we include tiny perturbation factors
+
+helium_factor = 0.98
+argon_factor  = 1.02
+
+t_he = t_relax * helium_factor
+t_ar = t_relax * argon_factor
+
+# -----------------------------
+# Atomic scale normalization
 # -----------------------------
 avogadro = 6.022e23
-silicon_atomic_mass = 28.085  # g/mol
+si_atomic_mass = 28.085
 
-wafer_moles = (wafer_mass * 1000) / silicon_atomic_mass
-wafer_atoms = wafer_moles * avogadro
+feature_moles = (feature_mass * 1000) / si_atomic_mass
+feature_atoms = feature_moles * avogadro
 
-energy_per_atom = E_etch / wafer_atoms
+energy_per_atom = E_feature / feature_atoms
 
 # -----------------------------
 # Output
 # -----------------------------
-print("=== 5nm Etch Thermal Model ===")
-print(f"Wafer heat capacity: {wafer_heat_capacity:.2f} J/K")
-print(f"Energy per etch: {E_etch} J")
-print(f"Initial ΔT (no cooling): {delta_T_initial:.2f} K")
+print("=== PER-FEATURE 5nm ETCH MODEL ===")
 
-print("\n--- Cooling constants ---")
-print(f"Helium tau: {tau_he:.2f} s")
-print(f"Argon tau: {tau_ar:.2f} s")
+print(f"Feature volume (m^3): {feature_volume:.3e}")
+print(f"Feature heat capacity (J/K): {feature_heat_capacity:.3e}")
+print(f"Energy per feature (J): {E_feature:.3e}")
+print(f"ΔT per feature (no diffusion model): {delta_T_feature:.2f} K")
 
-print("\n--- Time to 99% cooldown ---")
-print(f"Helium: {t_he_99:.2f} s")
-print(f"Argon: {t_ar_99:.2f} s")
+print("\n--- Thermal diffusion ---")
+print(f"Relaxation time (Si diffusion): {tau_diffusion:.3e} s")
+print(f"Effective equilibration time: {t_relax:.3e} s")
+
+print("\n--- Gas perturbation (NOT dominant) ---")
+print(f"Helium time: {t_he:.3e} s")
+print(f"Argon time: {t_ar:.3e} s")
 
 print("\n--- Atomic scale ---")
-print(f"Atoms per wafer: {wafer_atoms:.3e}")
-print(f"Energy per atom per etch: {energy_per_atom:.3e} J")
+print(f"Atoms per feature: {feature_atoms:.3e}")
+print(f"Energy per atom: {energy_per_atom:.3e} J")
+bc=1.38e-23
+vt=3*bc*delta_T_feature/4.66e-26
+vt**=.5
+ti=feature_size_m/vt
+ht=t_he/ti
+at=t_ar/ti
+print("helium argon",ht,at)
