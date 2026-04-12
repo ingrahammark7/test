@@ -8,7 +8,7 @@ alpha_si = 9e-5  # m^2/s (thermal diffusivity of silicon)
 # -----------------------------
 # Feature definition (5nm-class logic feature)
 # -----------------------------
-feature_size_m = 1e-9 # 20 nm lateral
+feature_size_m = 1e-3# 20 nm lateral
 feature_depth_m = 30e-9  # 30 nm etch depth
 
 feature_volume = feature_size_m**2 * feature_depth_m
@@ -90,3 +90,11 @@ ti=feature_size_m/vt
 ht=t_he/ti
 at=t_ar/ti
 print("helium argon",ht,at)
+condh=.15
+conda=.02
+enp=E_feature/delta_T_feature
+tim=enp/condh
+ag=enp/conda
+print("helium time to leave",tim)
+print("argon",ag)
+print("he ag",tim/ti,ag/ti)
