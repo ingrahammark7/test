@@ -8,7 +8,7 @@ alpha_si = 9e-5  # m^2/s (thermal diffusivity of silicon)
 # -----------------------------
 # Feature definition (5nm-class logic feature)
 # -----------------------------
-feature_size_m = 1e-3# 20 nm lateral
+feature_size_m = 1e-9# 20 nm lateral
 feature_depth_m = 30e-9  # 30 nm etch depth
 
 feature_volume = feature_size_m**2 * feature_depth_m
@@ -17,7 +17,7 @@ feature_volume = feature_size_m**2 * feature_depth_m
 # Energy per feature (from your earlier scaling)
 # -----------------------------
 # previously derived: ~1e-5 J per feature (you used this)
-E_feature = ((feature_size_m**2)/.1)*3000
+E_feature = ((feature_size_m**2)/.1)*1000e-5
 
 # -----------------------------
 # Convert energy → temperature rise
