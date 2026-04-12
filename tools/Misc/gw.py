@@ -1,4 +1,6 @@
 import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 data = [
     {"country":"China","steel":550,"cement":1600,"copper":9.5,"aluminum":25,"tallest":632,"supertalls":35},
@@ -12,25 +14,13 @@ data = [
 
 df = pd.DataFrame(data)
 
-# --- Build composite indices ---
+X = df.drop(columns=["country"])
+X_scaled = StandardScaler().fit_transform(X)
 
-df["material_index"] = (
-    df["steel"] +
-    df["cement"] +
-    50*df["copper"] +
-    20*df["aluminum"]
-)
+pca = PCA(n_components=1)
+factor = pca.fit_transform(X_scaled)
 
-df["skyscraper_index"] = (
-    df["tallest"] +
-    10*df["supertalls"]
-)
+df["physical_factor"] = factor
 
-# --- Correlation matrix ---
-corr = df.drop(columns=["country"]).corr()
-
-print("Correlation Matrix:\n")
+corr = df[["physical_factor","tallest","steel","cement","copper","aluminum","supertalls"]].corr()
 print(corr)
-
-print("\nCorrelation between material_index and skyscraper_index:")
-print(df["material_index"].corr(df["skyscraper_index"]))
