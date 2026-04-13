@@ -37,19 +37,23 @@ def docur(pro,yea,curveset):
 			sder+=dif		
 		difs=np.append(difs,dif)
 		sumdif+=dif
-	numerf={}
 	curveset[len(curveset)]=curn
-	numerf[0]=dif2e
-	numerf[1]=curveset
-	numerf[2]=sder
-	numerf[3]=yed
-	return numerf
+	numef={}
+	numef[0]=dif2e
+	numef[1]=curveset
+	numef[2]=sder
+	numef[3]=yed
+	numef[4]=sumdif
+	return numef
 
 numerf=docur(prod,years,curs)
 dif2=numerf[0]
 curs=numerf[1]
 sd2=numerf[2]
-yede=numerf[3]
-print(numerf)
+yedf=numerf[3]
+sdf=numerf[4]
 dif2av=sd2/dif2.size
-print(dif2av)
+fo=.995*dif2.size
+fo=int(fo)-1
+fo=dif2[fo]
+print(fo,sdf)
