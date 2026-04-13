@@ -53,9 +53,6 @@ sd2=numerf[2]
 yedf=numerf[3]
 sdf=numerf[4]
 dif2av=sd2/dif2.size
-fo=dif2.size
-fo=int(fo)-1
-fo=dif2[fo]
 
 def dore(st,dife,y,sy):
 	foh=st
@@ -69,5 +66,5 @@ def dore(st,dife,y,sy):
 	nim=np.array(nim)
 	return nim
 	
-dor=dore(prod[0],fo,dif2.size+50,years[0])
+dor=dore(prod[0],dif2av,dif2.size+50,years[0])
 print(dor)
