@@ -2,94 +2,106 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ----------------------------
-# ARGON PARAMETERS
+# GAS CONSTANTS (RELATIVE MODEL)
 # ----------------------------
-lambda_0 = 68e-9
-P0 = 101325
+
+# normalized helium baseline = 1
+k_He = 0.15
 k_Ar = 0.018
+
+lambda_He0 = 200e-9   # effective reference (order)
+lambda_Ar0 = 68e-9
+
+P0 = 101325
+
+# ----------------------------
+# TARGET EQUIVALENCE PARAMETERS
+# ----------------------------
+
+# we enforce "He-like regime preservation"
+Kn_target = 0.05  # mid-slip regime
+
+G_min = 1e5  # stability threshold (arbitrary ESC baseline)
+
 b = 2.0
 
-Kn_min = 0.01
-Kn_max = 0.1
+# ----------------------------
+# PRESSURE DOMAIN
+# ----------------------------
+P = np.logspace(3, 7, 1000)
 
 # ----------------------------
-# GRID (START BROAD, THEN CLIP)
+# HELIUM REFERENCE BEHAVIOR
 # ----------------------------
-P = np.logspace(3, 7, 500)
-d = np.logspace(-7, -4, 500)
+lambda_He = lambda_He0 * (P0 / P)
 
-P_grid, d_grid = np.meshgrid(P, d)
-
-# ----------------------------
-# KNUDSEN BOUNDS (EXACT ENVELOPE)
-# ----------------------------
-P_kn_min = (lambda_0 * P0) / (Kn_max * d_grid)
-P_kn_max = (lambda_0 * P0) / (Kn_min * d_grid)
+d_He_equiv = lambda_He / Kn_target
 
 # ----------------------------
-# GAP BOUNDS (THIS FIXES YOUR REQUEST)
+# ARGON REAL BEHAVIOR
 # ----------------------------
+lambda_Ar = lambda_Ar0 * (P0 / P)
 
-d_min = 2e-6  # mechanical lower bound
-
-# upper gap bound derived from Kn constraint
-d_max_kn = (lambda_0 * P0) / (Kn_min * P_grid)
-
-gap_ok = (d_grid >= d_min) & (d_grid <= d_max_kn)
+d_Ar_kn_equiv = lambda_Ar / Kn_target
 
 # ----------------------------
-# MEAN FREE PATH + THERMAL MODEL
+# THERMAL EQUIVALENCE CONDITION
 # ----------------------------
-lambda_g = lambda_0 * (P0 / P_grid)
-G = k_Ar / (d_grid + b * lambda_g)
+# match He conductance envelope
+G_He = k_He / (d_He_equiv + b * lambda_He)
 
-G_min = 1e5
-thermal_ok = G >= G_min
-
-# ----------------------------
-# PRESSURE WINDOW (ALSO BOUNDED)
-# ----------------------------
-pressure_ok = (P_grid >= P_kn_min) & (P_grid <= P_kn_max)
+# Ar must satisfy same G threshold
+d_Ar_thermal = (k_Ar / G_min) - b * lambda_Ar
 
 # ----------------------------
-# FULL FEASIBILITY
+# PHYSICAL LIMITS
 # ----------------------------
-feasible = pressure_ok & thermal_ok & gap_ok
+d_min = 2e-6
+d_max = 100e-6
+
+# ----------------------------
+# FEASIBILITY (TRUE REPLACEMENT REGION)
+# ----------------------------
+lower = np.maximum(d_min, np.maximum(d_Ar_kn_equiv, d_Ar_thermal))
+upper = np.minimum(d_max, d_Ar_kn_equiv * 2.0)  # allow transition margin
+
+valid = upper > lower
 
 # ----------------------------
 # PLOT
 # ----------------------------
 plt.figure(figsize=(10, 7))
 
-# feasible region
-plt.contourf(P_grid, d_grid * 1e6, feasible,
-             levels=[0.5, 1], colors=["#4CAF50"], alpha=0.65)
+plt.fill_between(P[valid],
+                 lower[valid] * 1e6,
+                 upper[valid] * 1e6,
+                 color="green",
+                 alpha=0.5,
+                 label="Argon ≈ Helium ESC-equivalent region")
 
-# explicit gap bounds (THIS IS THE NEW PART)
-plt.contour(P_grid, d_grid * 1e6, d_grid - d_min,
-            levels=[0], colors="black", linestyles="--")
+# ----------------------------
+# BOUNDARIES
+# ----------------------------
+plt.plot(P, d_He_equiv * 1e6, "blue", label="Helium ideal ESC regime")
+plt.plot(P, d_Ar_kn_equiv * 1e6, "purple", label="Argon Kn equivalent")
+plt.plot(P, d_Ar_thermal * 1e6, "red", label="Argon thermal limit")
 
-plt.contour(P_grid, d_grid * 1e6, d_grid - d_max_kn,
-            levels=[0], colors="purple", linestyles="--")
+plt.axhline(d_min * 1e6, color="black", linestyle="--", label="Mechanical min gap")
 
-# Knudsen pressure bounds
-plt.contour(P_grid, d_grid * 1e6, P_grid - P_kn_min,
-            levels=[0], colors="blue", linestyles="--")
-
-plt.contour(P_grid, d_grid * 1e6, P_grid - P_kn_max,
-            levels=[0], colors="blue", linestyles="--")
-
-# thermal boundary
-plt.contour(P_grid, d_grid * 1e6, G,
-            levels=[G_min], colors="red")
-
+# ----------------------------
+# AXES
+# ----------------------------
 plt.xscale("log")
 plt.yscale("log")
 
 plt.xlabel("Pressure (Pa)")
 plt.ylabel("Gap (µm)")
-plt.title("Fully Bounded Argon ESC Feasibility Envelope (Closed Domain)")
+plt.title("Helium → Argon ESC Replacement Feasibility Envelope")
 
-plt.grid(True, which="both", alpha=0.2)
+plt.grid(True, which="both", alpha=0.3)
+plt.legend()
 
+plt.savefig("he_to_ar_esc_replacement.png", dpi=300, bbox_inches="tight")
 plt.show()
+
+print("Saved: he_to_ar_esc_replacement.png")
