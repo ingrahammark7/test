@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ----------------------------
-# ARGON CONSTANTS
+# ARGON PARAMETERS
 # ----------------------------
 lambda_0 = 68e-9
 P0 = 101325
@@ -12,10 +12,8 @@ b = 2.0
 Kn_min = 0.01
 Kn_max = 0.1
 
-d_min = 2e-6
-
 # ----------------------------
-# GRID
+# GRID (START BROAD, THEN CLIP)
 # ----------------------------
 P = np.logspace(3, 7, 500)
 d = np.logspace(-7, -4, 500)
@@ -23,62 +21,74 @@ d = np.logspace(-7, -4, 500)
 P_grid, d_grid = np.meshgrid(P, d)
 
 # ----------------------------
-# KNUDSEN BOUNDS (TRUE ENVELOPE)
+# KNUDSEN BOUNDS (EXACT ENVELOPE)
 # ----------------------------
 P_kn_min = (lambda_0 * P0) / (Kn_max * d_grid)
 P_kn_max = (lambda_0 * P0) / (Kn_min * d_grid)
 
 # ----------------------------
-# MEAN FREE PATH
+# GAP BOUNDS (THIS FIXES YOUR REQUEST)
+# ----------------------------
+
+d_min = 2e-6  # mechanical lower bound
+
+# upper gap bound derived from Kn constraint
+d_max_kn = (lambda_0 * P0) / (Kn_min * P_grid)
+
+gap_ok = (d_grid >= d_min) & (d_grid <= d_max_kn)
+
+# ----------------------------
+# MEAN FREE PATH + THERMAL MODEL
 # ----------------------------
 lambda_g = lambda_0 * (P0 / P_grid)
-
-# ----------------------------
-# THERMAL CONDUCTANCE
-# ----------------------------
 G = k_Ar / (d_grid + b * lambda_g)
-G_min = 1e5
 
-# approximate thermal boundary via threshold mask
+G_min = 1e5
 thermal_ok = G >= G_min
 
 # ----------------------------
-# GEOMETRY
-# ----------------------------
-geo_ok = d_grid >= d_min
-
-# ----------------------------
-# FULL FEASIBILITY MASK (IMPORTANT FIX)
+# PRESSURE WINDOW (ALSO BOUNDED)
 # ----------------------------
 pressure_ok = (P_grid >= P_kn_min) & (P_grid <= P_kn_max)
 
-feasible = pressure_ok & thermal_ok & geo_ok
+# ----------------------------
+# FULL FEASIBILITY
+# ----------------------------
+feasible = pressure_ok & thermal_ok & gap_ok
 
 # ----------------------------
 # PLOT
 # ----------------------------
 plt.figure(figsize=(10, 7))
 
-# feasibility region (now truly bounded)
+# feasible region
 plt.contourf(P_grid, d_grid * 1e6, feasible,
-             levels=[0.5, 1], colors=["#4CAF50"], alpha=0.6)
+             levels=[0.5, 1], colors=["#4CAF50"], alpha=0.65)
 
-# Knudsen envelope (THIS is the real wedge boundary)
+# explicit gap bounds (THIS IS THE NEW PART)
+plt.contour(P_grid, d_grid * 1e6, d_grid - d_min,
+            levels=[0], colors="black", linestyles="--")
+
+plt.contour(P_grid, d_grid * 1e6, d_grid - d_max_kn,
+            levels=[0], colors="purple", linestyles="--")
+
+# Knudsen pressure bounds
 plt.contour(P_grid, d_grid * 1e6, P_grid - P_kn_min,
             levels=[0], colors="blue", linestyles="--")
+
 plt.contour(P_grid, d_grid * 1e6, P_grid - P_kn_max,
             levels=[0], colors="blue", linestyles="--")
 
-# thermal cutoff
+# thermal boundary
 plt.contour(P_grid, d_grid * 1e6, G,
-            levels=[G_min], colors="red", linestyles="-")
+            levels=[G_min], colors="red")
 
 plt.xscale("log")
 plt.yscale("log")
 
 plt.xlabel("Pressure (Pa)")
 plt.ylabel("Gap (µm)")
-plt.title("Argon ESC Fully Bounded Feasibility Envelope")
+plt.title("Fully Bounded Argon ESC Feasibility Envelope (Closed Domain)")
 
 plt.grid(True, which="both", alpha=0.2)
 
