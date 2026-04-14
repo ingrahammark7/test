@@ -118,7 +118,7 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
     intro_text = "No register as appendix requested. /n" 
-    tabe=[["Document","Page"],["Pleading","3"],["Appeal","4"],["Judgment","5"],["Order","7"],["Service of Notice of Entry","8"]]
+    tabe=[["Document","Page"],["Pleading","3"],["Appeal","4"],["Judgment","5"],["Order","7"],["Service of Notice of Entry","8"],["Register","9"]]
     table=Table(tabe)
     style = TableStyle([
     ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
