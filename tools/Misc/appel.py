@@ -23,7 +23,7 @@ def create_pdf(output_filename):
 
     # Add page numbers (starting from page 2)
     def add_page_number(page_num):
-        if page_num > 2:  # Suppress page number on the first page
+        if page_num > 0:  # Suppress page number on the first page
             c.setFont("Times-Roman", 10)
             c.drawCentredString(width / 2, 0.5 * inch, f"{page_num}")
 
@@ -118,7 +118,7 @@ def create_pdf(output_filename):
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
     intro_text = "I. TABLE OF AUTHORITIES /n None. /n II. STATEMENT OF APPEALABILITY /n None. /n III. STATEMENT OF FACTS /n None. /n IV. LEGAL CITATION CRC 8.204(a)(1)(B) /n Defendant is guilty of 18 USC 2381 Treason. /n V. RECORD REFERENCES /n None. /n VI. WORD COUNT CERTIFICATE /n Brief is 250 words. /n VII. RELIEF REQUESTED /n judges of all courts should be arrested and deported. /n" 
-    tabe=[["Document","Page"],["Appeal","3"],["Order","4"]]
+    tabe=[["TABLE OF CONTENTS","Page"],["Cover","1"],["Brief","2"]]
     table=Table(tabe)
     style = TableStyle([
     ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
