@@ -5,7 +5,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Frame, Table,TableStyle
 
-footer_text = "Opening Brief" 
+footer_text = "Reply" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -117,7 +117,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "All judges of all courts should be arrested and deported. /n" 
+    intro_text = "Order attached to appeal. /n" 
     tabe=[["Document","Page"],["Appeal","3"],["Order","4"]]
     table=Table(tabe)
     style = TableStyle([
