@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ----------------------------
-# GAS DATA (fully explicit)
+# GAS PROPERTIES
 # ----------------------------
 gases = {
     "He": {"k": 0.151, "lambda_1atm": 180e-9, "color": "blue"},
@@ -13,19 +13,21 @@ gases = {
 }
 
 # ----------------------------
-# PHYSICS PARAMETERS (NO MAGIC NUMBERS)
+# PHYSICS
 # ----------------------------
 q_load = 5e4
 DeltaT = 20
 G_req = q_load / DeltaT
-
 b = 2.0
 
 # ----------------------------
-# HARD SYSTEM BOUNDS
+# SYSTEM BOUNDS (EXPLICIT)
 # ----------------------------
-P_min, P_max = 0.05, 5.0
-d_min, d_max = 0.2e-6, 50e-6
+P_min, P_max = 0.05, 5.0      # atm
+d_min, d_max = 0.2e-6, 50e-6  # m
+
+# Knudsen acceptable range
+Kn_min, Kn_max = 1e-3, 10
 
 # ----------------------------
 # GRID
@@ -35,15 +37,10 @@ d = np.logspace(np.log10(d_min), np.log10(d_max), 500)
 
 P_grid, d_grid = np.meshgrid(P, d)
 
-plt.figure(figsize=(12, 8))
+plt.figure(figsize=(12,8))
 
 # ----------------------------
-# STORE GLOBAL FEASIBILITY
-# ----------------------------
-feasible_stack = []
-
-# ----------------------------
-# MAIN LOOP (FULL CONSISTENCY)
+# DRAW GAS FEASIBILITY BOUNDARIES
 # ----------------------------
 for name, g in gases.items():
 
@@ -53,29 +50,13 @@ for name, g in gases.items():
     lam = lam0 / P_grid
     Kn = lam / d_grid
 
-    # full governing equation
     G = k / (d_grid + b * lam)
 
-    # ----------------------------
-    # constraints (ALL INCLUDED HERE)
-    # ----------------------------
-    thermal_ok = G >= G_req
-    kn_ok = (Kn >= 1e-3) & (Kn <= 10)
-    bounds_ok = (
-        (P_grid >= P_min) & (P_grid <= P_max) &
-        (d_grid >= d_min) & (d_grid <= d_max)
-    )
+    feasible = (G >= G_req) & (Kn >= Kn_min) & (Kn <= Kn_max)
 
-    feasible = thermal_ok & kn_ok & bounds_ok
-    feasible_stack.append(feasible)
-
-    # ----------------------------
-    # PLOT TRUE THERMAL BOUNDARY
-    # Solve G = G_req → d(P)
-    # ----------------------------
+    # thermal boundary (G = G_req)
     d_boundary = k / G_req - b * lam0 / P
-
-    valid = (d_boundary > 0)
+    valid = d_boundary > 0
 
     plt.plot(
         P[valid],
@@ -86,40 +67,58 @@ for name, g in gases.items():
     )
 
 # ----------------------------
-# KNUDSEN BOUNDARIES (GLOBAL CORRECT FORM)
+# DRAW ACCEPTABLE REGIONS (GLOBAL CONSTRAINTS)
 # ----------------------------
-for kn in [1e-3, 10]:
 
-    # use representative gas (He) only for boundary shape
-    lam0 = gases["He"]["lambda_1atm"]
+# Pressure bounds
+plt.axvline(P_min, color="black", linestyle="--")
+plt.axvline(P_max, color="black", linestyle="--")
+plt.text(P_min, 30, "P min", rotation=90)
+plt.text(P_max, 30, "P max", rotation=90)
 
-    d_kn = lam0 / (P * kn)
+# Gap bounds
+plt.axhline(d_min*1e6, color="black", linestyle="--")
+plt.axhline(d_max*1e6, color="black", linestyle="--")
+plt.text(0.06, d_min*1e6, "d min", rotation=0)
+plt.text(0.06, d_max*1e6, "d max", rotation=0)
+
+# ----------------------------
+# KNUDSEN REGIME BOUNDARIES (LABELED)
+# ----------------------------
+for kn, style in [(Kn_min, ":"), (Kn_max, ":")]:
+
+    lam_ref = gases["He"]["lambda_1atm"]
+
+    d_kn = lam_ref / (P * kn)
 
     plt.plot(
         P,
         d_kn * 1e6,
-        "k--",
-        linewidth=1,
+        "k" + style,
+        linewidth=1.5,
         label=f"Kn = {kn}"
     )
 
 # ----------------------------
-# SYSTEM BOUNDS BOX
+# REGION ANNOTATIONS
 # ----------------------------
-plt.axvline(P_min, color="gray", linewidth=1)
-plt.axvline(P_max, color="gray", linewidth=1)
-plt.axhline(d_min * 1e6, color="gray", linewidth=1)
-plt.axhline(d_max * 1e6, color="gray", linewidth=1)
+plt.text(0.07, 25, "Thermal failure region", fontsize=10)
+plt.text(0.3, 5, "Feasible ESC operating window", fontsize=10)
+plt.text(1.5, 0.5, "Free-molecular / invalid region", fontsize=10)
 
 # ----------------------------
-# FORMATTING
+# AXES + TITLE
 # ----------------------------
 plt.xscale("log")
 plt.yscale("log")
 
 plt.xlabel("Backside Pressure P (atm)")
 plt.ylabel("Gap d (µm)")
-plt.title("ESC Gas Phase Diagram (Fully Consistent Constraint System)")
+
+plt.title(
+    "ESC Phase Diagram with Explicit Acceptable Ranges\n"
+    "(Pressure, Gap, and Knudsen Regimes Fully Labeled)"
+)
 
 plt.legend()
 plt.grid(True, which="both", linestyle="--", alpha=0.4)
