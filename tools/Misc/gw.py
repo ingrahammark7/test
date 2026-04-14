@@ -1,107 +1,90 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ----------------------------
-# ARGON + SYSTEM PARAMETERS
-# ----------------------------
-lambda_0 = 68e-9      # reference mean free path
-P0 = 101325           # atmospheric pressure
-k_Ar = 0.018          # thermal coefficient proxy
-b = 2.0               # coupling factor
+# ============================================================
+# DOMAIN
+# ============================================================
+lambda_0 = 68e-9
+P0 = 101325
+Kn_target = 0.05
 
-Kn_min = 0.02
-Kn_max = 0.08
+d_min = 1e-6
+d_max = 50e-6
 
-G_min = 1e5           # minimum thermal conductance threshold
+P_min = 2e3
+P_max = 5e6
 
-# ----------------------------
-# PRESSURE DOMAIN
-# ----------------------------
-P = np.logspace(3, 7, 800).astype(float)
+P = np.logspace(np.log10(P_min), np.log10(P_max), 700)
 
-# ----------------------------
-# MEAN FREE PATH
-# ----------------------------
-lambda_g = lambda_0 * (P0 / P)
-lambda_g = np.asarray(lambda_g, dtype=float)
+# ============================================================
+# GAS PROPERTIES
+# ============================================================
+gas = {
+    "He": {"thermal": 1.0, "control": 1.0, "noise": 0.15},
+    "Ar": {"thermal": 0.28, "control": 0.65, "noise": 0.45}
+}
 
-# ----------------------------
-# KNUDSEN-BASED GAP LIMITS
-# ----------------------------
-d_kn_low = lambda_g / Kn_max
-d_kn_high = lambda_g / Kn_min
+# ============================================================
+# MODEL
+# ============================================================
+def esc_score(g):
+    lambda_g = lambda_0 * (P0 / P)
+    d_eq = lambda_g / Kn_target
 
-# ----------------------------
-# THERMAL CONSTRAINT (CLEAN + SAFE)
-# ----------------------------
-d_thermal_raw = (k_Ar / G_min) - b * lambda_g
+    # --- HARD FEASIBILITY ---
+    geom = (d_eq > d_min) & (d_eq < d_max)
+    electro = g["control"] / (d_eq + 1e-9) > 1.0
+    thermal = g["thermal"] / (d_eq + 1e-9) > 1e3
+    leak = (P * d_eq) / (1e5 * d_max) < 1.0
 
-# enforce physical validity (no negative gaps)
-d_thermal = np.where(d_thermal_raw > 0, d_thermal_raw, np.nan)
+    feasible = geom & electro & thermal & leak
 
-# ----------------------------
-# MANUFACTURING LIMITS
-# ----------------------------
-d_min_mfg = 1e-6
-d_max_mfg = 30e-6
+    # --- STABILITY ---
+    stability = np.clip(
+        1.0 - np.abs(d_eq - 20e-6) / (20e-6),
+        0, 1
+    )
 
-d_min_arr = np.full_like(P, d_min_mfg)
-d_max_arr = np.full_like(P, d_max_mfg)
+    # --- CONTROL QUALITY ---
+    control = g["control"] / (1 + g["noise"] * P / P_max)
 
-# ----------------------------
-# BUILD CLOSED ENVELOPE
-# ----------------------------
-d_lower = np.maximum.reduce([
-    d_kn_low,
-    d_thermal,
-    d_min_arr
-])
+    # --- YIELD FACTOR ---
+    yield_factor = np.exp(-g["noise"] * (P / P_max))
 
-d_upper = np.minimum.reduce([
-    d_kn_high,
-    d_max_arr
-])
+    # --- FINAL SCORE ---
+    score = feasible.astype(float) * stability * control * yield_factor
 
-# ----------------------------
-# VALID REGION MASK
-# ----------------------------
-valid = np.isfinite(d_lower) & np.isfinite(d_upper) & (d_upper > d_lower)
+    return d_eq, score
 
-# ----------------------------
+# ============================================================
+# RUN
+# ============================================================
+d_he, score_he = esc_score(gas["He"])
+d_ar, score_ar = esc_score(gas["Ar"])
+
+# ============================================================
 # PLOT
-# ----------------------------
+# ============================================================
 plt.figure(figsize=(10, 7))
 
-# feasible closed envelope
-plt.fill_between(
-    P[valid],
-    d_lower[valid] * 1e6,
-    d_upper[valid] * 1e6,
-    color="green",
-    alpha=0.55,
-    label="Manufacturing-Realistic ESC Envelope"
-)
+# Helium
+plt.scatter(P, d_he*1e6, c=score_he, s=5, cmap="Blues")
 
-# ----------------------------
-# BOUNDARY CURVES
-# ----------------------------
-plt.plot(P, d_kn_low * 1e6, color="blue", label="Kn upper limit")
-plt.plot(P, d_kn_high * 1e6, color="purple", linestyle="--", label="Kn lower limit")
+# Argon
+plt.scatter(P, d_ar*1e6, c=score_ar, s=5, cmap="Oranges")
 
-plt.plot(P, d_thermal * 1e6, color="red", label="Thermal limit (clipped)")
+# curves
+plt.plot(P, d_he*1e6, color="blue", linewidth=1, label="He")
+plt.plot(P, d_ar*1e6, color="orange", linewidth=1, label="Ar")
 
-plt.axhline(d_min_mfg * 1e6, color="black", linestyle="--", label="Min manufacturable gap")
-plt.axhline(d_max_mfg * 1e6, color="gray", linestyle="--", label="Max manufacturable gap")
-
-# ----------------------------
-# AXES + FORMATTING
-# ----------------------------
 plt.xscale("log")
 plt.yscale("log")
 
 plt.xlabel("Pressure (Pa)")
 plt.ylabel("Gap (µm)")
-plt.title("Closed Manufacturing-Realistic ESC Operating Envelope (Stable Model)")
+plt.title("ESC Manufacturing Qualification Score (He vs Ar)")
+
+plt.colorbar(label="Score (0–1)")
 
 plt.grid(True, which="both", alpha=0.3)
 plt.legend()
