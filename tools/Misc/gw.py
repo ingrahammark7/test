@@ -1,166 +1,85 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 
 # ----------------------------
-# GAS MODEL
+# ARGON CONSTANTS
 # ----------------------------
-gases = {
-    "He": {"k": 0.151, "lambda_1atm": 180e-9},
-    "H2": {"k": 0.180, "lambda_1atm": 110e-9},
-    "Ne": {"k": 0.049, "lambda_1atm": 65e-9},
-    "N2": {"k": 0.025, "lambda_1atm": 65e-9},
-    "Ar": {"k": 0.018, "lambda_1atm": 70e-9},
-}
-
-names = list(gases.keys())
-
-# ----------------------------
-# SYSTEM
-# ----------------------------
-q_load = 5e4
-DeltaT = 20
-G_req = q_load / DeltaT
+lambda_0 = 68e-9
+P0 = 101325
+k_Ar = 0.018
 b = 2.0
 
-P_min, P_max = 0.05, 5.0
-d_min, d_max = 0.2e-6, 50e-6
+Kn_min = 0.01
+Kn_max = 0.1
 
-Kn_min, Kn_max = 1e-3, 10
+d_min = 2e-6
 
 # ----------------------------
 # GRID
 # ----------------------------
-P = np.logspace(np.log10(P_min), np.log10(P_max), 350)
-d = np.logspace(np.log10(d_min), np.log10(d_max), 350)
+P = np.logspace(3, 7, 500)
+d = np.logspace(-7, -4, 500)
 
 P_grid, d_grid = np.meshgrid(P, d)
 
 # ----------------------------
-# STORAGE
+# KNUDSEN BOUNDS (TRUE ENVELOPE)
 # ----------------------------
-F_stack = []
-G_stack = []
-
-# ----------------------------
-# COMPUTE
-# ----------------------------
-for g in names:
-
-    k = gases[g]["k"]
-    lam0 = gases[g]["lambda_1atm"]
-
-    lam = lam0 / P_grid
-    Kn = lam / d_grid
-
-    G = k / (d_grid + b * lam)
-
-    feasible = (
-        (G >= G_req) &
-        (Kn >= Kn_min) &
-        (Kn <= Kn_max)
-    )
-
-    F_stack.append(feasible)
-    G_stack.append(G)
-
-F_stack = np.array(F_stack)
-G_stack = np.array(G_stack)
+P_kn_min = (lambda_0 * P0) / (Kn_max * d_grid)
+P_kn_max = (lambda_0 * P0) / (Kn_min * d_grid)
 
 # ----------------------------
-# GLOBAL FEASIBILITY
+# MEAN FREE PATH
 # ----------------------------
-global_feasible = np.any(F_stack, axis=0)
+lambda_g = lambda_0 * (P0 / P_grid)
 
 # ----------------------------
-# WINNER MAP (SAFE)
+# THERMAL CONDUCTANCE
 # ----------------------------
-G_safe = G_stack.copy()
-G_safe[~F_stack] = -1e20
+G = k_Ar / (d_grid + b * lambda_g)
+G_min = 1e5
 
-winner = np.argmax(G_safe, axis=0)
-winner[~global_feasible] = -1
+# approximate thermal boundary via threshold mask
+thermal_ok = G >= G_min
 
 # ----------------------------
-# COLORS + LABELS
+# GEOMETRY
 # ----------------------------
-cmap = ListedColormap([
-    "lightblue",   # He
-    "orange",      # H2
-    "green",       # Ne
-    "purple",      # N2
-    "red",         # Ar
-    "black"        # infeasible / mixed
-])
+geo_ok = d_grid >= d_min
 
-label_map = {i: names[i] for i in range(len(names))}
-label_map[-1] = "Infeasible"
+# ----------------------------
+# FULL FEASIBILITY MASK (IMPORTANT FIX)
+# ----------------------------
+pressure_ok = (P_grid >= P_kn_min) & (P_grid <= P_kn_max)
+
+feasible = pressure_ok & thermal_ok & geo_ok
 
 # ----------------------------
 # PLOT
 # ----------------------------
-plt.figure(figsize=(13, 9))
+plt.figure(figsize=(10, 7))
 
-img = plt.pcolormesh(
-    P_grid,
-    d_grid * 1e6,
-    winner,
-    shading="auto",
-    cmap=cmap
-)
+# feasibility region (now truly bounded)
+plt.contourf(P_grid, d_grid * 1e6, feasible,
+             levels=[0.5, 1], colors=["#4CAF50"], alpha=0.6)
 
-# ----------------------------
-# FEASIBILITY BOUNDARY
-# ----------------------------
-plt.contour(
-    P_grid,
-    d_grid * 1e6,
-    global_feasible.astype(int),
-    levels=[0.5],
-    colors="black",
-    linewidths=2
-)
+# Knudsen envelope (THIS is the real wedge boundary)
+plt.contour(P_grid, d_grid * 1e6, P_grid - P_kn_min,
+            levels=[0], colors="blue", linestyles="--")
+plt.contour(P_grid, d_grid * 1e6, P_grid - P_kn_max,
+            levels=[0], colors="blue", linestyles="--")
 
-# ----------------------------
-# KNUDSEN REGIME LABELS
-# ----------------------------
-P_line = np.logspace(np.log10(P_min), np.log10(P_max), 500)
+# thermal cutoff
+plt.contour(P_grid, d_grid * 1e6, G,
+            levels=[G_min], colors="red", linestyles="-")
 
-for g in names:
-    lam0 = gases[g]["lambda_1atm"]
-
-    d_continuum = lam0 / (P_line * Kn_min)
-    d_transition = lam0 / (P_line * Kn_max)
-
-    plt.plot(P_line, d_continuum * 1e6, '--', alpha=0.3, color="gray")
-    plt.plot(P_line, d_transition * 1e6, '--', alpha=0.3, color="gray")
-
-# ----------------------------
-# AXES + LABELS
-# ----------------------------
 plt.xscale("log")
 plt.yscale("log")
 
-plt.xlabel("Backside Pressure P (atm)", fontsize=12)
-plt.ylabel("Gap d (µm)", fontsize=12)
-plt.title("ESC PHASE DIAGRAM — FULLY LABELED & PHYSICALLY BOUNDED", fontsize=14)
+plt.xlabel("Pressure (Pa)")
+plt.ylabel("Gap (µm)")
+plt.title("Argon ESC Fully Bounded Feasibility Envelope")
 
-# ----------------------------
-# LEGEND (MANUAL, CLEAR)
-# ----------------------------
-from matplotlib.patches import Patch
-
-legend_elements = [
-    Patch(facecolor="lightblue", label="He"),
-    Patch(facecolor="orange", label="H2"),
-    Patch(facecolor="green", label="Ne"),
-    Patch(facecolor="purple", label="N2"),
-    Patch(facecolor="red", label="Ar"),
-    Patch(facecolor="black", label="Infeasible"),
-]
-
-plt.legend(handles=legend_elements, loc="upper right")
-
-plt.grid(True, which="both", linestyle="--", alpha=0.3)
+plt.grid(True, which="both", alpha=0.2)
 
 plt.show()
