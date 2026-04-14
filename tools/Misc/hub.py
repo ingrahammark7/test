@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import math as ma
+#import matplotlib.pyplot as pl
 
 df=pd.read_csv('oil.csv')
 years=df['Year'].values
@@ -66,5 +67,15 @@ def dore(st,dife,y,sy):
 	nim=np.array(nim)
 	return nim
 	
-dor=dore(prod[0],dif2av,dif2.size+50,years[0])
+dor=dore(prod[0],dif2av,dif2.size,years[0])
 print(dor)
+"""
+x=dor[:,0]
+y=dor[:,1]
+pl.plot(x,y,label="y")
+pl.plot(years,prod,label="r")
+pl.title("Plot")
+pl.xlabel("x")
+pl.ylabel("y")
+pl.show()
+"""
