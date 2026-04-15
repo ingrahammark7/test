@@ -5,7 +5,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Frame, Table,TableStyle
 
-footer_text = "Appendix" 
+footer_text = "Petition for Review" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -68,9 +68,9 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
- #   c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
-    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
+#    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
+#    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
     # (4) Case Title
@@ -81,7 +81,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Los Angeles Superior Court",
+        "Department of Public Social Services",
         "Real Party In Interest.",        
         
     ]
@@ -98,10 +98,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 26STCP00202")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, " Case Number: B353648")
+    c.drawString(space, top_margin - 4.25* inch, " Case Number: B353030")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -117,7 +117,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "No register as appendix requested. /n" 
+    intro_text = "I ordered Judge Kin disqualified due to him and other court employees being illegal immigrants, his faking of transcripts, and his conspiracy to waste public funds by making decisions in favor of the Los Angeles Police Department, the majority of whose officers are illegal immigrants. Although Appellate Court ruled that decisions by disqualified judges cannot be appealed, I have requested all judges and employees be arrested, deported and returned to Mexico. Appellate court did not object. /n Petitioner petitions Court to: /n Affirm lower court decision. /n" 
     tabe=[["Document","Page"],["Pleading","3"],["Appeal","4"],["Judgment","5"],["Order","7"],["Service of Notice of Entry","8"],["Register","9"]]
     table=Table(tabe)
     style = TableStyle([
@@ -178,8 +178,8 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     y_position-=.5*inch
-    y_position-=heiht
-    table.drawOn(c,left_margin,y_position)
+    y_position-=0#heiht
+    #table.drawOn(c,left_margin,y_position)
     y_position=doer(intro_text,y_position)
     c.setFont("Times-Roman", 12)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 2/25/2026")
