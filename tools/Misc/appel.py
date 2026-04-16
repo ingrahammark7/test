@@ -5,7 +5,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Frame, Table,TableStyle
 
-footer_text = "Petition for Review" 
+footer_text = "Reply" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -68,9 +68,9 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
-#    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
-#    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
+#    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
     # (4) Case Title
@@ -81,7 +81,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Department of Public Social Services",
+        "Los Angeles Superior Court",
         "Real Party In Interest.",        
         
     ]
@@ -98,10 +98,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STCP03728")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 26STCP00202")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, " Case Number: B353030")
+    c.drawString(space, top_margin - 4.25* inch, " Case Number: B353648")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
