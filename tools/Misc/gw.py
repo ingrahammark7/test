@@ -1,35 +1,70 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
-# Parameters
-P = 1.0                 # laser power (W)
-absorptivity = 0.3      # fraction absorbed
-P_abs = P * absorptivity
+# ----------------------------
+# Material parameters
+# ----------------------------
+rho = 7800
+L_v = 6e6        # effective vaporization energy (J/m^3 scale lumped)
+Tm = 1800
 
-r = 0.5e-3              # spot radius (m)
-A = np.pi * r**2        # spot area (m^2)
+# ----------------------------
+# Laser parameters
+# ----------------------------
+P_avg = 1.0
+eta = 0.3
+w = 0.5e-3
 
-q = P_abs / A          # heat flux (W/m^2)
+# femtosecond-like pulses
+pulse_width = 100e-15
+f = 1e6
+duty = pulse_width * f
 
-k = 50.0               # thermal conductivity (W/mK) steel
-alpha = 1.2e-5         # thermal diffusivity (m^2/s)
+P_peak = P_avg / duty * eta
 
-# Time array
-t = np.logspace(-4, 2, 300)  # from 0.1 ms to 100 s
+# ----------------------------
+# Plasma threshold model (simplified)
+# ----------------------------
+I_plasma = 1e12  # W/m^2 threshold scale (order of magnitude)
 
-# Surface temperature rise
-T = (2 * q / k) * np.sqrt(alpha * t / np.pi)
+# ----------------------------
+# State variables
+# ----------------------------
+T = np.ones(100) * 300
+mass_removed = np.zeros(100)
 
-# Plot
-plt.figure()
-plt.loglog(t, T)
-plt.xlabel("Time (s)")
-plt.ylabel("Surface temperature rise (K)")
-plt.title("Steel surface heating under 1 W laser (1 mm spot)")
-plt.grid(True, which="both")
-plt.show()
+# spatial grid
+R = 5e-3
+r = np.linspace(0, R, 100)
 
-# Print peak at 1 second
-t_test = 1.0
-T_test = (2 * q / k) * np.sqrt(alpha * t_test / np.pi)
-print("Temp rise at 1 s:", T_test, "K")
+gauss = np.exp(-2 * r**2 / w**2)
+gauss /= np.trapz(gauss * 2*np.pi*r, r)
+
+dt = 1e-13
+Nt = 20000
+
+for n in range(Nt):
+    t = n * dt
+
+    # pulse
+    if (t % (1/f)) < pulse_width:
+        I = P_peak * gauss
+    else:
+        I = np.zeros_like(r)
+
+    for i in range(len(r)):
+
+        # ----------------------------
+        # Plasma regime trigger
+        # ----------------------------
+        if I[i] > I_plasma:
+
+            # energy goes into ionization + ejection, not heating
+            ablation_rate = (I[i] - I_plasma) * dt / L_v
+            mass_removed[i] += ablation_rate
+
+            # clamp temperature (energy leaves system)
+            T[i] = Tm
+
+        else:
+            # normal heating (simplified)
+            T[i] += I[i] * dt / (rho * 500)
