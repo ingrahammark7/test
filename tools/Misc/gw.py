@@ -1,70 +1,14 @@
-import numpy as np
-
-# ----------------------------
-# Material parameters
-# ----------------------------
-rho = 7800
-L_v = 6e6        # effective vaporization energy (J/m^3 scale lumped)
-Tm = 1800
-
-# ----------------------------
-# Laser parameters
-# ----------------------------
-P_avg = 1.0
-eta = 0.3
-w = 0.5e-3
-
-# femtosecond-like pulses
-pulse_width = 100e-15
-f = 1e6
-duty = pulse_width * f
-
-P_peak = P_avg / duty * eta
-
-# ----------------------------
-# Plasma threshold model (simplified)
-# ----------------------------
-I_plasma = 1e12  # W/m^2 threshold scale (order of magnitude)
-
-# ----------------------------
-# State variables
-# ----------------------------
-T = np.ones(100) * 300
-mass_removed = np.zeros(100)
-
-# spatial grid
-R = 5e-3
-r = np.linspace(0, R, 100)
-
-gauss = np.exp(-2 * r**2 / w**2)
-gauss /= np.trapz(gauss * 2*np.pi*r, r)
-
-dt = 1e-13
-Nt = 20000
-
-for n in range(Nt):
-    t = n * dt
-
-    # pulse
-    if (t % (1/f)) < pulse_width:
-        I = P_peak * gauss
-    else:
-        I = np.zeros_like(r)
-
-    for i in range(len(r)):
-
-        # ----------------------------
-        # Plasma regime trigger
-        # ----------------------------
-        if I[i] > I_plasma:
-
-            # energy goes into ionization + ejection, not heating
-            ablation_rate = (I[i] - I_plasma) * dt / L_v
-            mass_removed[i] += ablation_rate
-
-            # clamp temperature (energy leaves system)
-            T[i] = Tm
-
-        else:
-            # normal heating (simplified)
-            T[i] += I[i] * dt / (rho * 500)
+c=3e8
+pc=6.6e-34
+pl=1.6e-35
+pa=pl**2
+pca=pc/pa
+pm=2.18e-8
+tt=pm/pca
+pt=5.39e-44
+f=tt/pt
+print("a planck constant impulse from a singularity causes secondary impulses on each crossing")
+print("during 1/6 of a planck time they add up to a planck mass")
+print("during the time it takes quantum particles to escape their noise adds to planck mass")
+print("anything below mass is controlled by singularities")
+print(tt/pt)
