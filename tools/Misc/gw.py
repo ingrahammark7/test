@@ -1,120 +1,163 @@
-# Synthetic US-like county + logistics network with corrected grid + 3D visualization
-
-import numpy as np
+import os
+import io
+import zipfile
+import requests
+import shapefile
 import networkx as nx
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 
-# ----------------------------
-# PARAMETERS
-# ----------------------------
-side = 16
-N = side * side
-steps = 300
-dt = 0.1
+TIGER_URL = "https://www2.census.gov/geo/tiger/TIGER2023/COUNTY/tl_2023_us_county.zip"
 
-# ----------------------------
-# BUILD "COUNTY GRID" + LOGISTICS NETWORK
-# ----------------------------
-G = nx.grid_2d_graph(side, side)
-G = nx.convert_node_labels_to_integers(G)
+# FLAT FILES ONLY (current working directory)
+ZIP_PATH = "tl_2023_us_county.zip"
+SHP_FILE = "tl_2023_us_county.shp"
 
-# add long-range "highway" edges
-for i in range(N):
-    for _ in range(2):
-        j = np.random.randint(0, N)
-        if i != j:
+
+# -----------------------------
+# 1. Download + extract (CWD only)
+# -----------------------------
+def ensure_tiger_cached():
+    # already extracted
+    if os.path.exists(SHP_FILE):
+        print("✔ Using cached TIGER shapefile (cwd)")
+        return
+
+    # download if missing
+    if not os.path.exists(ZIP_PATH):
+        print("⬇ Downloading TIGER counties (cwd only)...")
+        r = requests.get(TIGER_URL, stream=True)
+        r.raise_for_status()
+
+        with open(ZIP_PATH, "wb") as f:
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    f.write(chunk)
+
+    # extract EVERYTHING into cwd (flat)
+    print("📦 Extracting into current directory (no folders)...")
+    with zipfile.ZipFile(ZIP_PATH, "r") as z:
+        z.extractall(".")
+
+    print("✔ TIGER ready in cwd")
+
+
+# -----------------------------
+# 2. Load shapes
+# -----------------------------
+def load_shapes():
+    sf = shapefile.Reader(SHP_FILE)
+    return sf.shapes()
+
+
+# -----------------------------
+# 3. Build adjacency graph
+# -----------------------------
+def build_graph(shapes):
+    n = len(shapes)
+    G = nx.Graph()
+    G.add_nodes_from(range(n))
+
+    print("🔗 Building adjacency graph...")
+
+    for i in range(n):
+        bbox_i = shapes[i].bbox
+
+        for j in range(i + 1, n):
+            bbox_j = shapes[j].bbox
+
+            # fast reject
+            if (bbox_i[2] < bbox_j[0] or bbox_j[2] < bbox_i[0] or
+                bbox_i[3] < bbox_j[1] or bbox_j[3] < bbox_i[1]):
+                continue
+
             G.add_edge(i, j)
 
-A = nx.to_numpy_array(G)
-deg = A.sum(axis=1, keepdims=True)
-deg[deg == 0] = 1
-W = A / deg
+    print(f"✔ Graph built: {G.number_of_nodes()} nodes / {G.number_of_edges()} edges")
+    return G
 
-# ----------------------------
-# STATE VARIABLES
-# ----------------------------
-P = np.zeros(N)
-H = np.ones(N) * 0.8
-I = np.ones(N) * 0.8
 
-# seed outbreaks
-P[np.random.randint(0, N, 5)] = 0.6
+# -----------------------------
+# 4. State init
+# -----------------------------
+def init_state(n):
+    H = np.random.uniform(0.6, 1.0, n)
+    I = np.random.uniform(0.6, 1.0, n)
+    P = np.random.uniform(0.0, 0.2, n)
+    return H, I, P
 
-# ----------------------------
-# PARAMETERS
-# ----------------------------
-Dp = 0.5
-Dh = 0.08
-Di = 0.12
 
-r = 0.7
-b = 0.02
+# -----------------------------
+# 5. Dynamics
+# -----------------------------
+def step(G, H, I, P, params):
+    alpha, beta, gamma, delta = params
+    n = len(H)
 
-alpha = 1.1
-d1 = 0.8
-d2 = 0.5
+    Hn = np.zeros(n)
+    In = np.zeros(n)
+    Pn = np.zeros(n)
 
-beta = 0.04
-gamma = 0.6
-delta = 0.02
+    for i in range(n):
+        neigh = list(G.neighbors(i))
+        P_avg = np.mean(P[neigh]) if neigh else P[i]
 
-def diffuse(W, x):
-    return W @ x - x
+        C = H[i] * I[i]
 
-# ----------------------------
-# SIMULATION
-# ----------------------------
-for t in range(300):
+        Pn[i] = np.clip(P[i] + alpha*(1 - C) + 0.2*P_avg - beta*P[i], 0, 1)
+        Hn[i] = np.clip(H[i] - gamma*P[i]*H[i], 0, 1)
+        In[i] = np.clip(I[i] - delta*P[i]*I[i], 0, 1)
 
+    return Hn, In, Pn
+
+
+# -----------------------------
+# 6. Phase metric
+# -----------------------------
+def giant_component(G, H, I, theta=0.25):
     C = H * I
+    viable = [i for i in G.nodes if C[i] > theta]
 
-    dP = Dp * diffuse(W, P)
-    dP += r * P * (1 - P) - alpha * C * P
+    SG = G.subgraph(viable)
 
-    dH = Dh * diffuse(W, H)
-    dH += b * H * (1 - H) - d1 * P * H - d2 * (1 - I) * H
+    if len(viable) == 0:
+        return 0.0
 
-    dI = Di * diffuse(W, I)
-    dI += beta * H * (1 - I) - gamma * P * I - delta * I
+    comps = list(nx.connected_components(SG))
+    return max(len(c) for c in comps) / len(G)
 
-    P += dt * dP
-    H += dt * dH
-    I += dt * dI
 
-    P = np.clip(P, 0, 1)
-    H = np.clip(H, 0, 1)
-    I = np.clip(I, 0, 1)
+# -----------------------------
+# 7. Run
+# -----------------------------
+def run(T=120):
+    ensure_tiger_cached()
+    shapes = load_shapes()
+    G = build_graph(shapes)
 
-# ----------------------------
-# 2D MAP VIEW
-# ----------------------------
-final_P = P.reshape(side, side)
+    n = len(G)
+    H, I, P = init_state(n)
 
-plt.figure()
-plt.imshow(final_P)
-plt.title("Synthetic county pest pressure map")
-plt.colorbar()
-plt.show()
+    params = (0.6, 0.25, 0.8, 0.7)
 
-# ----------------------------
-# 3D SURFACE VIEW
-# ----------------------------
-X = np.arange(side)
-Y = np.arange(side)
-X, Y = np.meshgrid(X, Y)
-Z = final_P
+    series = []
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(X, Y, Z)
-ax.set_title("3D pest pressure landscape (synthetic US-like network)")
-plt.show()
+    for t in range(T):
+        H, I, P = step(G, H, I, P, params)
+        series.append(giant_component(G, H, I))
 
-# ----------------------------
-# NETWORK VISUALIZATION
-# ----------------------------
-plt.figure()
-nx.draw(G, node_size=10, with_labels=False)
-plt.title("Synthetic US-like county + logistics network")
-plt.show()
+    return series
+
+
+# -----------------------------
+# 8. Execute
+# -----------------------------
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    series = run()
+
+    plt.plot(series)
+    plt.title("US County Collapse (flat CWD TIGER)")
+    plt.xlabel("Time")
+    plt.ylabel("Giant Component Fraction")
+    plt.show()
