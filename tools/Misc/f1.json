@@ -901,6 +901,11 @@
                 "Loss": 40,
                 "Ground": 15
             },
+            "Desert Storm": {
+                "Kills": 2,
+                "Losses": 7,
+                "Ground": 0
+            },
             "Libya Chad": {
                 "Kills": 0,
                 "Loss": 1,
@@ -923,9 +928,9 @@
             }
         },
         "MiG-25": {
-            "Middle East": {
-                "Kills": 0,
-                "Loss": 0,
+            "Desert Storm": {
+                "Kills": 2,
+                "Loss": 2,
                 "Ground": 0
             },
             "Syria Lebanon": {
@@ -946,8 +951,8 @@
         },
         "MiG-29": {
             "Desert Storm": {
-                "Kills": 0,
-                "Loss": 0,
+                "Kills": 2,
+                "Loss": 1,
                 "Ground": 0
             },
             "Chechnya": {
