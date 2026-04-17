@@ -36,7 +36,7 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Gulf War": {
+            "Desert Storm": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 1
@@ -195,7 +195,7 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Iran-iraq War": {
+            "Iran Iraq War": {
                 "Kills": 71,
                 "Loss": 4,
                 "Ground": 4
@@ -645,7 +645,7 @@
                 "Loss": 0,
                 "Ground": 0
             },
-            "Iran-iraq War": {
+            "Iran Iraq War": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0
@@ -945,7 +945,7 @@
             }
         },
         "MiG-29": {
-            "Kuwait War": {
+            "Desert Storm": {
                 "Kills": 0,
                 "Loss": 0,
                 "Ground": 0

@@ -129,11 +129,6 @@
     "end": 1984,
     "emoji": "🏜⚔"
   },
-  "Gulf War": {
-    "start": 1990,
-    "end": 1991,
-    "emoji": "🏜🚀🔥"
-  },
   "Interwar": {
     "start": 1918,
     "end": 1939,
@@ -160,11 +155,6 @@
     "emoji": "🇸🇾🕰"
   },
   "Iran Iraq War": {
-    "start": 1980,
-    "end": 1988,
-    "emoji": "🇮🇷🇮🇶🔥"
-  },
-  "Iran-iraq War": {
     "start": 1980,
     "end": 1988,
     "emoji": "🇮🇷🇮🇶🔥"
@@ -198,11 +188,6 @@
     "start": 1975,
     "end": 1975,
     "emoji": "🔥"
-  },
-  "Kuwait War": {
-    "start": 1990,
-    "end": 1991,
-    "emoji": "🏜🚀🔥"
   },
   "Lebanon": {
     "start": 1975,
