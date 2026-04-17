@@ -1,57 +1,81 @@
-import numpy as np
-import matplotlib.pyplot as plt
+# Synthetic US-like county + logistics network with corrected grid + 3D visualization
 
-N = 300
-T = 600
+import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# ----------------------------
+# PARAMETERS
+# ----------------------------
+side = 16
+N = side * side
+steps = 300
 dt = 0.1
 
-# State variables
-P = np.zeros(N)        # pests
-H = np.ones(N) * 0.8   # humans
-I = np.ones(N) * 0.8   # infrastructure
+# ----------------------------
+# BUILD "COUNTY GRID" + LOGISTICS NETWORK
+# ----------------------------
+G = nx.grid_2d_graph(side, side)
+G = nx.convert_node_labels_to_integers(G)
 
-# initial pest seed
-P[20:30] = 0.4
+# add long-range "highway" edges
+for i in range(N):
+    for _ in range(2):
+        j = np.random.randint(0, N)
+        if i != j:
+            G.add_edge(i, j)
 
-# diffusion
-Dp = 0.6
-Dh = 0.1
-Di = 0.15
+A = nx.to_numpy_array(G)
+deg = A.sum(axis=1, keepdims=True)
+deg[deg == 0] = 1
+W = A / deg
 
-# parameters
-r = 0.8
+# ----------------------------
+# STATE VARIABLES
+# ----------------------------
+P = np.zeros(N)
+H = np.ones(N) * 0.8
+I = np.ones(N) * 0.8
 
-b = 0.02      # human recovery
-alpha = 1.3   # suppression strength
+# seed outbreaks
+P[np.random.randint(0, N, 5)] = 0.6
 
-d1 = 0.9      # pest impact on humans
-d2 = 0.5      # infrastructure dependency
+# ----------------------------
+# PARAMETERS
+# ----------------------------
+Dp = 0.5
+Dh = 0.08
+Di = 0.12
 
-beta = 0.04   # infra build rate
-gamma = 0.7   # pest damage to infra
-delta = 0.02  # infra decay
+r = 0.7
+b = 0.02
 
-def lap(z):
-    return np.roll(z,1) + np.roll(z,-1) - 2*z
+alpha = 1.1
+d1 = 0.8
+d2 = 0.5
 
-history_H = []
-history_P = []
-history_I = []
+beta = 0.04
+gamma = 0.6
+delta = 0.02
 
-for t in range(T):
+def diffuse(W, x):
+    return W @ x - x
+
+# ----------------------------
+# SIMULATION
+# ----------------------------
+for t in range(300):
 
     C = H * I
 
-    # pests
-    dP = Dp * lap(P)
+    dP = Dp * diffuse(W, P)
     dP += r * P * (1 - P) - alpha * C * P
 
-    # humans
-    dH = Dh * lap(H)
+    dH = Dh * diffuse(W, H)
     dH += b * H * (1 - H) - d1 * P * H - d2 * (1 - I) * H
 
-    # infrastructure
-    dI = Di * lap(I)
+    dI = Di * diffuse(W, I)
     dI += beta * H * (1 - I) - gamma * P * I - delta * I
 
     P += dt * dP
@@ -62,34 +86,35 @@ for t in range(T):
     H = np.clip(H, 0, 1)
     I = np.clip(I, 0, 1)
 
-    if t % 10 == 0:
-        history_H.append(H.copy())
-        history_P.append(P.copy())
-        history_I.append(I.copy())
+# ----------------------------
+# 2D MAP VIEW
+# ----------------------------
+final_P = P.reshape(side, side)
 
-# Plot human population evolution
-plt.figure(figsize=(10,5))
-for i, frame in enumerate(history_H):
-    plt.plot(frame, alpha=0.2)
-plt.title("Human population density (spatial)")
-plt.xlabel("Space")
-plt.ylabel("H")
+plt.figure()
+plt.imshow(final_P)
+plt.title("Synthetic county pest pressure map")
+plt.colorbar()
 plt.show()
 
-# Plot infrastructure
-plt.figure(figsize=(10,5))
-for i, frame in enumerate(history_I):
-    plt.plot(frame, alpha=0.2)
-plt.title("Infrastructure density (spatial)")
-plt.xlabel("Space")
-plt.ylabel("I")
+# ----------------------------
+# 3D SURFACE VIEW
+# ----------------------------
+X = np.arange(side)
+Y = np.arange(side)
+X, Y = np.meshgrid(X, Y)
+Z = final_P
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(X, Y, Z)
+ax.set_title("3D pest pressure landscape (synthetic US-like network)")
 plt.show()
 
-# Plot pests
-plt.figure(figsize=(10,5))
-for i, frame in enumerate(history_P):
-    plt.plot(frame, alpha=0.2)
-plt.title("Pest pressure (spatial)")
-plt.xlabel("Space")
-plt.ylabel("P")
+# ----------------------------
+# NETWORK VISUALIZATION
+# ----------------------------
+plt.figure()
+nx.draw(G, node_size=10, with_labels=False)
+plt.title("Synthetic US-like county + logistics network")
 plt.show()
