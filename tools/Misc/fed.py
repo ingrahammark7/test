@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Enter Default"
+footer_text = "Petition for Writ of Mandamus to Compel Clerk to Issue Summons"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -49,7 +49,7 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES COURT OF FEDERAL CLAIMS")
+    c.drawCentredString(width / 2, top_margin - 0 * inch, "UNITED STATES COURT OF APPEALS FOR THE FEDERAL CIRCUIT")
    # c.drawCentredString(width / 2, top_margin - 0.33 * inch, "CENTRAL DISTRICT OF CALIFORNIA")
  
 
@@ -167,9 +167,9 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="/n Clerk states defendant was already served on or before 3/27. Clerk should enter default. /n"
+    text="/n Clerk states defendant was already served on or before 3/27 in case 1:26-cv-00475. Clerk should either confirm this or issue summons. /n"
     y_position=doer(text,y_position)
-    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/10/2025")
+    c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 3/18/2026")
 
 
     # Save the PDF
