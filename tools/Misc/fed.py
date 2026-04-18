@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Request to Issue Summons"
+footer_text = "Request to Enter Default"
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -167,7 +167,7 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="/n Clerk states defendant was already served. Clerk should file something confirming service or issue summons. /n"
+    text="/n Clerk states defendant was already served on or before 3/27. Clerk should enter default. /n"
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 12/10/2025")
 
