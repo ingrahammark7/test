@@ -167,7 +167,7 @@ def create_pdf(output_filename):
     y_position=heads(h1,y_position)    
     
     c.setFont("Times-Roman", 12)
-    text="/n Clerk states defendant was already served on or before 3/27 in case 1:26-cv-00475. Clerk should either confirm this or issue summons. /n CERTIFICATE OF SERVICE /n Petition mailed to defendant at: /n Merrick P. Garland /n Department of Justice /n 950 Pennsylvania Avenue NW /n Washington DC 20530 /n /n Clerk of US Court of Federal Claims /n 717 Madison Place NW /n Washington DC 20439 /n "
+    text="/n Clerk states defendant was already served on or before 3/27 in case 1:26-cv-00475. Clerk should either confirm this or issue summons. /n CERTIFICATE OF SERVICE /n Petition mailed to defendant at: /n Merrick P. Garland /n Department of Justice /n 950 Pennsylvania Avenue NW /n Washington DC 20530 /n /n Clerk of US Court of Federal Claims /n 717 Madison Place NW /n Washington DC 20439 /n IFP STATEMENT /n I cannot afford court costs and all costs should be waived. /n"
     y_position=doer(text,y_position)
     c.drawString(left_margin, y_position - 0.25* inch, "Submitted, Mark Ingraham, 3/18/2026")
 
