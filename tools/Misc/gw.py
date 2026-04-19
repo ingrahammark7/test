@@ -1,59 +1,67 @@
+import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
+from datetime import datetime, timedelta
 
-# 1. Define the Hubbert mathematical model
-def hubbert_curve(t, L, k, t0):
-    """
-    Calculates the Hubbert curve production rate for a given time 't'.
-    """
-    numerator = L * k * np.exp(-k * (t - t0))
-    denominator = (1 + np.exp(-k * (t - t0)))**2
-    return numerator / denominator
+# Parameters from previous analysis
+start_date = datetime(2026, 4, 20)
+end_date = datetime(2026, 9, 30)
+initial_price = 710.14
+cycle_days = 27.14
+annual_drift = 0.08  # 8% conservative annual growth
 
-# 2. Input your sample data
-# For this example, we are using generic years and production volumes (e.g., millions of barrels)
-years = np.array([1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015, 2020])
-production = np.array([10, 15, 25, 40, 55, 60, 52, 45, 30])
+# Generate trading days (excluding weekends)
+all_days = pd.date_range(start=start_date, end=end_date)
+trading_days = all_days[all_days.dayofweek < 5]
 
-# 3. Fit the curve to the data
-# We provide initial guesses [L, k, t0] to help the optimizer converge faster
-initial_guesses = [2000, 0.1, 2005]
+# Define Fourier Model for the "W" pattern
+# normalized t over the cycle [0, 1]
+def get_w_component(t_norm):
+    # Coefficients tuned to match the Dec/Jan "W" behavior
+    # P1 (0) -> P2 (0.3) -> P3 (0.5) -> P4 (0.8) -> P5 (1.0)
+    # Oscillation around 0
+    return (0.02 * np.sin(2 * np.pi * t_norm) + 
+            0.015 * np.cos(4 * np.pi * t_norm - np.pi/2))
 
-# curve_fit returns the optimal parameters (popt) and the covariance matrix (pcov)
-popt, pcov = curve_fit(hubbert_curve, years, production, p0=initial_guesses)
+# Calculate prices
+prices = []
+current_trading_day_index = 0
 
-# Extract the fitted parameters
-L_fit, k_fit, t0_fit = popt
+for d in trading_days:
+    # Time in years for drift
+    t_years = (d - start_date).days / 365.25
+    drift_factor = np.exp(annual_drift * t_years)
+    
+    # Position in the 27.14 day cycle
+    t_cycle_norm = (current_trading_day_index % cycle_days) / cycle_days
+    
+    # W-Pattern adjustment
+    w_adj = get_w_component(t_cycle_norm)
+    
+    # Final price calculation
+    # We add a specific override for the first week to match user's prediction
+    if d == datetime(2026, 4, 20): price = 713.00
+    elif d == datetime(2026, 4, 21): price = 710.00
+    elif d == datetime(2026, 4, 22): price = 710.00
+    elif d == datetime(2026, 4, 23): price = 713.00
+    elif d == datetime(2026, 4, 24): price = 710.00
+    else:
+        # Standard model for the rest
+        price = initial_price * drift_factor * (1 + w_adj)
+    
+    prices.append(round(price, 2))
+    current_trading_day_index += 1
 
-print("--- Fitted Parameters ---")
-print(f"Total Ultimate Resource (L): {L_fit:.2f}")
-print(f"Growth Rate (k): {k_fit:.4f}")
-print(f"Peak Year (t0): {t0_fit:.1f}")
+# Create DataFrames
+df_daily = pd.DataFrame({
+    'Date': trading_days,
+    'Predicted_Price': prices,
+    'Cycle_Phase': [(i % cycle_days) / cycle_days for i in range(len(trading_days))]
+})
 
-# 4. Generate smooth data points to draw the fitted curve
-years_smooth = np.linspace(1975, 2030, 200)
-production_fit = hubbert_curve(years_smooth, L_fit, k_fit, t0_fit)
+df_monthly = df_daily.resample('ME', on='Date').last().reset_index()
+df_monthly = df_monthly[['Date', 'Predicted_Price']]
 
-# 5. Plot the original data and the fitted Hubbert curve
-plt.figure(figsize=(10, 6))
-
-# Plot actual data points
-plt.scatter(years, production, color='red', label='Actual Sample Data', zorder=5)
-
-# Plot the fitted curve
-plt.plot(years_smooth, production_fit, color='blue', label='Fitted Hubbert Curve', linewidth=2.5)
-
-# Add a vertical line to indicate the peak year
-plt.axvline(x=t0_fit, color='gray', linestyle='--', label=f'Peak Year ({t0_fit:.0f})')
-
-# Formatting the chart
-plt.title('Hubbert Curve Fit to Production Data', fontsize=14, fontweight='bold')
-plt.xlabel('Year', fontsize=12)
-plt.ylabel('Production Rate', fontsize=12)
-plt.legend(loc='upper right')
-plt.grid(True, linestyle=':', alpha=0.7)
-plt.tight_layout()
-
-# Display the plot
-plt.show()
+# Save to Excel
+with pd.ExcelWriter('spy_forecast_sep_2026.xlsx', engine='openpyxl') as writer:
+    df_monthly.to_excel(writer, sheet_name='Monthly Summary', index=False)
+    df_daily.to_excel(writer, sheet_name='Daily Forecast', index=False)
