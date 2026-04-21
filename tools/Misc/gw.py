@@ -1,26 +1,35 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-# constants
-rho_air = 1.225  # kg/m^3 (sea level approx, jet stream slightly lower but similar order)
-v = 100          # m/s jet stream speed (your assumption)
+# parameters
+p_per_shot = 0.02
+fire_rate = 2.0
+theta = 0.5  # radian engagement tracking window
 
-# wind power density (correct formula)
-wind_power_density = 0.5 * rho_air * v**3  # W/m^2
+def success_prob(h, v):
+    # angular velocity approx v/h
+    omega = v / h
+    T = theta / omega  # engagement window
+    n_shots = max(0, T * fire_rate)
+    # probability of at least one hit
+    return 1 - (1 - p_per_shot) ** n_shots
 
-# hypothetical aircraft
-mass = 100000      # kg (100 tons)
-g = 9.81           # m/s^2
-wing_area = 500    # m^2
+# grid
+heights = np.linspace(5, 100, 60)   # meters
+speeds = np.linspace(5, 25, 60)     # m/s
 
-# required lift force
-weight = mass * g  # N
+Z = np.zeros((len(heights), len(speeds)))
 
-# "power equivalent" if you incorrectly convert weight over some velocity scale
-# (this is just to show mismatch, not a real aerodynamic quantity)
-sink_rate = 10  # m/s (typical glide-ish vertical speed scale)
-required_power = weight * sink_rate  # W
+for i, h in enumerate(heights):
+    for j, v in enumerate(speeds):
+        Z[i, j] = success_prob(h, v)
 
-print("Wind power density (W/m^2):", wind_power_density)
-print("Total wind power over wing area (MW):", wind_power_density * wing_area / 1e6)
-print("Aircraft weight (N):", weight)
-print("Approx power needed to oppose gravity at 10 m/s descent (MW):", required_power / 1e6)
+plt.figure()
+plt.imshow(Z, origin='lower', extent=[5,25,5,100], aspect='auto')
+plt.xlabel("Drone speed (m/s)")
+plt.ylabel("Altitude (m)")
+plt.title("Interception Probability Threshold Map (Pistol Engagement Model)")
+plt.colorbar()
+plt.show()
+
+Z.mean()
