@@ -1,59 +1,72 @@
-import math
+# Simple simulation of a coupled regional population system with:
+# - intrinsic growth pressure (r)
+# - tightening constraints that reduce r over time
+# - local extinction threshold (MVP)
+# - migration between regions
 
-# -----------------------------
-# State
-# -----------------------------
-m = 50.0          # dry mass (kg)
-mach = 4.0
-a0 = 340.0        # speed of sound approx
-v = mach * a0     # velocity magnitude (m/s)
+import numpy as np
+import matplotlib.pyplot as plt
 
-# -----------------------------
-# Atmospheric model (simple)
-# -----------------------------
-rho0 = 1.225
+np.random.seed(0)
 
-def rho(h):
-    return rho0 * math.exp(-h / 8500)
+# Parameters
+num_regions = 20
+timesteps = 200
 
-h = 10000
-density = rho(h)
+initial_pop = 1000
+mvp = 50
 
-# -----------------------------
-# Heating model (energy flux)
-# -----------------------------
-k = 1.83e-4
-rn = 0.09
+# intrinsic growth pressure
+base_r = 1.05
 
-q_dot = k * math.sqrt(density / rn) * v**3  # W/m^2
+# constraint tightening rate (reduces effective r over time)
+constraint_rate = 0.002
 
-# assume effective heating area
-A = 0.12
+# migration rate between regions
+migration_rate = 0.01
 
-P_heat = q_dot * A  # W = J/s
+# initialize populations
+pop = np.full(num_regions, initial_pop, dtype=float)
 
-# -----------------------------
-# Energy-limited momentum change bound
-# -----------------------------
-# interpret heat as limiting rate of kinetic energy dissipation
-E_dot_max = P_heat
+# track totals
+total_pop = []
+alive_regions = []
 
-# convert energy rate into velocity vector change magnitude
-# E = 1/2 m v^2 => dE/dt = m v dv/dt
-dvdt_max = E_dot_max / (m * v)
+for t in range(timesteps):
+    # effective growth rate decreases over time (constraints tighten)
+    r_effective = base_r - constraint_rate * t
+    r_effective = max(r_effective, 0.5)  # cannot go below 0.5 in this model
+    
+    # growth step
+    pop = pop * r_effective
+    
+    # migration (simple diffusion-like mixing)
+    migration = migration_rate * (np.mean(pop) - pop)
+    pop = pop + migration
+    
+    # local extinction threshold
+    pop[pop < mvp] = 0
+    
+    total_pop.append(np.sum(pop))
+    alive_regions.append(np.sum(pop > 0))
 
-# -----------------------------
-# Turn rate from kinematics only (no forces assumed)
-# ω = |dv_perp| / v
-# -----------------------------
-omega = dvdt_max / v  # rad/s (pure kinematic bound)
-omega_deg = math.degrees(omega)
+# Plot results
+plt.figure()
+plt.plot(total_pop)
+plt.title("Total Population Over Time")
+plt.xlabel("Time")
+plt.ylabel("Population")
 
-# lateral acceleration equivalent (derived quantity only)
-a_lat = dvdt_max
+plt.figure()
+plt.plot(alive_regions)
+plt.title("Number of Surviving Regions Over Time")
+plt.xlabel("Time")
+plt.ylabel("Regions")
 
-print("Velocity (m/s):", v)
-print("Heat power (W):", P_heat)
-print("Max dv/dt (m/s^2):", dvdt_max)
-print("Turn rate bound (deg/s):", omega_deg)
-print("Equivalent lateral accel (m/s^2):", a_lat)
+plt.show()
+
+# Final summary
+final_total = total_pop[-1]
+final_alive = alive_regions[-1]
+
+final_total, final_alive
