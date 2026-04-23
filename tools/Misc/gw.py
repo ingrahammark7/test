@@ -1,74 +1,41 @@
-import numpy as np
+def flight_cycle_time_glide(climb_rate_fpm=2000,
+                            glide_ratio=15,
+                            cruise_speed_mph=480,
+                            altitude_top_ft=35000,
+                            altitude_bottom_ft=5000,
+                            horizontal_distance_miles=100):
 
-# -----------------------------
-# Grid
-# -----------------------------
-Nx = 100
-Nz = 200
+    delta_alt = altitude_top_ft - altitude_bottom_ft
 
-Lx = 1e-6   # 1 micron feature width
-Lz = 5e-7   # 500 nm depth
+    # climb time
+    climb_time_min = delta_alt / climb_rate_fpm
 
-dx = Lx / Nx
-dz = Lz / Nz
+    # cruise time
+    cruise_time_min = (horizontal_distance_miles / cruise_speed_mph) * 60
 
-x = np.linspace(0, Lx, Nx)
-z = np.linspace(0, Lz, Nz)
+    # convert cruise speed to ft/min
+    cruise_speed_fpm = cruise_speed_mph * 88
 
-dt = 1e-11
-steps = 2000
+    # glide-based descent rate
+    descent_rate_fpm = cruise_speed_fpm / glide_ratio
 
-# -----------------------------
-# Physics parameters
-# -----------------------------
-lambda_eff = 1e-7   # transport attenuation length (~100 nm scale emerges here)
+    descent_time_min = delta_alt / descent_rate_fpm
 
-Phi0 = 1.0
+    total_time = climb_time_min + cruise_time_min + descent_time_min
 
-Y_L = 1.0
-Y_H = 2.0
+    return {
+        "climb_time_min": climb_time_min,
+        "cruise_time_min": cruise_time_min,
+        "descent_time_min": descent_time_min,
+        "total_time_min": total_time,
+        "climb_fraction": climb_time_min / total_time,
+        "cruise_fraction": cruise_time_min / total_time,
+        "descent_fraction": descent_time_min / total_time,
+        "descent_rate_fpm": descent_rate_fpm
+    }
 
-# surface height (initial flat)
-h = np.zeros(Nx)
 
-# -----------------------------
-# helper: slope (shadowing)
-# -----------------------------
-def slope(h):
-    dhdx = np.zeros_like(h)
-    dhdx[1:-1] = (h[2:] - h[:-2]) / (2*dx)
-    return dhdx
+result = flight_cycle_time_glide()
 
-# -----------------------------
-# simulation loop
-# -----------------------------
-for step in range(steps):
-
-    dhdx = slope(h)
-
-    R = np.zeros(Nx)
-
-    for i in range(Nx):
-
-        # angular collapse (depth attenuation)
-        depth = h[i]
-        A = np.exp(-depth / lambda_eff)
-
-        # shadowing (steep walls reduce flux)
-        S = 1.0 / (1.0 + dhdx[i]**2)
-
-        # two-species effective yield (kept simple but coupled)
-        R_L = Phi0 * A * S * Y_L
-        R_H = Phi0 * A * S * Y_H
-
-        R[i] = R_L + R_H
-
-    # update surface
-    h += R * dt
-
-# -----------------------------
-# output
-# -----------------------------
-print("Max etched depth (nm):", np.max(h) * 1e9)
-print("Min etched depth (nm):", np.min(h) * 1e9)
-print("AR (aspect ratio):", np.max(h) / Lx)
+for k, v in result.items():
+    print(f"{k}: {v:.3f}")
