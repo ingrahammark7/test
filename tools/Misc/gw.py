@@ -1,108 +1,35 @@
-import numpy as np
+from math import sqrt
 
-# -----------------------------
-# 1. Atmospheric energy model
-# -----------------------------
+# effective wafer thermal conductivity (normalized units)
+k = 150
 
-def atmospheric_energy_budget(solar_flux=240, efficiency=0.015):
-    """
-    Solar flux (W/m^2) → kinetic energy in atmosphere
-    """
-    kinetic_energy_flux = solar_flux * efficiency  # W/m^2
-    return kinetic_energy_flux
+# backside coupling (helium vs argon)
+h_he = 5.0
+h_ar = 1.5
 
+def L_crit(k, h):
+    return sqrt(k / h)
 
-# -----------------------------
-# 2. Jet stream scaling model
-# -----------------------------
+def Pi(L, h):
+    return L * sqrt(h / k)
 
-def jet_stream_speed(temp_gradient=30, coriolis=1e-4):
-    """
-    Simplified thermal wind scaling.
+# critical length scales
+L_he = L_crit(k, h_he)
+L_ar = L_crit(k, h_ar)
 
-    u ~ (g/fT) * dT/dy (collapsed constant form)
-    We compress constants into a scaling coefficient.
-    """
+print("L_crit helium:", L_he)
+print("L_crit argon:", L_ar)
 
-    # empirical scaling constant (tuned to ~30–70 m/s reality)
-    k = 1.2
+# test spatial scales
+L_test = [0.1, 0.5, 1.0, 2.0, 5.0]
 
-    speed = k * temp_gradient  # m/s
+for L in L_test:
+    pi_he = Pi(L, h_he)
+    pi_ar = Pi(L, h_ar)
 
-    # physical saturation cap (observed regime limit)
-    return min(speed, 75.0)
-
-
-# -----------------------------
-# 3. Aircraft performance model
-# -----------------------------
-
-def flight_cycle(climb_rate_fpm=2000,
-                  cruise_speed_mph=480,
-                  glide_ratio=15,
-                  altitude_top=35000,
-                  altitude_bottom=5000,
-                  distance_miles=500,
-                  jet_stream=0):
-
-    # altitude difference
-    delta_alt = altitude_top - altitude_bottom
-
-    # climb time
-    climb_time = delta_alt / climb_rate_fpm  # minutes
-
-    # descent via glide ratio (air-relative)
-    cruise_speed_fpm = cruise_speed_mph * 88
-    descent_rate_fpm = cruise_speed_fpm / glide_ratio
-    descent_time = delta_alt / descent_rate_fpm
-
-    # cruise time (ground speed affected by jet stream)
-    ground_speed = cruise_speed_mph + jet_stream * 2.237  # m/s → mph
-    cruise_time = distance_miles / ground_speed * 60
-
-    total_time = climb_time + cruise_time + descent_time
-
-    return {
-        "climb_time_min": climb_time,
-        "cruise_time_min": cruise_time,
-        "descent_time_min": descent_time,
-        "total_time_min": total_time,
-        "jet_stream_mps": jet_stream,
-        "ground_speed_mph": ground_speed
-    }
-
-
-# -----------------------------
-# 4. Coupled simulation
-# -----------------------------
-
-def simulate(temp_gradient=30):
-    """
-    Full chain:
-    solar → kinetic energy → jet stream → flight cycle
-    """
-
-    energy = atmospheric_energy_budget()
-
-    jet = jet_stream_speed(temp_gradient=temp_gradient)
-
-    flight = flight_cycle(jet_stream=jet)
-
-    return {
-        "atmospheric_kinetic_flux_Wm2": energy,
-        "jet_stream_speed_mps": jet,
-        **flight
-    }
-
-
-# -----------------------------
-# 5. Run scenarios
-# -----------------------------
-
-scenarios = [15, 30, 45, 60, 90]
-
-for tg in scenarios:
-    result = simulate(temp_gradient=tg)
-    print("\nTEMP GRADIENT:", tg)
-    for k, v in result.items():
-        print(f"{k}: {v:.2f}")
+    print(
+        f"L={L:.2f} | "
+        f"Pi_He={pi_he:.3f} | Pi_Ar={pi_ar:.3f} | "
+        f"He={'damped' if pi_he > 1 else 'weak'} | "
+        f"Ar={'damped' if pi_ar > 1 else 'weak'}"
+    )
