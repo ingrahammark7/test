@@ -1,100 +1,74 @@
 import numpy as np
 
 # -----------------------------
-# Domain (z direction only)
+# Grid
 # -----------------------------
-Lz = 5e-7          # 500 nm domain
+Nx = 100
 Nz = 200
+
+Lx = 1e-6   # 1 micron feature width
+Lz = 5e-7   # 500 nm depth
+
+dx = Lx / Nx
 dz = Lz / Nz
+
+x = np.linspace(0, Lx, Nx)
 z = np.linspace(0, Lz, Nz)
 
-dt = 1e-10
+dt = 1e-11
 steps = 2000
 
 # -----------------------------
-# Physical parameters
+# Physics parameters
 # -----------------------------
-ng = 1e25          # gas density (1/m^3)
+lambda_eff = 1e-7   # transport attenuation length (~100 nm scale emerges here)
 
-# cross-sections (heavy > light)
-sigma_L = 1e-19
-sigma_H = 5e-19
+Phi0 = 1.0
 
-m_L = 1.0
-m_H = 10.0
+Y_L = 1.0
+Y_H = 2.0
 
-vL = 1e3
-vH = 3e2
-
-# diffusion coefficients (kinetic approximation)
-lambda_L = 1 / (ng * sigma_L)
-lambda_H = 1 / (ng * sigma_H)
-
-D_L = (1/3) * lambda_L * vL
-D_H = (1/3) * lambda_H * vH
-
-# lifetimes
-tau_L = 1 / (ng * sigma_L * vL)
-tau_H = 1 / (ng * sigma_H * vH)
-
-# surface reaction strengths
-kL = 1e-2
-kH = 5e-2
-
-E0 = 1.0
-alpha = 2.0
+# surface height (initial flat)
+h = np.zeros(Nx)
 
 # -----------------------------
-# Initial conditions
+# helper: slope (shadowing)
 # -----------------------------
-nL = np.ones(Nz) * 1e20
-nH = np.ones(Nz) * 1e20
-
-h = 0.0  # etched depth (m)
-
-def reaction_prob(n):
-    return (n**alpha) / (n**alpha + E0**alpha)
+def slope(h):
+    dhdx = np.zeros_like(h)
+    dhdx[1:-1] = (h[2:] - h[:-2]) / (2*dx)
+    return dhdx
 
 # -----------------------------
-# PDE solver loop
+# simulation loop
 # -----------------------------
 for step in range(steps):
 
-    # diffusion (finite difference, deterministic)
-    nL_new = nL.copy()
-    nH_new = nH.copy()
+    dhdx = slope(h)
 
-    for i in range(1, Nz - 1):
-        nL_new[i] = nL[i] + dt * (
-            D_L * (nL[i+1] - 2*nL[i] + nL[i-1]) / dz**2
-            - nL[i] / tau_L
-        )
+    R = np.zeros(Nx)
 
-        nH_new[i] = nH[i] + dt * (
-            D_H * (nH[i+1] - 2*nH[i] + nH[i-1]) / dz**2
-            - nH[i] / tau_H
-        )
+    for i in range(Nx):
 
-    nL, nH = nL_new, nH_new
+        # angular collapse (depth attenuation)
+        depth = h[i]
+        A = np.exp(-depth / lambda_eff)
 
-    # boundary at surface (z = 0)
-    RL = kL * nL[0] * reaction_prob(nL[0])
-    RH = kH * nH[0] * reaction_prob(nH[0])
+        # shadowing (steep walls reduce flux)
+        S = 1.0 / (1.0 + dhdx[i]**2)
 
-    R = RL + RH
+        # two-species effective yield (kept simple but coupled)
+        R_L = Phi0 * A * S * Y_L
+        R_H = Phi0 * A * S * Y_H
 
-    # deterministic etch front motion
+        R[i] = R_L + R_H
+
+    # update surface
     h += R * dt
 
-    # depletion at surface
-    nL[0] *= 0.99
-    nH[0] *= 0.98
-
 # -----------------------------
-# Output
+# output
 # -----------------------------
-print("Final etched depth (nm):", h * 1e9)
-
-# emergent diffusion lengths
-print("Light diffusion length (nm):", np.sqrt(D_L * tau_L) * 1e9)
-print("Heavy diffusion length (nm):", np.sqrt(D_H * tau_H) * 1e9)
+print("Max etched depth (nm):", np.max(h) * 1e9)
+print("Min etched depth (nm):", np.min(h) * 1e9)
+print("AR (aspect ratio):", np.max(h) / Lx)
