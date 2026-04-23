@@ -1,40 +1,40 @@
 import numpy as np
 
-# Physical constants
-h = 6.626e-34
-c = 3e8
+# -----------------------------
+# Parameters (with implicit units)
+# -----------------------------
+Phi_B = 1e18   # atoms / m^2 / s
+Phi_0 = 2e18   # atoms / m^2 / s
+ns    = 1e19   # atoms / m^2
+v0    = 1.0    # m / s
+alpha = 1.0    # dimensionless
+t     = 1e-9   # s
+y     = 0.5    # normalized depth [0,1]
+thermalvelocity=500#m/s
+atomradius=.2e-9#m
+etchrate=4e-6 #m/s
+etchrate/=atomradius
+therm=thermalvelocity/atomradius
 
 # -----------------------------
-# Optical source parameters (generic)
+# Dimensionless exposure
 # -----------------------------
-P = 1e-3          # optical power (W)
-lam = 500e-9      # wavelength (m)
-
-# Detector parameters
-A = 1e-4          # detector area (m^2)
-t = 1e1         # integration time (s)
-
+H_B = (Phi_B * t) / ns
+H_I = (Phi_0 * (1 + alpha * y) * t) / ns
+ratio=therm/etchrate
+pow=ratio**(1/3)
+print("number of atoms hit before slowing to etch rate",pow)
+print("size nanometers",pow*atomradius*1e9)
 # -----------------------------
-# Photon-limited range
+# Velocity law
 # -----------------------------
-R = np.sqrt((P * lam * A * t) / (4 * np.pi * h * c))
+v_B = v0 / (1 + H_B**3)
+v_I = v0 / (1 + H_I**3)
 
-print("Photon-limited range (m):", R)
-print("Photon-limited range (km):", R / 1000)
 
 # -----------------------------
-# Photon flux vs range curve
+# Output
 # -----------------------------
-ranges = np.linspace(1, R*2, 1000)
-
-flux = (P * lam) / (4 * np.pi * h * c * ranges**2)
-photons = flux * A * t
-
-# threshold crossing
-threshold_idx = np.where(photons >= 1)[0]
-
-if len(threshold_idx) > 0:
-    print("1-photon threshold reached up to:",
-          ranges[threshold_idx[-1]], "m")
-else:
-    print("No detection region under 1-photon criterion")
+print("Brownian velocity:", v_B, "m/s")
+print("Ion-directed velocity:", v_I, "m/s")
+print("Ion > Brown:", v_I > v_B)
