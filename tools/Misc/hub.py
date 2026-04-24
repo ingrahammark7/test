@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import math as ma
-#import matplotlib.pyplot as pl
+#mport matplotlib.pyplot as pl
 
 df=pd.read_csv('oil.csv')
 years=df['Year'].values
@@ -20,12 +20,14 @@ def docur(pro,yea,curveset):
 	sumdif=0
 	dif2e=pd.DataFrame()
 	yed=0
+	pcs=[]
 	for i in range(1,len(yea)):
 		cum=prod[i]+cum
 		p=pro[i]
 		pct=p/cum
 		pc=np.append(pc,pct)
 		ppct=pro[i-1]/cum
+		pcs.append(ppct)
 		dif=pct-ppct
 		thr=ma.pow(ma.e,-ma.sqrt(i))
 		thr=dif/thr
@@ -45,9 +47,9 @@ def docur(pro,yea,curveset):
 	numef[2]=sder
 	numef[3]=yed
 	numef[4]=sumdif
-	return numef
+	return numef,pcs
 
-numerf=docur(prod,years,curs)
+numerf,pce=docur(prod,years,curs)
 dif2=numerf[0]
 curs=numerf[1]
 sd2=numerf[2]
@@ -55,27 +57,21 @@ yedf=numerf[3]
 sdf=numerf[4]
 dif2av=sd2/dif2.size
 
-def dore(st,dife,y,sy):
+def dore(st,dife,y,sy,pcf):
 	foh=st
 	nim=[]
 	sha=1
 	for i in range(y):
-		nim.append((sy+i,st))
-		foh+=st
+		nim.append((sy+i,st))		
 		sha-=dife
-		st=sha*foh
+		
+		pco=int(pcf[int(i)])
+		st=(sha-pco)*foh
+		foh+=st
 	nim=np.array(nim)
 	return nim
 	
-dor=dore(prod[0],dif2av,dif2.size,years[0])
+dor=dore(prod[0],dif2av,dif2.size,years[0],pce)
 print(dor)
-"""
 x=dor[:,0]
 y=dor[:,1]
-pl.plot(x,y,label="y")
-pl.plot(years,prod,label="r")
-pl.title("Plot")
-pl.xlabel("x")
-pl.ylabel("y")
-pl.show()
-"""
