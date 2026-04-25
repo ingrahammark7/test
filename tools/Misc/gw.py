@@ -1,35 +1,61 @@
-from math import sqrt
+from dataclasses import dataclass
 
-# effective wafer thermal conductivity (normalized units)
-k = 150
+@dataclass
+class OilSystem:
+    production: float        # crude production (mbpd)
+    crude_exports: float     # crude exports (mbpd)
+    product_exports: float   # refined product exports (mbpd)
+    imports: float           # total petroleum imports (mbpd)
+    stock_change: float      # + build, - draw (mbpd equivalent)
 
-# backside coupling (helium vs argon)
-h_he = 5.0
-h_ar = 1.5
+    refinery_yield: float = 0.95  # simplified conversion efficiency
 
-def L_crit(k, h):
-    return sqrt(k / h)
+    def available_for_refining(self):
+        return self.production - self.crude_exports + self.imports
 
-def Pi(L, h):
-    return L * sqrt(h / k)
+    def product_supply(self):
+        return self.available_for_refining() * self.refinery_yield
 
-# critical length scales
-L_he = L_crit(k, h_he)
-L_ar = L_crit(k, h_ar)
+    def total_outflows(self):
+        return self.crude_exports + self.product_exports
 
-print("L_crit helium:", L_he)
-print("L_crit argon:", L_ar)
+    def domestic_consumption(self):
+        # mass balance closure
+        return (
+            self.available_for_refining()
+            * self.refinery_yield
+            - self.product_exports
+            - self.stock_change
+        )
 
-# test spatial scales
-L_test = [0.1, 0.5, 1.0, 2.0, 5.0]
+    def check_balance(self):
+        lhs = self.production + self.imports
+        rhs = (
+            self.crude_exports
+            + self.product_exports
+            + self.domestic_consumption()
+            + self.stock_change
+        )
 
-for L in L_test:
-    pi_he = Pi(L, h_he)
-    pi_ar = Pi(L, h_ar)
+        return {
+            "lhs_total_supply": lhs,
+            "rhs_total_demand": rhs,
+            "difference": lhs - rhs
+        }
 
-    print(
-        f"L={L:.2f} | "
-        f"Pi_He={pi_he:.3f} | Pi_Ar={pi_ar:.3f} | "
-        f"He={'damped' if pi_he > 1 else 'weak'} | "
-        f"Ar={'damped' if pi_ar > 1 else 'weak'}"
-    )
+
+# -------------------------
+# Example scenario (edit freely)
+# -------------------------
+
+russia_like = OilSystem(
+    production=10.0,
+    crude_exports=5.0,
+    product_exports=2.0,
+    imports=0.0,
+    stock_change=0.0
+)
+
+print("Available for refining:", russia_like.available_for_refining())
+print("Domestic consumption (implied):", russia_like.domestic_consumption())
+print("Balance check:", russia_like.check_balance())
