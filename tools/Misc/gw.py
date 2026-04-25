@@ -1,25 +1,18 @@
-g=10
-den=1
-m=1
-mt=m/den
-hs=(2*mt*g)**.5
-d=10000
-v=1
+import numpy as np
 
-mf=hs*hs*m*.5
+g = 10
+m = 1
+hs = 5
 
+# example cost structure (replace with your real one if needed)
+def C(v):
+    kinetic = 0.5 * m * v**2
+    gravity_term = hs * hs * m * 0.5  # your mf structure
+    return kinetic + gravity_term
 
-def doer(v):
-	x=0
-	en=.5*v*v*m
-	for i in range(100_000):
-		if(x==d):
-			print("energy at ",v,"is ",en)
-			break
-		x+=v
-		en+=mf
-		
-for i in range (200):
-	doer(v*i)
-	
-	
+def energy(v, d):
+    return d * (C(v) / v)
+
+for i in range(1, 200):
+    v = i
+    print("v =", v, "E =", energy(v, 10000))
