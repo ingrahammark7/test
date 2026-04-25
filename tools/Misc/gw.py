@@ -1,6 +1,8 @@
-ht=1
-hs=5
+g=10
+den=1
 m=1
+mt=m/den
+hs=(2*mt*g)**.5
 d=10000
 v=1
 
