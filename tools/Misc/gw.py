@@ -1,31 +1,78 @@
-# Simulate the user's original discrete model faithfully and compute energy vs velocity
+import numpy as np
+import pandas as pd
 
-hs = 5
 m = 1
-d = 100000
+hs = 5
 
-mf = hs * hs * m * 0.5  # constant per step energy addition
+# ----------------------------
+# simulator (faithful)
+# ----------------------------
+def simulate(v, d, dt):
+    x = 0.0
+    t = 0.0
 
-def doer(v):
-    x = 0
-    en = 0.5 * v * v * m
-    steps = 0
-    
-    # discrete stepping until reaching distance
-    while x < d and steps < 10_000_000:
-        x += v
-        en += mf
-        steps += 1
-    
-    return en, steps
+    mf = 0.5 * m * hs * hs
+    en = 0.5 * m * v * v
 
-results = []
+    while x < d:
+        x += v * dt
+        en += mf * dt
+        t += dt
 
-for v in range(1, 201):
-    en, steps = doer(v)
-    results.append((v, en, steps))
+        if t > 1e7:
+            break
 
-# find minimum energy
-best = min(results, key=lambda x: x[1])
+    return en
 
-print(best, results[:10])
+
+def v_star(d, dt, v_max=200, n_samples=200):
+    best_v = None
+    best_e = float("inf")
+
+    for v in np.linspace(1, v_max, n_samples):
+        e = simulate(v, d, dt)
+        if e < best_e:
+            best_e = e
+            best_v = v
+
+    return best_v
+
+
+# ----------------------------
+# sweep
+# ----------------------------
+ds = np.array([200, 500, 1000, 2000, 5000, 10000], dtype=float)
+dts = [1.0, 0.5, 0.1, 0.05, 0.01]
+
+results = {}
+
+for dt in dts:
+    vs = np.array([v_star(d, dt) for d in ds], dtype=float)
+
+    # log-log fit: v = a d^alpha
+    logd = np.log(ds)
+    logv = np.log(vs)
+
+    alpha, intercept = np.polyfit(logd, logv, 1)
+
+    results[dt] = {
+        "alpha": alpha,
+        "vs": vs
+    }
+
+
+# ----------------------------
+# readable output
+# ----------------------------
+print("\nLOG–LOG EXPONENTS (v* ~ d^alpha)\n")
+for dt in dts:
+    print(f"dt = {dt:>4}: alpha = {results[dt]['alpha']:.4f}")
+
+print("\nRaw v* values:\n")
+
+table = pd.DataFrame(
+    {f"dt={dt}": results[dt]["vs"] for dt in dts},
+    index=ds
+)
+
+print(table)
