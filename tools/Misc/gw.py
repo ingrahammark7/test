@@ -1,60 +1,96 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
-# -----------------------------
-# Simple environment model
-# -----------------------------
+# ============================================================
+# ATMOSPHERE (simple stable approximation)
+# ============================================================
 
-h = 5000  # altitude fixed
-rho = 0.6  # simplified constant density
+def rho(h):
+    return 1.225 * np.exp(-h / 8500)
+
+def a_sound(h):
+    return 340.0  # fixed for stability on mobile
+
+# ============================================================
+# SYSTEM PARAMETERS
+# ============================================================
+
 A = 0.015
+C_th = 900.0
+T_max = 450.0
 
-eta = 0.2
-C_aero = 1.2e-4
-beta = 0.25
+sigma = 5.67e-8
+epsilon = 0.8
 
-def speed_of_sound():
-    return 340.0
+# ============================================================
+# HEATING MODELS
+# ============================================================
 
-# Aero heating
-def Q_aero(M):
-    v = M * speed_of_sound()
-    return C_aero * rho * (v**3) * A * (1 + beta * M)
+def Q_aero(M, h):
+    v = M * a_sound(h)
+    return 2e-4 * rho(h) * v**3 * A
 
-# RF heating
-def Q_rf(P):
-    return eta * P
+def Q_elec(P):
+    return 50.0 + 0.32 * P
 
-# -----------------------------
-# Grid
-# -----------------------------
+def Q_cool(T):
+    return 60.0 * A * (T - 220.0) + epsilon * sigma * A * (T**4 - 220.0**4)
 
-M_vals = np.linspace(0.5, 6, 200)
-P_vals = np.linspace(0, 2000, 200)
+# ============================================================
+# TIME SIMULATION
+# ============================================================
 
-M_grid, P_grid = np.meshgrid(M_vals, P_vals)
+def simulate(M, h, P, dt=0.05, steps=300):
+    T = 300.0
 
-Qa = Q_aero(M_grid)
-Qr = Q_rf(P_grid)
+    for _ in range(steps):
+        v = M * a_sound(h)
 
-# -----------------------------
-# Dominance condition
-# RF dominant when RF > aero
-# -----------------------------
+        Qin = Q_aero(M, h) + Q_elec(P)
+        Qout = Q_cool(T)
 
-rf_dominant = Qr > Qa
+        dT = (Qin - Qout) / C_th
+        T += dT * dt
 
-# -----------------------------
-# Plot
-# -----------------------------
+        if T > T_max:
+            return False, T
 
-plt.figure(figsize=(8,6))
+    return True, T
 
-plt.contourf(P_grid, M_grid, rf_dominant, levels=[-0.5,0.5,1.5], cmap="coolwarm")
-plt.colorbar(label="RF dominant (1=yes)")
+# ============================================================
+# GRID OPTIMIZATION (Pydroid-safe replacement for IPOPT)
+# ============================================================
 
-plt.xlabel("RF Power (W)")
-plt.ylabel("Mach")
-plt.title("RF Dominance Boundary: Q_RF > Q_aero")
+h = 5000
 
-plt.show()
+M_vals = np.linspace(0.5, 6.0, 40)
+P_vals = np.linspace(0, 2000, 40)
+
+best_score = -1
+best = None
+
+feasible = np.zeros((len(M_vals), len(P_vals)))
+
+for i, M in enumerate(M_vals):
+    for j, P in enumerate(P_vals):
+
+        ok, T_final = simulate(M, h, P)
+
+        feasible[i, j] = 1 if ok else 0
+
+        if ok:
+            # simple performance objective
+            score = M + 0.0005 * P
+
+            if score > best_score:
+                best_score = score
+                best = (M, P, T_final)
+
+# ============================================================
+# RESULTS
+# ============================================================
+
+print("Best feasible point:")
+print("Mach:", best[0])
+print("Power:", best[1])
+print("Final Temp:", best[2])
+print("Score:", best_score)
