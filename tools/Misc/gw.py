@@ -2,61 +2,85 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # -----------------------------
-# Parameters
+# Constants
 # -----------------------------
 
 A = 0.015
-rho_air = 1.225
-
 eta = 0.2
 
-T_max = 450.0
-T_inf = 220.0
+gamma = 1.4
+R = 287.0
+g = 9.81
 
-h = 80.0
+T0 = 288.15
+rho0 = 1.225
+L = 6.5e-3  # K/m
+
+C_aero = 1e-4
+beta = 0.3
+
+T_max = 450.0
+
+h_conv = 80.0
 sigma = 5.67e-8
 epsilon = 0.8
 
-# aerodynamic heating coefficient (effective)
-C_aero = 1e-4  # tune this
+# -----------------------------
+# ISA atmosphere functions
+# -----------------------------
+
+def T_isa(h):
+    return T0 - L * h
+
+def rho_isa(h):
+    T = T_isa(h)
+    return rho0 * (T / T0) ** (g / (R * L))
+
+def speed_of_sound(h):
+    return np.sqrt(gamma * R * T_isa(h))
 
 # -----------------------------
-# Cooling capacity at limit
+# Grid
 # -----------------------------
+
+Mach = np.linspace(0.2, 6.0, 120)
+P = np.linspace(0, 2000, 120)
+Alt = np.linspace(0, 10000, 60)  # 0–10 km slice
+
+M, Pgrid, H = np.meshgrid(Mach, P, Alt, indexing="ij")
+
+T = T_isa(H)
+rho = rho_isa(H)
+a = speed_of_sound(H)
+
+v = M * a
+
+# -----------------------------
+# Heating terms
+# -----------------------------
+
+Q_aero = C_aero * rho * (v**3) * A * (1 + beta * M)
+Q_radar = eta * Pgrid
 
 Q_cool = (
-    h * A * (T_max - T_inf) +
-    epsilon * sigma * A * (T_max**4 - T_inf**4)
+    h_conv * A * (T_max - T) +
+    epsilon * sigma * A * (T_max**4 - T**4)
 )
 
-# -----------------------------
-# Sweep radar power
-# -----------------------------
+Q_total = Q_aero + Q_radar
 
-P_vals = np.linspace(0, 2000, 200)
-v_max = []
-
-for P in P_vals:
-    Q_radar = eta * P
-
-    available = Q_cool - Q_radar
-
-    if available <= 0:
-        v_max.append(np.nan)
-        continue
-
-    # Solve for velocity limit:
-    # C rho v^3 A = available
-    v = (available / (C_aero * rho_air * A))**(1/3)
-    v_max.append(v)
+feasible = Q_total <= Q_cool
 
 # -----------------------------
-# Plot
+# Slice visualization (mid-altitude)
 # -----------------------------
 
-plt.plot(P_vals, v_max)
-plt.xlabel("Radar Power (W)")
-plt.ylabel("Max Velocity before T_max (m/s)")
-plt.title("Thermal + Aerodynamic Radome Limit Isoquant")
-plt.grid()
+mid = len(Alt) // 2
+
+plt.figure()
+plt.contourf(Mach, P, feasible[:, :, mid].T, levels=[-0.5, 0.5, 1.5])
+plt.xlabel("Mach")
+plt.ylabel("Radar Power (W)")
+plt.title("ISA Flight Envelope (Mid-Altitude Slice)")
+plt.grid(True)
 plt.show()
