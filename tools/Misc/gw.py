@@ -2,80 +2,59 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # -----------------------------
-# Atmosphere (simple ISA-like)
+# Simple environment model
 # -----------------------------
 
-def rho(h):
-    return 1.225 * np.exp(-h / 8500)
-
-def speed_of_sound(h):
-    return 340.0  # simplified constant for clarity
-
-# -----------------------------
-# Model parameters
-# -----------------------------
-
+h = 5000  # altitude fixed
+rho = 0.6  # simplified constant density
 A = 0.015
+
 eta = 0.2
+C_aero = 1.2e-4
+beta = 0.25
 
-C_aero = 1.2e-4     # aero heating coefficient
-beta = 0.25         # Mach amplification
+def speed_of_sound():
+    return 340.0
 
-h = 5000  # fixed altitude (you can sweep later)
-
-T_limit = 450.0
-T_inf = 220.0
-
-h_conv = 80.0
-sigma = 5.67e-8
-epsilon = 0.8
-
-# -----------------------------
-# Heat model
-# -----------------------------
-
+# Aero heating
 def Q_aero(M):
-    v = M * speed_of_sound(h)
-    return C_aero * rho(h) * (v**3) * A * (1 + beta * M)
+    v = M * speed_of_sound()
+    return C_aero * rho * (v**3) * A * (1 + beta * M)
 
+# RF heating
 def Q_rf(P):
     return eta * P
 
-def Q_out(T):
-    return h_conv * A * (T - T_inf) + epsilon * sigma * A * (T**4 - T_inf**4)
-
 # -----------------------------
-# Feasibility grid
+# Grid
 # -----------------------------
 
-M_vals = np.linspace(0.5, 6.0, 120)
-P_vals = np.linspace(0, 2000, 120)
+M_vals = np.linspace(0.5, 6, 200)
+P_vals = np.linspace(0, 2000, 200)
 
-feasible = np.zeros((len(M_vals), len(P_vals)))
+M_grid, P_grid = np.meshgrid(M_vals, P_vals)
 
-# quasi-steady assumption: solve T implicitly by checking balance
-T_guess = T_limit
+Qa = Q_aero(M_grid)
+Qr = Q_rf(P_grid)
 
-for i, M in enumerate(M_vals):
-    for j, P in enumerate(P_vals):
+# -----------------------------
+# Dominance condition
+# RF dominant when RF > aero
+# -----------------------------
 
-        Qin = Q_aero(M) + Q_rf(P)
-        Qout = Q_out(T_limit)
-
-        # feasibility condition
-        if Qin <= Qout:
-            feasible[i, j] = 1
-        else:
-            feasible[i, j] = 0
+rf_dominant = Qr > Qa
 
 # -----------------------------
 # Plot
 # -----------------------------
 
 plt.figure(figsize=(8,6))
-plt.contourf(P_vals, M_vals, feasible, levels=[-0.5,0.5,1.5], cmap="coolwarm")
+
+plt.contourf(P_grid, M_grid, rf_dominant, levels=[-0.5,0.5,1.5], cmap="coolwarm")
+plt.colorbar(label="RF dominant (1=yes)")
+
 plt.xlabel("RF Power (W)")
 plt.ylabel("Mach")
-plt.title("Thermal Feasibility Map (Mach vs RF Power)")
-plt.colorbar(label="Feasible (1=yes, 0=no)")
+plt.title("RF Dominance Boundary: Q_RF > Q_aero")
+
 plt.show()
