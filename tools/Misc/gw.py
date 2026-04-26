@@ -1,78 +1,56 @@
 import numpy as np
-import pandas as pd
+import matplotlib.pyplot as plt
 
-m = 1
-hs = 5
+# -----------------------------
+# Parameters (EDIT)
+# -----------------------------
 
-# ----------------------------
-# simulator (faithful)
-# ----------------------------
-def simulate(v, d, dt):
-    x = 0.0
-    t = 0.0
+A = 0.015
+rho = 1.0
+k = 5e-5
 
-    mf = 0.5 * m * hs * hs
-    en = 0.5 * m * v * v
+eta = 0.2
 
-    while x < d:
-        x += v * dt
-        en += mf * dt
-        t += dt
+# Thermal limit (fiberglass-like Tg region)
+T_max = 450.0      # K (~177 C)
+T_inf = 220.0
 
-        if t > 1e7:
-            break
+h = 80.0
+sigma = 5.67e-8
+epsilon = 0.8
 
-    return en
+# -----------------------------
+# Compute cooling at limit
+# -----------------------------
 
-
-def v_star(d, dt, v_max=200, n_samples=200):
-    best_v = None
-    best_e = float("inf")
-
-    for v in np.linspace(1, v_max, n_samples):
-        e = simulate(v, d, dt)
-        if e < best_e:
-            best_e = e
-            best_v = v
-
-    return best_v
-
-
-# ----------------------------
-# sweep
-# ----------------------------
-ds = np.array([200, 500, 1000, 2000, 5000, 10000], dtype=float)
-dts = [1.0, 0.5, 0.1, 0.05, 0.01]
-
-results = {}
-
-for dt in dts:
-    vs = np.array([v_star(d, dt) for d in ds], dtype=float)
-
-    # log-log fit: v = a d^alpha
-    logd = np.log(ds)
-    logv = np.log(vs)
-
-    alpha, intercept = np.polyfit(logd, logv, 1)
-
-    results[dt] = {
-        "alpha": alpha,
-        "vs": vs
-    }
-
-
-# ----------------------------
-# readable output
-# ----------------------------
-print("\nLOG–LOG EXPONENTS (v* ~ d^alpha)\n")
-for dt in dts:
-    print(f"dt = {dt:>4}: alpha = {results[dt]['alpha']:.4f}")
-
-print("\nRaw v* values:\n")
-
-table = pd.DataFrame(
-    {f"dt={dt}": results[dt]["vs"] for dt in dts},
-    index=ds
+Q_loss = (
+    h * A * (T_max - T_inf) +
+    epsilon * sigma * A * (T_max**4 - T_inf**4)
 )
 
-print(table)
+# -----------------------------
+# Sweep radar power
+# -----------------------------
+
+P_vals = np.linspace(0, 2000, 200)  # W
+v_vals = []
+
+for P in P_vals:
+    Q_radar = eta * P
+    
+    if Q_radar >= Q_loss:
+        v_vals.append(np.nan)  # no solution (overheats even at v=0)
+    else:
+        v = ((Q_loss - Q_radar) / (k * rho * A))**(1/3)
+        v_vals.append(v)
+
+# -----------------------------
+# Plot isoquant
+# -----------------------------
+
+plt.plot(P_vals, v_vals)
+plt.xlabel("Radar Power (W)")
+plt.ylabel("Max Velocity before T_max (m/s)")
+plt.title("Radome Thermal Limit Isoquant")
+plt.grid()
+plt.show()
