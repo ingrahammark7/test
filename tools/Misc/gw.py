@@ -1,29 +1,33 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# physical constants
-rho = 1.225  # air density kg/m^3
-CdA = 0.65   # typical sedan
-P_max = 112000  # 150 hp in watts
+# loss range
+loss = np.linspace(0, 0.9, 300)
+P0 = 1.0
 
-# power loss range
-loss = np.linspace(0, 0.9, 200)
-P = P_max * (1 - loss)
+# base power
+P = P0 * (1 - loss)
 
-# max speed from drag equation
-v = ((2 * P) / (rho * CdA)) ** (1/3)
+# combustion stability function
+Lc = 0.45   # critical breakdown point
+k = 25      # sharpness of failure
 
-# convert to km/h
-v_kmh = v * 3.6
+S = 1 / (1 + np.exp(k * (loss - Lc)))
 
-plt.plot(loss * 100, v_kmh)
+# effective power after stability constraint
+P_eff = P * S
+
+# aerodynamic max speed
+v = (P_eff) ** (1/3)
+
+# normalize to km/h baseline (210 km/h)
+v_kmh = 210 * v
+
+plt.plot(loss * 100, 210 * (P ** (1/3)), '--', label="Ideal (no combustion limits)")
+plt.plot(loss * 100, v_kmh, label="With combustion stability constraint")
 plt.xlabel("Power loss (%)")
 plt.ylabel("Max speed (km/h)")
-plt.title("Real Car Max Speed vs Power Loss (Physics-based)")
+plt.title("Max Speed with Combustion Stability Threshold")
+plt.legend()
 plt.grid(True)
 plt.show()
-
-# print key values
-print("No loss max speed:", v_kmh[0], "km/h")
-print("50% loss max speed:", v_kmh[100], "km/h")
-print("80% loss max speed:", v_kmh[160], "km/h")
