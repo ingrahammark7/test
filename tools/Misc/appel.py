@@ -5,7 +5,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Frame, Table,TableStyle
 
-footer_text = "Petition for Review" 
+footer_text = "Request to Dismiss Case and Arrest Judge" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -68,9 +68,9 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
-#    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
-#    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
+#    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
     # (4) Case Title
@@ -117,7 +117,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Appellate Court is incapable of sending mail correctly, or complying with basic process or federal law. Petitioner petitions Court to: /n 1. Arrest and deport all judges back to Mexico. /n" 
+    intro_text = "Everything I file is rejected. No point in continuing case. /n" 
     tabe=[["Document","Page"],["Pleading","3"],["Appeal","4"],["Judgment","5"],["Order","7"],["Service of Notice of Entry","8"],["Register","9"]]
     table=Table(tabe)
     style = TableStyle([
