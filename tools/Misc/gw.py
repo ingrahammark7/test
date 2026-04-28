@@ -1,76 +1,40 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# -----------------------------
-# Physical parameters
-# -----------------------------
+# parameters
+steps = 2000
+d = 10.0            # initial grain size
+T = 1.0             # normalized temperature field
 
-P0 = 3.0          # baseline chamber pressure (MPa)
-sigma_c = 3000     # material strength (MPa)
-d0 = 0.1        # mm reference defect scale
+A0 = 1.0
+Ea = 2.0
 
-alpha = 0.35      # pressure scaling exponent
-beta = 0.28       # wall thickness scaling exponent
-k = 2.2           # Weibull fragility exponent
+alpha = 5.0         # boundary scattering strength
+C = 1.0
 
-# -----------------------------
-# Physical scaling laws
-# -----------------------------
+d_hist = []
+T_hist = []
 
-def pressure(M):
-    return P0 * (M ** alpha)
+for t in range(steps):
 
-def radius(M):
-    return M ** (1/3)
+    # thermal conductivity decreases with smaller grains
+    k = 1.0 / (1.0 + alpha / d)
 
-def thickness(M):
-    # weaker-than-geometric scaling (manufacturing constraint)
-    return 0.01 * (M ** beta)
+    # grain growth rate increases with temperature
+    A = A0 * np.exp(-Ea / (T + 1e-6))
 
-def stress(M):
-    P = pressure(M)
-    R = radius(M)
-    t = thickness(M)
-    return P * R / t   # thin-wall scaling
+    # heat equation surrogate (simple relaxation)
+    dTdt = -k * T
+    T += dTdt * 0.01
 
-def max_defect(M):
-    # extreme value scaling (log growth)
-    return d0 * np.log(M + 1)
+    # grain evolution (curvature-driven)
+    ddt = A / d
+    d += ddt * 0.01
 
-# -----------------------------
-# Failure probability model
-# -----------------------------
+    d_hist.append(d)
+    T_hist.append(T)
 
-def failure_probability(M):
-    sigma = stress(M)
-    d = max_defect(M)
-
-    hazard = (sigma / sigma_c) * (d / d0)
-
-    return 1 - np.exp(-(hazard ** k))
-
-# -----------------------------
-# Sweep rocket mass
-# -----------------------------
-
-masses = np.logspace(-1, 2, 200)  # 0.1 kg to 100 kg
-fail_probs = np.array([failure_probability(M) for M in masses])
-
-# -----------------------------
-# Plot
-# -----------------------------
-
-plt.figure()
-plt.semilogx(masses, fail_probs)
-plt.xlabel("Rocket Mass (kg)")
-plt.ylabel("Failure Probability")
-plt.title("Allometric Rocket Mass vs Failure Probability (Physics-Based Model)")
-plt.grid(True)
+plt.plot(d_hist, label="grain size")
+plt.plot(T_hist, label="temperature")
+plt.legend()
 plt.show()
-
-# -----------------------------
-# Sample outputs
-# -----------------------------
-
-for M in [0.2, 1, 5, 10, 25, 50, 100]:
-    print(f"{M:>5} kg -> failure probability = {failure_probability(M):.3f}")
