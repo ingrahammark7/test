@@ -1,39 +1,20 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
-# ----------------------------
-# iron physical parameters
-# ----------------------------
-gamma = 0.7                 # J/m^2
+# iron parameters (order-of-magnitude)
+gamma = 0.7
 kB = 1.38e-23
-T = 300
+Q = 0.8 * 1.6e-19
+M0 = 1e-4
 
-Q = 0.8 * 1.6e-19          # activation energy (J ~ 0.8 eV)
-M0 = 1e-4                  # prefactor (m^4/J·s typical order)
+T_hot = 1200   # processing temperature
+T_cool = 300
+t_hot = 10**4  # seconds hot stage
 
-dt = 1e3                   # seconds (coarse-grained time step)
-steps = 2000
+# mobility at hot stage
+M = M0 * np.exp(-Q / (kB * T_hot))
 
-# initial grain size (nanocrystalline start)
-R = 50e-9  # 50 nm
+# arrested grain size scale
+R = np.sqrt(M * gamma * t_hot)
 
-history = []
-
-for t in range(steps):
-
-    # mobility (Arrhenius)
-    M = M0 * np.exp(-Q / (kB * T))
-
-    # curvature-driven growth law
-    dR = M * gamma / R
-
-    # update
-    R += dt * dR
-
-    history.append(R)
-
-plt.plot(np.array(history)*1e6)
-plt.xlabel("time step")
-plt.ylabel("grain size (µm)")
-plt.title("Curvature-driven grain growth in iron (minimal model)")
-plt.show()
+print("final grain size (m):", R)
+print("final grain size (microns):", R*1e6)
