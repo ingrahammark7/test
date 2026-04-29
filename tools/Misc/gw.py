@@ -1,43 +1,47 @@
-import math
+import numpy as np
 
-def droplet_size(surface_tension, density, velocity):
+def droplet_cutoff_size(gamma, rho, v, we_crit=12):
     """
-    Estimate droplet diameter from surface tension balance.
+    Estimate maximum stable droplet size after breakup cascade.
 
-    Parameters:
-    surface_tension (gamma): N/m
-    density (rho): kg/m^3
-    velocity (v): m/s
-
-    Returns:
-    droplet diameter in meters
+    gamma: surface tension (N/m)
+    rho: density (kg/m^3)
+    v: velocity (m/s)
+    we_crit: critical Weber number (~10–50)
     """
-    d = surface_tension / (density * velocity**2)
-    return d
+    return (we_crit * gamma) / (rho * v**2)
 
 
-# Example fuels at STP-ish conditions
+def spray_distribution(gamma, rho, v, we_crit=12):
+    """
+    Generate a simple droplet size distribution:
+    - cutoff sets upper scale
+    - log-normal spread below cutoff
+    """
+    d_max = droplet_cutoff_size(gamma, rho, v, we_crit)
 
+    # log-spaced distribution below cutoff
+    sizes = np.logspace(np.log10(d_max/50), np.log10(d_max), 200)
+
+    # simple synthetic PDF (not empirical CFD, but physically consistent shape)
+    pdf = np.exp(- (np.log(sizes / (d_max/5))**2))
+
+    return sizes, pdf, d_max
+
+
+# Fuel properties
 fuels = {
-    "RP-1 (kerosene)": {
-        "gamma": 0.025,   # N/m
-        "rho": 800        # kg/m^3
-    },
-    "Water (reference)": {
-        "gamma": 0.072,
-        "rho": 1000
-    },
-    "Liquid oxygen": {
-        "gamma": 0.013,
-        "rho": 1140
-    }
+    "RP-1": {"gamma": 0.025, "rho": 800},
+    "Water": {"gamma": 0.072, "rho": 1000},
+    "LOX": {"gamma": 0.013, "rho": 1140},
 }
 
-# injector velocities (typical ranges)
 velocities = [20, 50, 100]  # m/s
 
-for fuel, props in fuels.items():
-    print(f"\n{fuel}")
+print("Droplet cutoff sizes (microns)\n")
+
+for name, props in fuels.items():
+    print(f"\n{name}")
     for v in velocities:
-        d = droplet_size(props["gamma"], props["rho"], v)
-        print(f"  v = {v:3d} m/s -> d = {d*1e6:.2f} µm")
+        d = droplet_cutoff_size(props["gamma"], props["rho"], v)
+        print(f"  v={v:3d} m/s -> d_max = {d*1e6:.2f} µm")
