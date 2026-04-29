@@ -1,47 +1,57 @@
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
-def droplet_cutoff_size(gamma, rho, v, we_crit=12):
-    """
-    Estimate maximum stable droplet size after breakup cascade.
+# -----------------------------
+# Synthetic but realistic node samples
+# (nm-scale feature approximations)
+# -----------------------------
+nodes = [
+    {"name": "22nm planar", "contact_nm": 60, "via_nm": 70},
+    {"name": "14nm FinFET", "contact_nm": 50, "via_nm": 55},
+    {"name": "7nm EUV", "contact_nm": 40, "via_nm": 40},
+    {"name": "5nm EUV", "contact_nm": 32, "via_nm": 35},
+    {"name": "3nm GAAFET", "contact_nm": 28, "via_nm": 32},
+    {"name": "2nm class", "contact_nm": 25, "via_nm": 30},
+]
 
-    gamma: surface tension (N/m)
-    rho: density (kg/m^3)
-    v: velocity (m/s)
-    we_crit: critical Weber number (~10–50)
-    """
-    return (we_crit * gamma) / (rho * v**2)
+# -----------------------------
+# Compute dimensionless ratio
+# chi = Ac / Av
+# using area ~ (feature size)^2
+# -----------------------------
+data = []
 
+for n in nodes:
+    Ac = n["contact_nm"] ** 2
+    Av = n["via_nm"] ** 2
+    chi = Ac / Av
 
-def spray_distribution(gamma, rho, v, we_crit=12):
-    """
-    Generate a simple droplet size distribution:
-    - cutoff sets upper scale
-    - log-normal spread below cutoff
-    """
-    d_max = droplet_cutoff_size(gamma, rho, v, we_crit)
+    # regime classification
+    if chi > 1.2:
+        regime = "BEOL-limited"
+    elif chi < 0.8:
+        regime = "FEOL-limited"
+    else:
+        regime = "Balanced"
 
-    # log-spaced distribution below cutoff
-    sizes = np.logspace(np.log10(d_max/50), np.log10(d_max), 200)
+    data.append([n["name"], Ac, Av, chi, regime])
 
-    # simple synthetic PDF (not empirical CFD, but physically consistent shape)
-    pdf = np.exp(- (np.log(sizes / (d_max/5))**2))
+df = pd.DataFrame(data, columns=["Node", "Contact Area", "Via Area", "chi", "Regime"])
 
-    return sizes, pdf, d_max
+print("\nChip Scaling Coupling Model\n")
+print(df)
 
+# -----------------------------
+# Visualization
+# -----------------------------
+plt.figure(figsize=(8,5))
+plt.plot(df["Node"], df["chi"], marker="o")
+plt.axhline(1.0, linestyle="--", label="Critical coupling (χ = 1)")
 
-# Fuel properties
-fuels = {
-    "RP-1": {"gamma": 0.025, "rho": 800},
-    "Water": {"gamma": 0.072, "rho": 1000},
-    "LOX": {"gamma": 0.013, "rho": 1140},
-}
-
-velocities = [20, 50, 100]  # m/s
-
-print("Droplet cutoff sizes (microns)\n")
-
-for name, props in fuels.items():
-    print(f"\n{name}")
-    for v in velocities:
-        d = droplet_cutoff_size(props["gamma"], props["rho"], v)
-        print(f"  v={v:3d} m/s -> d_max = {d*1e6:.2f} µm")
+plt.xticks(rotation=45)
+plt.ylabel("χ = Contact Area / Via Area")
+plt.title("FEOL–BEOL Coupling Ratio Across Process Nodes")
+plt.legend()
+plt.tight_layout()
+plt.show()
