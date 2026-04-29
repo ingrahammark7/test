@@ -1,29 +1,43 @@
-import numpy as np
+import math
 
-P = 1.0  # watt
-T0 = 300.0  # K
-Tmelt = 1687.0  # K
-dT = Tmelt - T0
+def droplet_size(surface_tension, density, velocity):
+    """
+    Estimate droplet diameter from surface tension balance.
 
-materials = {
-    "Aluminum": 237.0,
-    "Tungsten": 1703.0
+    Parameters:
+    surface_tension (gamma): N/m
+    density (rho): kg/m^3
+    velocity (v): m/s
+
+    Returns:
+    droplet diameter in meters
+    """
+    d = surface_tension / (density * velocity**2)
+    return d
+
+
+# Example fuels at STP-ish conditions
+
+fuels = {
+    "RP-1 (kerosene)": {
+        "gamma": 0.025,   # N/m
+        "rho": 800        # kg/m^3
+    },
+    "Water (reference)": {
+        "gamma": 0.072,
+        "rho": 1000
+    },
+    "Liquid oxygen": {
+        "gamma": 0.013,
+        "rho": 1140
+    }
 }
 
-def L_critical(k):
-    return P / (k * dT)
+# injector velocities (typical ranges)
+velocities = [20, 50, 100]  # m/s
 
-sizes = np.logspace(-8, -4, 200)  # 10 nm to 100 µm
-
-for name, k in materials.items():
-    Lcrit = L_critical(k)
-    print(f"{name}: L_crit ≈ {Lcrit*1e6:.2f} µm")
-
-    temps = T0 + P / (k * sizes)
-
-    # find where melting is exceeded
-    idx = np.where(temps >= Tmelt)[0]
-    if len(idx) > 0:
-        print(f"{name}: melts below ~{sizes[idx[0]]*1e6:.2f} µm cube size")
-    else:
-        print(f"{name}: no melting in range")
+for fuel, props in fuels.items():
+    print(f"\n{fuel}")
+    for v in velocities:
+        d = droplet_size(props["gamma"], props["rho"], v)
+        print(f"  v = {v:3d} m/s -> d = {d*1e6:.2f} µm")
