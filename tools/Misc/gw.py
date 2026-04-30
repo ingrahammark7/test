@@ -3,61 +3,86 @@ import matplotlib.pyplot as plt
 
 # -----------------------------
 # Node sizes (meters)
-# 1 µm → 10 nm
 # -----------------------------
-nodes = np.logspace(-6, -8, 100)
+nodes = np.logspace(-6, -8, 150)  # 1 µm → 10 nm
 
 # -----------------------------
-# Material parameters (relative units)
-# These are NOT real resistivities,
-# just normalized comparison factors.
+# MATERIAL / PROCESS LAYERS
+# -----------------------------
+
+# 1) transistor switching delay
+# scales roughly with capacitance + drive strength improvements
+def transistor_delay(node):
+    # improves with scaling, but saturates
+    return 1e-12 * (node / 1e-6) ** 0.6
+
+
+# 2) contact delay (silicide vs metal contact)
+def contact_delay(node, rho=1.0):
+    # resistance increases as area shrinks
+    return rho / node * 1e-13
+
+
+# 3) interconnect delay (dominant scaling bottleneck)
+def interconnect_delay(node):
+    # RC + wire length penalty grows sharply
+    return (1 / node**1.5) * 5e-13
+
+
+# 4) memory latency (effectively independent of node scaling)
+def memory_delay():
+    # DRAM + hierarchy bottleneck (fixed physics + architecture)
+    return 8e-8  # ~80 ns typical DRAM latency
+
+
+# -----------------------------
+# MATERIAL variants (contact layer)
 # -----------------------------
 materials = {
-    "Al (Aluminum contact)": 2.8,
-    "TiSi2 (Titanium silicide)": 1.0,
-    "NiSi (Nickel silicide)": 0.7
+    "Al contact": 2.5,
+    "TiSi2 contact": 1.0,
+    "NiSi contact": 0.7
 }
 
 # -----------------------------
-# Scaling model:
-# We assume:
-#   - contact area ~ node^2
-#   - interconnect/fringe penalty ~ 1/node
-# So effective delay scales ~ rho * (1/node)
+# Compute total system latency
 # -----------------------------
-def delay(rho, node):
-    return rho / node
+def total_latency(node, rho):
+    return (
+        transistor_delay(node) +
+        contact_delay(node, rho) +
+        interconnect_delay(node) +
+        memory_delay()
+    )
 
 # -----------------------------
-# Compute curves
+# Plot results
 # -----------------------------
-plt.figure(figsize=(8,5))
+plt.figure(figsize=(10,6))
 
 for name, rho in materials.items():
-    delays = delay(rho, nodes)
-    plt.loglog(nodes * 1e9, delays, label=name)
+    total = total_latency(nodes, rho)
+    plt.loglog(nodes * 1e9, total, label=name)
 
 # -----------------------------
-# Plot formatting
+# Add component reference curves
 # -----------------------------
+plt.loglog(nodes * 1e9, interconnect_delay(nodes), '--', label="Interconnect (dominant trend)")
+plt.loglog(nodes * 1e9, [memory_delay()]*len(nodes), '--', label="Memory latency floor")
+
 plt.xlabel("Feature size (nm)")
-plt.ylabel("Relative delay (arbitrary units)")
-plt.title("Scaling limit model: contact/interconnect delay vs node size")
+plt.ylabel("Latency (seconds, log scale)")
+plt.title("Full-chip scaling model: transistor + contact + interconnect + memory")
 plt.legend()
 plt.grid(True, which="both", ls="--", alpha=0.3)
 
 plt.show()
 
+
 # -----------------------------
-# Find crossover points
+# Find where memory dominates
 # -----------------------------
-al = delay(materials["Al (Aluminum contact)"], nodes)
-nisi = delay(materials["NiSi (Nickel silicide)"], nodes)
-
-ratio = al / nisi
-
-# first point where Al is >2× worse than NiSi
-idx = np.argmax(ratio > 2)
-
-print("Node where Al becomes >2× worse than NiSi (nm):",
-      nodes[idx] * 1e9)
+for name, rho in materials.items():
+    total = total_latency(nodes, rho)
+    idx = np.argmax(total > memory_delay())
+    print(f"{name}: memory dominates below ~{nodes[idx]*1e9:.1f} nm")
