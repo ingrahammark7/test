@@ -1,104 +1,107 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 # -----------------------------
-# Node sizes (silicon scaling axis)
-# -----------------------------
-nodes = np.logspace(-6, -8, 150)  # 1 µm → 10 nm
-
-# -----------------------------
-# 1. Intra-die logic delay
-# -----------------------------
-def transistor_delay(node):
-    return 1e-12 * (node / 1e-6) ** 0.6
-
-def contact_delay(node, rho=1.0):
-    return rho / node * 1e-13
-
-def interconnect_delay(node):
-    return (1 / node**1.5) * 5e-13
-
-def die_compute_delay(node, rho):
-    return (
-        transistor_delay(node) +
-        contact_delay(node, rho) +
-        interconnect_delay(node)
-    )
-
-# -----------------------------
-# 2. Chiplet interconnect (package scale)
-# -----------------------------
-def chiplet_delay():
-    # die-to-die communication on substrate (organic interposer / silicon interposer)
-    # much slower than on-die wiring
-    return 2e-10  # ~200 ps baseline (simplified)
-
-# -----------------------------
-# 3. 3D stacking (TSV / hybrid bonding)
-# -----------------------------
-def stack_delay():
-    # vertical communication between stacked dies
-    # better than chiplet, worse than on-die
-    return 5e-11  # ~50 ps
-
-# -----------------------------
-# 4. Memory hierarchy
-# -----------------------------
-def l2_l3_cache_delay():
-    return 1e-8  # ~10 ns
-
-def dram_delay():
-    return 8e-8  # ~80 ns
-
-# -----------------------------
-# Total system latency models
+# BASIC MODEL PARAMETERS
 # -----------------------------
 
-materials = {
-    "Al contact": 2.5,
-    "TiSi2 contact": 1.0,
-    "NiSi contact": 0.7
-}
+# compute cost per operation (seconds)
+compute_latency = 1e-10  # 100 ps per op (abstract core)
 
-def full_system_latency(node, rho):
-    return (
-        die_compute_delay(node, rho) +
-        chiplet_delay() +
-        stack_delay() +
-        l2_l3_cache_delay() +
-        dram_delay()
-    )
+# energy per operation (joules)
+energy_per_op = 1e-12
 
-# -----------------------------
-# Plot
-# -----------------------------
-plt.figure(figsize=(10,6))
+# bandwidth limits (bits/sec)
+B_chiplet = 1e12   # on-package
+B_3d = 5e12        # vertical stack
+B_dram = 2e11      # off-chip memory
 
-for name, rho in materials.items():
-    y = full_system_latency(nodes, rho)
-    plt.loglog(nodes * 1e9, y, label=name)
-
-# reference floors
-plt.loglog(nodes * 1e9, [dram_delay()]*len(nodes), '--', label="DRAM latency floor")
-plt.loglog(nodes * 1e9, [l2_l3_cache_delay()]*len(nodes), '--', label="Cache hierarchy")
-
-plt.xlabel("Feature size (nm)")
-plt.ylabel("System latency (seconds, log scale)")
-plt.title("Chiplet + 3D stacking full-system latency model")
-plt.legend()
-plt.grid(True, which="both", ls="--", alpha=0.3)
-
-plt.show()
+# energy per bit moved
+E_bit_chiplet = 1e-15
+E_bit_3d = 5e-16
+E_bit_dram = 1e-14
 
 # -----------------------------
-# Dominance analysis
+# COMPUTE GRAPH STRUCTURE
 # -----------------------------
-for name, rho in materials.items():
-    y = full_system_latency(nodes, rho)
 
-    idx_cache = np.argmax(y > l2_l3_cache_delay())
-    idx_dram = np.argmax(y > dram_delay())
+# nodes: (compute units + memory hierarchy)
+nodes = [
+    "core_A",
+    "core_B",
+    "chiplet_link",
+    "stack_link",
+    "L3_cache",
+    "DRAM"
+]
 
-    print(f"{name}:")
-    print(f"  exceeds cache latency below ~{nodes[idx_cache]*1e9:.1f} nm")
-    print(f"  exceeds DRAM latency below ~{nodes[idx_dram]*1e9:.1f} nm\n")
+# edges: (src, dst, data_bits, link_type)
+edges = [
+    ("core_A", "L3_cache", 1e6, "on_die"),
+    ("L3_cache", "core_B", 1e6, "on_die"),
+    ("core_A", "chiplet_link", 5e6, "chiplet"),
+    ("chiplet_link", "core_B", 5e6, "chiplet"),
+    ("core_A", "stack_link", 1e6, "3d"),
+    ("stack_link", "core_B", 1e6, "3d"),
+    ("core_A", "DRAM", 1e7, "dram"),
+]
+
+# -----------------------------
+# LINK COST MODELS
+# -----------------------------
+
+def link_latency(bits, link_type):
+    if link_type == "chiplet":
+        return bits / B_chiplet
+    elif link_type == "3d":
+        return bits / B_3d
+    elif link_type == "dram":
+        return bits / B_dram
+    else:  # on-die cache
+        return bits / 1e13  # very fast internal bandwidth
+
+def link_energy(bits, link_type):
+    if link_type == "chiplet":
+        return bits * E_bit_chiplet
+    elif link_type == "3d":
+        return bits * E_bit_3d
+    elif link_type == "dram":
+        return bits * E_bit_dram
+    else:
+        return bits * 1e-16
+
+# -----------------------------
+# GRAPH EXECUTION MODEL
+# -----------------------------
+
+def simulate_graph(edges):
+    total_latency = 0
+    total_energy = 0
+
+    for (src, dst, bits, link_type) in edges:
+
+        # communication cost
+        comm_latency = link_latency(bits, link_type)
+        comm_energy = link_energy(bits, link_type)
+
+        # compute cost (assume every transfer triggers compute)
+        comp_latency = compute_latency
+        comp_energy = energy_per_op
+
+        total_latency += comm_latency + comp_latency
+        total_energy += comm_energy + comp_energy
+
+    return total_latency, total_energy
+
+# -----------------------------
+# RUN SIMULATION
+# -----------------------------
+
+lat, energy = simulate_graph(edges)
+
+print("TOTAL SYSTEM LATENCY (s):", lat)
+print("TOTAL SYSTEM ENERGY (J):", energy)
+
+# normalize intuition metrics
+print("\n--- Derived metrics ---")
+print("Energy per second of execution:", energy / lat)
+print("Effective throughput (ops/sec approx):", 1 / compute_latency)
