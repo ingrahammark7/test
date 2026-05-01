@@ -25,14 +25,36 @@ tt=273
 vt=((3*bm*tt)/almm)**.5
 tik=alm/vt
 ue=(ev*tik)/evm
+rat=c/vt
+rat**=(1/2)
+te=r/rat
+print(te*1e9,"nanoseconds damped surface delay")
 print(ue,"ideal electron mobility m2/vs")
-avta=.01
+avta=.0012
 print("actual aluminum mobikity",avta)
 cro=c/ald
-all=(ald*ald)*cro
-ue/=all
-avta/=all
+ar=ald*ald
+fall=(ar)*cro
+ue/=fall
+avta/=fall
 phi=(1+5**.5)/2
 print(ue,avta,"in units of atom crossing rate")
 ue**=(1/3)
 print(ue/138/phi,"normed")
+lins=avta/ald
+alcc=1.81e29
+neu=alcc*ev*avta
+neu=1/neu
+corr=12.6
+neu*=corr
+print(neu,"resistivity of standard aluminum ohm m")
+rel=r/21
+print(rel*1e6,"microseconds relaxation aluminun")
+perm=8.854e-12
+diel=10
+cap=diel*perm*ar
+cap/=ald
+res=neu*(ald/ar)
+to=res*cap
+print(to,"rc time constant one atom")
+
