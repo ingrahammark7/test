@@ -5,7 +5,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Frame, Table,TableStyle
 
-footer_text = "Petition for Review" 
+footer_text = "Reply to OSC" 
 
 def create_pdf(output_filename):
     # Create a PDF document
@@ -68,9 +68,9 @@ def create_pdf(output_filename):
 
     # (3) Court Title
     c.setFont("Times-Bold", 14)
-    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
-#    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
-#    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
+#    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA SUPREME COURT")
+    c.drawCentredString(width / 2, top_margin - 3.33 * inch, "CALIFORNIA COURT OF APPEALS")
+    c.drawCentredString(width / 2, top_margin - 3.66 * inch, "SECOND DISTRICT")
  
 
     # (4) Case Title
@@ -81,7 +81,7 @@ def create_pdf(output_filename):
         "vs",
         "Los Angeles Superior Court,",
         "Respondent,",
-        "Los Angeles Superior Court",
+        "Jose Gonzalez",
         "Real Party In Interest.",        
         
     ]
@@ -98,10 +98,10 @@ def create_pdf(output_filename):
     # (5) Case Number
     c.setFont("Times-Bold", 12)
     space=width / 2 + 1 * inch
-    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 26STCP00202")
+    c.drawString(space, top_margin - 4* inch, "Superior Court Case Number: 25STRO6765")
     # (6) Nature of the Paper (moved slightly lower)
     c.setFont("Times-Bold", 12)
-    c.drawString(space, top_margin - 4.25* inch, " Case Number: B353648")
+    c.drawString(space, top_margin - 4.25* inch, " Case Number: B350852")
     c.setFont("Times-Bold", 12)
     c.drawString(space, top_margin - 4.5* inch, "")
 
@@ -117,7 +117,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "Judge requested to go to jail, per their own order. Petitioner petitions Court to: /n 1. Arrest judge. /n 2. Comply with federal law and notify ICE to deport your illegal immigrant judges back to Mexico. /n" 
+    intro_text = "I repeatedly asked court to ban me. Court never reads anything I file.  /n" 
     tabe=[["Document","Page"],["Pleading","3"],["Appeal","4"],["Judgment","5"],["Order","7"],["Service of Notice of Entry","8"],["Register","9"]]
     table=Table(tabe)
     style = TableStyle([
