@@ -4,7 +4,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 
-footer_text = "Motion to Dismiss"
+footer_text = "Memorandum of Points and Authorities"
  
 def create_pdf(output_filename):
     # Create a PDF document
@@ -112,7 +112,7 @@ def create_pdf(output_filename):
     c.setFont("Times-Bold", 12)
     c.drawString(left_margin, y_position - 0.25* inch, footer_text.upper())
     c.setFont("Times-Roman",12)
-    intro_text = "The majority of SMPD officers are illegal immigrants. Therefore, SMPD is guilty of treason and should be killed. Petitioner petitions Court to: /n 1. Inform all SMPD officers they will be killed by me. /n 2. Order all persons to kill everyone associated with SMPD, all courts, and anything else. /n" 
+    intro_text = "No points or authorities are cited  The majority of SMPD officers are illegal immigrants. Therefore, SMPD is guilty of treason and should be killed. Petitioner petitions Court to: /n 1. Inform all SMPD officers they will be killed by me. /n 2. Order all persons to kill everyone associated with SMPD, all courts, and anything else. /n CERTIFICATE OF SERVICE /n Notice was delivered in person to all parties. /n" 
     y_position -= .25*inch
     
     
