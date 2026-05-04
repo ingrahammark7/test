@@ -37,7 +37,8 @@ conc=1e3
 pp=pr/fobm/sh
 pp*=tih
 print("heat c per relax",pp)
-print("at focus",conc,"heat",pp)
+ppl=conc*pp
+print("at focus",conc,"heat",ppl)
 to=273
 ln2=math.log(2)
 kbt=bc*to*ln2
@@ -54,3 +55,16 @@ print("radio hvl km",alrhvl/1e3)
 lo=(gap/alrhvl)*lj
 print(lo*1e3,"actual milliwats loss")
 print(lo/pr,"share of losses to actual power")
+ald=.2e-9
+alm=4.5e-26
+vth=((3*bc*ppl)/alm)**.5
+ags=1
+powr=(2/ags)+1
+ipo=1/powr
+cr=vth*ald
+pt=(ip**3)*cr
+print("time to aggregate seconds",pt)
+ro=pt/tih
+print("uses before agg",ro)
+userdpay=10
+print("days to fail",ro/userdpay,"at purity 1 per",ip)
