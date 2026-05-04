@@ -1,70 +1,116 @@
-import math
+import numpy as np
 
-rpow=2
-gap=.01
-wv=.001
-dt=(wv/(4*math.pi*gap))**2
-pr=dt*rpow
-print(pr*1000,"milliwats received by fob")
-fobn=1e-6
-lay=10
-space=10
-fobt=fobn*lay*space
-fobw=.004
-fobs=fobw**2
-fobv=fobt*fobs
-de=2700
-fobm=fobv*de
-print("fob chip mass milligrams",fobm*1e6)
-ht=5
-fair=ht*fobs
-sh=900
-mel=600
-hc=sh*fobm
-tih=hc/fair
-print(tih*1e3,"millseconds fob relax")
-pur=1e-4
-ip=1/pur
-alm=27
-av=6e26
-ac=fobm/alm
-ac*=av
-print("fob atoms",ac)
-ac1=ac**(1/3)
-print("fob side",ac1)
-bc=1.38e-23
-conc=1e3
-pp=pr/fobm/sh
-pp*=tih
-print("heat c per relax",pp)
-ppl=conc*pp
-print("at focus",conc,"heat",ppl)
-to=273
-ln2=math.log(2)
-kbt=bc*to*ln2
-avm=((gap**3)*de)*av
-print("number of atoms obstructing fob",avm)
-lj=kbt*avm
-print("loss j",lj)
-alxhvl=.003
-xf=1e17
-rf=1e9
-ra=xf/rf
-alrhvl=ra*alxhvl
-print("radio hvl km",alrhvl/1e3)
-lo=(gap/alrhvl)*lj
-print(lo*1e3,"actual milliwats loss")
-print(lo/pr,"share of losses to actual power")
-ald=.2e-9
-alm=4.5e-26
-vth=((3*bc*ppl)/alm)**.5
-ags=1
-powr=(2/ags)+1
-ipo=1/powr
-cr=ald/vth
-pt=(ip**3)*cr
-print("time to aggregate seconds",pt)
-ro=pt/tih
-print("uses before agg",ro)
-userdpay=10
-print("days to fail",ro/userdpay,"at purity 1 per",ip)
+k_B = 1.380649e-23  # Boltzmann constant
+
+# ----------------------------
+# Physical environment model
+# ----------------------------
+def thermal_noise(bandwidth, temperature=300):
+    """Thermal noise power (W)"""
+    return k_B * temperature * bandwidth
+
+
+def snr(received_power, bandwidth, temperature=300):
+    noise = thermal_noise(bandwidth, temperature)
+    return received_power / noise
+
+
+def shannon_capacity(bandwidth, snr_value):
+    """bits/sec"""
+    return bandwidth * np.log2(1 + snr_value)
+
+
+# ----------------------------
+# EM propagation model
+# ----------------------------
+def received_power_fspl(pt, wavelength, distance):
+    """
+    Free-space path loss model (simplified)
+    pt: transmit power (W)
+    wavelength: meters
+    distance: meters
+    """
+    if distance == 0:
+        return pt
+    return pt * (wavelength / (4 * np.pi * distance))**2
+
+
+# ----------------------------
+# Node switching model
+# ----------------------------
+def node_switch_probability(v_rf, v_th, noise_sigma=0.1):
+    """
+    Soft switching probability (logistic-like diode behavior)
+    """
+    x = (v_rf - v_th) / noise_sigma
+    return 1 / (1 + np.exp(-x))
+
+
+# ----------------------------
+# Geometry scaling model
+# ----------------------------
+def node_density_limit(wavelength, coupling_factor=0.1):
+    """
+    Estimate max node density before EM cross-talk dominates.
+    """
+    # heuristic: nodes must be spaced > fraction of wavelength
+    min_spacing = coupling_factor * wavelength
+    return 1 / (min_spacing**3)  # nodes per m^3
+
+
+# ----------------------------
+# System evaluator
+# ----------------------------
+def evaluate_system(
+    pt=1e-3,           # transmit power (W)
+    freq=2.4e9,        # Hz
+    distance=0.1,      # m
+    bandwidth=1e6,     # Hz
+    v_th=0.2           # switching threshold (V proxy)
+):
+    c = 3e8
+    wavelength = c / freq
+
+    pr = received_power_fspl(pt, wavelength, distance)
+    snr_val = snr(pr, bandwidth)
+
+    capacity = shannon_capacity(bandwidth, snr_val)
+
+    density = node_density_limit(wavelength)
+
+    # crude RF voltage proxy
+    v_rf = np.sqrt(pr * 50)  # assume 50 ohm system
+
+    switch_p = node_switch_probability(v_rf, v_th)
+
+    return {
+        "wavelength_m": wavelength,
+        "received_power_w": pr,
+        "snr": snr_val,
+        "capacity_bits_s": capacity,
+        "node_density_per_m3": density,
+        "rf_voltage_proxy": v_rf,
+        "switch_probability": switch_p
+    }
+
+
+# ----------------------------
+# Sweep example
+# ----------------------------
+def sweep_distance():
+    results = []
+    for d in np.logspace(-3, 1, 20):
+        r = evaluate_system(distance=d)
+        results.append((d, r["capacity_bits_s"], r["switch_probability"]))
+    return results
+
+
+if __name__ == "__main__":
+    res = evaluate_system()
+    print("SYSTEM EVALUATION:")
+    for k, v in res.items():
+        print(f"{k}: {v:.6e}" if isinstance(v, float) else f"{k}: {v}")
+
+    print("\nDistance sweep (distance, capacity, switch_prob):")
+    for row in sweep_distance():
+        print(row)
