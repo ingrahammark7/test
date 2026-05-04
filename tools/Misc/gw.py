@@ -10,9 +10,11 @@ fobn=1e-6
 lay=10
 space=10
 fobt=fobn*lay*space
-fobs=.004**2
+fobw=.004
+fobs=fobw**2
 fobv=fobt*fobs
-fobm=fobv*2700
+de=2700
+fobm=fobv*de
 print("fob chip mass milligrams",fobm*1e6)
 ht=5
 fair=ht*fobs
@@ -39,3 +41,16 @@ print("at focus",conc,"heat",pp)
 to=273
 ln2=math.log(2)
 kbt=bc*to*ln2
+avm=((gap**3)*de)*av
+print("number of atoms obstructing fob",avm)
+lj=kbt*avm
+print("loss j",lj)
+alxhvl=.003
+xf=1e17
+rf=1e9
+ra=xf/rf
+alrhvl=ra*alxhvl
+print("radio hvl km",alrhvl/1e3)
+lo=(gap/alrhvl)*lj
+print(lo*1e3,"actual milliwats loss")
+print(lo/pr,"share of losses to actual power")
