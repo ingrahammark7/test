@@ -61,7 +61,7 @@ vth=((3*bc*ppl)/alm)**.5
 ags=1
 powr=(2/ags)+1
 ipo=1/powr
-cr=vth*ald
+cr=ald/vth
 pt=(ip**3)*cr
 print("time to aggregate seconds",pt)
 ro=pt/tih
