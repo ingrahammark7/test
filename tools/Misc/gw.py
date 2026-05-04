@@ -1,96 +1,84 @@
 import numpy as np
 
 # -----------------------------
-# Physical constants
+# Constants
 # -----------------------------
-k_B = 1.380649e-23      # J/K
-T = 300                 # Kelvin (room temp)
-ln2 = np.log(2)
-
-# Landauer limit per bit
-E_landauer = k_B * T * ln2
+mu0 = 4*np.pi*1e-7
 
 # -----------------------------
-# System parameters
+# Reader + coupling model
+# -----------------------------
+reader_power = 1.0          # W (typical upper bound)
+coupling_efficiency = 0.01   # 1% (strong but realistic near-field coupling)
+
+P_tag_available = reader_power * coupling_efficiency  # W delivered to tag
+
+# -----------------------------
+# Tag electrical model
+# -----------------------------
+R_load = 20.0               # ohm (effective rectifier + logic load)
+
+# antenna geometry (for current density estimate)
+trace_width = 10e-6         # 10 µm
+trace_thickness = 0.5e-6
+A_cross = trace_width * trace_thickness
+
+# -----------------------------
+# Derived electrical quantities
 # -----------------------------
 
-# Bit operations
-bits = 20_000_000       # 20 million operations
+# Power-limited current (THIS replaces invalid EM induction formula)
+I_rms = np.sqrt(P_tag_available / R_load)
 
-# RF link parameters (toy model)
-distance = 0.01         # 1 cm
-attenuation_db_per_cm = 2.0   # very lossy plastic-like medium
-tx_power = 1e-3         # 1 mW reader transmit power
+V_rms = I_rms * R_load
 
-# Convert dB loss to linear
-attenuation_db = attenuation_db_per_cm * distance * 100  # cm scaling correction
-attenuation_linear = 10 ** (-attenuation_db / 10)
+P_dissipated = I_rms**2 * R_load
 
-# Receiver efficiency
-rectifier_efficiency = 0.3
+# -----------------------------
+# Current density
+# -----------------------------
+J = I_rms / A_cross
 
+# Electromigration threshold (typical IC metal)
+J_em_threshold = 1e10  # A/m^2
+
+# -----------------------------
 # Thermal model
-mass = 1e-6             # 1 mg fob
-specific_heat = 900     # J/kgK for plastic-ish mix
-thermal_capacity = mass * specific_heat
-
-thermal_conductance = 1e-3  # W/K (weak coupling to environment)
-
-# simulation time
-dt = 1e-6
-steps = 200000
-
 # -----------------------------
-# Initial conditions
-# -----------------------------
+mass = 1e-6         # 1 mg fob scale (includes package, not just chip)
+c = 900
+C_th = mass * c
+
+h = 10              # W/m^2K (air + weak convection)
+A_surface = 1e-4    # m^2 small device
+
 T_env = 300
-T_obj = 300
+T = 300
 
-energy_accumulated = 0
-
-# -----------------------------
-# Derived energies
-# -----------------------------
-
-# Landauer energy for full computation
-E_landauer_total = bits * E_landauer
-
-# RF received power
-P_received = tx_power * attenuation_linear * rectifier_efficiency
+# steady-state temperature rise
+T_rise = P_dissipated / (h * A_surface)
 
 # -----------------------------
-# Time evolution
+# Time evolution (optional transient)
 # -----------------------------
+dt = 1e-4
+steps = 50000
+
 temps = []
-time = []
 
 for i in range(steps):
-
-    t = i * dt
-
-    # RF energy deposited this step
-    E_in = P_received * dt
-
-    # split into:
-    # - useful "computation energy floor"
-    # - heat
-    useful = min(E_in, E_landauer_total / steps)
-    heat = E_in - useful
-
-    # accumulate heat
-    energy_accumulated += heat
-
-    # thermal dynamics
-    dT = (heat / thermal_capacity) - (T_obj - T_env) * (thermal_conductance / thermal_capacity) * dt
-    T_obj += dT
-
-    temps.append(T_obj)
-    time.append(t)
+    dT = (P_dissipated / C_th - (T - T_env) * (h * A_surface / C_th)) * dt
+    T += dT
+    temps.append(T)
 
 # -----------------------------
-# Results
+# Output
 # -----------------------------
-print("Landauer energy total (J):", E_landauer_total)
-print("Received RF power (W):", P_received)
-print("Final temperature (K):", T_obj)
-print("Max temperature (K):", max(temps))
+print("=== RFID CONSTRAINED MODEL ===")
+print("Available tag power (W):", P_tag_available)
+print("RMS voltage (V):", V_rms)
+print("RMS current (A):", I_rms)
+print("Current density (A/m^2):", J)
+print("EM threshold ratio:", J / J_em_threshold)
+print("Steady-state temperature rise (K):", T_rise)
+print("Max transient temperature (K):", max(temps))
