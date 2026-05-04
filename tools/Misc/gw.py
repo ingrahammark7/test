@@ -1,104 +1,91 @@
-import sympy as sp
+import math
 
 # ----------------------------
-# Constants (fully defined)
+# Constants
 # ----------------------------
-k_B = 1.380649e-23      # Boltzmann constant
-T = 300                 # Kelvin (room temp)
-c = 3e8                 # speed of light
-pi = sp.pi
+k_B = 1.380649e-23     # J/K
+T = 300.0              # K
+c = 3e8                # m/s
+pi = math.pi
 
 # ----------------------------
-# Symbols
+# Input parameters (edit freely)
 # ----------------------------
-P_t, f, r, B, R, V_th = sp.symbols('P_t f r B R V_th', positive=True)
+P_t = 1e-3     # transmit power (W)
+f = 2.4e9      # frequency (Hz)
+r = 0.1        # distance (m)
+B = 1e6       # bandwidth (Hz)
+R = 50.0      # ohm system
+V_th = 0.2    # switching threshold (V)
 
 # ----------------------------
-# 1. Thermal noise (closed form)
+# 1. Thermal noise
 # ----------------------------
 N = k_B * T * B
-N_eval = sp.N(N)
 
 # ----------------------------
-# 2. Received power (free space)
+# 2. Wavelength
 # ----------------------------
-P_r = P_t * (c / (4 * pi * f * r))**2
-P_r_simplified = sp.simplify(P_r)
-
-# ----------------------------
-# 3. SNR closed form
-# ----------------------------
-SNR = P_r / (k_B * T * B)
-SNR_simplified = sp.simplify(SNR)
+wavelength = c / f
 
 # ----------------------------
-# 4. Shannon capacity
+# 3. Received power (free-space)
+# P_r = P_t * (λ / (4πr))^2
 # ----------------------------
-C = B * sp.log(1 + SNR, 2)
-C_simplified = sp.simplify(C)
-
-# ----------------------------
-# 5. Switching condition (diode-like node)
-# V_rf = sqrt(P_r * R)
-# ----------------------------
-V_rf = sp.sqrt(P_r * R)
-switch_condition = sp.Eq(V_rf, V_th)
-
-# Solve for max distance r
-r_max = sp.solve(switch_condition, r)[0]
-r_max_simplified = sp.simplify(r_max)
+P_r = P_t * (wavelength / (4 * pi * r))**2
 
 # ----------------------------
-# 6. Node density limit
-# spacing ~ λ/10, λ = c/f
+# 4. SNR
 # ----------------------------
-d_min = c / (10 * f)
-rho_max = 1 / d_min**3
-rho_simplified = sp.simplify(rho_max)
+SNR = P_r / N
 
 # ----------------------------
-# Human-readable printing
+# 5. Shannon capacity
+# C = B log2(1 + SNR)
 # ----------------------------
-def print_results():
-    print("\n--- THERMAL NOISE ---")
-    print("N = kTB =", N_eval, "watts per Hz")
-
-    print("\n--- RECEIVED POWER ---")
-    print("P_r =", P_r_simplified)
-
-    print("\n--- SNR ---")
-    print("SNR =", SNR_simplified)
-
-    print("\n--- SHANNON CAPACITY ---")
-    print("C =", C_simplified)
-
-    print("\n--- MAX SWITCHING DISTANCE ---")
-    print("r_max =", r_max_simplified)
-
-    print("\n--- NODE DENSITY LIMIT ---")
-    print("rho_max =", rho_simplified)
+C = B * math.log2(1 + SNR)
 
 # ----------------------------
-# Optional: numeric example
+# 6. RF voltage proxy
+# V = sqrt(P_r * R)
 # ----------------------------
-def example():
-    values = {
-        P_t: 1e-3,   # 1 mW
-        f: 2.4e9,    # WiFi band
-        r: 0.1,      # 10 cm
-        B: 1e6,      # 1 MHz
-        R: 50,       # ohm system
-        V_th: 0.2    # threshold
-    }
+V_rf = math.sqrt(P_r * R)
 
-    print("\n--- NUMERIC EXAMPLE ---")
+# ----------------------------
+# 7. Switching probability (soft diode model)
+# logistic approximation
+# ----------------------------
+noise_sigma = 0.1
+switch_prob = 1 / (1 + math.exp(-(V_rf - V_th) / noise_sigma))
 
-    print("SNR =", float(SNR.subs(values)))
-    print("Capacity (bits/s) =", float(C.subs(values)))
-    print("r_max (m) =", float(r_max.subs(values)))
-    print("Node density (1/m^3) =", float(rho_max.subs(values)))
+# ----------------------------
+# 8. Max switching distance (solve closed form)
+# r_max = (c / (4πf)) * sqrt(P_t * R / V_th^2)
+# ----------------------------
+r_max = (c / (4 * pi * f)) * math.sqrt(P_t * R / (V_th ** 2))
 
+# ----------------------------
+# 9. Node density limit
+# rho_max = (10f / c)^3
+# ----------------------------
+rho_max = (10 * f / c) ** 3
 
-if __name__ == "__main__":
-    print_results()
-    example()
+# ----------------------------
+# PRINT RESULTS
+# ----------------------------
+print("\n--- FULLY EVALUATED RF COMPUTATION LIMITS ---\n")
+
+print("Thermal noise N (W):", N)
+print("Wavelength (m):", wavelength)
+
+print("Received power P_r (W):", P_r)
+print("SNR:", SNR)
+
+print("Capacity C (bits/s):", C)
+
+print("RF voltage proxy (V):", V_rf)
+print("Switch probability:", switch_prob)
+
+print("Max switching distance r_max (m):", r_max)
+
+print("Node density limit (nodes/m^3):", rho_max)
