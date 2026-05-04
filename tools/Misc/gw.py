@@ -1,91 +1,45 @@
 import math
 
 # ----------------------------
-# Constants
+# constants
 # ----------------------------
-k_B = 1.380649e-23     # J/K
-T = 300.0              # K
-c = 3e8                # m/s
+c = 3e8
 pi = math.pi
 
 # ----------------------------
-# Input parameters (edit freely)
+# parameters
 # ----------------------------
-P_t = 1e-3     # transmit power (W)
-f = 2.4e9      # frequency (Hz)
-r = 0.1        # distance (m)
-B = 1e6       # bandwidth (Hz)
-R = 50.0      # ohm system
-V_th = 0.2    # switching threshold (V)
+f = 2.4e9        # Hz
+B = 1e6          # Hz
+
+# realistic spectral efficiency in dense RF interference
+eta_rf = 3.0     # bits/s/Hz (collapsed from ideal Shannon)
+
+# conventional compute density (silicon-scale order)
+C_conv_density = 1e14  # bits/s/m^3
 
 # ----------------------------
-# 1. Thermal noise
+# 1. EM mode density (interference-limited)
+# rho = (2f/c)^3
 # ----------------------------
-N = k_B * T * B
+rho_modes = (2 * f / c) ** 3
 
 # ----------------------------
-# 2. Wavelength
+# 2. RF computation density
 # ----------------------------
-wavelength = c / f
+C_rf_density = rho_modes * B * eta_rf
 
 # ----------------------------
-# 3. Received power (free-space)
-# P_r = P_t * (λ / (4πr))^2
+# 3. ratio
 # ----------------------------
-P_r = P_t * (wavelength / (4 * pi * r))**2
+ratio = C_rf_density / C_conv_density
 
 # ----------------------------
-# 4. SNR
+# output
 # ----------------------------
-SNR = P_r / N
+print("\n--- REALISTIC RF vs CONVENTIONAL COMPUTE DENSITY ---\n")
 
-# ----------------------------
-# 5. Shannon capacity
-# C = B log2(1 + SNR)
-# ----------------------------
-C = B * math.log2(1 + SNR)
-
-# ----------------------------
-# 6. RF voltage proxy
-# V = sqrt(P_r * R)
-# ----------------------------
-V_rf = math.sqrt(P_r * R)
-
-# ----------------------------
-# 7. Switching probability (soft diode model)
-# logistic approximation
-# ----------------------------
-noise_sigma = 0.1
-switch_prob = 1 / (1 + math.exp(-(V_rf - V_th) / noise_sigma))
-
-# ----------------------------
-# 8. Max switching distance (solve closed form)
-# r_max = (c / (4πf)) * sqrt(P_t * R / V_th^2)
-# ----------------------------
-r_max = (c / (4 * pi * f)) * math.sqrt(P_t * R / (V_th ** 2))
-
-# ----------------------------
-# 9. Node density limit
-# rho_max = (10f / c)^3
-# ----------------------------
-rho_max = (10 * f / c) ** 3
-
-# ----------------------------
-# PRINT RESULTS
-# ----------------------------
-print("\n--- FULLY EVALUATED RF COMPUTATION LIMITS ---\n")
-
-print("Thermal noise N (W):", N)
-print("Wavelength (m):", wavelength)
-
-print("Received power P_r (W):", P_r)
-print("SNR:", SNR)
-
-print("Capacity C (bits/s):", C)
-
-print("RF voltage proxy (V):", V_rf)
-print("Switch probability:", switch_prob)
-
-print("Max switching distance r_max (m):", r_max)
-
-print("Node density limit (nodes/m^3):", rho_max)
+print("Mode density (1/m^3):", rho_modes)
+print("RF compute density (bits/s/m^3):", C_rf_density)
+print("Conventional compute density (bits/s/m^3):", C_conv_density)
+print("RF / conventional ratio:", ratio)
