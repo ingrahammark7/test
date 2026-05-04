@@ -1,116 +1,104 @@
-import numpy as np
-
-k_B = 1.380649e-23  # Boltzmann constant
+import sympy as sp
 
 # ----------------------------
-# Physical environment model
+# Constants (fully defined)
 # ----------------------------
-def thermal_noise(bandwidth, temperature=300):
-    """Thermal noise power (W)"""
-    return k_B * temperature * bandwidth
-
-
-def snr(received_power, bandwidth, temperature=300):
-    noise = thermal_noise(bandwidth, temperature)
-    return received_power / noise
-
-
-def shannon_capacity(bandwidth, snr_value):
-    """bits/sec"""
-    return bandwidth * np.log2(1 + snr_value)
-
+k_B = 1.380649e-23      # Boltzmann constant
+T = 300                 # Kelvin (room temp)
+c = 3e8                 # speed of light
+pi = sp.pi
 
 # ----------------------------
-# EM propagation model
+# Symbols
 # ----------------------------
-def received_power_fspl(pt, wavelength, distance):
-    """
-    Free-space path loss model (simplified)
-    pt: transmit power (W)
-    wavelength: meters
-    distance: meters
-    """
-    if distance == 0:
-        return pt
-    return pt * (wavelength / (4 * np.pi * distance))**2
-
+P_t, f, r, B, R, V_th = sp.symbols('P_t f r B R V_th', positive=True)
 
 # ----------------------------
-# Node switching model
+# 1. Thermal noise (closed form)
 # ----------------------------
-def node_switch_probability(v_rf, v_th, noise_sigma=0.1):
-    """
-    Soft switching probability (logistic-like diode behavior)
-    """
-    x = (v_rf - v_th) / noise_sigma
-    return 1 / (1 + np.exp(-x))
-
+N = k_B * T * B
+N_eval = sp.N(N)
 
 # ----------------------------
-# Geometry scaling model
+# 2. Received power (free space)
 # ----------------------------
-def node_density_limit(wavelength, coupling_factor=0.1):
-    """
-    Estimate max node density before EM cross-talk dominates.
-    """
-    # heuristic: nodes must be spaced > fraction of wavelength
-    min_spacing = coupling_factor * wavelength
-    return 1 / (min_spacing**3)  # nodes per m^3
-
+P_r = P_t * (c / (4 * pi * f * r))**2
+P_r_simplified = sp.simplify(P_r)
 
 # ----------------------------
-# System evaluator
+# 3. SNR closed form
 # ----------------------------
-def evaluate_system(
-    pt=1e-3,           # transmit power (W)
-    freq=2.4e9,        # Hz
-    distance=0.1,      # m
-    bandwidth=1e6,     # Hz
-    v_th=0.2           # switching threshold (V proxy)
-):
-    c = 3e8
-    wavelength = c / freq
+SNR = P_r / (k_B * T * B)
+SNR_simplified = sp.simplify(SNR)
 
-    pr = received_power_fspl(pt, wavelength, distance)
-    snr_val = snr(pr, bandwidth)
+# ----------------------------
+# 4. Shannon capacity
+# ----------------------------
+C = B * sp.log(1 + SNR, 2)
+C_simplified = sp.simplify(C)
 
-    capacity = shannon_capacity(bandwidth, snr_val)
+# ----------------------------
+# 5. Switching condition (diode-like node)
+# V_rf = sqrt(P_r * R)
+# ----------------------------
+V_rf = sp.sqrt(P_r * R)
+switch_condition = sp.Eq(V_rf, V_th)
 
-    density = node_density_limit(wavelength)
+# Solve for max distance r
+r_max = sp.solve(switch_condition, r)[0]
+r_max_simplified = sp.simplify(r_max)
 
-    # crude RF voltage proxy
-    v_rf = np.sqrt(pr * 50)  # assume 50 ohm system
+# ----------------------------
+# 6. Node density limit
+# spacing ~ λ/10, λ = c/f
+# ----------------------------
+d_min = c / (10 * f)
+rho_max = 1 / d_min**3
+rho_simplified = sp.simplify(rho_max)
 
-    switch_p = node_switch_probability(v_rf, v_th)
+# ----------------------------
+# Human-readable printing
+# ----------------------------
+def print_results():
+    print("\n--- THERMAL NOISE ---")
+    print("N = kTB =", N_eval, "watts per Hz")
 
-    return {
-        "wavelength_m": wavelength,
-        "received_power_w": pr,
-        "snr": snr_val,
-        "capacity_bits_s": capacity,
-        "node_density_per_m3": density,
-        "rf_voltage_proxy": v_rf,
-        "switch_probability": switch_p
+    print("\n--- RECEIVED POWER ---")
+    print("P_r =", P_r_simplified)
+
+    print("\n--- SNR ---")
+    print("SNR =", SNR_simplified)
+
+    print("\n--- SHANNON CAPACITY ---")
+    print("C =", C_simplified)
+
+    print("\n--- MAX SWITCHING DISTANCE ---")
+    print("r_max =", r_max_simplified)
+
+    print("\n--- NODE DENSITY LIMIT ---")
+    print("rho_max =", rho_simplified)
+
+# ----------------------------
+# Optional: numeric example
+# ----------------------------
+def example():
+    values = {
+        P_t: 1e-3,   # 1 mW
+        f: 2.4e9,    # WiFi band
+        r: 0.1,      # 10 cm
+        B: 1e6,      # 1 MHz
+        R: 50,       # ohm system
+        V_th: 0.2    # threshold
     }
 
+    print("\n--- NUMERIC EXAMPLE ---")
 
-# ----------------------------
-# Sweep example
-# ----------------------------
-def sweep_distance():
-    results = []
-    for d in np.logspace(-3, 1, 20):
-        r = evaluate_system(distance=d)
-        results.append((d, r["capacity_bits_s"], r["switch_probability"]))
-    return results
+    print("SNR =", float(SNR.subs(values)))
+    print("Capacity (bits/s) =", float(C.subs(values)))
+    print("r_max (m) =", float(r_max.subs(values)))
+    print("Node density (1/m^3) =", float(rho_max.subs(values)))
 
 
 if __name__ == "__main__":
-    res = evaluate_system()
-    print("SYSTEM EVALUATION:")
-    for k, v in res.items():
-        print(f"{k}: {v:.6e}" if isinstance(v, float) else f"{k}: {v}")
-
-    print("\nDistance sweep (distance, capacity, switch_prob):")
-    for row in sweep_distance():
-        print(row)
+    print_results()
+    example()
