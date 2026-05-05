@@ -1,41 +1,36 @@
-import math
+import numpy as np
+import pandas as pd
 
-# ----------------------------
-# energy per operation (J/op)
-# ----------------------------
+data = [
+    ("F-14 Tomcat", 115, 33, 1),
+    ("F/A-18 Hornet", 120, 15, 1),
+    ("F-35C", 120, 17, 1),
+    ("Su-33", 115, 22, 1),
 
-# CMOS (modern digital logic)
-E_cmos = 1e-12
+    ("F-16", 125, 12, 0),
+    ("F-15", 130, 20, 0),
+    ("MiG-21", 145, 9, 0),
+    ("MiG-29", 120, 15, 0),
+    ("Su-27", 120, 22, 0),
 
-# RF system in mm-robust, low-precision regime
-E_rf_mm = 1e-9
+    ("Tu-95", 125, 188, 0),
+    ("Tu-22M", 135, 112, 0),
+]
 
-# ----------------------------
-# optional: power-normalized compute (same result ratio)
-# ----------------------------
+df = pd.DataFrame(data, columns=["aircraft", "stall_speed", "weight", "carrier"])
 
-# assume same power budget for comparison
-P = 1.0  # arbitrary normalization
+# Correlations
+corr_stall = df["stall_speed"].corr(df["carrier"])
+corr_weight = df["weight"].corr(df["carrier"])
 
-ops_cmos = P / E_cmos
-ops_rf = P / E_rf_mm
+# Linear regression (simple OLS)
+X = df[["stall_speed", "weight"]].values
+y = df["carrier"].values
 
-# ----------------------------
-# ratios
-# ----------------------------
-ratio_energy = E_rf_mm / E_cmos
-ratio_compute = ops_rf / ops_cmos
+X_design = np.column_stack([np.ones(len(X)), X])
+beta = np.linalg.lstsq(X_design, y, rcond=None)[0]
 
-# ----------------------------
-# output
-# ----------------------------
-print("\n--- MM-ROBUST RF vs CMOS COMPUTE ---\n")
-
-print("CMOS energy per op (J):", E_cmos)
-print("RF mm-robust energy per op (J):", E_rf_mm)
-
-print("\nCMOS ops per watt:", ops_cmos)
-print("RF ops per watt:", ops_rf)
-
-print("\nRF / CMOS energy per op ratio:", ratio_energy)
-print("RF / CMOS compute efficiency ratio:", ratio_compute)
+print(df)
+print("\nCorrelation (stall_speed vs carrier):", corr_stall)
+print("Correlation (weight vs carrier):", corr_weight)
+print("\nLinear model coefficients [bias, stall, weight]:", beta)
