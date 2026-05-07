@@ -1,36 +1,31 @@
 import numpy as np
-import pandas as pd
 
-data = [
-    ("F-14 Tomcat", 115, 33, 1),
-    ("F/A-18 Hornet", 120, 15, 1),
-    ("F-35C", 120, 17, 1),
-    ("Su-33", 115, 22, 1),
+# Vehicle mix assumptions (illustrative but realistic structure)
 
-    ("F-16", 125, 12, 0),
-    ("F-15", 130, 20, 0),
-    ("MiG-21", 145, 9, 0),
-    ("MiG-29", 120, 15, 0),
-    ("Su-27", 120, 22, 0),
+vehicle_mix = {
+    "full_size_trucks": {"units": 900_000, "avg_price": 68_000},
+    "large_suvs":       {"units": 700_000, "avg_price": 62_000},
+    "mid_suvs":         {"units": 650_000, "avg_price": 42_000},
+    "crossovers":       {"units": 300_000, "avg_price": 32_000},
+    "fleet_vehicles":   {"units": 150_000, "avg_price": 28_000},
+}
 
-    ("Tu-95", 125, 188, 0),
-    ("Tu-22M", 135, 112, 0),
-]
+reported_gmna = 157_000_000_000
 
-df = pd.DataFrame(data, columns=["aircraft", "stall_speed", "weight", "carrier"])
+total_revenue = 0
 
-# Correlations
-corr_stall = df["stall_speed"].corr(df["carrier"])
-corr_weight = df["weight"].corr(df["carrier"])
+print("Segment breakdown:\n")
 
-# Linear regression (simple OLS)
-X = df[["stall_speed", "weight"]].values
-y = df["carrier"].values
+for k, v in vehicle_mix.items():
+    segment_rev = v["units"] * v["avg_price"]
+    total_revenue += segment_rev
+    
+    print(f"{k}:")
+    print(f"  units = {v['units']:,}")
+    print(f"  avg price = ${v['avg_price']:,}")
+    print(f"  revenue = ${segment_rev:,.0f}\n")
 
-X_design = np.column_stack([np.ones(len(X)), X])
-beta = np.linalg.lstsq(X_design, y, rcond=None)[0]
-
-print(df)
-print("\nCorrelation (stall_speed vs carrier):", corr_stall)
-print("Correlation (weight vs carrier):", corr_weight)
-print("\nLinear model coefficients [bias, stall, weight]:", beta)
+print("TOTAL MODELED GMNA:", f"${total_revenue:,.0f}")
+print("REPORTED GMNA:", f"${reported_gmna:,.0f}")
+print("DIFFERENCE:", f"${reported_gmna - total_revenue:,.0f}")
+print("RATIO:", reported_gmna / total_revenue)
